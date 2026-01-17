@@ -1,0 +1,174 @@
+
+module type STATE  =
+  sig
+    exception Error of
+      ((string)(* Author: Carsten Schuermann *)(* State definition for Proof Search *))
+      
+    type __State =
+      | State of (Tomega.__Worlds * Tomegas.__Dec IntSyn.__Ctx * Tomega.__Prg
+      * Tomega.__For) 
+      | StateLF of IntSyn.__Exp 
+    type __Focus =
+      | Focus of (Tomega.__Prg * Tomega.__Worlds) 
+      | FocusLF of ((IntSyn.__Exp)(* Focus (EVar, W) *)) 
+    val init :
+      (Tomega.__For * Tomega.__Worlds) ->
+        ((__State)(* focus EVar *))
+    val close : __State -> bool
+    val collectT : Tomega.__Prg -> Tomega.__Prg list
+    val collectLF : Tomega.__Prg -> IntSyn.__Exp list
+    val collectLFSub : Tomega.__Sub -> IntSyn.__Exp list
+  end;;
+
+
+
+
+module State(State:sig
+                     module Formatter :
+                     ((FORMATTER)(* State definition for Proof Search *)
+                     (* Author: Carsten Schuermann *))
+                   end) : STATE =
+  struct
+    module Formatter =
+      ((Formatter)(*! structure IntSyn = IntSyn' !*)
+      (*! structure Tomega = Tomega' !*))
+    type __State =
+      | State of (Tomega.__Worlds * Tomega.__Dec IntSyn.__Ctx * Tomega.__Prg
+      * Tomega.__For) 
+      | StateLF of IntSyn.__Exp 
+    type __Focus =
+      | Focus of
+      (((Tomega.__Prg)(* StateLF X, X is always lowered *))
+      * Tomega.__Worlds) 
+      | FocusLF of IntSyn.__Exp 
+    exception Error of
+      ((string)(*  datatype SideCondition   we need some work here *)
+      (* datatype State
+    = State of (Tomega.Dec IntSyn.Ctx * Tomega.For) * Tomega.Worlds
+ *))
+      
+    module T = Tomega
+    module I = IntSyn
+    let rec findPrg =
+      function
+      | Lam (_, P) -> findPrg P
+      | New (P) -> findPrg P
+      | Choose (P) -> findPrg P
+      | PairExp (_, P) -> findPrg P
+      | PairBlock (B, P) -> findPrg P
+      | PairPrg (P1, P2) -> (@) (findPrg P1) findPrg P2
+      | T.Unit -> []
+      | Rec (_, P) -> findPrg P
+      | Case (Cases (C)) -> findCases C
+      | PClo (P, t) -> (@) (findPrg P) findSub t
+      | Let (D, P1, P2) -> (@) (findPrg P1) findPrg P2
+      | LetPairExp (D1, D2, P1, P2) -> (@) (findPrg P1) findPrg P2
+      | LetUnit (P1, P2) -> (@) (findPrg P1) findPrg P2
+      | EVar (_, ref (NONE), _, _, _, _) as X -> [X]
+      | EVar (_, ref (SOME (P)), _, _, _, _) as X -> findPrg P
+      | Const _ -> []
+      | Var _ -> []
+      | Redex (P, S) -> (@) (findPrg P) findSpine S
+    let rec findCases =
+      function | nil -> [] | (_, _, P)::C -> (@) (findPrg P) findCases C
+    let rec findSub =
+      function | Shift _ -> [] | Dot (F, t) -> (@) (findFront F) findSub t
+    let rec findFront =
+      function
+      | Idx _ -> []
+      | Prg (P) -> findPrg P
+      | Exp _ -> []
+      | Block _ -> []
+      | T.Undef -> []
+    let rec findSpine =
+      function
+      | T.Nil -> []
+      | AppPrg (P, S) -> (@) (findPrg P) findSpine S
+      | AppExp (_, S) -> findSpine S
+      | AppBlock (_, S) -> findSpine S
+    let rec findExp arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | ((Psi, Lam (D, P)), K) -> findExp ((I.Decl (Psi, D)), P) K
+      | ((Psi, New (P)), K) -> findExp (Psi, P) K
+      | ((Psi, Choose (P)), K) -> findExp (Psi, P) K
+      | ((Psi, PairExp (M, P)), K) ->
+          findExp (Psi, P)
+            (Abstract.collectEVars ((T.coerceCtx Psi), (M, I.id), K))
+      | ((Psi, PairBlock (B, P)), K) -> findExp (Psi, P) K
+      | ((Psi, PairPrg (P1, P2)), K) ->
+          findExp (Psi, P2) (findExp (Psi, P1) K)
+      | ((Psi, T.Unit), K) -> K
+      | ((Psi, Rec (D, P)), K) -> findExp (Psi, P) K
+      | ((Psi, Case (Cases (C))), K) -> findExpCases (Psi, C) K
+      | ((Psi, PClo (P, t)), K) -> findExpSub (Psi, t) (findExp (Psi, P) K)
+      | ((Psi, Let (D, P1, P2)), K) ->
+          findExp ((I.Decl (Psi, D)), P2) (findExp (Psi, P1) K)
+      | ((Psi, LetPairExp (D1, D2, P1, P2)), K) ->
+          findExp ((I.Decl ((I.Decl (Psi, (T.UDec D1))), D2)), P2)
+            (findExp (Psi, P1) K)
+      | ((Psi, LetUnit (P1, P2)), K) ->
+          findExp (Psi, P2) (findExp (Psi, P1) K)
+      | ((Psi, (EVar _ as X)), K) -> K
+      | ((Psi, Const _), K) -> K
+      | ((Psi, Var _), K) -> K
+      | ((Psi, Redex (P, S)), K) -> findExpSpine (Psi, S) K
+    let rec findExpSpine arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | ((Psi, T.Nil), K) -> K
+      | ((Psi, AppPrg (_, S)), K) -> findExpSpine (Psi, S) K
+      | ((Psi, AppExp (M, S)), K) ->
+          findExpSpine (Psi, S)
+            (Abstract.collectEVars ((T.coerceCtx Psi), (M, I.id), K))
+      | ((Psi, AppBlock (_, S)), K) -> findExpSpine (Psi, S) K
+    let rec findExpCases arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | ((Psi, nil), K) -> K
+      | ((Psi, (_, _, P)::C), K) ->
+          findExpCases (Psi, C) (findExp (Psi, P) K)
+    let rec findExpSub arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | ((Psi, Shift _), K) -> K
+      | ((Psi, Dot (F, t)), K) ->
+          findExpSub (Psi, t) (findExpFront (Psi, F) K)
+    let rec findExpFront arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | ((Psi, Idx _), K) -> K
+      | ((Psi, Prg (P)), K) -> findExp (Psi, P) K
+      | ((Psi, Exp (M)), K) ->
+          Abstract.collectEVars ((T.coerceCtx Psi), (M, I.id), K)
+      | ((Psi, Block _), K) -> K
+      | ((Psi, T.Undef), K) -> K
+    let rec init (F, W) =
+      let X = T.newEVar (I.Null, F) in State (W, I.Null, X, F)
+    let rec close (State (W, _, P, _)) =
+      match ((findPrg P), (findExp (I.Null, P) [])) with
+      | (nil, nil) -> true__
+      | _ -> false__
+    let ((close)(* find P = [X1 .... Xn]
+       Invariant:
+       If   P is a well-typed program
+       then [X1 .. Xn] are all the open subgoals that occur within P
+    *)
+      (* by invariant: blocks don't contain free evars *)
+      (* find P = [X1 .... Xn]
+       Invariant:
+       If   P is a well-typed program
+       then [X1 .. Xn] are all the open subgoals that occur within P
+    *)
+      (* by invariant: Blocks don't contain free evars. *)
+      (* init F = S
+
+       Invariant:
+       S = (. |> F) is the initial state
+    *)
+      (* close S = B
+
+       Invariant:
+       If  B holds iff S  doesn't contain any free subgoals
+    *))
+      = close
+    let init = init
+    let collectT = findPrg
+    let collectLF = function | P -> findExp (I.Null, P) []
+    let collectLFSub = function | s -> findExpSub (I.Null, s) []
+  end ;;

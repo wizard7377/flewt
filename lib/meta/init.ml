@@ -1,0 +1,77 @@
+
+module type MTPINIT  =
+  sig
+    module StateSyn :
+    ((STATESYN)(* Initialization *)(* Author: Carsten Schuermann *)
+    (*! structure FunSyn : FUNSYN !*))
+    exception Error of string 
+    val init :
+      (FunSyn.__For * StateSyn.__Order) ->
+        ((StateSyn.__State)(* Current restriction to non-mutual inductive theorems ! *))
+          list
+  end;;
+
+
+
+
+module MTPInit(MTPInit:sig
+                         module MTPGlobal : MTPGLOBAL
+                         module MTPData : MTPDATA
+                         module Names : NAMES
+                         module StateSyn' : STATESYN
+                         module Formatter : FORMATTER
+                         module Whnf : WHNF
+                         module Print : PRINT
+                         module FunPrint :
+                         ((FUNPRINT)(* Initialization *)
+                         (* Author: Carsten Schuermann *)
+                         (*! structure IntSyn : INTSYN !*)
+                         (*! sharing Names.IntSyn = IntSyn !*)(*! structure FunSyn' : FUNSYN !*)
+                         (*! sharing FunSyn'.IntSyn = IntSyn !*)
+                         (*! sharing StateSyn'.FunSyn = FunSyn' !*)
+                         (*! sharing Whnf.IntSyn = IntSyn !*)(*! sharing Print.IntSyn = IntSyn !*))
+                       end) : MTPINIT =
+  struct
+    module StateSyn =
+      ((StateSyn')(*! sharing FunPrint.FunSyn = FunSyn' !*)
+      (*! structure FunSyn = FunSyn' !*))
+    exception Error of string 
+    module I = IntSyn
+    module F = FunSyn
+    module S = StateSyn
+    module Fmt = Formatter
+    let rec init (F, OF) =
+      let init' =
+        function
+        | ((G, B), All (_, O), All (Prim (D), F'), Ss) ->
+            let D' = Names.decName (G, D) in
+            init'
+              (((I.Decl (G, D')),
+                 (I.Decl (B, (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
+                O, F', Ss)
+        | (GB, And (O1, O2), And (F1, F2), Ss) ->
+            init' (GB, O1, F1, (init' (GB, O2, F2, Ss)))
+        | (GB, O, (Ex _ as F'), Ss) ->
+            (S.State (((List.length Ss) + 1), GB, (F, OF), 1, O, nil, F')) ::
+              Ss
+        | (GB, O, (F.True as F'), Ss) ->
+            (S.State (((List.length Ss) + 1), GB, (F, OF), 1, O, nil, F')) ::
+              Ss in
+      Names.varReset I.Null;
+      MTPData.maxFill := 0;
+      init' ((I.Null, I.Null), OF, F, nil)
+    let ((init)(* init (F, OF) = Ss'
+
+       Invariant:
+       If   . |- F formula    and   F in nf
+       and  . |- OF order
+       then Ss' is a list of initial states for the theorem prover
+    *)
+      (* it is possible to calculuate
+                 index/induction variable information here
+                 define occursOrder in StateSyn.fun  --cs *)
+      (*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
+           no such case yet  --cs *)
+      (* added in case there are no existentials -fp *)) =
+      init
+  end ;;

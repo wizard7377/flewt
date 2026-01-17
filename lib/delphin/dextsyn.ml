@@ -1,0 +1,198 @@
+
+module type DEXTSYN  =
+  sig
+    type __Ast =
+      | Ast of
+      ((__Decs)(* structure Lexer : LEXER *)(* Delphin external syntax *))
+      
+    and __Decs =
+      | Empty 
+      | FunDecl of (__FunDecl * __Decs) 
+      | FormDecl of (__FormDecl * __Decs) 
+      | ValDecl of (__ValDecl * __Decs) 
+      | NewDecl of (__Dec * __Decs) 
+      | TwelfDecl of (__Dec * __Decs) 
+      | CreateDecl of (__CreateDecl * __Decs) 
+    and __CreateDecl =
+      | Create of (__Term * __CreateDecl) 
+      | Decs of __Decs 
+    and __FormDecl =
+      | Form of (string * __Form) 
+    and __FunDecl =
+      | Fun of (__Head * __Prog) 
+      | Bar of (__Head * __Prog) 
+      | FunAnd of (__Head * __Prog) 
+    and __ValDecl =
+      | Val of (__Pat * __Prog * __Form option) 
+    and __World =
+      | WorldIdent of string 
+      | Plus of (__World * __World) 
+      | Concat of (__World * __World) 
+      | Times of __World 
+    and __Form =
+      | True 
+      | Forall of (__Dec * __Form) 
+      | ForallOmitted of (__Dec * __Form) 
+      | Exists of (__Dec * __Form) 
+      | ExistsOmitted of (__Dec * __Form) 
+      | And of (__Form * __Form) 
+      | World of (__World * __Form) 
+    and __Prog =
+      | Unit 
+      | Pair of
+      (((__Prog)(* | WldDef of (string list) * Form *)
+      (* | Arrow of Form * Form *)) * __Prog) 
+      | AppProg of (__Prog * __Prog) 
+      | AppTerm of (__Prog * __Term) 
+      | Inx of (__Term * __Prog) 
+      | Lam of (__Dec * __Prog) 
+      | Const of string 
+      | Case of (__Pat list * __Prog) list 
+      | Let of (__Decs * __Prog) 
+      | Par of (__Prog * __Prog) 
+      | New of (__Dec list * __Prog) 
+      | Choose of (__Dec * __Prog) 
+    and __Cases =
+      | First of (((__Pat)(* | Rec of MDec * Prog *)) *
+      __Prog) 
+      | Alt of (__Cases * __Pat * __Prog) 
+    and __Head =
+      | Head of string 
+      | AppLF of (__Head * __Term) 
+      | AppMeta of (__Head * __Pat) 
+    and __Pat =
+      | PatInx of (__Term * __Pat) 
+      | PatPair of (__Pat * __Pat) 
+      | PatVar of __MDec 
+      | PatUnderscore 
+      | PatUnit 
+    and __MDec =
+      | MDec of (string * __Form option) 
+    and __Block =
+      | Block of string list 
+    and __Term =
+      | Rtarrow of
+      (((__Term)(* and Term 
+  = Term of string
+*)) *
+      __Term) 
+      | Ltarrow of (__Term * __Term) 
+      | Type 
+      | Id of string 
+      | Pi of (__Dec * __Term) 
+      | Fn of (__Dec * __Term) 
+      | App of (__Term * __Term) 
+      | Dot of (__Term * string) 
+      | Paren of __Term 
+      | Omit 
+      | Of of (__Term * __Term) 
+    and __Dec =
+      | Dec of (string * __Term) 
+  end;;
+
+
+
+
+module DextSyn(DextSyn:sig
+                         module ExtSyn' : EXTSYN
+                         module Parsing' :
+                         ((PARSING)(* Delphin external syntax *)
+                         (* Author: Richard Fontana *)
+                         (* structure Stream' : STREAM *))
+                       end) : DEXTSYN =
+  struct
+    module ExtSyn =
+      ((ExtSyn')(*                    sharing Parsing'.Lexer.Paths = ExtSyn'.Paths  *)
+      (*                  structure Lexer' : LEXER *)
+      (*                    sharing Lexer' = Parsing'.Lexer *)(*  structure Stream = Stream' *))
+    module Parsing = Parsing'
+    module L =
+      ((Lexer)(*  structure Paths = ExtSyn.Paths
+  structure Lexer = Lexer' *))
+    module S =
+      ((Stream)(*  structure S = Parsing'.Lexer.Stream *))
+    type __Ast =
+      | Ast of __Decs 
+    and __Decs =
+      | Empty 
+      | FunDecl of (__FunDecl * __Decs) 
+      | FormDecl of (__FormDecl * __Decs) 
+      | ValDecl of (__ValDecl * __Decs) 
+      | NewDecl of (__Dec * __Decs) 
+      | TwelfDecl of (__Dec * __Decs) 
+      | CreateDecl of (__CreateDecl * __Decs) 
+    and __CreateDecl =
+      | Create of (__Term * __CreateDecl) 
+      | Decs of __Decs 
+    and __FormDecl =
+      | Form of (string * __Form) 
+    and __FunDecl =
+      | Fun of (__Head * __Prog) 
+      | Bar of (__Head * __Prog) 
+      | FunAnd of (__Head * __Prog) 
+    and __ValDecl =
+      | Val of (__Pat * __Prog * __Form option) 
+    and __Cases =
+      | First of (__Pat * __Prog) 
+      | Alt of (__Cases * __Pat * __Prog) 
+    and __World =
+      | WorldIdent of string 
+      | Plus of (__World * __World) 
+      | Concat of (__World * __World) 
+      | Times of __World 
+    and __Form =
+      | True 
+      | Forall of (__Dec * __Form) 
+      | ForallOmitted of (__Dec * __Form) 
+      | Exists of (__Dec * __Form) 
+      | ExistsOmitted of (__Dec * __Form) 
+      | And of (__Form * __Form) 
+      | World of (__World * __Form) 
+    and __Prog =
+      | Unit 
+      | Pair of
+      (((__Prog)(* | WldDef of (string list) * Form *)
+      (* | Arrow of Form * Form *)) * __Prog) 
+      | AppProg of (__Prog * __Prog) 
+      | AppTerm of (__Prog * __Term) 
+      | Inx of (__Term * __Prog) 
+      | Lam of (__Dec * __Prog) 
+      | Par of (__Prog * __Prog) 
+      | Const of string 
+      | Case of (__Pat list * __Prog) list 
+      | Let of (__Decs * __Prog) 
+      | New of (__Dec list * __Prog) 
+      | Choose of (__Dec * __Prog) 
+    and __Head =
+      | Head of ((string)(* | Rec of MDec * Prog *)) 
+      | AppLF of (__Head * __Term) 
+      | AppMeta of (__Head * __Pat) 
+    and __Pat =
+      | PatInx of (__Term * __Pat) 
+      | PatPair of (__Pat * __Pat) 
+      | PatVar of __MDec 
+      | PatUnderscore 
+      | PatUnit 
+    and __MDec =
+      | MDec of (string * __Form option) 
+    and __Block =
+      | Block of string list 
+    and __Term =
+      | Rtarrow of
+      (((__Term)(* and Term
+  = Term of string
+*)) *
+      __Term) 
+      | Ltarrow of (__Term * __Term) 
+      | Type 
+      | Id of string 
+      | Pi of (__Dec * __Term) 
+      | Fn of (__Dec * __Term) 
+      | App of (__Term * __Term) 
+      | Dot of (__Term * string) 
+      | Paren of __Term 
+      | Omit 
+      | Of of (__Term * __Term) 
+    and __Dec =
+      | Dec of (string * __Term) 
+  end ;;
