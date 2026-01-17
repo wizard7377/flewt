@@ -1,0 +1,17 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.tabling)
+ (name tabling)
+ (libraries 
+  base
+  table
+  lambda
+  print
+  names
+  paths
+  index
+ )
+ (modules 
+  tabled
+  tabledsyn))

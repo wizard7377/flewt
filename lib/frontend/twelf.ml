@@ -1565,7 +1565,7 @@ module Twelf(Twelf:sig
        formats instantiated EVars as a substitution.
        Abbreviate as empty string if chatter level is < 3.
     *)
-          (* expToString (G, U) = msg
+          (* expToString (g, U) = msg
        formats expression as a string.
        Abbreviate as empty string if chatter level is < 3.
     *)

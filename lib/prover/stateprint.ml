@@ -67,14 +67,14 @@ module StatePrint(StatePrint:sig
             Fmt.Space;
             TomegaPrint.formatFor (I.Null, F)]
       | Decl (Psi, UDec (D)) ->
-          let G = T.coerceCtx Psi in
+          let g = T.coerceCtx Psi in
           if (!Global.chatter) >= 4
           then
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
-              [Fmt.HVbox [Fmt.Break; Print.formatDec (G, D)]]
+              [Fmt.HVbox [Fmt.Break; Print.formatDec (g, D)]]
           else
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break]) @
-              [Fmt.Break; Print.formatDec (G, D)]
+              [Fmt.Break; Print.formatDec (g, D)]
       | Decl (Psi, PDec (SOME s, F, _)) ->
           if (!Global.chatter) >= 4
           then
@@ -118,18 +118,18 @@ module StatePrint(StatePrint:sig
        and  |- S = S' state
     *)
       (*
-    fun formatOrder (G, S.Arg (Us, Vs)) =
-          [Print.formatExp (G, I.EClo Us), Fmt.String ":",
-           Print.formatExp (G, I.EClo Vs)]
-      | formatOrder (G, S.Lex Os) =
-          [Fmt.String "{", Fmt.HVbox0 1 0 1 (formatOrders (G, Os)), Fmt.String "}"]
-      | formatOrder (G, S.Simul Os) =
-          [Fmt.String "[", Fmt.HVbox0 1 0 1 (formatOrders (G, Os)), Fmt.String "]"]
+    fun formatOrder (g, S.Arg (Us, Vs)) =
+          [Print.formatExp (g, I.EClo Us), Fmt.String ":",
+           Print.formatExp (g, I.EClo Vs)]
+      | formatOrder (g, S.Lex Os) =
+          [Fmt.String "{", Fmt.HVbox0 1 0 1 (formatOrders (g, Os)), Fmt.String "}"]
+      | formatOrder (g, S.Simul Os) =
+          [Fmt.String "[", Fmt.HVbox0 1 0 1 (formatOrders (g, Os)), Fmt.String "]"]
 
-    and formatOrders (G, nil) = nil
-      | formatOrders (G, O :: nil) = formatOrder (G, O)
-      | formatOrders (G, O :: Os) = formatOrder (G, O) @
-          [Fmt.String ",", Fmt.Break]  @ formatOrders (G, Os)
+    and formatOrders (g, nil) = nil
+      | formatOrders (g, O :: nil) = formatOrder (g, O)
+      | formatOrders (g, O :: Os) = formatOrder (g, O) @
+          [Fmt.String ",", Fmt.Break]  @ formatOrders (g, Os)
 
      format T = fmt'
 
@@ -137,7 +137,7 @@ module StatePrint(StatePrint:sig
        If   T is a tag
        then fmt' is a a format descibing the tag T
     *)
-      (*      | formatTag (G, S.Assumption k) = [Fmt.String "<a",
+      (*      | formatTag (g, S.Assumption k) = [Fmt.String "<a",
                                          Fmt.String (Int.toString k),
                                          Fmt.String ">"] *)
       (* formatCtx (Psi) = fmt'

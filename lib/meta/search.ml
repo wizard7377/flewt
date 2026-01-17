@@ -63,16 +63,16 @@ module MTPSearch(MTPSearch:sig
       | _ -> false__
     let rec compose' =
       function
-      | (IntSyn.Null, G) -> G
-      | (Decl (G, D), G') -> IntSyn.Decl ((compose' (G, G')), D)
+      | (IntSyn.Null, g) -> g
+      | (Decl (g, D), g') -> IntSyn.Decl ((compose' (g, g')), D)
     let rec shift =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (G, D), s) -> I.dot1 (shift (G, s))
+      | (Decl (g, D), s) -> I.dot1 (shift (g, s))
     let rec raiseType =
       function
       | (I.Null, V) -> V
-      | (Decl (G, D), V) -> raiseType (G, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (g, D), V) -> raiseType (g, (I.Pi ((D, I.Maybe), V)))
     let rec exists (P) (K) =
       let exists' =
         function | I.Null -> false__ | Decl (K', Y) -> (P Y) || (exists' K') in
@@ -111,7 +111,7 @@ module MTPSearch(MTPSearch:sig
       | (EVar (r, _, _, cnstrs) as X)::GE ->
           let Xs = selectEVar GE in if nonIndex (r, Xs) then X :: Xs else Xs
     let rec pruneCtx =
-      function | (G, 0) -> G | (Decl (G, _), n) -> pruneCtx (G, (n - 1))
+      function | (g, 0) -> g | (Decl (g, _), n) -> pruneCtx (g, (n - 1))
     let rec cidFromHead =
       function | Const a -> a | Def a -> a | Skonst a -> a
     let rec eqHead =
@@ -121,34 +121,34 @@ module MTPSearch(MTPSearch:sig
       | _ -> false__
     let rec solve =
       function
-      | (max, depth, (Atom p, s), (DProg (G, dPool) as dp), sc) ->
+      | (max, depth, (Atom p, s), (DProg (g, dPool) as dp), sc) ->
           matchAtom (max, depth, (p, s), dp, sc)
-      | (max, depth, (Impl (r, A, Ha, g), s), DProg (G, dPool), sc) ->
+      | (max, depth, (Impl (r, A, Ha, g), s), DProg (g, dPool), sc) ->
           let D' = I.Dec (NONE, (I.EClo (A, s))) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
               (C.DProg
-                 ((I.Decl (G, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+                 ((I.Decl (g, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
               (function | M -> sc (I.Lam (D', M))))
-      | (max, depth, (All (D, g), s), DProg (G, dPool), sc) ->
+      | (max, depth, (All (D, g), s), DProg (g, dPool), sc) ->
           let D' = I.decSub (D, s) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
-              (C.DProg ((I.Decl (G, D')), (I.Decl (dPool, C.Parameter)))),
+              (C.DProg ((I.Decl (g, D')), (I.Decl (dPool, C.Parameter)))),
               (function | M -> sc (I.Lam (D', M))))
     let rec rSolve =
       function
-      | (max, depth, ps', (Eq (Q), s), DProg (G, dPool), sc) ->
-          if Unify.unifiable (G, ps', (Q, s)) then sc I.Nil else ()
-      | (max, depth, ps', (Assign (Q, eqns), s), (DProg (G, dPool) as dp),
+      | (max, depth, ps', (Eq (Q), s), DProg (g, dPool), sc) ->
+          if Unify.unifiable (g, ps', (Q, s)) then sc I.Nil else ()
+      | (max, depth, ps', (Assign (Q, eqns), s), (DProg (g, dPool) as dp),
          sc) ->
-          (match Assign.assignable (G, ps', (Q, s)) with
+          (match Assign.assignable (g, ps', (Q, s)) with
            | SOME cnstr ->
                aSolve ((eqns, s), dp, cnstr, (function | () -> sc I.Nil))
            | NONE -> ())
-      | (max, depth, ps', (And (r, A, g), s), (DProg (G, dPool) as dp), sc)
+      | (max, depth, ps', (And (r, A, g), s), (DProg (g, dPool) as dp), sc)
           ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+          let X = I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (max, depth, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function
@@ -156,8 +156,8 @@ module MTPSearch(MTPSearch:sig
                    solve
                      (max, depth, (g, s), dp,
                        (function | M -> sc (I.App (M, S))))))
-      | (max, depth, ps', (In (r, A, g), s), (DProg (G, dPool) as dp), sc) ->
-          let G0 = pruneCtx (G, depth) in
+      | (max, depth, ps', (In (r, A, g), s), (DProg (g, dPool) as dp), sc) ->
+          let G0 = pruneCtx (g, depth) in
           let dPool0 = pruneCtx (dPool, depth) in
           let w = I.Shift depth in
           let iw = Whnf.invert w in
@@ -180,13 +180,13 @@ module MTPSearch(MTPSearch:sig
                                  sc (I.App ((I.EClo (M, w)), S))
                                with | Unify _ -> ())))))
       | (max, depth, ps', (Exists (Dec (_, A), r), s),
-         (DProg (G, dPool) as dp), sc) ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+         (DProg (g, dPool) as dp), sc) ->
+          let X = I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (max, depth, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function | S -> sc (I.App (X, S))))
       | (max, depth, ps', (Axists (ADec (SOME (X), d), r), s),
-         (DProg (G, dPool) as dp), sc) ->
+         (DProg (g, dPool) as dp), sc) ->
           let X' = I.newAVar () in
           rSolve
             (max, depth, ps',
@@ -196,17 +196,17 @@ module MTPSearch(MTPSearch:sig
       function
       | ((C.Trivial, s), dp, cnstr, sc) ->
           if Assign.solveCnstr cnstr then sc () else ()
-      | ((UnifyEq (G', e1, N, eqns), s), (DProg (G, dPool) as dp), cnstr, sc)
+      | ((UnifyEq (g', e1, N, eqns), s), (DProg (g, dPool) as dp), cnstr, sc)
           ->
-          let G'' = compose' (G', G) in
-          let s' = shift (G', s) in
-          if Assign.unifiable (G'', (N, s'), (e1, s'))
+          let g'' = compose' (g', g) in
+          let s' = shift (g', s) in
+          if Assign.unifiable (g'', (N, s'), (e1, s'))
           then aSolve ((eqns, s), dp, cnstr, sc)
           else ()
     let rec matchAtom =
       function
       | (0, _, _, _, _) -> ()
-      | (max, depth, ((Root (Ha, _), _) as ps'), (DProg (G, dPool) as dp),
+      | (max, depth, ((Root (Ha, _), _) as ps'), (DProg (g, dPool) as dp),
          sc) ->
           let matchSig' =
             function
@@ -242,14 +242,14 @@ module MTPSearch(MTPSearch:sig
     let rec searchEx' arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (max, (nil, sc)) -> sc max
-      | (max, ((EVar (r, G, V, _) as X)::GE, sc)) ->
+      | (max, ((EVar (r, g, V, _) as X)::GE, sc)) ->
           solve
-            (max, 0, ((Compile.compileGoal (G, V)), I.id),
-              (Compile.compileCtx false__ G),
+            (max, 0, ((Compile.compileGoal (g, V)), I.id),
+              (Compile.compileCtx false__ g),
               (function
                | U' ->
                    (try
-                      Unify.unify (G, (X, I.id), (U', I.id));
+                      Unify.unify (g, (X, I.id), (U', I.id));
                       searchEx' max (GE, sc)
                     with | Unify _ -> ())))
     let rec deepen depth f (P) =
@@ -271,8 +271,8 @@ module MTPSearch(MTPSearch:sig
                 (let GE' =
                    foldr
                      (function
-                      | ((EVar (_, G, _, _) as X), L) ->
-                          Abstract.collectEVars (G, (X, I.id), L)) nil GE in
+                      | ((EVar (_, g, _, _) as X), L) ->
+                          Abstract.collectEVars (g, (X, I.id), L)) nil GE in
                  let gE' = List.length GE' in
                  if gE' > 0
                  then
@@ -285,11 +285,11 @@ module MTPSearch(MTPSearch:sig
        where cid is the type family of the atomic target type of V,
        NONE if V is a kind or object or have variable type.
     *)
-      (* raiseType (G, V) = {{G}} V
+      (* raiseType (g, V) = {{g}} V
 
        Invariant:
-       If G |- V : L
-       then  . |- {{G}} V : L
+       If g |- V : L
+       then  . |- {{g}} V : L
 
        All abstractions are potentially dependent.
     *)
@@ -299,7 +299,7 @@ module MTPSearch(MTPSearch:sig
       (* occursInExp (r, (U, s)) = B,
 
        Invariant:
-       If    G |- s : G1   G1 |- U : V
+       If    g |- s : G1   G1 |- U : V
        then  B holds iff r occurs in (the normal form of) U
     *)
       (* hack - should consult cs  -rv *)(* nonIndex (r, GE) = B
@@ -313,63 +313,63 @@ module MTPSearch(MTPSearch:sig
        Invariant:
     *)
       (* Efficiency: repeated whnf for every subterm in Vs!!! *)
-      (* Constraint case *)(* pruneCtx (G, n) = G'
+      (* Constraint case *)(* pruneCtx (g, n) = g'
 
        Invariant:
-       If   |- G ctx
-       and  G = G0, G1
+       If   |- g ctx
+       and  g = G0, G1
        and  |G1| = n
-       then |- G' = G0 ctx
+       then |- g' = G0 ctx
     *)
       (* only used for type families of compiled clauses *)
-      (* solve ((g,s), (G,dPool), sc, (acc, k)) => ()
+      (* solve ((g,s), (g,dPool), sc, (acc, k)) => ()
      Invariants:
-       G |- s : G'
-       G' |- g :: goal
-       G ~ dPool  (context G matches dPool)
+       g |- s : g'
+       g' |- g :: goal
+       g ~ dPool  (context g matches dPool)
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if  G |- M :: g[s] then G |- sc :: g[s] => Answer, Answer closed
+       if  g |- M :: g[s] then g |- sc :: g[s] => Answer, Answer closed
   *)
-      (* rsolve (max, depth, (p,s'), (r,s), (G,dPool), sc, (acc, k)) = ()
+      (* rsolve (max, depth, (p,s'), (r,s), (g,dPool), sc, (acc, k)) = ()
      Invariants:
-       G |- s : G'
-       G' |- r :: resgoal
-       G |- s' : G''
-       G'' |- p :: atom
-       G ~ dPool
+       g |- s : g'
+       g' |- r :: resgoal
+       g |- s' : g''
+       g'' |- p :: atom
+       g ~ dPool
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if G |- S :: r[s] then G |- sc : (r >> p[s']) => Answer
+       if g |- S :: r[s] then g |- sc : (r >> p[s']) => Answer
   *)
       (* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
         ((Unify.unify (ps', (Q, s)); sc (I.Nil, acck)) handle Unify.Unify _ => acc) *)
-      (* is this EVar redundant? -fp *)(* G |- g goal *)
-      (* G |- A : type *)(* G, A |- r resgoal *)
-      (* G0, Gl  |- s : G *)(* G0, Gl  |- w : G0 *)
-      (* G0 |- iw : G0, Gl *)(* G0 |- w : G *)(* G0 |- X : A[s'] *)
+      (* is this EVar redundant? -fp *)(* g |- g goal *)
+      (* g |- A : type *)(* g, A |- r resgoal *)
+      (* G0, Gl  |- s : g *)(* G0, Gl  |- w : G0 *)
+      (* G0 |- iw : G0, Gl *)(* G0 |- w : g *)(* G0 |- X : A[s'] *)
       (* G0, Gl |- X' : A[s'][w] = A[s] *)(* we don't increase the proof term here! *)
       (* aSolve ((ag, s), dp, sc) = res
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       if G |- ag[s] auxgoal
+       dp = (g, dPool) where g ~ dPool
+       g |- s : g'
+       if g |- ag[s] auxgoal
        then sc () is evaluated with return value res
        else res = Fail
      Effects: instantiation of EVars in ag[s], dp and sc () *)
-      (* matchatom ((p, s), (G, dPool), sc, (acc, k)) => ()
-     G |- s : G'
-     G' |- p :: atom
-     G ~ dPool
+      (* matchatom ((p, s), (g, dPool), sc, (acc, k)) => ()
+     g |- s : g'
+     g' |- p :: atom
+     g ~ dPool
      acc is the accumulator of results
      and k is the max search depth limit
          (used in the existential case for iterative deepening,
           used in the universal case for max search depth)
-     if G |- M :: p[s] then G |- sc :: p[s] => Answer
+     if g |- M :: p[s] then g |- sc :: p[s] => Answer
   *)
       (* searchEx' max (GE, sc) = acc'
 
@@ -391,11 +391,11 @@ module MTPSearch(MTPSearch:sig
        then R' is the result of applying f to P and
          traversing all possible numbers up to MTPGlobal.maxLevel
     *)
-      (* searchEx (G, GE, (V, s), sc) = acc'
+      (* searchEx (g, GE, (V, s), sc) = acc'
        Invariant:
-       If   G |- s : G'   G' |- V : level
+       If   g |- s : g'   g' |- V : level
        and  GE is a list of EVars contained in V[s]
-         where G |- X : VX
+         where g |- X : VX
        and  sc is a function to be executed after all non-index variables have
          been instantiated
        then acc' is a list containing the one result from executing the success continuation

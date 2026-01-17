@@ -38,20 +38,20 @@ module MetaPrint(MetaPrint:sig
             [F.String (depthToString b);
             F.String (modeToString mode);
             Print.formatDec (I.Null, D)] @ Fmt
-        | (Prefix (Decl (G, D), Decl (M, mode), Decl (B, b)), Fmt) ->
+        | (Prefix (Decl (g, D), Decl (M, mode), Decl (B, b)), Fmt) ->
             fmtPrefix'
-              ((M.Prefix (G, M, B)),
+              ((M.Prefix (g, M, B)),
                 ([F.String ",";
                  F.Space;
                  F.Break;
                  F.String (depthToString b);
                  F.String (modeToString mode);
-                 Print.formatDec (G, D)] @ Fmt)) in
+                 Print.formatDec (g, D)] @ Fmt)) in
       F.HVbox (fmtPrefix' (GM, []))
     let rec prefixToString (GM) = F.makestring_fmt (fmtPrefix GM)
-    let rec stateToString (State (name, (Prefix (G, M, B) as GM), V)) =
+    let rec stateToString (State (name, (Prefix (g, M, B) as GM), V)) =
       ((^) (((^) (name ^ ":\n") prefixToString GM) ^ "\n--------------\n")
-         ClausePrint.clauseToString (G, V))
+         ClausePrint.clauseToString (g, V))
         ^ "\n\n"
     let rec sgnToString =
       function

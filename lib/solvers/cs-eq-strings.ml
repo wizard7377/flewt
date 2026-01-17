@@ -33,7 +33,7 @@ module CSEqStrings(CSEqStrings:sig
       match fromString string with
       | SOME str -> SOME (stringConDec str)
       | NONE -> NONE
-    let rec solveString (G, S, k) = SOME (stringExp (Int.toString k))
+    let rec solveString (g, S, k) = SOME (stringExp (Int.toString k))
     type __Concat =
       | Concat of __Atom list 
     and __Atom =
@@ -120,33 +120,33 @@ module CSEqStrings(CSEqStrings:sig
         | (nil, nil) -> true__
         | ((String str1)::AL1, (String str2)::AL2) ->
             (str1 = str2) && (sameConcat' (AL1, AL2))
-        | ((Exp (Us1))::AL1, (Exp (Us2))::AL2) ->
-            (sameExp (Us1, Us2)) && (sameConcat' (AL1, AL2))
+        | ((Exp (us1))::AL1, (Exp (us2))::AL2) ->
+            (sameExp (us1, us2)) && (sameConcat' (AL1, AL2))
         | _ -> false__ in
       sameConcat' (AL1, AL2)
     let rec sameExpW =
       function
-      | (((Root (H1, S1), s1) as Us1), ((Root (H2, S2), s2) as Us2)) ->
+      | (((Root (H1, s1), s1) as us1), ((Root (H2, s2), s2) as us2)) ->
           (match (H1, H2) with
            | (BVar k1, BVar k2) ->
-               (k1 = k2) && (sameSpine ((S1, s1), (S2, s2)))
+               (k1 = k2) && (sameSpine ((s1, s1), (s2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
-               (n1 = n2) && (sameSpine ((S1, s1), (S2, s2)))
+               (n1 = n2) && (sameSpine ((s1, s1), (s2, s2)))
            | _ -> false__)
-      | ((((EVar (r1, G1, V1, cnstrs1) as U1), s1) as Us1),
-         (((EVar (r2, G2, V2, cnstrs2) as U2), s2) as Us2)) ->
+      | ((((EVar (r1, G1, V1, cnstrs1) as u1), s1) as us1),
+         (((EVar (r2, G2, V2, cnstrs2) as u2), s2) as us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
       | _ -> false__
-    let rec sameExp (Us1, Us2) = sameExpW ((Whnf.whnf Us1), (Whnf.whnf Us2))
+    let rec sameExp (us1, us2) = sameExpW ((Whnf.whnf us1), (Whnf.whnf us2))
     let rec sameSpine =
       function
       | ((Nil, s1), (Nil, s2)) -> true__
-      | ((SClo (S1, s1'), s1), Ss2) ->
-          sameSpine ((S1, (comp (s1', s1))), Ss2)
-      | (Ss1, (SClo (S2, s2'), s2)) ->
-          sameSpine (Ss1, (S2, (comp (s2', s2))))
-      | ((App (U1, S1), s1), (App (U2, S2), s2)) ->
-          (sameExp ((U1, s1), (U2, s2))) && (sameSpine ((S1, s1), (S2, s2)))
+      | ((SClo (s1, s1'), s1), Ss2) ->
+          sameSpine ((s1, (comp (s1', s1))), Ss2)
+      | (Ss1, (SClo (s2, s2'), s2)) ->
+          sameSpine (Ss1, (s2, (comp (s2', s2))))
+      | ((App (u1, s1), s1), (App (u2, s2), s2)) ->
+          (sameExp ((u1, s1), (u2, s2))) && (sameSpine ((s1, s1), (s2, s2)))
       | _ -> false__
     let rec sameSub =
       function
@@ -171,55 +171,55 @@ module CSEqStrings(CSEqStrings:sig
       | MultDelay (UL, cnstr) ->
           IntSyn.Succeed (List.map (function | U -> Delay (U, cnstr)) UL)
       | Failure -> Fail
-    let rec unifyRigid (G, Concat (AL1), Concat (AL2)) =
+    let rec unifyRigid (g, Concat (AL1), Concat (AL2)) =
       let unifyRigid' =
         function
         | (nil, nil) -> MultAssign nil
         | ((String str1)::AL1, (String str2)::AL2) ->
             if str1 = str2 then unifyRigid' (AL1, AL2) else Failure
-        | ((Exp ((EVar (r, _, _, _) as U1), s))::AL1, (Exp
-           ((Root (FVar _, _) as U2), _))::AL2) ->
+        | ((Exp ((EVar (r, _, _, _) as u1), s))::AL1, (Exp
+           ((Root (FVar _, _) as u2), _))::AL2) ->
             let ss = Whnf.invert s in
-            if Unify.invertible (G, (U2, id), ss, r)
+            if Unify.invertible (g, (u2, id), ss, r)
             then
               (match unifyRigid' (AL1, AL2) with
-               | MultAssign l -> MultAssign ((G, U1, U2, ss) :: l)
+               | MultAssign l -> MultAssign ((g, u1, u2, ss) :: l)
                | Failure -> Failure)
             else Failure
-        | ((Exp ((Root (FVar _, _) as U1), _))::AL1, (Exp
-           ((EVar (r, _, _, _) as U2), s))::AL2) ->
+        | ((Exp ((Root (FVar _, _) as u1), _))::AL1, (Exp
+           ((EVar (r, _, _, _) as u2), s))::AL2) ->
             let ss = Whnf.invert s in
-            if Unify.invertible (G, (U1, id), ss, r)
+            if Unify.invertible (g, (u1, id), ss, r)
             then
               (match unifyRigid' (AL1, AL2) with
-               | MultAssign l -> MultAssign ((G, U2, U1, ss) :: l)
+               | MultAssign l -> MultAssign ((g, u2, u1, ss) :: l)
                | Failure -> Failure)
             else Failure
-        | ((Exp ((Root (FVar _, _), _) as Us1))::AL1, (Exp
-           ((Root (FVar _, _), _) as Us2))::AL2) ->
-            if sameExpW (Us1, Us2) then unifyRigid' (AL1, AL2) else Failure
-        | ((Exp ((EVar (_, _, _, _), _) as Us1))::AL1, (Exp
-           ((EVar (_, _, _, _), _) as Us2))::AL2) ->
-            if sameExpW (Us1, Us2) then unifyRigid' (AL1, AL2) else Failure
+        | ((Exp ((Root (FVar _, _), _) as us1))::AL1, (Exp
+           ((Root (FVar _, _), _) as us2))::AL2) ->
+            if sameExpW (us1, us2) then unifyRigid' (AL1, AL2) else Failure
+        | ((Exp ((EVar (_, _, _, _), _) as us1))::AL1, (Exp
+           ((EVar (_, _, _, _), _) as us2))::AL2) ->
+            if sameExpW (us1, us2) then unifyRigid' (AL1, AL2) else Failure
         | _ -> Failure in
       unifyRigid' (AL1, AL2)
     let rec unifyString =
       function
-      | (G, Concat ((String prefix)::AL), str, cnstr) ->
+      | (g, Concat ((String prefix)::AL), str, cnstr) ->
           if String.isPrefix prefix str
           then
             let suffix = String.extract (str, (String.size prefix), NONE) in
-            unifyString (G, (Concat AL), suffix, cnstr)
+            unifyString (g, (Concat AL), suffix, cnstr)
           else Failure
-      | (G, Concat (AL), str, cnstr) ->
+      | (g, Concat (AL), str, cnstr) ->
           let unifyString' =
             function
             | (AL, nil) -> (Failure, nil)
             | (nil, (Decomp (parse, parsedL))::[]) ->
                 ((MultAssign nil), (parse :: parsedL))
             | (nil, candidates) -> ((MultDelay (nil, cnstr)), nil)
-            | ((Exp (Us1))::(Exp (Us2))::AL, _) ->
-                ((MultDelay ([EClo Us1; EClo Us2], cnstr)), nil)
+            | ((Exp (us1))::(Exp (us2))::AL, _) ->
+                ((MultDelay ([EClo us1; EClo us2], cnstr)), nil)
             | ((Exp ((EVar (r, _, _, _) as U), s))::AL, candidates) ->
                 if Whnf.isPatSub s
                 then
@@ -239,7 +239,7 @@ module CSEqStrings(CSEqStrings:sig
                         | NONE ->
                             let ss = Whnf.invert s in
                             let W = stringExp parsed in
-                            ((MultAssign ((G, U, W, ss) :: L)), parsedL)
+                            ((MultAssign ((g, U, W, ss) :: L)), parsedL)
                         | SOME parsed' ->
                             if parsed = parsed'
                             then ((MultAssign L), parsedL)
@@ -273,10 +273,10 @@ module CSEqStrings(CSEqStrings:sig
            | (result, ""::[]) -> result
            | (result, parsedL) -> Failure)
     let rec unifyConcat
-      (G, (Concat (AL1) as concat1), (Concat (AL2) as concat2)) =
-      let U1 = toFgn concat1 in
-      let U2 = toFgn concat2 in
-      let cnstr = ref (Eqn (G, U1, U2)) in
+      (g, (Concat (AL1) as concat1), (Concat (AL2) as concat2)) =
+      let u1 = toFgn concat1 in
+      let u2 = toFgn concat2 in
+      let cnstr = ref (Eqn (g, u1, u2)) in
       match (AL1, AL2) with
       | (nil, nil) -> MultAssign nil
       | (nil, _) -> Failure
@@ -287,27 +287,27 @@ module CSEqStrings(CSEqStrings:sig
           if Whnf.isPatSub s
           then
             let ss = Whnf.invert s in
-            (if Unify.invertible (G, (U2, id), ss, r)
-             then MultAssign [(G, U, U2, ss)]
-             else MultDelay ([U1; U2], cnstr))
-          else MultDelay ([U1; U2], cnstr)
+            (if Unify.invertible (g, (u2, id), ss, r)
+             then MultAssign [(g, U, u2, ss)]
+             else MultDelay ([u1; u2], cnstr))
+          else MultDelay ([u1; u2], cnstr)
       | (_, (Exp ((EVar (r, _, _, _) as U), s))::[]) ->
           if Whnf.isPatSub s
           then
             let ss = Whnf.invert s in
-            (if Unify.invertible (G, (U1, id), ss, r)
-             then MultAssign [(G, U, U1, ss)]
-             else MultDelay ([U1; U2], cnstr))
-          else MultDelay ([U1; U2], cnstr)
-      | ((String str)::[], _) -> unifyString (G, concat2, str, cnstr)
-      | (_, (String str)::[]) -> unifyString (G, concat1, str, cnstr)
+            (if Unify.invertible (g, (u1, id), ss, r)
+             then MultAssign [(g, U, u1, ss)]
+             else MultDelay ([u1; u2], cnstr))
+          else MultDelay ([u1; u2], cnstr)
+      | ((String str)::[], _) -> unifyString (g, concat2, str, cnstr)
+      | (_, (String str)::[]) -> unifyString (g, concat1, str, cnstr)
       | _ ->
-          (match unifyRigid (G, concat1, concat2) with
+          (match unifyRigid (g, concat1, concat2) with
            | MultAssign _ as result -> result
            | Failure ->
                if sameConcat (concat1, concat2)
                then MultAssign nil
-               else MultDelay ([U1; U2], cnstr))
+               else MultDelay ([u1; u2], cnstr))
     let rec toFgn =
       function
       | Concat ((String str)::[]) as concat -> stringExp str
@@ -327,14 +327,14 @@ module CSEqStrings(CSEqStrings:sig
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec equalTo arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep concat, U2) ->
-          sameConcat ((normalize concat), (fromExp (U2, id)))
+      | (MyIntsynRep concat, u2) ->
+          sameConcat ((normalize concat), (fromExp (u2, id)))
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec unifyWith arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep concat, (G, U2)) ->
+      | (MyIntsynRep concat, (g, u2)) ->
           toFgnUnify
-            (unifyConcat (G, (normalize concat), (fromExp (U2, id))))
+            (unifyConcat (g, (normalize concat), (fromExp (u2, id))))
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec installFgnExpOps () =
       let csid = !myID in
@@ -365,8 +365,8 @@ module CSEqStrings(CSEqStrings:sig
       makeFgn
         (2,
           (function
-           | App (U1, App (U2, Nil)) ->
-               opConcat ((fromExp (U1, id)), (fromExp (U2, id)))))
+           | App (u1, App (u2, Nil)) ->
+               opConcat ((fromExp (u1, id)), (fromExp (u2, id)))))
     let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
     let rec init (cs, installF) =
       myID := cs;
@@ -411,7 +411,7 @@ module CSEqStrings(CSEqStrings:sig
 
        Invariant:
        If concat is normal
-       G |- U : V and U is the Twelf syntax conversion of concat
+       g |- U : V and U is the Twelf syntax conversion of concat
     *)
       (* catConcat (concat1, concat2) = concat3
 
@@ -424,14 +424,14 @@ module CSEqStrings(CSEqStrings:sig
       (* fromExpW (U, s) = concat
 
        Invariant:
-       If   G' |- s : G    G |- U : V    (U,s)  in whnf
+       If   g' |- s : g    g |- U : V    (U,s)  in whnf
        then concat is the representation of U[s] as concatenation of atoms
        and  concat is normal
     *)
       (* fromExp (U, s) = concat
 
        Invariant:
-       If   G' |- s : G    G |- U : V
+       If   g' |- s : g    g |- U : V
        then concat is the representation of U[s] as concatenation of atoms
        and  concat is normal
     *)
@@ -450,76 +450,76 @@ module CSEqStrings(CSEqStrings:sig
       (* sameConcat (concat1, concat2) =
          true only if concat1 = concat2 (as concatenations)
     *)
-      (* sameExpW ((U1,s1), (U2,s2)) = T
+      (* sameExpW ((u1,s1), (u2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1    (U1,s1)  in whnf
-       and  G |- s2 : G2    G2 |- U2 : V2    (U2,s2)  in whnf
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   g |- s1 : G1    G1 |- u1 : V1    (u1,s1)  in whnf
+       and  g |- s2 : G2    G2 |- u2 : V2    (u2,s2)  in whnf
+       then T only if u1[s1] = u2[s2] (as expressions)
     *)
-      (* sameExp ((U1,s1), (U2,s2)) = T
+      (* sameExp ((u1,s1), (u2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1
-       and  G |- s2 : G2    G2 |- U2 : V2
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   g |- s1 : G1    G1 |- u1 : V1
+       and  g |- s2 : G2    G2 |- u2 : V2
+       then T only if u1[s1] = u2[s2] (as expressions)
     *)
-      (* sameSpine (S1, S2) = T
+      (* sameSpine (s1, s2) = T
 
        Invariant:
-       If   G |- S1 : V > W
-       and  G |- S2 : V > W
-       then T only if S1 = S2 (as spines)
+       If   g |- s1 : V > W
+       and  g |- s2 : V > W
+       then T only if s1 = s2 (as spines)
     *)
       (* sameSub (s1, s2) = T
 
        Invariant:
-       If   G |- s1 : G'
-       and  G |- s2 : G'
+       If   g |- s1 : g'
+       and  g |- s2 : g'
        then T only if s1 = s2 (as substitutions)
     *)
       (* Unification Result:
-       StringUnify ::= {G1 |- X1 := U1[s1], ..., Gn |- Xn := Un[sn]}
-                     | {delay U1 on cnstr1, ..., delay Un on cnstrn}
+       StringUnify ::= {G1 |- X1 := u1[s1], ..., Gn |- Xn := Un[sn]}
+                     | {delay u1 on cnstr1, ..., delay Un on cnstrn}
                      | Failure
     *)
       (* toFgnUnify stringUnify = result
        where result is obtained translating stringUnify.
     *)
-      (* unifyRigid (G, concat1, concat2) = stringUnify
+      (* unifyRigid (g, concat1, concat2) = stringUnify
 
        Invariant:
-       If   G |- concat1 : string    concat1 normal
-       and  G |- concat2 : string    concat2 normal
+       If   g |- concat1 : string    concat1 normal
+       and  g |- concat2 : string    concat2 normal
        then if there is an instantiation I :
-               s.t. G |- concat1 <I> == concat2 <I>
+               s.t. g |- concat1 <I> == concat2 <I>
             then stringUnify = MultAssign I
             else stringUnify = Failure
     *)
-      (* FIX: the next two cases are wrong -kw *)(* unifyString (G, concat, str, cnstr) = stringUnify
+      (* FIX: the next two cases are wrong -kw *)(* unifyString (g, concat, str, cnstr) = stringUnify
 
        Invariant:
-       If   G |- concat : string    concat1 normal
+       If   g |- concat : string    concat1 normal
        then if there is an instantiation I :
-               s.t. G |- concat <I> == str
+               s.t. g |- concat <I> == str
             then stringUnify = MultAssign I
             else if there cannot be any possible such instantiation
             then stringUnify = Failure
-            else stringUnify = MultDelay [U1, ..., Un] cnstr
-                   where U1, ..., Un are expression to be delayed on cnstr
+            else stringUnify = MultDelay [u1, ..., Un] cnstr
+                   where u1, ..., Un are expression to be delayed on cnstr
     *)
-      (* unifyConcat (G, concat1, concat2) = stringUnify
+      (* unifyConcat (g, concat1, concat2) = stringUnify
 
        Invariant:
-       If   G |- concat1 : string    concat1 normal
-       and  G |- concat2 : string    concat2 normal
+       If   g |- concat1 : string    concat1 normal
+       and  g |- concat2 : string    concat2 normal
        then if there is an instantiation I :
-               s.t. G |- concat1 <I> == concat2 <I>
+               s.t. g |- concat1 <I> == concat2 <I>
             then stringUnify = MultAssign I
             else if there cannot be any possible such instantiation
             then stringUnify = Failure
-            else stringUnify = MultDelay [U1, ..., Un] cnstr
-                   where U1, ..., Un are expression to be delayed on cnstr
+            else stringUnify = MultDelay [u1, ..., Un] cnstr
+                   where u1, ..., Un are expression to be delayed on cnstr
     *)
       (* FIX: the next two cases are wrong -kw *)(* toFgn sum = U
 

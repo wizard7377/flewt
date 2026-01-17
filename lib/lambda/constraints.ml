@@ -27,8 +27,8 @@ module Constraints(Constraints:sig
       function
       | nil -> nil
       | (ref (I.Solved))::cnstrs -> simplify cnstrs
-      | (ref (Eqn (G, U1, U2)) as Eqn)::cnstrs ->
-          if Conv.conv ((U1, I.id), (U2, I.id))
+      | (ref (Eqn (g, u1, u2)) as Eqn)::cnstrs ->
+          if Conv.conv ((u1, I.id), (u2, I.id))
           then simplify cnstrs
           else Eqn :: (simplify cnstrs)
       | (ref (FgnCnstr csfc) as FgnCnstr)::cnstrs ->
@@ -47,9 +47,9 @@ module Constraints(Constraints:sig
     let ((simplify)(*
      Constraints cnstr are of the form (X<I>[s] = U).
      Invariants:
-       G |- s : G'  G' |- X<I> : V
-       G |- U : W
-       G |- V[s] == W : L
+       g |- s : g'  g' |- X<I> : V
+       g |- U : W
+       g |- V[s] == W : L
        (X<>,s) is whnf, but X<>[s] is not a pattern
      If X<I> is uninstantiated, the constraint is inactive.
      If X<I> is instantiated, the constraint is active.
@@ -59,7 +59,7 @@ module Constraints(Constraints:sig
   *)
       (* simplify cnstrs = cnstrs'
        Effects: simplifies the constraints in cnstrs by removing constraints
-         of the form U = U' where G |- U == U' : V (mod beta/eta)
+         of the form U = U' where g |- U == U' : V (mod beta/eta)
          Neither U nor U' needs to be a pattern
          *))
       = simplify

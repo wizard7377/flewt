@@ -1,0 +1,24 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.worldcheck)
+ (name worldcheck)
+ (libraries 
+  base
+  global
+  timing
+  table
+  lambda
+  names
+  paths
+  formatter
+  print
+  index
+  subordinate
+  meta
+  solvers
+ )
+ (modules 
+  worldcheck
+  worldify
+  worldsyn))

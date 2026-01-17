@@ -1,0 +1,12 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.order)
+ (name order)
+ (libraries 
+  base
+  table
+  lambda
+ )
+ (modules 
+  order))

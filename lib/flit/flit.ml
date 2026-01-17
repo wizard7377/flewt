@@ -34,7 +34,7 @@ module Flit(Flit:sig
                    module Index : INDEX
                    module Print :
                    ((PRINT)(* Flit DAG generator *)(* Author: Roberto Virga *))
-                 end) : FLIT =
+                 end) : FLIT = 
   struct
     module W = Word
     module I = IntSyn
@@ -258,50 +258,50 @@ module Flit(Flit:sig
     let rec compileUni = function | I.Kind -> kd () | I.Type -> ty ()
     let rec compileExpN arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, Uni (V), flags)) -> compileUni V
-      | (generate, (G, Pi ((Dec (_, U1), _), U2), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (g, Uni (V), flags)) -> compileUni V
+      | (generate, (g, Pi ((Dec (_, u1), _), u2), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
+              ((I.Decl (g, idxU1var)), u2, (false__, false__, false__)) in
           pi generate (flags, idxU1var, idxU2)
-      | (generate, (G, Lam ((Dec (_, U1) as D), U2), ((cld, _, _) as flags)))
+      | (generate, (g, Lam ((Dec (_, u1) as D), u2), ((cld, _, _) as flags)))
           ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
+              ((I.Decl (g, idxU1var)), u2, (false__, false__, false__)) in
           lam generate (flags, idxU1var, idxU2)
-      | (generate, (G, (Root (H, S) as U), flags)) ->
-          let idx = compileHead generate (G, H) in
-          compileSpine generate (G, idx, S, flags)
-      | (generate, (G, FgnExp csfe, flags)) ->
+      | (generate, (g, (Root (H, S) as U), flags)) ->
+          let idx = compileHead generate (g, H) in
+          compileSpine generate (g, idx, S, flags)
+      | (generate, (g, FgnExp csfe, flags)) ->
           compileExp generate
-            (G, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
+            (g, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
     let rec compileSpine arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, idx, I.Nil, flags)) -> idx
-      | (generate, (G, idx, App (U1, I.Nil), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (g, idx, I.Nil, flags)) -> idx
+      | (generate, (g, idx, App (u1, I.Nil), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
           app generate (flags, idx, idxU1)
-      | (generate, (G, idx, App (U1, S), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (g, idx, App (u1, S), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
           compileSpine generate
-            (G, (app generate ((cld, false__, false__), idx, idxU1)), S,
+            (g, (app generate ((cld, false__, false__), idx, idxU1)), S,
               flags)
     let rec compileHead arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, BVar k)) -> I.ctxLookup (G, k)
-      | (generate, (G, Const cid)) -> lookup cid
-      | (generate, (G, Def cid)) -> lookup cid
-      | (generate, (G, NSDef cid)) -> lookup cid
-      | (generate, (G, FgnConst (cs, conDec))) ->
-          compileFgnDec generate (G, conDec)
+      | (generate, (g, BVar k)) -> I.ctxLookup (g, k)
+      | (generate, (g, Const cid)) -> lookup cid
+      | (generate, (g, Def cid)) -> lookup cid
+      | (generate, (g, NSDef cid)) -> lookup cid
+      | (generate, (g, FgnConst (cs, conDec))) ->
+          compileFgnDec generate (g, conDec)
     let rec compileFgnDec arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (true__, (G, conDec)) ->
+      | (true__, (g, conDec)) ->
           let name = I.conDecName conDec in
           let flags = (true__, false__, false__) in
           (match scanNumber name with
@@ -319,8 +319,8 @@ module Flit(Flit:sig
                               raise
                                 (Error ("unknown foreign constant " ^ name))))))
       | (false__, _) -> W.fromInt 0
-    let rec compileExp generate (G, U, flags) =
-      compileExpN generate (G, (Whnf.normalize (U, I.id)), flags)
+    let rec compileExp generate (g, U, flags) =
+      compileExpN generate (g, (Whnf.normalize (U, I.id)), flags)
     let rec compileConDec =
       function
       | ((ConDec (_, _, _, _, V, _) as condec), (true__, cls)) ->

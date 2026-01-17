@@ -115,12 +115,12 @@ module TypecheckEL =
          (*  Equivalence wrt Definitions                                               *)
          (* -------------------------------------------------------------------------- *)),
          Uni u1, Uni u2) -> u1 = u2
-      | (sgn, Pi { arg = U1; body = V1; body = V1 }, Pi
-         { arg = U2; body = V2; body = V2 }) ->
-          (equiv_exp sgn U1 U2) && (equiv_exp sgn V1 V2)
+      | (sgn, Pi { arg = u1; body = V1; body = V1 }, Pi
+         { arg = u2; body = V2; body = V2 }) ->
+          (equiv_exp sgn u1 u2) && (equiv_exp sgn V1 V2)
       | (sgn, Lam { body = U }, Lam { body = U' }) -> equiv_exp sgn U U'
-      | (sgn, Root (BVar i, S1), Root (BVar i', S2)) ->
-          (i = i') && (equiv_spine sgn S1 S2)
+      | (sgn, Root (BVar i, s1), Root (BVar i', s2)) ->
+          (i = i') && (equiv_spine sgn s1 s2)
       | (sgn, (Root (Const c, S) as exp), (Root (Const c', S') as exp')) ->
           if c = c'
           then equiv_spine sgn S S'

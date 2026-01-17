@@ -20,13 +20,13 @@ module type INTSYN  =
     type 'a __Ctx =
       | Null 
       | Decl of
-      ((('a)(* G ::= .                    *)(* Contexts                   *)
+      ((('a)(* g ::= .                    *)(* Contexts                   *)
       (* Contexts *)(* raised by a constraint solver
                                            if passed an incorrect arg *))
       __Ctx * 'a) 
     val ctxPop :
       'a __Ctx ->
-        (('a)(*     | G, D                 *)) __Ctx
+        (('a)(*     | g, D                 *)) __Ctx
     val ctxLookup : ('a __Ctx * int) -> 'a
     val ctxLength : 'a __Ctx -> int
     type __Depend =
@@ -53,7 +53,7 @@ module type INTSYN  =
       __Exp) 
       | EVar of (((__Exp)(*     | lam D. U             *))
       option ref * __Dec __Ctx * __Exp * __Cnstr ref list ref) 
-      | EClo of (((__Exp)(*     | X<I> : G|-V, Cnstr   *)) *
+      | EClo of (((__Exp)(*     | X<I> : g|-V, Cnstr   *)) *
       __Sub) 
       | AVar of ((__Exp)(*     | U[s]                 *))
       option ref 
@@ -125,10 +125,10 @@ module type INTSYN  =
 
      I suggest however to wait until the next big overhaul 
      of the system -- cs *)
-      (*     | U1, ..., Un          *)) __Ctx * __Exp *
+      (*     | u1, ..., Un          *)) __Ctx * __Exp *
       __Exp) 
       | FgnCnstr of
-      (((csid)(*         | G|-(U1 == U2)    *)) *
+      (((csid)(*         | g|-(u1 == u2)    *)) *
       __FgnCnstr) 
     and __Status =
       | Normal 
@@ -148,7 +148,7 @@ module type INTSYN  =
       (((__Dec)(* succeed with a list of residual operations *))
       __Ctx * __Exp * __Exp * __Sub) 
       | Delay of
-      (((__Exp)(* perform the assignment G |- X = U [ss] *))
+      (((__Exp)(* perform the assignment g |- X = U [ss] *))
       * __Cnstr ref) 
     and __ConDec =
       | ConDec of
@@ -194,7 +194,7 @@ module type INTSYN  =
         (* ordinary declaration *)(* from constraint domain *))
         __Ctx
     type nonrec eclo =
-      (((__Exp)(* G = . | G,D                *)) * __Sub)
+      (((__Exp)(* g = . | g,D                *)) * __Sub)
     type nonrec bclo =
       (((__Block)(* Us = U[s]                  *)) * __Sub)
     type nonrec cnstr =
@@ -281,12 +281,12 @@ module type INTSYN  =
       (dctx * __Exp) ->
         ((__Exp)(* EVar related functions *)(* (^ o s) o ^-1)             *))
     val newAVar :
-      unit -> ((__Exp)(* creates X:G|-V, []         *))
+      unit -> ((__Exp)(* creates X:g|-V, []         *))
     val newTypeVar :
       dctx -> ((__Exp)(* creates A (bare)           *))
     val newLVar :
       (__Sub * (cid * __Sub)) ->
-        ((__Block)(* creates X:G|-type, []      *))
+        ((__Block)(* creates X:g|-type, []      *))
     val headOpt :
       __Exp ->
         ((__Head)(* Definition related functions *)(* creates B:(l[^k],t)        *))
@@ -322,18 +322,18 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
     type 'a __Ctx =
       | Null 
       | Decl of ('a __Ctx * 'a) 
-    let rec ctxPop (Decl (G, D)) = G
+    let rec ctxPop (Decl (g, D)) = g
     exception Error of string 
     let rec ctxLookup =
       function
-      | (Decl (G', D), 1) -> D
-      | (Decl (G', _), k') -> ctxLookup (G', (k' - 1))
-    let rec ctxLength (G) =
+      | (Decl (g', D), 1) -> D
+      | (Decl (g', _), k') -> ctxLookup (g', (k' - 1))
+    let rec ctxLength (g) =
       let ctxLength' =
         function
         | (Null, n) -> n
-        | (Decl (G, _), n) -> ctxLength' (G, (n + 1)) in
-      ctxLength' (G, 0)
+        | (Decl (g, _), n) -> ctxLength' (g, (n + 1)) in
+      ctxLength' (g, 0)
     type nonrec __FgnExp = exn
     exception UnexpectedFgnExp of __FgnExp 
     type nonrec __FgnCnstr = exn
@@ -614,16 +614,16 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
     let rec dot1 =
       function | Shift 0 as s -> s | s -> Dot ((Idx 1), (comp (s, shift)))
     let rec invDot1 s = comp ((comp (shift, s)), invShift)
-    let rec ctxDec (G, k) =
+    let rec ctxDec (g, k) =
       let ctxDec' =
         function
-        | (Decl (G', Dec (x, V')), 1) -> Dec (x, (EClo (V', (Shift k))))
-        | (Decl (G', BDec (n, (l, s))), 1) ->
+        | (Decl (g', Dec (x, V')), 1) -> Dec (x, (EClo (V', (Shift k))))
+        | (Decl (g', BDec (n, (l, s))), 1) ->
             BDec (n, (l, (comp (s, (Shift k)))))
-        | (Decl (G', _), k') -> ctxDec' (G', (k' - 1)) in
-      ctxDec' (G, k)
-    let rec blockDec (G, (Bidx k as v), i) =
-      let BDec (_, (l, s)) = ctxDec (G, k) in
+        | (Decl (g', _), k') -> ctxDec' (g', (k' - 1)) in
+      ctxDec' (g, k)
+    let rec blockDec (g, (Bidx k as v), i) =
+      let BDec (_, (l, s)) = ctxDec (g, k) in
       let (Gsome, Lblock) = conDecBlock (sgnLookup l) in
       let blockDec' =
         function
@@ -633,9 +633,9 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
               ((Dot ((Exp (Root ((Proj (v, j)), Nil))), t)), L, (n - 1),
                 (j + 1)) in
       blockDec' (s, Lblock, i, 1)
-    let rec newEVar (G, V) = EVar ((ref NONE), G, V, (ref nil))
+    let rec newEVar (g, V) = EVar ((ref NONE), g, V, (ref nil))
     let rec newAVar () = AVar (ref NONE)
-    let rec newTypeVar (G) = EVar ((ref NONE), G, (Uni Type), (ref nil))
+    let rec newTypeVar (g) = EVar ((ref NONE), g, (Uni Type), (ref nil))
     let rec newLVar (sk, (cid, t)) = LVar ((ref NONE), sk, (cid, t))
     let rec headOpt =
       function | Root (H, _) -> SOME H | Lam (_, U) -> headOpt U | _ -> NONE
@@ -682,18 +682,18 @@ module IntSyn : INTSYN =
                     (* Structure identifier       *)
                     (* CS module identifier       *)
                     (* Contexts *)(* Contexts                   *)
-                    (* G ::= .                    *)
-                    (*     | G, D                 *)
-                    (* ctxPop (G) => G'
-     Invariant: G = G',D
+                    (* g ::= .                    *)
+                    (*     | g, D                 *)
+                    (* ctxPop (g) => g'
+     Invariant: g = g',D
   *)
                     (* raised if out of space     *)
-                    (* ctxLookup (G, k) = D, kth declaration in G from right to left
-     Invariant: 1 <= k <= |G|, where |G| is length of G
+                    (* ctxLookup (g, k) = D, kth declaration in g from right to left
+     Invariant: 1 <= k <= |g|, where |g| is length of g
   *)
                     (*    | ctxLookup (Null, k') = (print ("Looking up k' = " ^ Int.toString k' ^ "\n"); raise Error "Out of Bounce\n")*)
                     (* ctxLookup (Null, k')  should not occur by invariant *)
-                    (* ctxLength G = |G|, the number of declarations in G *)
+                    (* ctxLength g = |g|, the number of declarations in g *)
                     (* foreign expression representation *)
                     (* raised by a constraint solver
                                            if passed an incorrect arg *)
@@ -714,7 +714,7 @@ module IntSyn : INTSYN =
                     (*     | C @ S                *)
                     (*     | U @ S                *)
                     (*     | lam D. U             *)
-                    (*     | X<I> : G|-V, Cnstr   *)
+                    (*     | X<I> : g|-V, Cnstr   *)
                     (*     | U[s]                 *)
                     (*     | A<I>                 *)
                     (*     | n (linear, fully applied) *)
@@ -751,7 +751,7 @@ module IntSyn : INTSYN =
                     (*     | u1, ..., Un          *)
                     (* Constraints *)(* Constraint:                *)
                     (* Cnstr ::= solved           *)
-                    (*         | G|-(U1 == U2)    *)
+                    (*         | g|-(u1 == u2)    *)
                     (*         | (foreign)        *)
                     (* Status of a constant:      *)
                     (*   inert                    *)
@@ -760,7 +760,7 @@ module IntSyn : INTSYN =
                     (* Result of foreign unify    *)
                     (* succeed with a list of residual operations *)
                     (* Residual of foreign unify  *)
-                    (* perform the assignment G |- X = U [ss] *)
+                    (* perform the assignment g |- X = U [ss] *)
                     (* delay cnstr, associating it with all the rigid EVars in U  *)
                     (* Global signature *)(* Constant declaration       *)
                     (* a : K : kind  or           *)
@@ -781,7 +781,7 @@ module IntSyn : INTSYN =
                     (* Form of constant declaration *)
                     (* from constraint domain *)(* ordinary declaration *)
                     (* %clause declaration *)(* Type abbreviations *)
-                    (* G = . | G,D                *)
+                    (* g = . | g,D                *)
                     (* Us = U[s]                  *)
                     (* Bs = B[s]                  *)
                     (*  exception Error of string              raised if out of space     *)
@@ -825,24 +825,24 @@ module IntSyn : INTSYN =
                     (* Explicit Substitutions *)(* id = ^0
 
      Invariant:
-     G |- id : G        id is patsub
+     g |- id : g        id is patsub
   *)
                     (* shift = ^1
 
      Invariant:
-     G, V |- ^ : G       ^ is patsub
+     g, V |- ^ : g       ^ is patsub
   *)
                     (* invShift = ^-1 = _.^0
      Invariant:
-     G |- ^-1 : G, V     ^-1 is patsub
+     g |- ^-1 : g, V     ^-1 is patsub
   *)
                     (* comp (s1, s2) = s'
 
      Invariant:
-     If   G'  |- s1 : G
-     and  G'' |- s2 : G'
+     If   g'  |- s1 : g
+     and  g'' |- s2 : g'
      then s'  = s1 o s2
-     and  G'' |- s1 o s2 : G
+     and  g'' |- s1 o s2 : g
 
      If  s1, s2 patsub
      then s' patsub
@@ -853,17 +853,17 @@ module IntSyn : INTSYN =
                     (* bvarSub (n, s) = Ft'
 
       Invariant:
-     If    G |- s : G'    G' |- n : V
+     If    g |- s : g'    g' |- n : V
      then  Ft' = Ftn         if  s = Ft1 .. Ftn .. ^k
        or  Ft' = ^(n+k)     if  s = Ft1 .. Ftm ^k   and m<n
-     and   G |- Ft' : V [s]
+     and   g |- Ft' : V [s]
   *)
                     (* blockSub (B, s) = B'
 
      Invariant:
-     If   G |- s : G'
-     and  G' |- B block
-     then G |- B' block
+     If   g |- s : g'
+     and  g' |- B block
+     then g |- B' block
      and  B [s] == B'
   *)
                     (* in front of substitutions, first case is irrelevant *)
@@ -881,9 +881,9 @@ module IntSyn : INTSYN =
                     (* frontSub (Ft, s) = Ft'
 
      Invariant:
-     If   G |- s : G'     G' |- Ft : V
+     If   g |- s : g'     g' |- Ft : V
      then Ft' = Ft [s]
-     and  G |- Ft' : V [s]
+     and  g |- Ft' : V [s]
 
      NOTE: EClo (U, s) might be undefined, so if this is ever
      computed eagerly, we must introduce an "Undefined" exception,
@@ -892,9 +892,9 @@ module IntSyn : INTSYN =
                     (* decSub (x:V, s) = D'
 
      Invariant:
-     If   G  |- s : G'    G' |- V : L
+     If   g  |- s : g'    g' |- V : L
      then D' = x:V[s]
-     and  G  |- V[s] : L
+     and  g  |- V[s] : L
   *)
                     (* First line is an optimization suggested by cs *)
                     (* D[id] = D *)(* Sat Feb 14 18:37:44 1998 -fp *)
@@ -907,10 +907,10 @@ module IntSyn : INTSYN =
                     (* dot1 (s) = s'
 
      Invariant:
-     If   G |- s : G'
+     If   g |- s : g'
      then s' = 1. (s o ^)
-     and  for all V s.t.  G' |- V : L
-          G, V[s] |- s' : G', V
+     and  for all V s.t.  g' |- V : L
+          g, V[s] |- s' : g', V
 
      If s patsub then s' patsub
   *)
@@ -922,32 +922,32 @@ module IntSyn : INTSYN =
 
      Invariant:
      s = 1 . s' o ^
-     If G' |- s' : G
-     (so G',V[s] |- s : G,V)
+     If g' |- s' : g
+     (so g',V[s] |- s : g,V)
   *)
-                    (* Declaration Contexts *)(* ctxDec (G, k) = x:V
+                    (* Declaration Contexts *)(* ctxDec (g, k) = x:V
      Invariant:
-     If      |G| >= k, where |G| is size of G,
-     then    G |- k : V  and  G |- V : L
+     If      |g| >= k, where |g| is size of g,
+     then    g |- k : V  and  g |- V : L
   *)
-                    (* ctxDec' (G'', k') = x:V
-             where G |- ^(k-k') : G'', 1 <= k' <= k
+                    (* ctxDec' (g'', k') = x:V
+             where g |- ^(k-k') : g'', 1 <= k' <= k
            *)
                     (* ctxDec' (Null, k')  should not occur by invariant *)
-                    (* blockDec (G, v, i) = V
+                    (* blockDec (g, v, i) = V
 
      Invariant:
-     If   G (v) = l[s]
+     If   g (v) = l[s]
      and  Sigma (l) = SOME Gsome BLOCK Lblock
-     and  G |- s : Gsome
-     then G |- pi (v, i) : V
+     and  g |- s : Gsome
+     then g |- pi (v, i) : V
   *)
-                    (* G |- s : Gsome *)(* EVar related functions *)
-                    (* newEVar (G, V) = newEVarCnstr (G, V, nil) *)
-                    (* newAVar G = new AVar (assignable variable) *)
+                    (* g |- s : Gsome *)(* EVar related functions *)
+                    (* newEVar (g, V) = newEVarCnstr (g, V, nil) *)
+                    (* newAVar g = new AVar (assignable variable) *)
                     (* AVars carry no type, ctx, or cnstr *)
-                    (* newTypeVar (G) = X, X new
-     where G |- X : type
+                    (* newTypeVar (g) = X, X new
+     where g |- X : type
   *)
                     (* newLVar (l, s) = (l[s]) *)(* Definition related functions *)
                     (* headOpt (U) = SOME(H) or NONE, U should be strict, normal *)

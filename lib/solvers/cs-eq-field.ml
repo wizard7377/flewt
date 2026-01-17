@@ -19,7 +19,7 @@ module type CS_EQ_FIELD  =
       IntSyn.__Sub) mset) 
     val fromExp :
       IntSyn.eclo ->
-        ((__Sum)(* Mon ::= n * U1[s1] * ...   *))
+        ((__Sum)(* Mon ::= n * u1[s1] * ...   *))
     val toExp : __Sum -> IntSyn.__Exp
     val normalize : __Sum -> __Sum
     val compatibleMon : (__Mon * __Mon) -> bool
@@ -88,7 +88,7 @@ module CSEqField(CSEqField:sig
       match fromString string with
       | SOME d -> SOME (numberConDec d)
       | NONE -> NONE
-    let rec solveNumber (G, S, k) = SOME (numberExp (fromInt k))
+    let rec solveNumber (g, S, k) = SOME (numberExp (fromInt k))
     let rec findMSet eq (x, L) =
       let findMSet' =
         function
@@ -128,30 +128,30 @@ module CSEqField(CSEqField:sig
           timesExp ((toExpMon (Mon (n, UsL))), (toExpEClo Us))
     let rec toExpEClo = function | (U, Shift 0) -> U | Us -> EClo Us
     let rec compatibleMon (Mon (_, UsL1), Mon (_, UsL2)) =
-      equalMSet (function | (Us1, Us2) -> sameExpW (Us1, Us2)) (UsL1, UsL2)
+      equalMSet (function | (us1, us2) -> sameExpW (us1, us2)) (UsL1, UsL2)
     let rec sameExpW =
       function
-      | (((Root (H1, S1), s1) as Us1), ((Root (H2, S2), s2) as Us2)) ->
+      | (((Root (H1, s1), s1) as us1), ((Root (H2, s2), s2) as us2)) ->
           (match (H1, H2) with
            | (BVar k1, BVar k2) ->
-               (k1 = k2) && (sameSpine ((S1, s1), (S2, s2)))
+               (k1 = k2) && (sameSpine ((s1, s1), (s2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
-               (n1 = n2) && (sameSpine ((S1, s1), (S2, s2)))
+               (n1 = n2) && (sameSpine ((s1, s1), (s2, s2)))
            | _ -> false__)
-      | ((((EVar (r1, G1, V1, cnstrs1) as U1), s1) as Us1),
-         (((EVar (r2, G2, V2, cnstrs2) as U2), s2) as Us2)) ->
+      | ((((EVar (r1, G1, V1, cnstrs1) as u1), s1) as us1),
+         (((EVar (r2, G2, V2, cnstrs2) as u2), s2) as us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
       | _ -> false__
-    let rec sameExp (Us1, Us2) = sameExpW ((Whnf.whnf Us1), (Whnf.whnf Us2))
+    let rec sameExp (us1, us2) = sameExpW ((Whnf.whnf us1), (Whnf.whnf us2))
     let rec sameSpine =
       function
       | ((Nil, s1), (Nil, s2)) -> true__
-      | ((SClo (S1, s1'), s1), Ss2) ->
-          sameSpine ((S1, (comp (s1', s1))), Ss2)
-      | (Ss1, (SClo (S2, s2'), s2)) ->
-          sameSpine (Ss1, (S2, (comp (s2', s2))))
-      | ((App (U1, S1), s1), (App (U2, S2), s2)) ->
-          (sameExp ((U1, s1), (U2, s2))) && (sameSpine ((S1, s1), (S2, s2)))
+      | ((SClo (s1, s1'), s1), Ss2) ->
+          sameSpine ((s1, (comp (s1', s1))), Ss2)
+      | (Ss1, (SClo (s2, s2'), s2)) ->
+          sameSpine (Ss1, (s2, (comp (s2', s2))))
+      | ((App (u1, s1), s1), (App (u2, s2), s2)) ->
+          (sameExp ((u1, s1), (u2, s2))) && (sameSpine ((s1, s1), (s2, s2)))
       | _ -> false__
     let rec sameSub =
       function
@@ -241,36 +241,36 @@ module CSEqField(CSEqField:sig
       List.app (function | mon -> appMon (f, mon)) monL
     let rec appMon (f, Mon (n, UsL)) =
       List.app (function | Us -> f (EClo Us)) UsL
-    let rec findMon f (G, Sum (m, monL)) =
+    let rec findMon f (g, Sum (m, monL)) =
       let findMon' =
         function
         | (nil, monL2) -> NONE
         | (mon::monL1, monL2) ->
-            (match f (G, mon, (Sum (m, (monL1 @ monL2)))) with
+            (match f (g, mon, (Sum (m, (monL1 @ monL2)))) with
              | SOME _ as result -> result
              | NONE -> findMon' (monL1, (mon :: monL2))) in
       findMon' (monL, nil)
-    let rec unifySum (G, sum1, sum2) =
+    let rec unifySum (g, sum1, sum2) =
       let invertMon =
         function
-        | (G, Mon (n, ((EVar (r, _, _, _) as LHS), s)::[]), sum) ->
+        | (g, Mon (n, ((EVar (r, _, _, _) as LHS), s)::[]), sum) ->
             if Whnf.isPatSub s
             then
               let ss = Whnf.invert s in
               let RHS = toFgn (timesSum ((Sum ((~ (inverse n)), nil)), sum)) in
-              (if Unify.invertible (G, (RHS, id), ss, r)
-               then SOME (G, LHS, RHS, ss)
+              (if Unify.invertible (g, (RHS, id), ss, r)
+               then SOME (g, LHS, RHS, ss)
                else NONE)
             else NONE
         | _ -> NONE in
       match minusSum (sum2, sum1) with
       | Sum (m, nil) -> if m = zero then Succeed nil else Fail
       | sum ->
-          (match findMon invertMon (G, sum) with
+          (match findMon invertMon (g, sum) with
            | SOME assignment -> Succeed [Assign assignment]
            | NONE ->
                let U = toFgn sum in
-               let cnstr = ref (Eqn (G, U, (numberExp zero))) in
+               let cnstr = ref (Eqn (g, U, (numberExp zero))) in
                Succeed [Delay (U, cnstr)])
     let rec toFgn =
       function
@@ -290,15 +290,15 @@ module CSEqField(CSEqField:sig
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec equalTo arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, U2) ->
-          (match minusSum ((normalizeSum sum), (fromExp (U2, id))) with
+      | (MyIntsynRep sum, u2) ->
+          (match minusSum ((normalizeSum sum), (fromExp (u2, id))) with
            | Sum (m, nil) -> m = zero
            | _ -> false__)
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec unifyWith arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, (G, U2)) ->
-          unifySum (G, (normalizeSum sum), (fromExp (U2, id)))
+      | (MyIntsynRep sum, (g, u2)) ->
+          unifySum (g, (normalizeSum sum), (fromExp (u2, id)))
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec installFgnExpOps () =
       let csid = !myID in
@@ -332,8 +332,8 @@ module CSEqField(CSEqField:sig
       makeFgn
         (2,
           (function
-           | App (U1, App (U2, Nil)) ->
-               opSum ((fromExp (U1, id)), (fromExp (U2, id)))))
+           | App (u1, App (u2, Nil)) ->
+               opSum ((fromExp (u1, id)), (fromExp (u2, id)))))
     let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
     let rec init (cs, installF) =
       myID := cs;
@@ -365,7 +365,7 @@ module CSEqField(CSEqField:sig
               Type)), (SOME (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       installFgnExpOps ();
       ()
-    let ((solver)(* Mon ::= n * U1[s1] * ...   *)(* A monomial (n * U1[s1] * U2[s2] * ...) is said to be normal iff
+    let ((solver)(* Mon ::= n * u1[s1] * ...   *)(* A monomial (n * u1[s1] * u2[s2] * ...) is said to be normal iff
        (a) the coefficient n is different from zero;
        (b) each (Ui,si) is in whnf and not a foreign term corresponding
            to a sum.
@@ -399,46 +399,46 @@ module CSEqField(CSEqField:sig
 
        Invariant:
        If sum is normal
-       G |- U : V and U is the Twelf syntax conversion of sum
+       g |- U : V and U is the Twelf syntax conversion of sum
     *)
       (* toExpMon mon = U
 
        Invariant:
        If mon is normal
-       G |- U : V and U is the Twelf syntax conversion of mon
+       g |- U : V and U is the Twelf syntax conversion of mon
     *)
       (* toExpEClo (U,s) = U
 
        Invariant:
-       G |- U : V and U is the Twelf syntax conversion of Us
+       g |- U : V and U is the Twelf syntax conversion of Us
     *)
       (* compatibleMon (mon1, mon2) = true only if mon1 = mon2 (as monomials) *)
-      (* sameExpW ((U1,s1), (U2,s2)) = T
+      (* sameExpW ((u1,s1), (u2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1    (U1,s1)  in whnf
-       and  G |- s2 : G2    G2 |- U2 : V2    (U2,s2)  in whnf
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   g |- s1 : G1    G1 |- u1 : V1    (u1,s1)  in whnf
+       and  g |- s2 : G2    G2 |- u2 : V2    (u2,s2)  in whnf
+       then T only if u1[s1] = u2[s2] (as expressions)
     *)
-      (* sameExp ((U1,s1), (U2,s2)) = T
+      (* sameExp ((u1,s1), (u2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1
-       and  G |- s2 : G2    G2 |- U2 : V2
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   g |- s1 : G1    G1 |- u1 : V1
+       and  g |- s2 : G2    G2 |- u2 : V2
+       then T only if u1[s1] = u2[s2] (as expressions)
     *)
-      (* sameSpine (S1, S2) = T
+      (* sameSpine (s1, s2) = T
 
        Invariant:
-       If   G |- S1 : V > W
-       and  G |- S2 : V > W
-       then T only if S1 = S2 (as spines)
+       If   g |- s1 : V > W
+       and  g |- s2 : V > W
+       then T only if s1 = s2 (as spines)
     *)
       (* sameSub (s1, s2) = T
 
        Invariant:
-       If   G |- s1 : G'
-       and  G |- s2 : G'
+       If   g |- s1 : g'
+       and  g |- s2 : g'
        then T only if s1 = s2 (as substitutions)
     *)
       (* plusSum (sum1, sum2) = sum3
@@ -491,31 +491,31 @@ module CSEqField(CSEqField:sig
       (* fromExpW (U, s) = sum
 
        Invariant:
-       If   G' |- s : G    G |- U : V    (U,s)  in whnf
+       If   g' |- s : g    g |- U : V    (U,s)  in whnf
        then sum is the internal representation of U[s] as sum of monomials
        and sum is normal
     *)
       (* fromExp (U, s) = sum
 
        Invariant:
-       If   G' |- s : G    G |- U : V
+       If   g' |- s : g    g |- U : V
        then sum is the internal representation of U[s] as sum of monomials
        and sum is normal
     *)
       (* normalizeSum sum = sum', where sum' normal and sum' = sum *)
       (* normalizeMon mon = mon', where mon' normal and mon' = mon *)
-      (* mapSum (f, m + M1 + ...) = m + mapMon(f,M1) + ... *)(* mapMon (f, n * (U1,s1) + ...) = n * f(U1,s1) * ... *)
+      (* mapSum (f, m + M1 + ...) = m + mapMon(f,M1) + ... *)(* mapMon (f, n * (u1,s1) + ...) = n * f(u1,s1) * ... *)
       (* appSum (f, m + M1 + ...) = ()     and appMon (f, Mi) for each i *)
-      (* appMon (f, n * (U1, s1) + ... ) = () and f (Ui[si]) for each i *)
-      (* findMon f (G, sum) =
+      (* appMon (f, n * (u1, s1) + ... ) = () and f (Ui[si]) for each i *)
+      (* findMon f (g, sum) =
          SOME(x) if f(M) = SOME(x) for some monomial M in sum
          NONE    if f(M) = NONE for all monomials M in sum
     *)
-      (* unifySum (G, sum1, sum2) = result
+      (* unifySum (g, sum1, sum2) = result
 
        Invariant:
-       If   G |- sum1 : number     sum1 normal
-       and  G |- sum2 : number     sum2 normal
+       If   g |- sum1 : number     sum1 normal
+       and  g |- sum2 : number     sum2 normal
        then result is the outcome (of type FgnUnify) of solving the
        equation sum1 = sum2 by gaussian elimination.
     *)
@@ -537,8 +537,8 @@ module CSEqField(CSEqField:sig
        if fe is (MyIntsynRep sum)   sum : normal
        and
          f sum = f (m + mon1 + ... + monN) =
-               = m + f (m1 * Us1 * ... * UsM) + ...
-               = m + (m1 * (f Us1) * ... * f (UsM))
+               = m + f (m1 * us1 * ... * UsM) + ...
+               = m + (m1 * (f us1) * ... * f (UsM))
                = sum'           sum' : normal
        then
          U' is a foreign expression representing sum'

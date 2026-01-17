@@ -1,0 +1,11 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.trail)
+ (name trail)
+ (libraries 
+  base
+ )
+ (modules 
+  notrail
+  trail))

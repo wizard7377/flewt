@@ -64,25 +64,25 @@ module OLDSearch(OLDSearch:sig
     let rec solve =
       function
       | ((Atom p, s), dp, sc, acck) -> matchAtom ((p, s), dp, sc, acck)
-      | ((Impl (r, A, H, g), s), DProg (G, dPool), sc, acck) ->
+      | ((Impl (r, A, H, g), s), DProg (g, dPool), sc, acck) ->
           let D' = I.Dec (NONE, (I.EClo (A, s))) in
           solve
             ((g, (I.dot1 s)),
               (C.DProg
-                 ((I.Decl (G, D')), (I.Decl (dPool, (C.Dec (r, s, H)))))),
+                 ((I.Decl (g, D')), (I.Decl (dPool, (C.Dec (r, s, H)))))),
               (function | (M, acck') -> sc ((I.Lam (D', M)), acck')), acck)
-      | ((All (D, g), s), DProg (G, dPool), sc, acck) ->
+      | ((All (D, g), s), DProg (g, dPool), sc, acck) ->
           let D' = I.decSub (D, s) in
           solve
             ((g, (I.dot1 s)),
-              (C.DProg ((I.Decl (G, D')), (I.Decl (dPool, C.Parameter)))),
+              (C.DProg ((I.Decl (g, D')), (I.Decl (dPool, C.Parameter)))),
               (function | (M, acck') -> sc ((I.Lam (D', M)), acck')), acck)
     let rec rSolve =
       function
-      | (ps', (Eq (Q), s), DProg (G, dPool), sc, ((acc, k) as acck)) ->
-          if Unify.unifiable (G, ps', (Q, s)) then sc (I.Nil, acck) else acc
-      | (ps', (And (r, A, g), s), (DProg (G, dPool) as dp), sc, acck) ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+      | (ps', (Eq (Q), s), DProg (g, dPool), sc, ((acc, k) as acck)) ->
+          if Unify.unifiable (g, ps', (Q, s)) then sc (I.Nil, acck) else acc
+      | (ps', (And (r, A, g), s), (DProg (g, dPool) as dp), sc, acck) ->
+          let X = I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function
@@ -92,18 +92,18 @@ module OLDSearch(OLDSearch:sig
                        (function
                         | (M, acck'') ->
                             (try
-                               Unify.unify (G, (X, I.id), (M, I.id));
+                               Unify.unify (g, (X, I.id), (M, I.id));
                                sc ((I.App (M, S)), acck'')
                              with | Unify _ -> [])), acck')), acck)
-      | (ps', (Exists (Dec (_, A), r), s), (DProg (G, dPool) as dp), sc,
+      | (ps', (Exists (Dec (_, A), r), s), (DProg (g, dPool) as dp), sc,
          acck) ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+          let X = I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function | (S, acck') -> sc ((I.App (X, S)), acck')), acck)
     let rec aSolve ((C.Trivial, s), dp, sc, acc) = sc ()
     let rec matchAtom
-      (((Root (Ha, _), _) as ps'), (DProg (G, dPool) as dp), sc, (acc, k)) =
+      (((Root (Ha, _), _) as ps'), (DProg (g, dPool) as dp), sc, (acc, k)) =
       let matchSig acc' =
         let matchSig' =
           function
@@ -178,10 +178,10 @@ module OLDSearch(OLDSearch:sig
     let rec searchEx' arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (max, (nil, sc)) -> [sc ()]
-      | (max, ((EVar (r, G, V, _))::GE, sc)) ->
+      | (max, ((EVar (r, g, V, _))::GE, sc)) ->
           solve
-            (((Compile.compileGoal (G, V)), I.id),
-              (Compile.compileCtx false__ G),
+            (((Compile.compileGoal (g, V)), I.id),
+              (Compile.compileCtx false__ g),
               (function
                | (U', (acc', _)) ->
                    (Unify.instantiateEVar (r, U', nil);
@@ -194,7 +194,7 @@ module OLDSearch(OLDSearch:sig
           (if (!Global.chatter) > 5 then print "#" else ();
            deepen' ((level + 1), (f level P))) in
       deepen' (1, nil)
-    let rec searchEx (G, GE, Vs, sc) =
+    let rec searchEx (g, GE, Vs, sc) =
       if (!Global.chatter) > 5 then print "[Search: " else ();
       deepen searchEx'
         ((selectEVar (GE, Vs, nil)),
@@ -207,41 +207,41 @@ module OLDSearch(OLDSearch:sig
     let rec searchAll' =
       function
       | (nil, acc, sc) -> sc acc
-      | ((EVar (r, G, V, _))::GE, acc, sc) ->
+      | ((EVar (r, g, V, _))::GE, acc, sc) ->
           solve
-            (((Compile.compileGoal (G, V)), I.id),
-              (Compile.compileCtx false__ G),
+            (((Compile.compileGoal (g, V)), I.id),
+              (Compile.compileCtx false__ g),
               (function
                | (U', (acc', _)) ->
                    (Unify.instantiateEVar (r, U', nil);
                     searchAll' (GE, acc', sc))),
               (acc, (!MetaGlobal.maxFill)))
-    let rec searchAll (G, GE, Vs, sc) =
+    let rec searchAll (g, GE, Vs, sc) =
       searchAll' ((selectEVar (GE, Vs, nil)), nil, sc)
     let ((searchEx)(* only used for type families of compiled clauses *)
-      (* solve ((g,s), (G,dPool), sc, (acc, k)) => ()
+      (* solve ((g,s), (g,dPool), sc, (acc, k)) => ()
      Invariants:
-       G |- s : G'
-       G' |- g :: goal
-       G ~ dPool  (context G matches dPool)
+       g |- s : g'
+       g' |- g :: goal
+       g ~ dPool  (context g matches dPool)
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if  G |- M :: g[s] then G |- sc :: g[s] => Answer, Answer closed
+       if  g |- M :: g[s] then g |- sc :: g[s] => Answer, Answer closed
   *)
-      (* rsolve ((p,s'), (r,s), (G,dPool), sc, (acc, k)) = ()
+      (* rsolve ((p,s'), (r,s), (g,dPool), sc, (acc, k)) = ()
      Invariants:
-       G |- s : G'
-       G' |- r :: resgoal
-       G |- s' : G''
-       G'' |- p :: atom
-       G ~ dPool
+       g |- s : g'
+       g' |- r :: resgoal
+       g |- s' : g''
+       g'' |- p :: atom
+       g ~ dPool
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if G |- S :: r[s] then G |- sc : (r >> p[s']) => Answer
+       if g |- S :: r[s] then g |- sc : (r >> p[s']) => Answer
   *)
       (* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
         ((Unify.unify (ps', (Q, s)); sc (I.Nil, acck)) handle Unify.Unify _ => acc) *)
@@ -254,9 +254,9 @@ module OLDSearch(OLDSearch:sig
     *)
       (* why doesn't it always succeed?
                                                                 --cs *)
-      (*    | rSolve (ps', (C.Axists (I.Dec (_, A), r), s), dp as C.DProg (G, dPool), sc, acck) =
+      (*    | rSolve (ps', (C.Axists (I.Dec (_, A), r), s), dp as C.DProg (g, dPool), sc, acck) =
         let
-          val X = I.newEVar (G, I.EClo (A, s))
+          val X = I.newEVar (g, I.EClo (A, s))
         in
           rSolve (ps', (r, I.Dot (I.Exp (X), s)), dp,
                   (fn (S, acck') => sc (S, acck')), acck)
@@ -268,20 +268,20 @@ module OLDSearch(OLDSearch:sig
         aSolve ((ag, s), dp, sc, acc))
        handle Unify.Unify _ => acc)
      *)
-      (* matchatom ((p, s), (G, dPool), sc, (acc, k)) => ()
-     G |- s : G'
-     G' |- p :: atom
-     G ~ dPool
+      (* matchatom ((p, s), (g, dPool), sc, (acc, k)) => ()
+     g |- s : g'
+     g' |- p :: atom
+     g ~ dPool
      acc is the accumulator of results
      and k is the max search depth limit
          (used in the existential case for iterative deepening,
           used in the universal case for max search depth)
-     if G |- M :: p[s] then G |- sc :: p[s] => Answer
+     if g |- M :: p[s] then g |- sc :: p[s] => Answer
   *)
       (* occursInExp (r, (U, s)) = B,
 
        Invariant:
-       If    G |- s : G1   G1 |- U : V
+       If    g |- s : G1   G1 |- U : V
        then  B holds iff r occurs in (the normal form of) U
     *)
       (* nonIndex (r, GE) = B
@@ -294,11 +294,11 @@ module OLDSearch(OLDSearch:sig
 
        Invariant:
        If   GE is a list of Evars
-       and  G |- s : G'   G' |- V : L
-       then acc' is a list of EVars (G', X') s.t.
+       and  g |- s : g'   g' |- V : L
+       then acc' is a list of EVars (g', X') s.t.
          (0) it extends acc'
-         (1) (G', X') occurs in V[s]
-         (2) (G', X') is not an index Variable to any (G, X) in acc'.
+         (1) (g', X') occurs in V[s]
+         (2) (g', X') is not an index Variable to any (g, X) in acc'.
     *)
       (* Efficiency: repeated whnf for every subterm in Vs!!! *)
       (* searchEx' max (GE, sc) = acc'
@@ -321,11 +321,11 @@ module OLDSearch(OLDSearch:sig
        then R' is the result of applying f to P and
          traversing all possible numbers up to MetaGlobal.maxLevel
     *)
-      (* searchEx (G, GE, (V, s), sc) = acc'
+      (* searchEx (g, GE, (V, s), sc) = acc'
        Invariant:
-       If   G |- s : G'   G' |- V : level
+       If   g |- s : g'   g' |- V : level
        and  GE is a list of EVars contained in V[s]
-         where G |- X : VX
+         where g |- X : VX
        and  sc is a function to be executed after all non-index variables have
          been instantiated
        then acc' is a list containing the one result from executing the success continuation
@@ -340,12 +340,12 @@ module OLDSearch(OLDSearch:sig
          after trying all combinations of instantiations of EVars in GE
     *)
       (* Shared contexts of EVars in GE may recompiled many times *)
-      (* searchAll (G, GE, (V, s), sc) = acc'
+      (* searchAll (g, GE, (V, s), sc) = acc'
 
        Invariant:
-       If   G |- s : G'   G' |- V : level
+       If   g |- s : g'   g' |- V : level
        and  GE is a list of EVars contained in V[s]
-         where G |- X : VX
+         where g |- X : VX
        and  sc is a function to be executed after all non-index variables have
          been instantiated
        then acc' is a list of results from executing the success continuation

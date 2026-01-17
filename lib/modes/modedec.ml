@@ -155,8 +155,8 @@ module ModeDec() : MODEDEC =
 
        M ::= . | M, <Marg, Arg>
 
-       G corresponds to a context. We say M is a mode list for U, if
-       G |- U : V and M assigns modes to parameters in G
+       g corresponds to a context. We say M is a mode list for U, if
+       g |- U : V and M assigns modes to parameters in g
          (and similarly for all other syntactic categories)
 
        The main function of this module is to

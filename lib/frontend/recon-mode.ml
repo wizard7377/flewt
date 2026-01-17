@@ -97,7 +97,7 @@ module ReconMode(ReconMode:sig
         let rec mpi ((m, _), d, t) (g, D) =
           t ((I.Decl (g, d)), (I.Decl (D, m)))
         let rec mroot (tm, r) (g, D) =
-          let JWithCtx (G, JOf ((V, _), _, _)) =
+          let JWithCtx (g, JOf ((V, _), _, _)) =
             T.recon (T.jwithctx (g, (T.jof (tm, (T.typ r))))) in
           let _ = T.checkErrors r in
           let convertSpine =
@@ -110,9 +110,9 @@ module ReconMode(ReconMode:sig
                   | Whnf.Eta ->
                       error
                         (r,
-                          (("Argument " ^ (Print.expToString (G, U))) ^
+                          (("Argument " ^ (Print.expToString (g, U))) ^
                              " not a variable")) in
-                let Dec (name, _) = I.ctxLookup (G, k) in
+                let Dec (name, _) = I.ctxLookup (g, k) in
                 let mode = I.ctxLookup (D, k) in
                 M.Mapp ((M.Marg (mode, name)), (convertSpine S)) in
           let convertExp =

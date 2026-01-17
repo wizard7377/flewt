@@ -47,7 +47,7 @@ module type RBSET  =
       'a ordSet ->
         'a ordSet ->
           ('a -> 'a -> 'a option) ->
-            ((('a)(* splits two sets into S1, S2, S3 *))
+            ((('a)(* splits two sets into s1, s2, s3 *))
               ordSet * 'a ordSet * 'a ordSet)
     val intersection : 'a ordSet -> 'a ordSet -> 'a ordSet
   end;;
@@ -565,18 +565,18 @@ module RBSet : RBSET =
    *)
       (* add an item that is guaranteed to be larger than any in l *)
       (* link the digits into a tree *)(* return the union of the two sets *)
-      (* return the intersection of the two sets *)(* return the set difference  S1 - S2 
-     if there are elements in S2 which do not appear in S1
+      (* return the intersection of the two sets *)(* return the set difference  s1 - s2 
+     if there are elements in s2 which do not appear in s1
      they are ignored !*)
       (* returns difference (d1, d2) where d1 
-     contains all elements occurring in S1 but not in S2
-     and d2 contains all elements occurring in S2 but not in S1
+     contains all elements occurring in s1 but not in s2
+     and d2 contains all elements occurring in s2 but not in s1
        *)
-      (* S1 - S2 = R1 
-      S2 - S1 = R2
-      intersection (S1, S2) requires 
-      for all (x, d1) in S1 
-        and (x, d2) in S2, d1 ~ d2
+      (* s1 - s2 = R1 
+      s2 - s1 = R2
+      intersection (s1, s2) requires 
+      for all (x, d1) in s1 
+        and (x, d2) in s2, d1 ~ d2
     *))
       = ref empty
     let rec copy ((S)(* ignore size hint *)) =

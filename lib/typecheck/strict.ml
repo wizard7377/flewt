@@ -118,14 +118,14 @@ module Strict(Strict:sig
       (* patSpine (k, S) = B
 
        Invariant:
-       If  G, D |- S : V > V', S in nf
+       If  g, D |- S : V > V', S in nf
        and |D| = k
        then B iff S = (k1 ; k2 ;...; kn ; NIL), kn <= k, all ki pairwise distinct
     *)
       (* possibly eta-contract? -fp *)(* strictExp (k, p, U) = B
 
        Invariant:
-       If  G, D |- U : V
+       If  g, D |- U : V
        and U is in nf (normal form)
        and |D| = k
        then B iff U is strict in p
@@ -135,7 +135,7 @@ module Strict(Strict:sig
       (* no other cases possible *)(* strictSpine (k, S) = B
 
        Invariant:
-       If  G, D |- S : V > W
+       If  g, D |- S : V > W
        and S is in nf (normal form)
        and |D| = k
        then B iff S is strict in k
@@ -145,8 +145,8 @@ module Strict(Strict:sig
        Traverses the flexible abstractions in U.
 
        Invariant:
-       If   G |- U : V
-       and  G |- p : V'
+       If   g |- U : V
+       and  g |- p : V'
        and  U is in nf
        then B iff argument parameter p occurs in strict position in U
                   which starts with argument parameters

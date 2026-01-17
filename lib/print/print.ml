@@ -81,9 +81,9 @@ module Print(Print:sig
     let rec Str0 (s, n) = F.String0 n s
     let rec sym s = Str0 (Symbol.sym s)
     let rec nameOf = function | SOME id -> id | NONE -> "_"
-    let rec fmtEVar (G, X) = Str0 (Symbol.evar (Names.evarName (G, X)))
-    let rec fmtAVar (G, X) =
-      Str0 (Symbol.evar ((Names.evarName (G, X)) ^ "_"))
+    let rec fmtEVar (g, X) = Str0 (Symbol.evar (Names.evarName (g, X)))
+    let rec fmtAVar (g, X) =
+      Str0 (Symbol.evar ((Names.evarName (g, X)) ^ "_"))
     let rec isNil =
       function | I.Nil -> true__ | App _ -> false__ | SClo (S, _) -> isNil S
     let rec subToSpine (depth, s) =
@@ -179,11 +179,11 @@ module Print(Print:sig
       | Dec (NONE, _) -> Int.toString i
     let rec projName =
       function
-      | (G, Proj (Bidx k, i)) ->
-          let BDec (SOME bname, (cid, t)) = I.ctxLookup (G, k) in
+      | (g, Proj (Bidx k, i)) ->
+          let BDec (SOME bname, (cid, t)) = I.ctxLookup (g, k) in
           (^) (bname ^ "_") parmName (cid, i)
-      | (G, Proj (LVar (r, _, (cid, t)), i)) -> (^) "_" parmName (cid, i)
-      | (G, Proj (Inst iota, i)) -> "*"
+      | (g, Proj (LVar (r, _, (cid, t)), i)) -> (^) "_" parmName (cid, i)
+      | (g, Proj (Inst iota, i)) -> "*"
     let rec constQid cid =
       if !noShadow
       then Names.conDecQid (I.sgnLookup cid)
@@ -201,38 +201,38 @@ module Print(Print:sig
     let rec worldsToString (W) = F.makestring_fmt (formatWorlds W)
     let rec fmtCon =
       function
-      | (G, BVar n) -> Str0 (Symbol.bvar (Names.bvarName (G, n)))
-      | (G, Const cid) -> fmtConstPath (Symbol.const, (constQid cid))
-      | (G, Skonst cid) -> fmtConstPath (Symbol.skonst, (constQid cid))
-      | (G, Def cid) -> fmtConstPath (Symbol.def, (constQid cid))
-      | (G, NSDef cid) -> fmtConstPath (Symbol.def, (constQid cid))
-      | (G, FVar (name, _, _)) -> Str0 (Symbol.fvar name)
-      | (G, (Proj (Bidx k, i) as H)) -> Str0 (Symbol.const (projName (G, H)))
-      | (G, (Proj (LVar ((ref (NONE) as r), sk, (cid, t)), i) as H)) ->
+      | (g, BVar n) -> Str0 (Symbol.bvar (Names.bvarName (g, n)))
+      | (g, Const cid) -> fmtConstPath (Symbol.const, (constQid cid))
+      | (g, Skonst cid) -> fmtConstPath (Symbol.skonst, (constQid cid))
+      | (g, Def cid) -> fmtConstPath (Symbol.def, (constQid cid))
+      | (g, NSDef cid) -> fmtConstPath (Symbol.def, (constQid cid))
+      | (g, FVar (name, _, _)) -> Str0 (Symbol.fvar name)
+      | (g, (Proj (Bidx k, i) as H)) -> Str0 (Symbol.const (projName (g, H)))
+      | (g, (Proj (LVar ((ref (NONE) as r), sk, (cid, t)), i) as H)) ->
           let n = lookuplvar r in
           fmtConstPath
             ((function
               | l0 ->
                   Symbol.const
-                    ((^) ((("#[" ^ l0) ^ n) ^ "]") projName (G, H))),
+                    ((^) ((("#[" ^ l0) ^ n) ^ "]") projName (g, H))),
               (constQid cid))
-      | (G, FgnConst (cs, conDec)) ->
+      | (g, FgnConst (cs, conDec)) ->
           let name = I.conDecName conDec in
           (match ((Names.constLookup (Names.Qid (nil, name))), (!noShadow))
            with
            | (SOME _, false__) -> Str0 (Symbol.const (("%" ^ name) ^ "%"))
            | _ -> Str0 (Symbol.const name))
-    let rec evarArgs (G, d, X, s) =
-      OpArgs (FX.Nonfix, [fmtEVar (G, X)], (subToSpine ((I.ctxLength G), s)))
-    let rec evarArgs' (G, d, X, s) =
-      OpArgs (FX.Nonfix, [fmtAVar (G, X)], (subToSpine ((I.ctxLength G), s)))
+    let rec evarArgs (g, d, X, s) =
+      OpArgs (FX.Nonfix, [fmtEVar (g, X)], (subToSpine ((I.ctxLength g), s)))
+    let rec evarArgs' (g, d, X, s) =
+      OpArgs (FX.Nonfix, [fmtAVar (g, X)], (subToSpine ((I.ctxLength g), s)))
     let rec fst =
       function
-      | (App (U1, _), s) -> (U1, s)
+      | (App (u1, _), s) -> (u1, s)
       | (SClo (S, s'), s) -> fst (S, (I.comp (s', s)))
     let rec snd =
       function
-      | (App (U1, S), s) -> fst (S, s)
+      | (App (u1, S), s) -> fst (S, s)
       | (SClo (S, s'), s) -> snd (S, (I.comp (s', s)))
     let rec elide l =
       match !printLength with | NONE -> false__ | SOME l' -> l > l'
@@ -261,60 +261,60 @@ module Print(Print:sig
     let rec fmtUni = function | I.Type -> sym "type" | I.Kind -> sym "kind"
     let rec fmtExpW =
       function
-      | (G, d, ctx, (Uni (L), s)) -> aa (ctx, (fmtUni L))
-      | (G, d, ctx, (Pi (((Dec (_, V1) as D), P), V2), s)) ->
+      | (g, d, ctx, (Uni (L), s)) -> aa (ctx, (fmtUni L))
+      | (g, d, ctx, (Pi (((Dec (_, V1) as D), P), V2), s)) ->
           (match P with
            | I.Maybe ->
-               let D' = Names.decLUName (G, D) in
+               let D' = Names.decLUName (g, D) in
                fmtLevel
-                 ((I.Decl (G, D')), d, ctx,
-                   ((braces (G, d, ((D', V2), s))), (I.dot1 s)))
+                 ((I.Decl (g, D')), d, ctx,
+                   ((braces (g, d, ((D', V2), s))), (I.dot1 s)))
            | I.Meta ->
-               let D' = Names.decLUName (G, D) in
+               let D' = Names.decLUName (g, D) in
                fmtLevel
-                 ((I.Decl (G, D')), d, ctx,
-                   ((braces (G, d, ((D', V2), s))), (I.dot1 s)))
+                 ((I.Decl (g, D')), d, ctx,
+                   ((braces (g, d, ((D', V2), s))), (I.dot1 s)))
            | I.No ->
                fmtLevel
-                 ((I.Decl (G, D)), d, ctx,
+                 ((I.Decl (g, D)), d, ctx,
                    ((arrow ((I.EClo (V1, I.shift)), V2)), (I.dot1 s))))
-      | (G, d, ctx, (Pi (((BDec _ as D), P), V2), s)) ->
-          let D' = Names.decLUName (G, D) in
+      | (g, d, ctx, (Pi (((BDec _ as D), P), V2), s)) ->
+          let D' = Names.decLUName (g, D) in
           fmtLevel
-            ((I.Decl (G, D')), d, ctx,
-              ((braces (G, d, ((D', V2), s))), (I.dot1 s)))
-      | (G, d, ctx, (Pi (((ADec _ as D), P), V2), s)) ->
+            ((I.Decl (g, D')), d, ctx,
+              ((braces (g, d, ((D', V2), s))), (I.dot1 s)))
+      | (g, d, ctx, (Pi (((ADec _ as D), P), V2), s)) ->
           let braces =
             OpArgs
               ((FX.Prefix binderPrec), [sym "["; sym "_"; sym "]"; F.Break],
                 (IntSyn.App (V2, IntSyn.Nil))) in
-          fmtLevel ((I.Decl (G, D)), d, ctx, (braces, (I.dot1 s)))
-      | (G, d, ctx, ((Root (R) as U), s)) ->
-          fmtOpArgs (G, d, ctx, (opargs (G, d, R)), s)
-      | (G, d, ctx, (Lam (D, U), s)) ->
-          let D' = Names.decLUName (G, D) in
+          fmtLevel ((I.Decl (g, D)), d, ctx, (braces, (I.dot1 s)))
+      | (g, d, ctx, ((Root (R) as U), s)) ->
+          fmtOpArgs (g, d, ctx, (opargs (g, d, R)), s)
+      | (g, d, ctx, (Lam (D, U), s)) ->
+          let D' = Names.decLUName (g, D) in
           fmtLevel
-            ((I.Decl (G, D')), d, ctx,
-              ((brackets (G, d, ((D', U), s))), (I.dot1 s)))
-      | (G, d, ctx, ((EVar _ as X), s)) ->
+            ((I.Decl (g, D')), d, ctx,
+              ((brackets (g, d, ((D', U), s))), (I.dot1 s)))
+      | (g, d, ctx, ((EVar _ as X), s)) ->
           if !implicit
-          then aa (ctx, (F.HVbox ((::) (fmtEVar (G, X)) fmtSub (G, d, s))))
-          else fmtOpArgs (G, d, ctx, (evarArgs (G, d, X, s)), I.id)
-      | (G, d, ctx, ((AVar _ as X), s)) ->
+          then aa (ctx, (F.HVbox ((::) (fmtEVar (g, X)) fmtSub (g, d, s))))
+          else fmtOpArgs (g, d, ctx, (evarArgs (g, d, X, s)), I.id)
+      | (g, d, ctx, ((AVar _ as X), s)) ->
           if !implicit
-          then aa (ctx, (F.HVbox ((::) (fmtAVar (G, X)) fmtSub (G, d, s))))
-          else fmtOpArgs (G, d, ctx, (evarArgs' (G, d, X, s)), I.id)
-      | (G, d, ctx, ((FgnExp csfe as U), s)) ->
-          fmtExp (G, d, ctx, ((I.FgnExpStd.ToInternal.apply csfe ()), s))
-    let rec opargsImplicit (G, d, (C, S)) =
-      OpArgs (FX.Nonfix, [fmtCon (G, C)], S)
-    let rec opargsImplicitInfix (G, d, ((C, S) as R)) =
+          then aa (ctx, (F.HVbox ((::) (fmtAVar (g, X)) fmtSub (g, d, s))))
+          else fmtOpArgs (g, d, ctx, (evarArgs' (g, d, X, s)), I.id)
+      | (g, d, ctx, ((FgnExp csfe as U), s)) ->
+          fmtExp (g, d, ctx, ((I.FgnExpStd.ToInternal.apply csfe ()), s))
+    let rec opargsImplicit (g, d, (C, S)) =
+      OpArgs (FX.Nonfix, [fmtCon (g, C)], S)
+    let rec opargsImplicitInfix (g, d, ((C, S) as R)) =
       let fixity = fixityCon C in
       match fixity with
-      | Infix _ -> opargsExplicit (G, d, R)
-      | _ -> OpArgs (FX.Nonfix, [fmtCon (G, C)], S)
-    let rec opargsExplicit (G, d, ((C, S) as R)) =
-      let opFmt = fmtCon (G, C) in
+      | Infix _ -> opargsExplicit (g, d, R)
+      | _ -> OpArgs (FX.Nonfix, [fmtCon (g, C)], S)
+    let rec opargsExplicit (g, d, ((C, S) as R)) =
+      let opFmt = fmtCon (g, C) in
       let fixity = fixityCon C in
       let oe =
         function
@@ -326,70 +326,70 @@ module Print(Print:sig
              | Infix _ -> OpArgs (fixity, [F.Break; opFmt; F.Space], S'))
         | TooFew -> EtaLong (Whnf.etaExpandRoot (I.Root R))
         | TooMany (S', S'') ->
-            let opFmt' = fmtOpArgs (G, d, noCtxt, (oe (Exact S')), I.id) in
+            let opFmt' = fmtOpArgs (g, d, noCtxt, (oe (Exact S')), I.id) in
             OpArgs (FX.Nonfix, [F.Hbox [sym "("; opFmt'; sym ")"]], S'') in
       oe (dropImp ((impCon C), S, (argNumber fixity)))
-    let rec opargs (G, d, R) =
+    let rec opargs (g, d, R) =
       if !implicit
       then
         (if !printInfix
-         then opargsImplicitInfix (G, d, R)
-         else opargsImplicit (G, d, R))
-      else opargsExplicit (G, d, R)
+         then opargsImplicitInfix (g, d, R)
+         else opargsImplicit (g, d, R))
+      else opargsExplicit (g, d, R)
     let rec fmtOpArgs =
       function
-      | (G, d, ctx, (OpArgs (_, opFmts, S') as oa), s) ->
+      | (g, d, ctx, (OpArgs (_, opFmts, S') as oa), s) ->
           if isNil S'
           then aa (ctx, (List.hd opFmts))
-          else fmtLevel (G, d, ctx, (oa, s))
-      | (G, d, ctx, EtaLong (U'), s) -> fmtExpW (G, d, ctx, (U', s))
-    let rec fmtSub (G, d, s) = (::) (Str "[") fmtSub' (G, d, 0, s)
-    let rec fmtSub' (G, d, l, s) =
-      if elide l then [ldots] else fmtSub'' (G, d, l, s)
+          else fmtLevel (g, d, ctx, (oa, s))
+      | (g, d, ctx, EtaLong (U'), s) -> fmtExpW (g, d, ctx, (U', s))
+    let rec fmtSub (g, d, s) = (::) (Str "[") fmtSub' (g, d, 0, s)
+    let rec fmtSub' (g, d, l, s) =
+      if elide l then [ldots] else fmtSub'' (g, d, l, s)
     let rec fmtSub'' =
       function
-      | (G, d, l, Shift k) -> [Str ((^) "^" Int.toString k); Str "]"]
-      | (G, d, l, Dot (Idx k, s)) ->
-          (::) (((::) (Str (Names.bvarName (G, k))) Str ".") :: F.Break)
-            fmtSub' (G, d, (l + 1), s)
-      | (G, d, l, Dot (Exp (U), s)) ->
-          (::) (((::) (fmtExp (G, (d + 1), noCtxt, (U, I.id))) Str ".") ::
+      | (g, d, l, Shift k) -> [Str ((^) "^" Int.toString k); Str "]"]
+      | (g, d, l, Dot (Idx k, s)) ->
+          (::) (((::) (Str (Names.bvarName (g, k))) Str ".") :: F.Break)
+            fmtSub' (g, d, (l + 1), s)
+      | (g, d, l, Dot (Exp (U), s)) ->
+          (::) (((::) (fmtExp (g, (d + 1), noCtxt, (U, I.id))) Str ".") ::
                   F.Break)
-            fmtSub' (G, d, (l + 1), s)
-    let rec fmtExp (G, d, ctx, (U, s)) =
+            fmtSub' (g, d, (l + 1), s)
+    let rec fmtExp (g, d, ctx, (U, s)) =
       if exceeded (d, (!printDepth))
       then sym "%%"
-      else fmtExpW (G, d, ctx, (Whnf.whnf (U, s)))
+      else fmtExpW (g, d, ctx, (Whnf.whnf (U, s)))
     let rec fmtSpine =
       function
-      | (G, d, l, (I.Nil, _)) -> []
-      | (G, d, l, (SClo (S, s'), s)) ->
-          fmtSpine (G, d, l, (S, (I.comp (s', s))))
-      | (G, d, l, (App (U, S), s)) ->
+      | (g, d, l, (I.Nil, _)) -> []
+      | (g, d, l, (SClo (S, s'), s)) ->
+          fmtSpine (g, d, l, (S, (I.comp (s', s))))
+      | (g, d, l, (App (U, S), s)) ->
           if elide l
           then []
           else
             if addots l
             then [ldots]
             else
-              (::) (fmtExp (G, (d + 1), appCtxt, (U, s))) fmtSpine'
-                (G, d, l, (S, s))
+              (::) (fmtExp (g, (d + 1), appCtxt, (U, s))) fmtSpine'
+                (g, d, l, (S, s))
     let rec fmtSpine' =
       function
-      | (G, d, l, (I.Nil, _)) -> []
-      | (G, d, l, (SClo (S, s'), s)) ->
-          fmtSpine' (G, d, l, (S, (I.comp (s', s))))
-      | (G, d, l, (S, s)) -> (::) F.Break fmtSpine (G, d, (l + 1), (S, s))
+      | (g, d, l, (I.Nil, _)) -> []
+      | (g, d, l, (SClo (S, s'), s)) ->
+          fmtSpine' (g, d, l, (S, (I.comp (s', s))))
+      | (g, d, l, (S, s)) -> (::) F.Break fmtSpine (g, d, (l + 1), (S, s))
     let rec fmtLevel =
       function
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((FX.Nonfix as fixity), fmts, S), s)) ->
-          let atm = fmtSpine (G, d, 0, (S, s)) in
+          let atm = fmtSpine (g, d, 0, (S, s)) in
           addAccum
             ((parens
                 ((fixity', fixity), (F.HVbox ((fmts @ [F.Break]) @ atm)))),
               fixity', accum)
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((Infix (p, FX.Left) as fixity), fmts, S), s)) ->
           let accMore = eqFix (fixity, fixity') in
           let rhs =
@@ -401,16 +401,16 @@ module Print(Print:sig
               else
                 fmts @
                   [fmtExp
-                     (G, (d + 1), (Ctxt ((FX.Infix (p, FX.None)), nil, 0)),
+                     (g, (d + 1), (Ctxt ((FX.Infix (p, FX.None)), nil, 0)),
                        (snd (S, s)))] in
           if accMore
           then
             fmtExp
-              (G, d, (Ctxt (fixity, (rhs @ accum), (l + 1))), (fst (S, s)))
+              (g, d, (Ctxt (fixity, (rhs @ accum), (l + 1))), (fst (S, s)))
           else
-            (let both = fmtExp (G, d, (Ctxt (fixity, rhs, 0)), (fst (S, s))) in
+            (let both = fmtExp (g, d, (Ctxt (fixity, rhs, 0)), (fst (S, s))) in
              addAccum ((parens ((fixity', fixity), both)), fixity', accum))
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((Infix (p, FX.Right) as fixity), fmts, S), s)) ->
           let accMore = eqFix (fixity, fixity') in
           let lhs =
@@ -421,26 +421,26 @@ module Print(Print:sig
               then [ldots] @ fmts
               else
                 [fmtExp
-                   (G, (d + 1), (Ctxt ((FX.Infix (p, FX.None)), nil, 0)),
+                   (g, (d + 1), (Ctxt ((FX.Infix (p, FX.None)), nil, 0)),
                      (fst (S, s)))]
                   @ fmts in
           if accMore
           then
             fmtExp
-              (G, d, (Ctxt (fixity, (accum @ lhs), (l + 1))), (snd (S, s)))
+              (g, d, (Ctxt (fixity, (accum @ lhs), (l + 1))), (snd (S, s)))
           else
-            (let both = fmtExp (G, d, (Ctxt (fixity, lhs, 0)), (snd (S, s))) in
+            (let both = fmtExp (g, d, (Ctxt (fixity, lhs, 0)), (snd (S, s))) in
              addAccum ((parens ((fixity', fixity), both)), fixity', accum))
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((Infix (_, FX.None) as fixity), fmts, S), s)) ->
           let lhs =
-            fmtExp (G, (d + 1), (Ctxt (fixity, nil, 0)), (fst (S, s))) in
+            fmtExp (g, (d + 1), (Ctxt (fixity, nil, 0)), (fst (S, s))) in
           let rhs =
-            fmtExp (G, (d + 1), (Ctxt (fixity, nil, 0)), (snd (S, s))) in
+            fmtExp (g, (d + 1), (Ctxt (fixity, nil, 0)), (snd (S, s))) in
           addAccum
             ((parens ((fixity', fixity), (F.HVbox (([lhs] @ fmts) @ [rhs])))),
               fixity', accum)
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((Prefix _ as fixity), fmts, S), s)) ->
           let accMore = eqFix (fixity', fixity) in
           let pfx =
@@ -450,11 +450,11 @@ module Print(Print:sig
           if accMore
           then
             fmtExp
-              (G, d, (Ctxt (fixity, (accum @ pfx), (l + 1))), (fst (S, s)))
+              (g, d, (Ctxt (fixity, (accum @ pfx), (l + 1))), (fst (S, s)))
           else
-            (let whole = fmtExp (G, d, (Ctxt (fixity, pfx, 0)), (fst (S, s))) in
+            (let whole = fmtExp (g, d, (Ctxt (fixity, pfx, 0)), (fst (S, s))) in
              addAccum ((parens ((fixity', fixity), whole)), fixity', accum))
-      | (G, d, Ctxt (fixity', accum, l),
+      | (g, d, Ctxt (fixity', accum, l),
          (OpArgs ((Postfix _ as fixity), fmts, S), s)) ->
           let accMore = eqFix (fixity', fixity) in
           let pfx =
@@ -464,35 +464,35 @@ module Print(Print:sig
           if accMore
           then
             fmtExp
-              (G, d, (Ctxt (fixity, (pfx @ accum), (l + 1))), (fst (S, s)))
+              (g, d, (Ctxt (fixity, (pfx @ accum), (l + 1))), (fst (S, s)))
           else
-            (let whole = fmtExp (G, d, (Ctxt (fixity, pfx, 0)), (fst (S, s))) in
+            (let whole = fmtExp (g, d, (Ctxt (fixity, pfx, 0)), (fst (S, s))) in
              addAccum ((parens ((fixity', fixity), whole)), fixity', accum))
-    let rec braces (G, d, ((D, V), s)) =
+    let rec braces (g, d, ((D, V), s)) =
       OpArgs
         ((FX.Prefix binderPrec),
-          [sym "{"; fmtDec (G, d, (D, s)); sym "}"; F.Break],
+          [sym "{"; fmtDec (g, d, (D, s)); sym "}"; F.Break],
           (IntSyn.App (V, IntSyn.Nil)))
-    let rec brackets (G, d, ((D, U), s)) =
+    let rec brackets (g, d, ((D, U), s)) =
       OpArgs
         ((FX.Prefix binderPrec),
-          [sym "["; fmtDec (G, d, (D, s)); sym "]"; F.Break],
+          [sym "["; fmtDec (g, d, (D, s)); sym "]"; F.Break],
           (IntSyn.App (U, IntSyn.Nil)))
     let rec fmtDec =
       function
-      | (G, d, (Dec (x, V), s)) ->
+      | (g, d, (Dec (x, V), s)) ->
           F.HVbox
             [Str0 (Symbol.bvar (nameOf x));
             sym ":";
-            fmtExp (G, (d + 1), noCtxt, (V, s))]
-      | (G, d, (BDec (x, (cid, t)), s)) ->
+            fmtExp (g, (d + 1), noCtxt, (V, s))]
+      | (g, d, (BDec (x, (cid, t)), s)) ->
           let (Gsome, Gblock) = I.constBlock cid in
           F.HVbox
             ((@) [Str0 (Symbol.const (nameOf x)); sym ":"] fmtDecList'
-               (G, (Gblock, (I.comp (t, s)))))
-      | (G, d, (ADec (x, _), s)) ->
+               (g, (Gblock, (I.comp (t, s)))))
+      | (g, d, (ADec (x, _), s)) ->
           F.HVbox [Str0 (Symbol.bvar (nameOf x)); sym ":_"]
-      | (G, d, (NDec (SOME name), s)) -> F.HVbox [sym name]
+      | (g, d, (NDec (SOME name), s)) -> F.HVbox [sym name]
     let rec fmtDecList' =
       function
       | (G0, (nil, s)) -> nil
@@ -504,18 +504,18 @@ module Print(Print:sig
             fmtDecList' ((I.Decl (G0, D)), (L, (I.dot1 s)))
     let rec skipI =
       function
-      | (0, G, V) -> (G, V)
-      | (i, G, Pi ((D, _), V)) ->
-          skipI ((i - 1), (I.Decl (G, (Names.decEName (G, D)))), V)
+      | (0, g, V) -> (g, V)
+      | (i, g, Pi ((D, _), V)) ->
+          skipI ((i - 1), (I.Decl (g, (Names.decEName (g, D)))), V)
     let rec skipI2 =
       function
-      | (0, G, V, U) -> (G, V, U)
-      | (i, G, Pi ((D, _), V), Lam (D', U)) ->
-          skipI2 ((i - 1), (I.Decl (G, (Names.decEName (G, D')))), V, U)
+      | (0, g, V, U) -> (g, V, U)
+      | (i, g, Pi ((D, _), V), Lam (D', U)) ->
+          skipI2 ((i - 1), (I.Decl (g, (Names.decEName (g, D')))), V, U)
     let rec ctxToDecList =
       function
       | (I.Null, L) -> L
-      | (Decl (G, D), L) -> ctxToDecList (G, (D :: L))
+      | (Decl (g, D), L) -> ctxToDecList (g, (D :: L))
     let rec fmtDecList =
       function
       | (G0, nil) -> nil
@@ -525,7 +525,7 @@ module Print(Print:sig
           (::) (((::) ((::) (sym "{") fmtDec (G0, 0, (D, I.id))) sym "}") ::
                   F.Break)
             fmtDecList ((I.Decl (G0, D)), L)
-    let rec fmtCtx (G0, G) = fmtDecList (G0, (ctxToDecList (G, nil)))
+    let rec fmtCtx (G0, g) = fmtDecList (G0, (ctxToDecList (g, nil)))
     let rec fmtBlock =
       function
       | (I.Null, Lblock) ->
@@ -539,8 +539,8 @@ module Print(Print:sig
       | (hide, (ConDec (_, _, imp, _, V, L) as condec)) ->
           let qid = Names.conDecQid condec in
           let _ = Names.varReset IntSyn.Null in
-          let (G, V) = if hide then skipI (imp, I.Null, V) else (I.Null, V) in
-          let Vfmt = fmtExp (G, 0, noCtxt, (V, I.id)) in
+          let (g, V) = if hide then skipI (imp, I.Null, V) else (I.Null, V) in
+          let Vfmt = fmtExp (g, 0, noCtxt, (V, I.id)) in
           F.HVbox
             [fmtConstPath (Symbol.const, qid);
             F.Space;
@@ -551,8 +551,8 @@ module Print(Print:sig
       | (hide, (SkoDec (_, _, imp, V, L) as condec)) ->
           let qid = Names.conDecQid condec in
           let _ = Names.varReset IntSyn.Null in
-          let (G, V) = if hide then skipI (imp, I.Null, V) else (I.Null, V) in
-          let Vfmt = fmtExp (G, 0, noCtxt, (V, I.id)) in
+          let (g, V) = if hide then skipI (imp, I.Null, V) else (I.Null, V) in
+          let Vfmt = fmtExp (g, 0, noCtxt, (V, I.id)) in
           F.HVbox
             [sym "%skolem";
             F.Break;
@@ -585,10 +585,10 @@ module Print(Print:sig
       | (hide, (ConDef (_, _, imp, U, V, L, _) as condec)) ->
           let qid = Names.conDecQid condec in
           let _ = Names.varReset IntSyn.Null in
-          let (G, V, U) =
+          let (g, V, U) =
             if hide then skipI2 (imp, I.Null, V, U) else (I.Null, V, U) in
-          let Vfmt = fmtExp (G, 0, noCtxt, (V, I.id)) in
-          let Ufmt = fmtExp (G, 0, noCtxt, (U, I.id)) in
+          let Vfmt = fmtExp (g, 0, noCtxt, (V, I.id)) in
+          let Ufmt = fmtExp (g, 0, noCtxt, (U, I.id)) in
           F.HVbox
             [fmtConstPath (Symbol.def, qid);
             F.Space;
@@ -603,10 +603,10 @@ module Print(Print:sig
       | (hide, (AbbrevDef (_, _, imp, U, V, L) as condec)) ->
           let qid = Names.conDecQid condec in
           let _ = Names.varReset IntSyn.Null in
-          let (G, V, U) =
+          let (g, V, U) =
             if hide then skipI2 (imp, I.Null, V, U) else (I.Null, V, U) in
-          let Vfmt = fmtExp (G, 0, noCtxt, (V, I.id)) in
-          let Ufmt = fmtExp (G, 0, noCtxt, (U, I.id)) in
+          let Vfmt = fmtExp (g, 0, noCtxt, (V, I.id)) in
+          let Ufmt = fmtExp (g, 0, noCtxt, (U, I.id)) in
           F.HVbox
             [fmtConstPath (Symbol.def, qid);
             F.Space;
@@ -621,22 +621,22 @@ module Print(Print:sig
     let rec fmtCnstr =
       function
       | I.Solved -> [Str "Solved Constraint"]
-      | Eqn (G, U1, U2) ->
-          let G' = Names.ctxLUName G in
+      | Eqn (g, u1, u2) ->
+          let g' = Names.ctxLUName g in
           [F.HVbox
-             [fmtExp (G', 0, noCtxt, (U1, I.id));
+             [fmtExp (g', 0, noCtxt, (u1, I.id));
              F.Break;
              sym "=";
              F.Space;
-             fmtExp (G', 0, noCtxt, (U2, I.id))]]
+             fmtExp (g', 0, noCtxt, (u2, I.id))]]
       | FgnCnstr ((cs, _) as csfc) ->
           let fmtExpL =
             function
             | nil -> [Str "Empty Constraint"]
-            | (G, U)::nil ->
-                [fmtExp ((Names.ctxLUName G), 0, noCtxt, (U, I.id))]
-            | (G, U)::expL ->
-                (@) [fmtExp ((Names.ctxLUName G), 0, noCtxt, (U, I.id));
+            | (g, U)::nil ->
+                [fmtExp ((Names.ctxLUName g), 0, noCtxt, (U, I.id))]
+            | (g, U)::expL ->
+                (@) [fmtExp ((Names.ctxLUName g), 0, noCtxt, (U, I.id));
                     Str ";";
                     F.Break]
                   fmtExpL expL in
@@ -650,11 +650,11 @@ module Print(Print:sig
     let rec abstractLam =
       function
       | (I.Null, U) -> U
-      | (Decl (G, D), U) -> abstractLam (G, (I.Lam (D, U)))
+      | (Decl (g, D), U) -> abstractLam (g, (I.Lam (D, U)))
     let rec fmtNamedEVar =
       function
-      | ((EVar (_, G, _, _) as U), name) ->
-          let U' = abstractLam (G, U) in
+      | ((EVar (_, g, _, _) as U), name) ->
+          let U' = abstractLam (g, U) in
           F.HVbox
             [Str0 (Symbol.evar name);
             F.Space;
@@ -697,21 +697,21 @@ module Print(Print:sig
             ((Constraints.simplify (!cnstrs)), (collectConstraints Xs))
       | _::Xs -> collectConstraints Xs
     let rec formatDec
-      (((G)(* if true, don't print shadowed constants as "%const%" *)
+      (((g)(* if true, don't print shadowed constants as "%const%" *)
        (* Shorthands *)(* Disambiguation of block logic variable names *)
        (* speed improvment possible Tue Mar  1 13:27:04 2011 --cs *)
-       (* fmtEVar (G, X) = "X", the name of the EVar X *)
+       (* fmtEVar (g, X) = "X", the name of the EVar X *)
        (* Effect: Names.evarName will assign a name if X does not yet have one *)
        (* should probably be a new Symbol constructor for AVars -kw *)
        (* isNil S = true iff S == Nil *)(* subToSpine (depth, s) = S
      Invariants:
-     If  G |- s : G', Gd  with  |Gd| = depth
-     then G |- S : {{Gd}} C > C  for any C
+     If  g |- s : g', Gd  with  |Gd| = depth
+     then g |- S : {{Gd}} C > C  for any C
 
      This is used to print
-      G |- Xl[s] : A[s]  for  G', Gd |- Xl : A
+      g |- Xl[s] : A[s]  for  g', Gd |- Xl : A
      as
-      G |- Xr @ S : A[s]  for  G' |- Xr : {{Gd}} A
+      g |- Xr @ S : A[s]  for  g' |- Xr : {{Gd}} A
      where Xr is the raised version of Xl.
      Xr is not actually created, just printed using the name of Xl.
   *)
@@ -722,7 +722,7 @@ module Print(Print:sig
      = Exact(S')         if n >= 1, |S| = i+n, S = _ @ S' and |S'| = n
                          if n = 0, |S| = _ @ S', |_| = i
      = TooMany(S', S'')  if n >=1, |S| > i+n, S = _ @ S' and |S'| > n,
-                                              S' = S0 @ S'' and |S0| = n
+                                              S' = s0 @ S'' and |s0| = n
   *)
        (* n >= 1 *)(* exceeded (n:int, b:bound) = true if n exceeds bound b *)
        (* Type ctxt is the "left context" of an expression to be printed.
@@ -774,12 +774,12 @@ module Print(Print:sig
        (* will need to be changed if qualified constraint constant
              names are introduced... anyway, why should the user be
              allowed to shadow constraint constants? -kw *)
-       (* the user has re-defined this name *)(* evarArgs (G, d, X, s)
+       (* the user has re-defined this name *)(* evarArgs (g, d, X, s)
      formats X[s] by printing X @ S, where S is the substitution s in spine form.
      This is an implicit form of raising.
   *)
-       (* fst (S, s) = U1, the first argument in S[s] *)
-       (* snd (S, s) = U2, the second argument in S[s] *)
+       (* fst (S, s) = u1, the first argument in S[s] *)
+       (* snd (S, s) = u2, the second argument in S[s] *)
        (* elide (l) = true  iff  l exceeds the optional printLength bound *)
        (* addots (l) = true  iff  l is equal to the optional printLength bound *)
        (* parens ((fixity', fixity), fmt) = fmt'
@@ -803,30 +803,30 @@ module Print(Print:sig
      Extend the current "left context" by fmt.
   *)
        (* fmtUni (L) = "L" *)(* impossible, included for robustness *)
-       (* fmtExpW (G, d, ctx, (U, s)) = fmt
+       (* fmtExpW (g, d, ctx, (U, s)) = fmt
 
      format the expression U[s] at printing depth d and add it to the left context
      ctx.
 
      Invariants:
-       G is a "printing context" (names in it are unique, but
-            types may be incorrect) approximating G'
-       G'' |- U : V   G' |- s : G''  (so  G' |- U[s] : V[s])
+       g is a "printing context" (names in it are unique, but
+            types may be incorrect) approximating g'
+       g'' |- U : V   g' |- s : g''  (so  g' |- U[s] : V[s])
        (U,s) in whnf
   *)
        (* if Pi is dependent but anonymous, invent name here *)(* could sometimes be EName *)
        (* I.decSub (D', s) *)(* I.decSub (D', s) *)
        (* I.decSub (D, s) *)(* -bp *)
-       (*      val D' = Names.decLUName (G, D) *)(* s = id *)
+       (*      val D' = Names.decLUName (g, D) *)(* s = id *)
        (* I.Redex not possible *)(* I.decSub (D', s) *)
        (* assume dereferenced during whnf *)(* assume dereferenced during whnf *)
        (* I.EClo not possible for Whnf *)(* for internal printing *)
-       (* opargsImplicit (G, (C, S)) = oa
+       (* opargsImplicit (g, (C, S)) = oa
      converts C @ S into operator/arguments form, showing all implicit
      arguments.  In this form, infix, prefix, and postfix declarations
      are ignored.
   *)
-       (* for flit printing -jcreed 6/2005 *)(* opargsImplicit (G, (C, S)) = oa
+       (* for flit printing -jcreed 6/2005 *)(* opargsImplicit (g, (C, S)) = oa
      converts C @ S into operator/arguments form, showing all implicit
      arguments.  In this form, infix declarations are obeyed. It is an
      error to call this function if an infix declaration has been made for
@@ -837,10 +837,10 @@ module Print(Print:sig
      implicit arguments.
   *)
        (* Can't have implicit arguments by invariant *)
-       (* for external printing *)(* opargsExplicit (G, (C, S)) = oa
+       (* for external printing *)(* opargsExplicit (g, (C, S)) = oa
      converts C @ S into operator/arguments form, eliding implicit
      arguments and taking operator fixity declarations into account.
-     G |- C @ S (no substitution involved)
+     g |- C @ S (no substitution involved)
   *)
        (* extra arguments to infix operator *)(* S' - all non-implicit arguments *)
        (* S'' - extra arguments *)(* parens because juxtaposition has highest precedence *)
@@ -848,35 +848,35 @@ module Print(Print:sig
                  could be redundant for prefix or postfix operators, but
                  include anyway to avoid misreading output
               *)
-       (* opargs (G, d, (C, S)) = oa
+       (* opargs (g, d, (C, S)) = oa
      converts C @ S to operator/arguments form, depending on the
      value of !implicit
   *)
-       (* fmtOpArgs (G, d, ctx, oa, s) = fmt
+       (* fmtOpArgs (g, d, ctx, oa, s) = fmt
      format the operator/arguments form oa at printing depth d and add it
      to the left context ctx.
 
-     G is a printing context approximating G', and G' |- oa[s] is valid.
+     g is a printing context approximating g', and g' |- oa[s] is valid.
   *)
-       (* opFmts = [fmtCon(G,C)] *)(* fmtSub (G, d, s) = fmt
+       (* opFmts = [fmtCon(g,C)] *)(* fmtSub (g, d, s) = fmt
      format substitution s at printing depth d and printing context G.
 
      This is used only when !implicit = true, that is, when the internal
      representation is printed.  Note that a substitution is not reparsable
   *)
-       (* fmtExp (G, d, ctx, (U, s)) = fmt
+       (* fmtExp (g, d, ctx, (U, s)) = fmt
      format or elide U[s] at printing depth d and add to the left context ctx.
 
-     G is a printing context approximation G' and G' |- U[s] is valid.
+     g is a printing context approximation g' and g' |- U[s] is valid.
   *)
-       (* fmtSpine (G, d, l, (S, s)) = fmts
+       (* fmtSpine (g, d, l, (S, s)) = fmts
      format spine S[s] at printing depth d, printing length l, in printing
-     context G which approximates G', where G' |- S[s] is valid
+     context g which approximates g', where g' |- S[s] is valid
   *)
-       (* necessary? *)(* fmtSpine' (G, d, l, (S, s)) = fmts
+       (* necessary? *)(* fmtSpine' (g, d, l, (S, s)) = fmts
      like fmtSpine, but will add leading "Break" and increment printing length
   *)
-       (* fmtLevel (G, d, ctx, (oa, s)) = fmt
+       (* fmtLevel (g, d, ctx, (oa, s)) = fmt
 
      format operator/arguments form oa[s] at printing depth d and add the result
      to the left context ctx.
@@ -895,37 +895,37 @@ module Print(Print:sig
            then F.Hbox [F.Hbox(fmts), F.HVbox0 1 1 1 atm]
            else ...
         *)
-       (* braces (G, d, ((D, V), s)) = oa
+       (* braces (g, d, ((D, V), s)) = oa
      convert declaration D[s] as a prefix pi-abstraction into operator/arguments
      form with prefix "{D}" and argument V at printing depth d in printing
-     context G approximating G'.
+     context g approximating g'.
 
      Invariants:
-      G' |- D[s] decl
-      G' |- V : L  [NOTE: s does not apply to V!]
+      g' |- D[s] decl
+      g' |- V : L  [NOTE: s does not apply to V!]
   *)
-       (* brackets (G, d, ((D, U), s)) = oa
+       (* brackets (g, d, ((D, U), s)) = oa
      convert declaration D[s] as a prefix lambda-abstraction into operator/arguments
      form with prefix "[D]" and argument U at printing depth d in printing
-     context G approximating G'.
+     context g approximating g'.
 
      Invariants:
-      G' |- D[s] decl
-      G' |- U : V  [NOTE: s does not apply to U!]
+      g' |- D[s] decl
+      g' |- U : V  [NOTE: s does not apply to U!]
   *)
-       (* fmtDec (G, d, (D, s)) = fmt
-     format declaration D[s] at printing depth d in printing context G approximating G'.
+       (* fmtDec (g, d, (D, s)) = fmt
+     format declaration D[s] at printing depth d in printing context g approximating g'.
 
      Invariants:
-      G' |- D[s] decl
+      g' |- D[s] decl
   *)
        (* alternative with more whitespace *)(* F.HVbox [Str0 (Symbol.bvar (nameOf (x))), F.Space, sym ":", F.Break,
-                  fmtExp (G, d+1, noCtxt, (V,s))]
+                  fmtExp (g, d+1, noCtxt, (V,s))]
       *)
        (* alternative with more whitespace *)(* F.HVbox [Str0 (Symbol.bvar (nameOf (x))), F.Space, sym ":", F.Break,
-                  fmtExp (G, d+1, noCtxt, (V,s))]
+                  fmtExp (g, d+1, noCtxt, (V,s))]
       *)
-       (* Assume unique names are already assigned in G0 and G! *)
+       (* Assume unique names are already assigned in G0 and g! *)
        (* fmtConDec (hide, condec) = fmt
      formats a constant declaration (which must be closed and in normal form)
 
@@ -960,30 +960,30 @@ module Print(Print:sig
        (* collectEVars and collectConstraints are used to print constraints
      associated with EVars in a instantiation of variables occurring in queries.
   *)
-       (* In the functions below, G must be a "printing context", that is,
+       (* In the functions below, g must be a "printing context", that is,
      (a) unique names must be assigned to each declaration which may
          actually applied in the scope (typically, using Names.decName)
      (b) types need not be well-formed, since they are not used
   *)),
        D)
-      = fmtDec (G, 0, (D, I.id))
-    let rec formatDecList (G, D) = F.HVbox (fmtDecList (G, D))
-    let rec formatDecList' (G, (D, s)) = F.HVbox (fmtDecList' (G, (D, s)))
-    let rec formatExp (G, U) = fmtExp (G, 0, noCtxt, (U, I.id))
-    let rec formatSpine (G, S) = fmtSpine (G, 0, 0, (S, I.id))
+      = fmtDec (g, 0, (D, I.id))
+    let rec formatDecList (g, D) = F.HVbox (fmtDecList (g, D))
+    let rec formatDecList' (g, (D, s)) = F.HVbox (fmtDecList' (g, (D, s)))
+    let rec formatExp (g, U) = fmtExp (g, 0, noCtxt, (U, I.id))
+    let rec formatSpine (g, S) = fmtSpine (g, 0, 0, (S, I.id))
     let rec formatConDec condec = fmtConDec (false__, condec)
     let rec formatConDecI condec = fmtConDec (true__, condec)
     let rec formatCnstr (Cnstr) = F.Vbox0 0 1 (fmtCnstr Cnstr)
     let rec formatCnstrs cnstrL = F.Vbox0 0 1 (fmtCnstrL cnstrL)
-    let rec formatCtx (G0, G) = F.HVbox (fmtCtx (G0, G))
+    let rec formatCtx (G0, g) = F.HVbox (fmtCtx (G0, g))
     let rec decToString
-      (((G)(* assumes G0 and G are named *)), D) =
-      F.makestring_fmt (formatDec (G, D))
-    let rec expToString (G, U) = F.makestring_fmt (formatExp (G, U))
+      (((g)(* assumes G0 and g are named *)), D) =
+      F.makestring_fmt (formatDec (g, D))
+    let rec expToString (g, U) = F.makestring_fmt (formatExp (g, U))
     let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
     let rec cnstrToString (Cnstr) = F.makestring_fmt (formatCnstr Cnstr)
     let rec cnstrsToString cnstrL = F.makestring_fmt (formatCnstrs cnstrL)
-    let rec ctxToString (G0, G) = F.makestring_fmt (formatCtx (G0, G))
+    let rec ctxToString (G0, g) = F.makestring_fmt (formatCtx (G0, g))
     let rec evarInstToString (Xnames) =
       F.makestring_fmt (F.Hbox [F.Vbox0 0 1 (fmtEVarInst Xnames); Str "."])
     let rec evarCnstrsToStringOpt (Xnames) =

@@ -1,0 +1,12 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.timing)
+ (name timing)
+ (libraries 
+  base
+  compat
+ )
+ (modules 
+  timers
+  timing))

@@ -63,23 +63,23 @@ module TomegaPrint(TomegaPrint:sig
       let evarName' =
         function
         | nil -> raise (Error "not found")
-        | (EVar (_, _, _, _, _, (EVar (_, G, r, _) as X)) as Y)::L ->
-            if (Names.evarName (G, X)) = n then Y else evarName' L in
+        | (EVar (_, _, _, _, _, (EVar (_, g, r, _) as X)) as Y)::L ->
+            if (Names.evarName (g, X)) = n then Y else evarName' L in
       evarName' (!evarList)
-    let rec nameEVar (EVar (_, _, _, _, _, (EVar (_, G, r, _) as X))) =
-      Names.evarName (G, X)
+    let rec nameEVar (EVar (_, _, _, _, _, (EVar (_, g, r, _) as X))) =
+      Names.evarName (g, X)
     let rec formatCtxBlock =
       function
-      | (G, (I.Null, s)) -> (G, s, nil)
-      | (G, (Decl (I.Null, D), s)) ->
+      | (g, (I.Null, s)) -> (g, s, nil)
+      | (g, (Decl (I.Null, D), s)) ->
           let D' = I.decSub (D, s) in
-          let fmt = P.formatDec (G, D') in
-          ((I.Decl (G, D')), (I.dot1 s), [fmt])
-      | (G, (Decl (G', D), s)) ->
-          let (G'', s'', fmts) = formatCtxBlock (G, (G', s)) in
+          let fmt = P.formatDec (g, D') in
+          ((I.Decl (g, D')), (I.dot1 s), [fmt])
+      | (g, (Decl (g', D), s)) ->
+          let (g'', s'', fmts) = formatCtxBlock (g, (g', s)) in
           let D'' = I.decSub (D, s'') in
-          let fmt = P.formatDec (G'', D'') in
-          ((I.Decl (G'', D'')), (I.dot1 s''),
+          let fmt = P.formatDec (g'', D'') in
+          ((I.Decl (g'', D'')), (I.dot1 s''),
             (fmts @ [Fmt.String ","; Fmt.Break; fmt]))
     let rec constName c = I.conDecName (I.sgnLookup c)
     let rec formatWorld =
@@ -94,36 +94,36 @@ module TomegaPrint(TomegaPrint:sig
       | (Psi, All ((D, T.Explicit), F)) ->
           (match D with
            | UDec (D) ->
-               let G = T.coerceCtx Psi in
-               let D' = Names.decName (G, D) in
+               let g = T.coerceCtx Psi in
+               let D' = Names.decName (g, D) in
                (@) [Fmt.String "all {";
-                   P.formatDec (G, D');
+                   P.formatDec (g, D');
                    Fmt.String "}";
                    Fmt.Break]
                  formatFor' ((I.Decl (Psi, (T.UDec D'))), F))
       | (Psi, All ((D, T.Implicit), F)) ->
           (match D with
            | UDec (D) ->
-               let G = T.coerceCtx Psi in
-               let D' = Names.decName (G, D) in
+               let g = T.coerceCtx Psi in
+               let D' = Names.decName (g, D) in
                (@) [Fmt.String "all^ {";
-                   P.formatDec (G, D');
+                   P.formatDec (g, D');
                    Fmt.String "}";
                    Fmt.Break]
                  formatFor' ((I.Decl (Psi, (T.UDec D'))), F))
       | (Psi, Ex ((D, T.Explicit), F)) ->
-          let G = T.coerceCtx Psi in
-          let D' = Names.decName (G, D) in
+          let g = T.coerceCtx Psi in
+          let D' = Names.decName (g, D) in
           (@) [Fmt.String "exists {";
-              P.formatDec (G, D');
+              P.formatDec (g, D');
               Fmt.String "}";
               Fmt.Break]
             formatFor' ((I.Decl (Psi, (T.UDec D'))), F)
       | (Psi, Ex ((D, T.Implicit), F)) ->
-          let G = T.coerceCtx Psi in
-          let D' = Names.decName (G, D) in
+          let g = T.coerceCtx Psi in
+          let D' = Names.decName (g, D) in
           (@) [Fmt.String "exists^ {";
-              P.formatDec (G, D');
+              P.formatDec (g, D');
               Fmt.String "}";
               Fmt.Break]
             formatFor' ((I.Decl (Psi, (T.UDec D'))), F)
@@ -144,14 +144,14 @@ module TomegaPrint(TomegaPrint:sig
               Fmt.String ")";
               Fmt.Break]
             formatFor' (Psi, F)
-    let rec formatFor (G, F) =
-      Fmt.HVbox (formatFor' (G, (T.forSub (F, T.id))))
+    let rec formatFor (g, F) =
+      Fmt.HVbox (formatFor' (g, (T.forSub (F, T.id))))
     let rec forToString (Psi, F) = Fmt.makestring_fmt (formatFor (Psi, F))
     let rec decName =
       function
-      | (G, UDec (D)) -> T.UDec (Names.decName (G, D))
-      | (G, PDec (NONE, F, TC1, TC2)) -> T.PDec ((SOME "xx"), F, TC1, TC2)
-      | (G, D) -> D
+      | (g, UDec (D)) -> T.UDec (Names.decName (g, D))
+      | (g, PDec (NONE, F, TC1, TC2)) -> T.PDec ((SOME "xx"), F, TC1, TC2)
+      | (g, D) -> D
     let rec psiName (Psi1, s, Psi2, l) =
       let nameDec =
         function
@@ -166,11 +166,11 @@ module TomegaPrint(TomegaPrint:sig
       and nameG =
         function
         | (Psi, I.Null, n, name, k) -> ((k n), I.Null)
-        | (Psi, Decl (G, D), 1, name, k) ->
-            (Psi, (I.Decl (G, (nameDec (D, name)))))
-        | (Psi, Decl (G, D), n, name, k) ->
-            let (Psi', G') = nameG (Psi, G, (n - 1), name, k) in
-            (Psi', (I.Decl (G', D))) in
+        | (Psi, Decl (g, D), 1, name, k) ->
+            (Psi, (I.Decl (g, (nameDec (D, name)))))
+        | (Psi, Decl (g, D), n, name, k) ->
+            let (Psi', g') = nameG (Psi, g, (n - 1), name, k) in
+            (Psi', (I.Decl (g', D))) in
       let ignore =
         function
         | (s, 0) -> s
@@ -179,17 +179,17 @@ module TomegaPrint(TomegaPrint:sig
             ignore ((T.Dot ((T.Idx (n + 1)), (T.Shift (n + 1)))), (k - 1)) in
       let copyNames arg__0 arg__1 =
         match (arg__0, arg__1) with
-        | ((Shift n, (Decl _ as G)), Psi1) ->
-            copyNames ((T.Dot ((T.Idx (n + 1)), (T.Shift (n + 1)))), G) Psi1
-        | ((Dot (Exp _, s), Decl (G, _)), Psi1) -> copyNames (s, G) Psi1
-        | ((Dot (Idx k, s), Decl (G, UDec (Dec (NONE, _)))), Psi1) ->
-            copyNames (s, G) Psi1
-        | ((Dot (Idx k, s), Decl (G, UDec (Dec (SOME name, _)))), Psi1) ->
-            let Psi1' = namePsi (Psi1, k, name) in copyNames (s, G) Psi1'
-        | ((Dot (Prg k, s), Decl (G, PDec (NONE, _, _, _))), Psi1) ->
-            copyNames (s, G) Psi1
-        | ((Dot (Prg k, s), Decl (G, PDec (SOME name, _, _, _))), Psi1) ->
-            copyNames (s, G) Psi1
+        | ((Shift n, (Decl _ as g)), Psi1) ->
+            copyNames ((T.Dot ((T.Idx (n + 1)), (T.Shift (n + 1)))), g) Psi1
+        | ((Dot (Exp _, s), Decl (g, _)), Psi1) -> copyNames (s, g) Psi1
+        | ((Dot (Idx k, s), Decl (g, UDec (Dec (NONE, _)))), Psi1) ->
+            copyNames (s, g) Psi1
+        | ((Dot (Idx k, s), Decl (g, UDec (Dec (SOME name, _)))), Psi1) ->
+            let Psi1' = namePsi (Psi1, k, name) in copyNames (s, g) Psi1'
+        | ((Dot (Prg k, s), Decl (g, PDec (NONE, _, _, _))), Psi1) ->
+            copyNames (s, g) Psi1
+        | ((Dot (Prg k, s), Decl (g, PDec (SOME name, _, _, _))), Psi1) ->
+            copyNames (s, g) Psi1
         | ((Shift _, I.Null), Psi1) -> Psi1 in
       let psiName' =
         function
@@ -357,11 +357,11 @@ module TomegaPrint(TomegaPrint:sig
       match (arg__0, arg__1) with
       | (callname, (Psi, New (Lam (UDec (BDec (l, (c, s)) as D), P)), fmts))
           ->
-          let G = T.coerceCtx Psi in
-          let D' = Names.decName (G, D) in
+          let g = T.coerceCtx Psi in
+          let D' = Names.decName (g, D) in
           formatNew callname
             ((I.Decl (Psi, (T.UDec D'))), P,
-              (((::) Fmt.Break Fmt.HVbox [Print.formatDec (G, D')]) :: fmts))
+              (((::) Fmt.Break Fmt.HVbox [Print.formatDec (g, D')]) :: fmts))
       | (callname, (Psi, P, fmts)) ->
           Fmt.Vbox0 0 1
             [Fmt.String "new";
@@ -641,14 +641,14 @@ module TomegaPrint(TomegaPrint:sig
             Fmt.Space;
             formatFor (I.Null, F)]
       | Decl (Psi, UDec (D)) ->
-          let G = T.coerceCtx Psi in
+          let g = T.coerceCtx Psi in
           if (!Global.chatter) >= 4
           then
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
-              [Fmt.HVbox [Fmt.Break; Print.formatDec (G, D)]]
+              [Fmt.HVbox [Fmt.Break; Print.formatDec (g, D)]]
           else
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break]) @
-              [Fmt.Break; Print.formatDec (G, D)]
+              [Fmt.Break; Print.formatDec (g, D)]
       | Decl (Psi, PDec (SOME s, F, TC1, TC2)) ->
           if (!Global.chatter) >= 4
           then
@@ -688,21 +688,21 @@ module TomegaPrint(TomegaPrint:sig
          where Decs are always of the form
            New ... New App .. App Split .. Split Empty
      *)
-      (* formatCtxBlock (G, (G1, s1)) = (G', s', fmts')
+      (* formatCtxBlock (g, (G1, s1)) = (g', s', fmts')
 
        Invariant:
-       If   |- G ctx
-       and  G |- G1 ctx
-       and  G2 |- s1 : G
-       then G' = G2, G1 [s1]
-       and  G' |- s' : G, G1
+       If   |- g ctx
+       and  g |- G1 ctx
+       and  G2 |- s1 : g
+       then g' = G2, G1 [s1]
+       and  g' |- s' : g, G1
        and  fmts is a format list of G1[s1]
     *)
-      (* formatFor' (G, (F, s)) = fmts'
+      (* formatFor' (g, (F, s)) = fmts'
 
        Invariant:
-       If   |- G ctx
-       and  G |- s : Psi'
+       If   |- g ctx
+       and  g |- s : Psi'
        and  Psi' |- F formula
        then fmts' is a list of formats for F
     *)
@@ -714,7 +714,7 @@ module TomegaPrint(TomegaPrint:sig
        and  names is a list of n names,
        then fmt' is the pretty printed format of P
     *)
-      (*      fun nameLookup index = List.nth (names, index) *)(* decName (G, LD) = LD'
+      (*      fun nameLookup index = List.nth (names, index) *)(* decName (g, LD) = LD'
 
            Invariant:
            If   G1 |- LD lfdec
@@ -740,17 +740,17 @@ module TomegaPrint(TomegaPrint:sig
         *)
       (* copyNames  (ignore (s, l),  Psi2) *)(*
 
-         merge (G1, G2) = G'
+         merge (G1, G2) = g'
 
            Invariant:
-           G' = G1, G2
+           g' = G1, G2
         *)
-      (* formatCtx (Psi, G) = fmt'
+      (* formatCtx (Psi, g) = fmt'
 
            Invariant:
            If   |- Psi ctx
-           and  Psi |- G ctx
-           then fmt' is a pretty print format of G
+           and  Psi |- g ctx
+           then fmt' is a pretty print format of g
         *)
       (* formatTuple (Psi, P) = fmt'
 
@@ -801,15 +801,15 @@ module TomegaPrint(TomegaPrint:sig
            and  Psi1 |- s1 : Psi, Psi'
            then fmt' is a pretty print format of Ds
         *)
-      (* fmtSpine callname (G, d, l, (S, s)) = fmts
+      (* fmtSpine callname (g, d, l, (S, s)) = fmts
      format spine S[s] at printing depth d, printing length l, in printing
-     context G which approximates G', where G' |- S[s] is valid
+     context g which approximates g', where g' |- S[s] is valid
   *)
       (* Print.formatExp (T.coerceCtx Psi, U) *)(*
          frontToExp (Ft) = U'
 
            Invariant:
-           G |- Ft = U' : V   for a G, V
+           g |- Ft = U' : V   for a g, V
         *)
       (* this is a patch -cs
                                                             works only with one exists quantifier

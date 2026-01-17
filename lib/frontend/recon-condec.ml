@@ -169,11 +169,11 @@ module ReconConDec(ReconConDec:sig
           let ctxToList =
             function
             | (IntSyn.Null, acc) -> acc
-            | (Decl (G, D), acc) -> ctxToList (G, (D :: acc)) in
+            | (Decl (g, D), acc) -> ctxToList (g, (D :: acc)) in
           let ctxAppend =
             function
-            | (G, IntSyn.Null) -> G
-            | (G, Decl (G', D)) -> IntSyn.Decl ((ctxAppend (G, G')), D) in
+            | (g, IntSyn.Null) -> g
+            | (g, Decl (g', D)) -> IntSyn.Decl ((ctxAppend (g, g')), D) in
           let ctxBlockToString (G0, (G1, G2)) =
             let _ = Names.varReset IntSyn.Null in
             let G0' = Names.ctxName G0 in

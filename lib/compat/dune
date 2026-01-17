@@ -1,0 +1,18 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.compat)
+ (name compat)
+ (libraries 
+  base
+ )
+ (modules 
+  array
+  compat
+  path
+  socket
+  substring
+  text_io
+  time_limit
+  timer
+  vector))

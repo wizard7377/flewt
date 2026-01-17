@@ -35,14 +35,14 @@ module CSIneqField(CSIneqField:sig
     let geqAddID = (ref (-1) : cid ref)
     let gtGeqID = (ref (-1) : cid ref)
     let geq00ID = (ref (-1) : cid ref)
-    let rec gtAdd (U1, U2, V, W) =
+    let rec gtAdd (u1, u2, V, W) =
       Root
         ((Const (!gtAddID)),
-          (App (U1, (App (U2, (App (V, (App (W, Nil)))))))))
-    let rec geqAdd (U1, U2, V, W) =
+          (App (u1, (App (u2, (App (V, (App (W, Nil)))))))))
+    let rec geqAdd (u1, u2, V, W) =
       Root
         ((Const (!geqAddID)),
-          (App (U1, (App (U2, (App (V, (App (W, Nil)))))))))
+          (App (u1, (App (u2, (App (V, (App (W, Nil)))))))))
     let rec gtGeq (U, V, W) =
       Root ((Const (!gtGeqID)), (App (U, (App (V, (App (W, Nil)))))))
     let rec geq00 () = Root ((Const (!geq00ID)), Nil)
@@ -179,9 +179,9 @@ module CSIneqField(CSIneqField:sig
       match pos with
       | Row i -> Array.update (((fun r -> r.rlabels) tableau), i, new__)
       | Col j -> Array.update (((fun r -> r.clabels) tableau), j, new__)
-    let rec ownerContext = function | Var (G, mon) -> G | Exp (G, sum) -> G
+    let rec ownerContext = function | Var (g, mon) -> g | Exp (g, sum) -> g
     let rec ownerSum =
-      function | Var (G, mon) -> Sum (zero, [mon]) | Exp (G, sum) -> sum
+      function | Var (g, mon) -> Sum (zero, [mon]) | Exp (g, sum) -> sum
     let rec displayPos =
       function
       | Row row -> print (((^) "row " Int.toString row) ^ "\n")
@@ -233,7 +233,7 @@ module CSIneqField(CSIneqField:sig
       let exception Found of int  in
         let find (i, (l : label)) =
           match (fun r -> r.owner) l with
-          | Var (G, mon') ->
+          | Var (g, mon') ->
               if compatibleMon (mon, mon') then raise (Found i) else ()
           | _ -> () in
         try
@@ -404,18 +404,18 @@ module CSIneqField(CSIneqField:sig
       else Positive
     let rec delayMon (Mon (n, UsL), cnstr) =
       List.app (function | Us -> Unify.delay (Us, cnstr)) UsL
-    let rec unifyRestr (Restr (G, proof, strict), proof') =
-      if Unify.unifiable (G, (proof, id), (proof', id))
+    let rec unifyRestr (Restr (g, proof, strict), proof') =
+      if Unify.unifiable (g, (proof, id), (proof', id))
       then ()
       else raise Error
-    let rec unifySum (G, sum, d) =
-      if Unify.unifiable (G, ((toExp sum), id), ((constant d), id))
+    let rec unifySum (g, sum, d) =
+      if Unify.unifiable (g, ((toExp sum), id), ((constant d), id))
       then ()
       else raise Error
     type nonrec decomp = (number * (number * __Position) list)
     let rec unaryMinusDecomp (d, wposL) =
       ((~ d), (List.map (function | (d, pos) -> ((~ d), pos)) wposL))
-    let rec decomposeSum (G, Sum (m, monL)) =
+    let rec decomposeSum (g, Sum (m, monL)) =
       let monToWPos (Mon (n, UsL) as mon) =
         match findMon mon with
         | SOME pos -> (n, pos)
@@ -423,7 +423,7 @@ module CSIneqField(CSIneqField:sig
             let new__ = incrNCols () in
             let l =
               {
-                owner = (Var (G, (Mon (one, UsL))));
+                owner = (Var (g, (Mon (one, UsL))));
                 tag = (ref 0);
                 restr = (ref NONE);
                 dead = (ref false__)
@@ -459,9 +459,9 @@ module CSIneqField(CSIneqField:sig
             (:=) (((fun r -> r.dead)) (label (Row new__))) isConstant new__;
             Trail.log (((fun r -> r.trail) tableau), (Insert (Row new__)));
             Row new__))
-    let rec insert (G, Us) =
+    let rec insert (g, Us) =
       let sum = fromExp Us in
-      insertDecomp ((decomposeSum (G, sum)), (Exp (G, sum)))
+      insertDecomp ((decomposeSum (g, sum)), (Exp (g, sum)))
     let rec minimize row =
       let killColumn (j, (l : label)) =
         if (not (dead l)) && ((coeff (row, j)) <> zero)
@@ -587,33 +587,33 @@ module CSIneqField(CSIneqField:sig
                            SOME restr;
                          minimize row)
                       else raise Error))
-    let rec insertEqual (G, pos, sum) =
-      let (m, wposL) = decomposeSum (G, sum) in
+    let rec insertEqual (g, pos, sum) =
+      let (m, wposL) = decomposeSum (g, sum) in
       let decomp' = (m, (((~ one), pos) :: wposL)) in
-      let pos' = insertDecomp (decomp', (Exp (G, (Sum (zero, nil))))) in
+      let pos' = insertDecomp (decomp', (Exp (g, (Sum (zero, nil))))) in
       let decomp'' = unaryMinusDecomp decomp' in
       let tag'' =
         (fun r -> r.tag)
-          (label (insertDecomp (decomp'', (Exp (G, (Sum (zero, nil))))))) in
-      restrict (pos', (Restr (G, (geq00 ()), false__)));
+          (label (insertDecomp (decomp'', (Exp (g, (Sum (zero, nil))))))) in
+      restrict (pos', (Restr (g, (geq00 ()), false__)));
       (match findTag tag'' with
-       | SOME pos'' -> restrict (pos'', (Restr (G, (geq00 ()), false__))))
-    let rec update (G, pos, sum) =
+       | SOME pos'' -> restrict (pos'', (Restr (g, (geq00 ()), false__))))
+    let rec update (g, pos, sum) =
       let l = label pos in
       Trail.log
         (((fun r -> r.trail) tableau),
           (UpdateOwner (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-      setOwnership (pos, (Exp (G, sum)), (ref 0));
+      setOwnership (pos, (Exp (g, sum)), (ref 0));
       if dead l
       then
         (match pos with
          | Row row ->
              if isConstant row
-             then unifySum (G, sum, (const row))
+             then unifySum (g, sum, (const row))
              else
                (match isSubsumed row with
-                | SOME pos' -> update (G, pos', sum))
-         | Col col -> unifySum (G, sum, zero))
+                | SOME pos' -> update (g, pos', sum))
+         | Col col -> unifySum (g, sum, zero))
       else
         (let isVar =
            function
@@ -623,16 +623,16 @@ module CSIneqField(CSIneqField:sig
          match isVar sum with
          | SOME mon ->
              (match findMon mon with
-              | SOME _ -> insertEqual (G, pos, sum)
+              | SOME _ -> insertEqual (g, pos, sum)
               | NONE ->
                   let tag = ref 0 in
                   (Trail.log
                      (((fun r -> r.trail) tableau),
                        (UpdateOwner
                           (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-                   setOwnership (pos, (Var (G, mon)), tag);
+                   setOwnership (pos, (Var (g, mon)), tag);
                    delayMon (mon, (ref (makeCnstr tag)))))
-         | NONE -> insertEqual (G, pos, sum))
+         | NONE -> insertEqual (g, pos, sum))
     let rec restrictions pos =
       let member (x, l) = List.exists (function | y -> x = y) l in
       let test l = (restricted l) && (not (dead l)) in
@@ -674,11 +674,11 @@ module CSIneqField(CSIneqField:sig
       let restrExp pos =
         let l = label pos in
         let owner = (fun r -> r.owner) l in
-        let G = ownerContext owner in
+        let g = ownerContext owner in
         let U = toExp (ownerSum owner) in
         match restriction (label pos) with
-        | SOME (Restr (_, _, true__)) -> (G, (gt0 U))
-        | _ -> (G, (geq0 U)) in
+        | SOME (Restr (_, _, true__)) -> (g, (gt0 U))
+        | _ -> (g, (geq0 U)) in
       List.map restrExp (reachable ([pos], nil, nil))
     let rec makeCnstr tag = FgnCnstr ((!myID), (MyFgnCnstrRep tag))
     let rec toInternal tag () =
@@ -688,9 +688,9 @@ module CSIneqField(CSIneqField:sig
         match findTag tag with
         | SOME pos ->
             let owner = (fun r -> r.owner) (label pos) in
-            let G = ownerContext owner in
+            let g = ownerContext owner in
             let sum = normalize (ownerSum owner) in
-            (update (G, pos, sum); true__)
+            (update (g, pos, sum); true__)
         | NONE -> true__
       with | Error -> false__
     let rec simplify tag () =
@@ -745,11 +745,11 @@ module CSIneqField(CSIneqField:sig
     let rec unwind () = Trail.unwind (((fun r -> r.trail) tableau), undo)
     let rec fst =
       function
-      | (App (U1, _), s) -> (U1, s)
+      | (App (u1, _), s) -> (u1, s)
       | (SClo (S, s'), s) -> fst (S, (comp (s', s)))
     let rec snd =
       function
-      | (App (U1, S), s) -> fst (S, s)
+      | (App (u1, S), s) -> fst (S, s)
       | (SClo (S, s'), s) -> snd (S, (comp (s', s)))
     let rec isConstantExp (U) =
       match fromExp (U, id) with | Sum (m, nil) -> SOME m | _ -> NONE
@@ -757,51 +757,51 @@ module CSIneqField(CSIneqField:sig
       match isConstantExp U with | SOME d -> d = zero | NONE -> false__
     let rec solveGt =
       function
-      | (G, S, 0) ->
+      | (g, S, 0) ->
           let solveGt0 (W) =
             match isConstantExp W with
             | SOME d -> if d > zero then gtNExp d else raise Error
             | NONE ->
-                let proof = newEVar (G, (gt0 W)) in
+                let proof = newEVar (g, (gt0 W)) in
                 let _ =
                   restrict
-                    ((insert (G, (W, id))),
-                      (Restr (G, (gtGeq (W, (constant zero), proof)), true__))) in
+                    ((insert (g, (W, id))),
+                      (Restr (g, (gtGeq (W, (constant zero), proof)), true__))) in
                 proof in
-          let U1 = EClo (fst (S, id)) in
-          let U2 = EClo (snd (S, id)) in
+          let u1 = EClo (fst (S, id)) in
+          let u2 = EClo (snd (S, id)) in
           (try
-             if isZeroExp U2
-             then SOME (solveGt0 U1)
+             if isZeroExp u2
+             then SOME (solveGt0 u1)
              else
-               (let W = minus (U1, U2) in
+               (let W = minus (u1, u2) in
                 let proof = solveGt0 W in
-                SOME (gtAdd (W, (constant zero), U2, proof)))
+                SOME (gtAdd (W, (constant zero), u2, proof)))
            with | Error -> NONE)
-      | (G, S, n) -> NONE
+      | (g, S, n) -> NONE
     let rec solveGeq =
       function
-      | (G, S, 0) ->
+      | (g, S, 0) ->
           let solveGeq0 (W) =
             match isConstantExp W with
             | SOME d -> if d >= zero then geqN0 d else raise Error
             | NONE ->
-                let proof = newEVar (G, (geq0 W)) in
+                let proof = newEVar (g, (geq0 W)) in
                 let _ =
                   restrict
-                    ((insert (G, (W, id))), (Restr (G, proof, false__))) in
+                    ((insert (g, (W, id))), (Restr (g, proof, false__))) in
                 proof in
-          let U1 = EClo (fst (S, id)) in
-          let U2 = EClo (snd (S, id)) in
+          let u1 = EClo (fst (S, id)) in
+          let u2 = EClo (snd (S, id)) in
           (try
-             if isZeroExp U2
-             then SOME (solveGeq0 U1)
+             if isZeroExp u2
+             then SOME (solveGeq0 u1)
              else
-               (let W = minus (U1, U2) in
+               (let W = minus (u1, u2) in
                 let proof = solveGeq0 W in
-                SOME (geqAdd (W, (constant zero), U2, proof)))
+                SOME (geqAdd (W, (constant zero), u2, proof)))
            with | Error -> NONE)
-      | (G, S, n) -> NONE
+      | (g, S, n) -> NONE
     let rec pi (name, U, V) = Pi (((Dec ((SOME name), U)), Maybe), V)
     let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
     let rec installFgnCnstrOps () =
@@ -915,7 +915,7 @@ module CSIneqField(CSIneqField:sig
       (* specialized constructors for the declared objects *)(* parsing proof objects d>0 *)
       (* Position of a tableau entry       *)(* Owner of an entry:                *)
       (*   - monomial                      *)(*   - sum                           *)
-      (* Restriction: (proof object)       *)(*   Restr (G, U, strict)            *)
+      (* Restriction: (proof object)       *)(*   Restr (g, U, strict)            *)
       (* owner of the row/column (if any)  *)(* tag: used to keep track of the    *)
       (* position of a tableau entry       *)(* restriction (if any)              *)
       (* has the row/column already been   *)(* solved?                           *)
@@ -1029,12 +1029,12 @@ module CSIneqField(CSIneqField:sig
       (* awake function for tableau constraints *)(* simplify function for tableau constraints *)
       (* undo function for trailing tableau operations *)
       (* reset the internal status of the tableau *)
-      (* trailing functions *)(* fst (S, s) = U1, the first argument in S[s] *)
-      (* snd (S, s) = U2, the second argument in S[s] *)
+      (* trailing functions *)(* fst (S, s) = u1, the first argument in S[s] *)
+      (* snd (S, s) = u2, the second argument in S[s] *)
       (* checks if the given foreign term can be simplified to a constant *)
       (* checks if the given foreign term can be simplified to zero *)
-      (* solveGt (G, S, n) tries to find the n-th solution to G |- '>' @ S : type *)
-      (* solveGeq (G, S, n) tries to find the n-th solution to G |- '>=' @ S : type *)
+      (* solveGt (g, S, n) tries to find the n-th solution to g |- '>' @ S : type *)
+      (* solveGeq (g, S, n) tries to find the n-th solution to g |- '>=' @ S : type *)
       (* constructors for higher-order types *)(* install the signature *))
       =
       ({

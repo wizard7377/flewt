@@ -360,8 +360,8 @@ module Syntax =
       | x -> x
     let rec ntm_eroot_elim =
       function | Lam (ATerm t) -> Lam (eroot_elim t) | x -> x
-    let rec ctxLookup (G, n) =
-      subst_tp (Shift (0, (n + 1))) (List.nth (G, n))
+    let rec ctxLookup (g, n) =
+      subst_tp (Shift (0, (n + 1))) (List.nth (g, n))
     let rec typeOf (tclass a) = a
     let rec kindOf (kclass k) = k
     let sum = foldl (+) 0

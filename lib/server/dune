@@ -1,0 +1,14 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.server)
+ (name server)
+ (libraries 
+  base
+  compat
+  timing
+  frontend
+ )
+ (modules 
+  server
+  sigint))

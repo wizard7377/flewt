@@ -733,7 +733,7 @@ module Names(Names:sig
       | (name, SOME i) -> (indexInsert (name, (i + 1)); i + 1)
     let rec nextIndex name = nextIndex' (name, (indexLookup name))
     let rec varReset
-      ((G)(* local ... *)(******************)(* Variable Names *)
+      ((g)(* local ... *)(******************)(* Variable Names *)
       (******************)(*
      Picking variable names is tricky, since we need to avoid capturing.
      This is entirely a matter of parsing and printing, since the
@@ -793,7 +793,7 @@ module Names(Names:sig
        Effect: clear variable tables
        This must be called for each declaration or query
     *))
-      = varClear (); evarReset (); indexClear (); varContext := G
+      = varClear (); evarReset (); indexClear (); varContext := g
     let rec addEVar
       (((X)(* addEVar (X, name) = ()
        effect: adds (X, name) to varTable and evarList
@@ -813,37 +813,37 @@ module Names(Names:sig
       | NONE -> false__
       | SOME _ -> true__
     let rec ctxDefined
-      (((G)(* ctxDefined (G, name) = true iff `name' is declared in context G *)),
+      (((g)(* ctxDefined (g, name) = true iff `name' is declared in context g *)),
        name)
       =
       let cdfd =
         function
         | IntSyn.Null -> false__
-        | Decl (G', Dec (SOME name', _)) -> (name = name') || (cdfd G')
-        | Decl (G', BDec (SOME name', _)) -> (name = name') || (cdfd G')
-        | Decl (G', NDec (SOME name')) -> (name = name') || (cdfd G')
-        | Decl (G', _) -> cdfd G' in
-      cdfd G
+        | Decl (g', Dec (SOME name', _)) -> (name = name') || (cdfd g')
+        | Decl (g', BDec (SOME name', _)) -> (name = name') || (cdfd g')
+        | Decl (g', NDec (SOME name')) -> (name = name') || (cdfd g')
+        | Decl (g', _) -> cdfd g' in
+      cdfd g
     let rec tryNextName
-      (((G)(* tryNextName (G, base) = baseN
+      (((g)(* tryNextName (g, base) = baseN
        where N is the next suffix such that baseN is unused in
-       G, as a variable, or as a constant.
+       g, as a variable, or as a constant.
     *)),
        base)
       =
       let name = (^) base Int.toString (nextIndex base) in
-      if (varDefined name) || ((conDefined name) || (ctxDefined (G, name)))
-      then tryNextName (G, base)
+      if (varDefined name) || ((conDefined name) || (ctxDefined (g, name)))
+      then tryNextName (g, base)
       else name
-    let rec findNameLocal (G, base, i) =
+    let rec findNameLocal (g, base, i) =
       let name = base ^ (if i = 0 then "" else Int.toString i) in
-      if (varDefined name) || ((conDefined name) || (ctxDefined (G, name)))
-      then findNameLocal (G, base, (i + 1))
+      if (varDefined name) || ((conDefined name) || (ctxDefined (g, name)))
+      then findNameLocal (g, base, (i + 1))
       else name
     let rec findName =
       function
-      | (G, base, Local) -> findNameLocal (G, base, 0)
-      | (G, base, Global) -> tryNextName (G, base)
+      | (g, base, Local) -> findNameLocal (g, base, 0)
+      | (g, base, Global) -> tryNextName (g, base)
     let takeNonDigits = Substring.takel (not o Char.isDigit)
     let rec baseOf
       ((name)(* baseOf (name) = name',
@@ -852,20 +852,20 @@ module Names(Names:sig
       = Substring.string (takeNonDigits (Compat.Substring.full name))
     let rec newEVarName =
       function
-      | (((G)(* newEvarName (G, X) = name
+      | (((g)(* newEvarName (g, X) = name
        where name is the next unused name appropriate for X,
        based on the name preference declaration for A if X:A
     *)),
          (EVar (r, _, V, Cnstr) as X)) ->
           let ((name)(* use name preferences below *)) =
-            tryNextName (G, (namePrefOf (Exist, V))) in
+            tryNextName (g, (namePrefOf (Exist, V))) in
           (evarInsert (X, name); name)
-      | (G, (AVar r as X)) ->
+      | (g, (AVar r as X)) ->
           let ((name)(* use name preferences below *)) =
-            tryNextName (G, (namePrefOf' (Exist, NONE))) in
+            tryNextName (g, (namePrefOf' (Exist, NONE))) in
           (evarInsert (X, name); name)
     let rec evarName
-      (((G)(* evarName (G, X) = name
+      (((g)(* evarName (g, X) = name
        where `name' is the print name X.
        If no name has been assigned yet, assign a new one.
        Effect: if a name is assigned, update varTable
@@ -874,19 +874,19 @@ module Names(Names:sig
       =
       match evarLookup X with
       | NONE ->
-          let name = newEVarName (G, X) in (varInsert (name, (EVAR X)); name)
+          let name = newEVarName (g, X) in (varInsert (name, (EVAR X)); name)
       | SOME name -> name
     let rec bvarName
-      (((G)(* bvarName (G, k) = name
+      (((g)(* bvarName (g, k) = name
        where `name' is the print name for variable with deBruijn index k.
-       Invariant: 1 <= k <= |G|
+       Invariant: 1 <= k <= |g|
                   G_k must assign a name
        If no name has been assigned, the context might be built the wrong
        way---check decName below instread of IntSyn.Dec
     *)),
        k)
       =
-      match IntSyn.ctxLookup (G, k) with
+      match IntSyn.ctxLookup (g, k) with
       | Dec (SOME name, _) -> name
       | ADec (SOME name, _) -> name
       | NDec (SOME name) -> name
@@ -896,50 +896,50 @@ module Names(Names:sig
       | _ -> raise Unprintable
     let rec decName' arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((role)(* decName' role (G, D) = G,D'
+      | (((role)(* decName' role (g, D) = g,D'
        where D' is a possible renaming of the declaration D
        in order to avoid shadowing other variables or constants
        If D does not assign a name, this picks, based on the name
        preference declaration.
     *)),
-         (G, Dec (NONE, V))) ->
-          let name = findName (G, (namePrefOf (role, V)), (extent role)) in
+         (g, Dec (NONE, V))) ->
+          let name = findName (g, (namePrefOf (role, V)), (extent role)) in
           IntSyn.Dec ((SOME name), V)
-      | (role, (G, (Dec (SOME name, V) as D))) ->
+      | (role, (g, (Dec (SOME name, V) as D))) ->
           if
             (varDefined name) ||
-              ((conDefined name) || (ctxDefined (G, name)))
-          then IntSyn.Dec ((SOME (tryNextName (G, (baseOf name)))), V)
+              ((conDefined name) || (ctxDefined (g, name)))
+          then IntSyn.Dec ((SOME (tryNextName (g, (baseOf name)))), V)
           else D
-      | (role, (G, (BDec (NONE, ((cid, t) as b)) as D))) ->
+      | (role, (g, (BDec (NONE, ((cid, t) as b)) as D))) ->
           let ((name)(* use #l as base name preference for label l *))
             =
             findName
-              (G, ((^) "#" IntSyn.conDecName (IntSyn.sgnLookup cid)), Local) in
+              (g, ((^) "#" IntSyn.conDecName (IntSyn.sgnLookup cid)), Local) in
           IntSyn.BDec ((SOME name), b)
-      | (role, (G, (BDec (SOME name, ((cid, t) as b)) as D))) ->
+      | (role, (g, (BDec (SOME name, ((cid, t) as b)) as D))) ->
           if
             (varDefined name) ||
-              ((conDefined name) || (ctxDefined (G, name)))
-          then IntSyn.BDec ((SOME (tryNextName (G, (baseOf name)))), b)
+              ((conDefined name) || (ctxDefined (g, name)))
+          then IntSyn.BDec ((SOME (tryNextName (g, (baseOf name)))), b)
           else D
-      | (role, (G, ADec (NONE, d))) ->
-          let name = findName (G, (namePrefOf' (role, NONE)), (extent role)) in
+      | (role, (g, ADec (NONE, d))) ->
+          let name = findName (g, (namePrefOf' (role, NONE)), (extent role)) in
           IntSyn.ADec ((SOME name), d)
-      | (role, (G, (ADec (SOME name, d) as D))) ->
+      | (role, (g, (ADec (SOME name, d) as D))) ->
           if
             (varDefined name) ||
-              ((conDefined name) || (ctxDefined (G, name)))
-          then IntSyn.ADec ((SOME (tryNextName (G, (baseOf name)))), d)
+              ((conDefined name) || (ctxDefined (g, name)))
+          then IntSyn.ADec ((SOME (tryNextName (g, (baseOf name)))), d)
           else ((D)(*      IntSyn.ADec(SOME(name), d) *))
-      | (role, (G, (NDec (NONE) as D))) ->
-          let name = findName (G, "@x", Local) in
+      | (role, (g, (NDec (NONE) as D))) ->
+          let name = findName (g, "@x", Local) in
           let _ = print name in IntSyn.NDec (SOME name)
-      | (role, (G, (NDec (SOME name) as D))) ->
+      | (role, (g, (NDec (SOME name) as D))) ->
           if
             (varDefined name) ||
-              ((conDefined name) || (ctxDefined (G, name)))
-          then IntSyn.NDec (SOME (tryNextName (G, (baseOf name))))
+              ((conDefined name) || (ctxDefined (g, name)))
+          then IntSyn.NDec (SOME (tryNextName (g, (baseOf name))))
           else D
     let decName = decName' Exist
     let decEName = decName' Exist
@@ -947,53 +947,53 @@ module Names(Names:sig
     let decLUName = decName' (Univ Local)
     let rec ctxName =
       function
-      | ((IntSyn.Null)(* ctxName G = G'
+      | ((IntSyn.Null)(* ctxName g = g'
 
         Invariant:
-        |- G == G' ctx
-        where some Declaration in G' have been named/renamed
+        |- g == g' ctx
+        where some Declaration in g' have been named/renamed
     *))
           -> IntSyn.Null
-      | Decl (G, D) ->
-          let G' = ctxName G in IntSyn.Decl (G', (decName (G', D)))
+      | Decl (g, D) ->
+          let g' = ctxName g in IntSyn.Decl (g', (decName (g', D)))
     let rec ctxLUName =
       function
-      | ((IntSyn.Null)(* ctxLUName G = G'
+      | ((IntSyn.Null)(* ctxLUName g = g'
        like ctxName, but names assigned are local universal names.
     *))
           -> IntSyn.Null
-      | Decl (G, D) ->
-          let G' = ctxLUName G in IntSyn.Decl (G', (decLUName (G', D)))
+      | Decl (g, D) ->
+          let g' = ctxLUName g in IntSyn.Decl (g', (decLUName (g', D)))
     let rec pisEName' =
       function
-      | (((G)(* pisEName' (G, i, V) = V'
+      | (((g)(* pisEName' (g, i, V) = V'
        Assigns names to dependent Pi prefix of V with i implicit abstractions
        Used for implicit EVar in constant declarations after abstraction.
     *)),
          0, V) -> V
-      | (G, i, Pi ((D, IntSyn.Maybe), V)) ->
-          let ((D')(* i > 0 *)) = decEName (G, D) in
+      | (g, i, Pi ((D, IntSyn.Maybe), V)) ->
+          let ((D')(* i > 0 *)) = decEName (g, D) in
           IntSyn.Pi
             ((D', IntSyn.Maybe),
-              (pisEName' ((IntSyn.Decl (G, D')), (i - 1), V)))
+              (pisEName' ((IntSyn.Decl (g, D')), (i - 1), V)))
     let rec pisEName
-      (((i)(* | pisEName' (G, i, V) = V *)), V) =
+      (((i)(* | pisEName' (g, i, V) = V *)), V) =
       pisEName' (IntSyn.Null, i, V)
     let rec defEName' =
       function
-      | (((G)(* defEName' (G, i, (U,V)) = (U',V')
-       Invariant: G |- U : V  and G |- U' : V' since U == U' and V == V'.
+      | (((g)(* defEName' (g, i, (U,V)) = (U',V')
+       Invariant: g |- U : V  and g |- U' : V' since U == U' and V == V'.
        Assigns name to dependent Pi prefix of V and corresponding lam prefix of U
        with i implicit abstractions
        Used for implicit EVar in constant definitions after abstraction.
     *)),
          0, UV) -> UV
-      | (G, i, (Lam (D, U), Pi ((_, ((P)(* = D *))), V))) ->
-          let ((D')(* i > 0 *)) = decEName (G, D) in
-          let (U', V') = defEName' ((IntSyn.Decl (G, D')), (i - 1), (U, V)) in
+      | (g, i, (Lam (D, U), Pi ((_, ((P)(* = D *))), V))) ->
+          let ((D')(* i > 0 *)) = decEName (g, D) in
+          let (U', V') = defEName' ((IntSyn.Decl (g, D')), (i - 1), (U, V)) in
           ((IntSyn.Lam (D', U')), (IntSyn.Pi ((D', P), V')))
     let rec defEName
-      (((imp)(* | defEName' (G, i, (U, V)) = (U, V) *)), UV)
+      (((imp)(* | defEName' (g, i, (U, V)) = (U, V) *)), UV)
       = defEName' (IntSyn.Null, imp, UV)
     let rec nameConDec' =
       function

@@ -169,14 +169,14 @@ module Interactive(Interactive:sig
            print "\n-----------------------";
            print (menuToString ());
            print "\n=======================\n")
-      | (StateLF (EVar (r, G, V, Cs) as X))::R ->
+      | (StateLF (EVar (r, g, V, Cs) as X))::R ->
           (print "\n=======================";
            print "\n=== THEOREM PROVER ====\n";
-           print (Print.ctxToString (I.Null, G));
+           print (Print.ctxToString (I.Null, g));
            print "\n-----------------------\n";
-           print (Print.expToString (G, V));
+           print (Print.expToString (g, V));
            print "\n-----------------------\n";
-           print (Print.expToString (G, X));
+           print (Print.expToString (g, X));
            print "\n-----------------------";
            print (menuToString ());
            print "\n=======================\n")
@@ -319,15 +319,15 @@ module Interactive(Interactive:sig
       (* convertFor' (V, mS, w1, w2, n) = (F', F'')
 
            Invariant:
-           If   G |- V = {{G'}} type :kind
-           and  G |- w1 : G+
-           and  G+, G'+, G- |- w2 : G
-           and  G+, G'+, G- |- ^n : G+
-           and  mS is a spine for G'
+           If   g |- V = {{g'}} type :kind
+           and  g |- w1 : g+
+           and  g+, g'+, g- |- w2 : g
+           and  g+, g'+, g- |- ^n : g+
+           and  mS is a spine for g'
            then F'  is a formula excepting a another formula as argument s.t.
-                If G+, G'+ |- F formula,
+                If g+, g'+ |- F formula,
                 then . |- F' F formula
-           and  G+, G'+ |- F'' formula
+           and  g+, g'+ |- F'' formula
         *)
       (* shiftPlus (mS) = s'
 

@@ -49,7 +49,7 @@ module ListSignat : SIGNAT =
 module GrowarraySignat : SIGNAT =
   struct
     module L = Lib
-    module G = GrowArray
+    module g = GrowArray
     type nonrec key = int
     type nonrec 'a sgn = < arr: 'a G.growarray  ;size: int ref   > 
     exception Signat of string 

@@ -34,76 +34,76 @@ module CPrint(CPrint:sig
     let rec compose =
       function
       | (((IntSyn.Null)(*! sharing Names.IntSyn = IntSyn' !*)(*! structure IntSyn = IntSyn' !*)
-         (*! structure CompSyn = CompSyn' !*)), G) -> G
-      | (Decl (G, D), G') -> IntSyn.Decl ((compose (G, G')), D)
+         (*! structure CompSyn = CompSyn' !*)), g) -> g
+      | (Decl (g, D), g') -> IntSyn.Decl ((compose (g, g')), D)
     let rec goalToString arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((t)(* goalToString (G, g) where G |- g  goal *)),
-         (G, Atom p)) ->
-          ((^) (t ^ "SOLVE   ") Print.expToString (G, p)) ^ "\n"
-      | (t, (G, Impl (p, A, _, g))) ->
-          ((^) ((((^) (t ^ "ASSUME  ") Print.expToString (G, A)) ^ "\n") ^
-                  (clauseToString (t ^ "\t") (G, p)))
-             goalToString t ((IntSyn.Decl (G, (IntSyn.Dec (NONE, A)))), g))
+      | (((t)(* goalToString (g, g) where g |- g  goal *)),
+         (g, Atom p)) ->
+          ((^) (t ^ "SOLVE   ") Print.expToString (g, p)) ^ "\n"
+      | (t, (g, Impl (p, A, _, g))) ->
+          ((^) ((((^) (t ^ "ASSUME  ") Print.expToString (g, A)) ^ "\n") ^
+                  (clauseToString (t ^ "\t") (g, p)))
+             goalToString t ((IntSyn.Decl (g, (IntSyn.Dec (NONE, A)))), g))
             ^ "\n"
-      | (t, (G, All (D, g))) ->
-          let D' = Names.decLUName (G, D) in
+      | (t, (g, All (D, g))) ->
+          let D' = Names.decLUName (g, D) in
           ((^) (((^) (t ^ "ALL     ") Formatter.makestring_fmt
-                   (Print.formatDec (G, D')))
+                   (Print.formatDec (g, D')))
                   ^ "\n")
-             goalToString t ((IntSyn.Decl (G, D')), g))
+             goalToString t ((IntSyn.Decl (g, D')), g))
             ^ "\n"
     let rec auxToString arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((t)(* auxToString (G, r) where G |- r auxgoal *)),
-         (G, Trivial)) -> ""
-      | (t, (G, UnifyEq (G', p1, N, ga))) ->
+      | (((t)(* auxToString (g, r) where g |- r auxgoal *)),
+         (g, Trivial)) -> ""
+      | (t, (g, UnifyEq (g', p1, N, ga))) ->
           (^) (((^) (((^) (t ^ "UNIFYEqn  ") Print.expToString
-                        ((compose (G', G)), p1))
+                        ((compose (g', g)), p1))
                        ^ " = ")
-                  Print.expToString ((compose (G', G)), N))
+                  Print.expToString ((compose (g', g)), N))
                  ^ "\n")
-            auxToString t (G, ga)
+            auxToString t (g, ga)
     let rec clauseToString arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((t)(* clauseToString (G, r) where G |- r  resgoal *)),
-         (G, Eq p)) -> ((^) (t ^ "UNIFY   ") Print.expToString (G, p)) ^ "\n"
-      | (t, (G, Assign (p, ga))) ->
+      | (((t)(* clauseToString (g, r) where g |- r  resgoal *)),
+         (g, Eq p)) -> ((^) (t ^ "UNIFY   ") Print.expToString (g, p)) ^ "\n"
+      | (t, (g, Assign (p, ga))) ->
           (((t ^ "ASSIGN  ") ^
-              (try Print.expToString (G, p) with | _ -> "<exc>"))
+              (try Print.expToString (g, p) with | _ -> "<exc>"))
              ^ "\n")
-            ^ (auxToString t (G, ga))
-      | (t, (G, And (r, A, g))) ->
+            ^ (auxToString t (g, ga))
+      | (t, (g, And (r, A, g))) ->
           (^) (clauseToString t
-                 ((IntSyn.Decl (G, (IntSyn.Dec (NONE, A)))), r))
-            goalToString t (G, g)
-      | (t, (G, In (r, A, g))) ->
-          let D = Names.decEName (G, (IntSyn.Dec (NONE, A))) in
-          (^) (((^) (((clauseToString t ((IntSyn.Decl (G, D)), r)) ^ t) ^
+                 ((IntSyn.Decl (g, (IntSyn.Dec (NONE, A)))), r))
+            goalToString t (g, g)
+      | (t, (g, In (r, A, g))) ->
+          let D = Names.decEName (g, (IntSyn.Dec (NONE, A))) in
+          (^) (((^) (((clauseToString t ((IntSyn.Decl (g, D)), r)) ^ t) ^
                        "META    ")
-                  Print.decToString (G, D))
+                  Print.decToString (g, D))
                  ^ "\n")
-            goalToString t (G, g)
-      | (t, (G, Exists (D, r))) ->
-          let D' = Names.decEName (G, D) in
+            goalToString t (g, g)
+      | (t, (g, Exists (D, r))) ->
+          let D' = Names.decEName (g, D) in
           (^) (((t ^ "EXISTS  ") ^
-                  (try Print.decToString (G, D') with | _ -> "<exc>"))
+                  (try Print.decToString (g, D') with | _ -> "<exc>"))
                  ^ "\n")
-            clauseToString t ((IntSyn.Decl (G, D')), r)
-      | (t, (G, Axists ((ADec (SOME n, d) as D), r))) ->
-          let D' = Names.decEName (G, D) in
+            clauseToString t ((IntSyn.Decl (g, D')), r)
+      | (t, (g, Axists ((ADec (SOME n, d) as D), r))) ->
+          let D' = Names.decEName (g, D) in
           (^) (((t ^ "EXISTS'  ") ^
-                  (try Print.decToString (G, D') with | _ -> "<exc>"))
+                  (try Print.decToString (g, D') with | _ -> "<exc>"))
                  ^ "\n")
-            clauseToString t ((IntSyn.Decl (G, D')), r)
+            clauseToString t ((IntSyn.Decl (g, D')), r)
     let rec subgoalsToString arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (t, (G, True)) -> t ^ "True "
-      | (t, (G, Conjunct (Goal, A, Sg))) ->
+      | (t, (g, True)) -> t ^ "True "
+      | (t, (g, Conjunct (Goal, A, Sg))) ->
           (^) (((^) t goalToString t
-                  ((IntSyn.Decl (G, (IntSyn.Dec (NONE, A)))), Goal))
+                  ((IntSyn.Decl (g, (IntSyn.Dec (NONE, A)))), Goal))
                  ^ " and ")
-            subgoalsToString t (G, Sg)
+            subgoalsToString t (g, Sg)
     let rec conDecToString =
       function
       | (((c)(* conDecToString (c, clause) printed representation of static clause *)),
@@ -127,15 +127,15 @@ module CPrint(CPrint:sig
     let rec dProgToString =
       function
       | DProg
-          (((IntSyn.Null)(* dProgToString (G, dProg) = printed representation of dynamic program *)),
+          (((IntSyn.Null)(* dProgToString (g, dProg) = printed representation of dynamic program *)),
            IntSyn.Null)
           -> ""
-      | DProg (Decl (G, Dec (SOME x, _)), Decl (dPool, Dec (r, _, _))) ->
-          (^) ((((dProgToString (DProg (G, dPool))) ^ "\nClause    ") ^ x) ^
+      | DProg (Decl (g, Dec (SOME x, _)), Decl (dPool, Dec (r, _, _))) ->
+          (^) ((((dProgToString (DProg (g, dPool))) ^ "\nClause    ") ^ x) ^
                  ":\n")
-            clauseToString "\t" (G, r)
-      | DProg (Decl (G, Dec (SOME x, A)), Decl (dPool, CompSyn.Parameter)) ->
-          (^) ((((dProgToString (DProg (G, dPool))) ^ "\nParameter ") ^ x) ^
+            clauseToString "\t" (g, r)
+      | DProg (Decl (g, Dec (SOME x, A)), Decl (dPool, CompSyn.Parameter)) ->
+          (^) ((((dProgToString (DProg (g, dPool))) ^ "\nParameter ") ^ x) ^
                  ":\t")
-            Print.expToString (G, A)
+            Print.expToString (g, A)
   end ;;

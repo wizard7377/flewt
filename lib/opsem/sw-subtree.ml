@@ -4,11 +4,11 @@ module type MEMOTABLE  =
     val callCheck :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
         TableParam.__ResEqn * TableParam.__Status) ->
-        ((TableParam.callCheckResult)(* callCheck (G, D, U, eqn)
+        ((TableParam.callCheckResult)(* callCheck (g, D, U, eqn)
    *
-   * if D, G |- U & eqn     in table  then RepeatedEntry (entries)
-   * if D, G |- U & eqn not in table  then NewEntry (ptrAnswer)
-   * SIDE EFFECT: D, G |- U added to table
+   * if D, g |- U & eqn     in table  then RepeatedEntry (entries)
+   * if D, g |- U & eqn not in table  then NewEntry (ptrAnswer)
+   * SIDE EFFECT: D, g |- U added to table
    *)
         (* call check/insert *)(*! structure TableParam : TABLEPARAM !*)
         (*! structure CompSyn : COMPSYN !*)(*! structure IntSyn : INTSYN !*)
@@ -19,13 +19,13 @@ module type MEMOTABLE  =
         TableParam.callCheckResult
     val answerCheck :
       (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
-        ((TableParam.answState)(* answerCheck (G, D, (U,s))
+        ((TableParam.answState)(* answerCheck (g, D, (U,s))
    * 
-   * Assupmtion: D, G |- U is in table
+   * Assupmtion: D, g |- U is in table
    *             and A represents the corresponding solutions
    * 
-   * G |- s : D, G
-   * Dk, G |- sk : D, G
+   * g |- s : D, g
+   * Dk, g |- sk : D, g
    *
    * If  (Dk, sk) in A then repeated
    *  else new

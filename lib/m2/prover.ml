@@ -80,13 +80,13 @@ module Prover(Prover:sig
       if (List.length (!openStates)) > 0
       then raise (Error "A proof could not be found")
       else ()
-    let rec makeConDec (State (name, Prefix (G, M, B), V)) =
+    let rec makeConDec (State (name, Prefix (g, M, B), V)) =
       let makeConDec' =
         function
         | (I.Null, V, k) -> I.ConDec (name, NONE, k, I.Normal, V, I.Type)
-        | (Decl (G, D), V, k) ->
-            makeConDec' (G, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
-      makeConDec' (G, V, 0)
+        | (Decl (g, D), V, k) ->
+            makeConDec' (g, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
+      makeConDec' (g, V, 0)
     let rec makeSignature =
       function
       | nil -> M.SgnEmpty
@@ -160,13 +160,13 @@ module Prover(Prover:sig
        Solves as many States in openStates
        as possible.
     *)
-      (* makeConDec (name, (G, M), V) = e'
+      (* makeConDec (name, (g, M), V) = e'
 
        Invariant:
-       If   |- G ctx
-       and  G |- M mtx
-       and  G |- V : type
-       then e' = (name, |G|, {G}.V, Type) is a signature conDec
+       If   |- g ctx
+       and  g |- M mtx
+       and  g |- V : type
+       then e' = (name, |g|, {g}.V, Type) is a signature conDec
     *)
       (* makeSignature (SL) = IS'
 

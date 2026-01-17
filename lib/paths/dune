@@ -1,0 +1,14 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.paths)
+ (name paths)
+ (libraries 
+  base
+  lambda
+  global
+  table
+ )
+ (modules 
+  origins
+  paths))

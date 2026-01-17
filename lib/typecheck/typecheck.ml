@@ -37,95 +37,95 @@ module TypeCheck(TypeCheck:sig
     module I = IntSyn
     let rec subToString =
       function
-      | (G, Dot (Idx n, s)) ->
-          (^) ((Int.toString n) ^ ".") subToString (G, s)
-      | (G, Dot (Exp (U), s)) ->
-          (^) (((^) "(" Print.expToString (G, U)) ^ ").") subToString (G, s)
-      | (G, Dot (Block (LVar _ as L), s)) ->
-          (^) ((LVarToString (G, L)) ^ ".") subToString (G, s)
-      | (G, Shift n) -> (^) "^" Int.toString n
+      | (g, Dot (Idx n, s)) ->
+          (^) ((Int.toString n) ^ ".") subToString (g, s)
+      | (g, Dot (Exp (U), s)) ->
+          (^) (((^) "(" Print.expToString (g, U)) ^ ").") subToString (g, s)
+      | (g, Dot (Block (LVar _ as L), s)) ->
+          (^) ((LVarToString (g, L)) ^ ".") subToString (g, s)
+      | (g, Shift n) -> (^) "^" Int.toString n
     let rec LVarToString =
       function
-      | (G, LVar (ref (SOME (B)), sk, (l, t))) ->
-          LVarToString (G, (I.blockSub (B, sk)))
-      | (G, LVar (ref (NONE), sk, (cid, t))) ->
+      | (g, LVar (ref (SOME (B)), sk, (l, t))) ->
+          LVarToString (g, (I.blockSub (B, sk)))
+      | (g, LVar (ref (NONE), sk, (cid, t))) ->
           ((^) (((^) "#" I.conDecName (I.sgnLookup cid)) ^ "[") subToString
-             (G, t))
+             (g, t))
             ^ "]"
-    let rec checkExp (G, Us, Vs) =
-      let Us' = inferExp (G, Us) in
+    let rec checkExp (g, Us, Vs) =
+      let Us' = inferExp (g, Us) in
       if Conv.conv (Us', Vs) then () else raise (Error "Type mismatch")
     let rec inferUni (I.Type) = I.Kind
     let rec inferExpW =
       function
-      | (G, (Uni (L), _)) -> ((I.Uni (inferUni L)), I.id)
-      | (G, (Pi ((D, _), V), s)) ->
-          (checkDec (G, (D, s));
-           inferExp ((I.Decl (G, (I.decSub (D, s)))), (V, (I.dot1 s))))
-      | (G, (Root (C, S), s)) ->
-          inferSpine (G, (S, s), (Whnf.whnf ((inferCon (G, C)), I.id)))
-      | (G, (Lam (D, U), s)) ->
-          (checkDec (G, (D, s));
+      | (g, (Uni (L), _)) -> ((I.Uni (inferUni L)), I.id)
+      | (g, (Pi ((D, _), V), s)) ->
+          (checkDec (g, (D, s));
+           inferExp ((I.Decl (g, (I.decSub (D, s)))), (V, (I.dot1 s))))
+      | (g, (Root (C, S), s)) ->
+          inferSpine (g, (S, s), (Whnf.whnf ((inferCon (g, C)), I.id)))
+      | (g, (Lam (D, U), s)) ->
+          (checkDec (g, (D, s));
            ((I.Pi
                (((I.decSub (D, s)), I.Maybe),
                  (I.EClo
                     (inferExp
-                       ((I.Decl (G, (I.decSub (D, s)))), (U, (I.dot1 s))))))),
+                       ((I.Decl (g, (I.decSub (D, s)))), (U, (I.dot1 s))))))),
              I.id))
-      | (G, (FgnExp csfe, s)) ->
-          inferExp (G, ((I.FgnExpStd.ToInternal.apply csfe ()), s))
-    let rec inferExp (G, Us) = inferExpW (G, (Whnf.whnf Us))
+      | (g, (FgnExp csfe, s)) ->
+          inferExp (g, ((I.FgnExpStd.ToInternal.apply csfe ()), s))
+    let rec inferExp (g, Us) = inferExpW (g, (Whnf.whnf Us))
     let rec inferSpine =
       function
-      | (G, (I.Nil, _), Vs) -> Vs
-      | (G, (SClo (S, s'), s), Vs) ->
-          inferSpine (G, (S, (I.comp (s', s))), Vs)
-      | (G, (App (U, S), s1), (Pi ((Dec (_, V1), _), V2), s2)) ->
-          (checkExp (G, (U, s1), (V1, s2));
+      | (g, (I.Nil, _), Vs) -> Vs
+      | (g, (SClo (S, s'), s), Vs) ->
+          inferSpine (g, (S, (I.comp (s', s))), Vs)
+      | (g, (App (U, S), s1), (Pi ((Dec (_, V1), _), V2), s2)) ->
+          (checkExp (g, (U, s1), (V1, s2));
            inferSpine
-             (G, (S, s1),
+             (g, (S, s1),
                (Whnf.whnf (V2, (I.Dot ((I.Exp (I.EClo (U, s1))), s2))))))
-      | (G, ((App _, _) as Ss), ((Root (Def _, _), _) as Vs)) ->
-          inferSpine (G, Ss, (Whnf.expandDef Vs))
-      | (G, (App (U, S), _), (V, s)) ->
+      | (g, ((App _, _) as Ss), ((Root (Def _, _), _) as Vs)) ->
+          inferSpine (g, Ss, (Whnf.expandDef Vs))
+      | (g, (App (U, S), _), (V, s)) ->
           raise (Error "Expression is applied, but not a function")
     let rec inferCon =
       function
-      | (G, BVar k') -> let Dec (_, V) = I.ctxDec (G, k') in V
-      | (G, Proj (B, i)) -> let Dec (_, V) = I.blockDec (G, B, i) in V
-      | (G, Const c) -> I.constType c
-      | (G, Def d) -> I.constType d
-      | (G, Skonst c) -> I.constType c
-      | (G, FgnConst (cs, conDec)) -> I.conDecType conDec
-    let rec typeCheck (G, (U, V)) =
-      checkCtx G; checkExp (G, (U, I.id), (V, I.id))
+      | (g, BVar k') -> let Dec (_, V) = I.ctxDec (g, k') in V
+      | (g, Proj (B, i)) -> let Dec (_, V) = I.blockDec (g, B, i) in V
+      | (g, Const c) -> I.constType c
+      | (g, Def d) -> I.constType d
+      | (g, Skonst c) -> I.constType c
+      | (g, FgnConst (cs, conDec)) -> I.conDecType conDec
+    let rec typeCheck (g, (U, V)) =
+      checkCtx g; checkExp (g, (U, I.id), (V, I.id))
     let rec checkSub =
       function
       | (I.Null, Shift 0, I.Null) -> ()
-      | (Decl (G, D), Shift k, I.Null) ->
+      | (Decl (g, D), Shift k, I.Null) ->
           if k > 0
-          then checkSub (G, (I.Shift (k - 1)), I.Null)
+          then checkSub (g, (I.Shift (k - 1)), I.Null)
           else raise (Error "Substitution not well-typed")
-      | (G', Shift k, G) ->
-          checkSub (G', (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), G)
-      | (G', Dot (Idx k, s'), Decl (G, Dec (_, V2))) ->
-          let _ = checkSub (G', s', G) in
-          let Dec (_, V1) = I.ctxDec (G', k) in
+      | (g', Shift k, g) ->
+          checkSub (g', (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), g)
+      | (g', Dot (Idx k, s'), Decl (g, Dec (_, V2))) ->
+          let _ = checkSub (g', s', g) in
+          let Dec (_, V1) = I.ctxDec (g', k) in
           if Conv.conv ((V1, I.id), (V2, s'))
           then ()
           else
             raise
               (Error
                  ((^) (((^) "Substitution not well-typed \n  found: "
-                          Print.expToString (G', V1))
+                          Print.expToString (g', V1))
                          ^ "\n  expected: ")
-                    Print.expToString (G', (I.EClo (V2, s')))))
-      | (G', Dot (Exp (U), s'), Decl (G, Dec (_, V2))) ->
-          let _ = checkSub (G', s', G) in
-          let _ = typeCheck (G', (U, (I.EClo (V2, s')))) in ()
-      | (G', Dot (Idx w, t), Decl (G, BDec (_, (l, s)))) ->
-          let _ = checkSub (G', t, G) in
-          let BDec (_, (l', s')) = I.ctxDec (G', w) in
+                    Print.expToString (g', (I.EClo (V2, s')))))
+      | (g', Dot (Exp (U), s'), Decl (g, Dec (_, V2))) ->
+          let _ = checkSub (g', s', g) in
+          let _ = typeCheck (g', (U, (I.EClo (V2, s')))) in ()
+      | (g', Dot (Idx w, t), Decl (g, BDec (_, (l, s)))) ->
+          let _ = checkSub (g', t, g) in
+          let BDec (_, (l', s')) = I.ctxDec (g', w) in
           if l <> l'
           then raise (Error "Incompatible block labels found")
           else
@@ -134,98 +134,98 @@ module TypeCheck(TypeCheck:sig
             else
               raise
                 (Error "Substitution in block declaration not well-typed")
-      | (G', Dot (Block (Inst (I)), t), Decl (G, BDec (_, (l, s)))) ->
-          let _ = checkSub (G', t, G) in
-          let (G, L) = I.constBlock l in
-          let _ = checkBlock (G', I, ((I.comp (s, t)), L)) in ()
-      | (G', (Dot (_, _) as s), I.Null) ->
+      | (g', Dot (Block (Inst (I)), t), Decl (g, BDec (_, (l, s)))) ->
+          let _ = checkSub (g', t, g) in
+          let (g, L) = I.constBlock l in
+          let _ = checkBlock (g', I, ((I.comp (s, t)), L)) in ()
+      | (g', (Dot (_, _) as s), I.Null) ->
           raise
-            (Error ((^) ("Long substitution" ^ "\n") subToString (G', s)))
+            (Error ((^) ("Long substitution" ^ "\n") subToString (g', s)))
     let rec checkBlock =
       function
-      | (G, nil, (_, nil)) -> ()
-      | (G, (U)::I, (t, (Dec (_, V))::L)) ->
-          (checkExp (G, (U, I.id), (V, t));
-           checkBlock (G, I, ((I.Dot ((I.Exp U), t)), L)))
+      | (g, nil, (_, nil)) -> ()
+      | (g, (U)::I, (t, (Dec (_, V))::L)) ->
+          (checkExp (g, (U, I.id), (V, t));
+           checkBlock (g, I, ((I.Dot ((I.Exp U), t)), L)))
     let rec checkDec =
       function
-      | (G, (Dec (_, V), s)) -> checkExp (G, (V, s), ((I.Uni I.Type), I.id))
-      | (G, (BDec (_, (c, t)), s)) ->
+      | (g, (Dec (_, V), s)) -> checkExp (g, (V, s), ((I.Uni I.Type), I.id))
+      | (g, (BDec (_, (c, t)), s)) ->
           let (Gsome, piDecs) = I.constBlock c in
-          checkSub (G, (I.comp (t, s)), Gsome)
-      | (G, (NDec, _)) -> ()
+          checkSub (g, (I.comp (t, s)), Gsome)
+      | (g, (NDec, _)) -> ()
     let rec checkCtx =
       function
       | I.Null -> ()
-      | Decl (G, D) -> (checkCtx G; checkDec (G, (D, I.id)))
+      | Decl (g, D) -> (checkCtx g; checkDec (g, (D, I.id)))
     let rec check (U, V) = checkExp (I.Null, (U, I.id), (V, I.id))
     let rec infer (U) = I.EClo (inferExp (I.Null, (U, I.id)))
-    let rec infer' (G, U) = I.EClo (inferExp (G, (U, I.id)))
-    let rec checkConv (U1, U2) =
-      if Conv.conv ((U1, I.id), (U2, I.id))
+    let rec infer' (g, U) = I.EClo (inferExp (g, (U, I.id)))
+    let rec checkConv (u1, u2) =
+      if Conv.conv ((u1, I.id), (u2, I.id))
       then ()
       else
         raise
           (Error
              ((^) (((^) "Terms not equal\n  left: " Print.expToString
-                      (I.Null, U1))
+                      (I.Null, u1))
                      ^ "\n  right:")
-                Print.expToString (I.Null, U2)))
+                Print.expToString (I.Null, u2)))
     let ((check)(* for debugging purposes *)(* whnf for Blocks ? Sun Dec  1 11:38:17 2002 -cs *)
       (* some well-formedness conditions are assumed for input expressions *)
       (* e.g. don't contain "Kind", Evar's are consistently instantiated, ... *)
-      (* checkExp (G, (U, s1), (V2, s2)) = ()
+      (* checkExp (g, (U, s1), (V2, s2)) = ()
 
        Invariant:
-       If   G |- s1 : G1
-       and  G |- s2 : G2    G2 |- V2 : L
+       If   g |- s1 : G1
+       and  g |- s2 : G2    G2 |- V2 : L
        returns () if there is a V1 s.t.
             G1 |- U : V1
-       and  G  |- V1 [s1] = V2 [s2] : L
+       and  g  |- V1 [s1] = V2 [s2] : L
        otherwise exception Error is raised
     *)
-      (* impossible: Kind *)(* inferExp (G, (U, s)) = (V', s')
+      (* impossible: Kind *)(* inferExp (g, (U, s)) = (V', s')
 
        Invariant:
-       If   G  |- s : G1
+       If   g  |- s : G1
        then if G1 |- U : V   (U doesn't contain EVAR's, FVAR's)
-            then  G  |- s' : G'     G' |- V' : L
-            and   G  |- V [s] = V'[s'] : L
+            then  g  |- s' : g'     g' |- V' : L
+            and   g  |- V [s] = V'[s'] : L
             else exception Error is raised.
      *)
       (* no cases for Redex, EVars and EClo's *)(* AK: typecheck a representative -- presumably if one rep checks, they all do *)
-      (* inferExp (G, Us) = (V', s')
+      (* inferExp (g, Us) = (V', s')
 
        Invariant: same as inferExp, argument is not in whnf
     *)
-      (* inferSpine (G, (S, s1), (V, s2)) = (V', s')
+      (* inferSpine (g, (S, s1), (V, s2)) = (V', s')
 
        Invariant:
-       If   G |- s1 : G1
-       and  G |- s2 : G2  and  G2 |- V : L ,   (V, s2) in whnf
+       If   g |- s1 : G1
+       and  g |- s2 : G2  and  G2 |- V : L ,   (V, s2) in whnf
        and  (S,V  don't contain EVAR's, FVAR's)
        then if   there ex V1, V1'  G1 |- S : V1 > V1'
-            then G |- s' : G'    and  G' |- V' : L
-            and  G |- V1 [s1]   = V [s2] : L
-            and  G |- V1'[s1]   = V' [s'] : L
+            then g |- s' : g'    and  g' |- V' : L
+            and  g |- V1 [s1]   = V [s2] : L
+            and  g |- V1'[s1]   = V' [s'] : L
     *)
-      (* G |- Pi (x:V1, V2) [s2] = Pi (x: V1 [s2], V2 [1.s2 o ^1] : L
-             G |- U [s1] : V1 [s2]
+      (* g |- Pi (x:V1, V2) [s2] = Pi (x: V1 [s2], V2 [1.s2 o ^1] : L
+             g |- U [s1] : V1 [s2]
              Hence
-             G |- S [s1] : V2 [1. s2 o ^1] [U [s1], id] > V' [s']
+             g |- S [s1] : V2 [1. s2 o ^1] [U [s1], id] > V' [s']
              which is equal to
-             G |- S [s1] : V2 [U[s1], s2] > V' [s']
+             g |- S [s1] : V2 [U[s1], s2] > V' [s']
 
-             Note that G |- U[s1] : V1 [s2]
+             Note that g |- U[s1] : V1 [s2]
              and hence V2 must be under the substitution    U[s1]: V1, s2
           *)
-      (* V <> (Pi x:V1. V2, s) *)(* inferCon (G, C) = V'
+      (* V <> (Pi x:V1. V2, s) *)(* inferCon (g, C) = V'
 
        Invariant:
-       If    G |- C : V
+       If    g |- C : V
        and  (C  doesn't contain FVars)
-       then  G' |- V' : L      (for some level L)
-       and   G |- V = V' : L
+       then  g' |- V' : L      (for some level L)
+       and   g |- V = V' : L
        else exception Error is raised.
     *)
       (* this is just a hack. --cs
@@ -241,20 +241,20 @@ module TypeCheck(TypeCheck:sig
       (* changed order of subgoals here Sun Dec  2 12:15:53 2001 -fp *)
       (* Front of the substitution cannot be a I.Bidx or LVar *)
       (* changed order of subgoals here Sun Dec  2 12:15:53 2001 -fp *)
-      (* G' |- s' : GSOME *)(* G  |- s  : GSOME *)
-      (* G' |- t  : G       (verified below) *)(*
-      | checkSub (G', I.Dot (I.Block (I.Bidx _), t), G) =
+      (* g' |- s' : GSOME *)(* g  |- s  : GSOME *)
+      (* g' |- t  : g       (verified below) *)(*
+      | checkSub (g', I.Dot (I.Block (I.Bidx _), t), g) =
         raise Error "Unexpected block index in substitution"
-      | checkSub (G', I.Dot (I.Block (I.LVar _), t), G) =
+      | checkSub (g', I.Dot (I.Block (I.LVar _), t), g) =
         raise Error "Unexpected LVar in substitution after abstraction"
       *)
-      (* checkDec (G, (x:V, s)) = B
+      (* checkDec (g, (x:V, s)) = B
 
        Invariant:
-       If G |- s : G1
-       then B iff G |- V[s] : type
+       If g |- s : G1
+       then B iff g |- V[s] : type
     *)
-      (* G1 |- t : GSOME *)(* G  |- s : G1 *))
+      (* G1 |- t : GSOME *)(* g  |- s : G1 *))
       = check
     let checkDec = checkDec
     let checkConv = checkConv

@@ -1,0 +1,15 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.typecheck)
+ (name typecheck)
+ (libraries 
+  base
+  lambda
+  print
+  paths
+  names
+ )
+ (modules 
+  strict
+  typecheck))

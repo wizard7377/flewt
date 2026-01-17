@@ -1,0 +1,31 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.tomega)
+ (name tomega)
+ (libraries 
+  base
+  global
+  lambda
+  worldcheck
+  cover
+  formatter
+  names
+  print
+  typecheck
+  subordinate
+  meta
+  modes
+  trail
+ )
+ (modules 
+  abstract
+  converter
+  coverage
+  opsem
+  redundant
+  tomega
+  tomeganames
+  tomegaprint
+  typecheck
+  unify))

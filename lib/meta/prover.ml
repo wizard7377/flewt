@@ -28,22 +28,22 @@ module MTProver(MTProver:sig
     let (solvedStates : S.__State list ref) = ref nil
     let rec transformOrder' =
       function
-      | (G, Arg k) ->
-          let k' = ((I.ctxLength G) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (G, k') in
+      | (g, Arg k) ->
+          let k' = ((I.ctxLength g) - k) + 1 in
+          let Dec (_, V) = I.ctxDec (g, k') in
           S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (G, Lex (Os)) ->
-          S.Lex (map (function | O -> transformOrder' (G, O)) Os)
-      | (G, Simul (Os)) ->
-          S.Simul (map (function | O -> transformOrder' (G, O)) Os)
+      | (g, Lex (Os)) ->
+          S.Lex (map (function | O -> transformOrder' (g, O)) Os)
+      | (g, Simul (Os)) ->
+          S.Simul (map (function | O -> transformOrder' (g, O)) Os)
     let rec transformOrder =
       function
-      | (G, All (Prim (D), F), Os) ->
-          S.All (D, (transformOrder ((I.Decl (G, D)), F, Os)))
-      | (G, And (F1, F2), (O)::Os) ->
-          S.And ((transformOrder (G, F1, [O])), (transformOrder (G, F2, Os)))
-      | (G, Ex _, (O)::[]) -> transformOrder' (G, O)
-      | (G, F.True, (O)::[]) -> transformOrder' (G, O)
+      | (g, All (Prim (D), F), Os) ->
+          S.All (D, (transformOrder ((I.Decl (g, D)), F, Os)))
+      | (g, And (F1, F2), (O)::Os) ->
+          S.And ((transformOrder (g, F1, [O])), (transformOrder (g, F2, Os)))
+      | (g, Ex _, (O)::[]) -> transformOrder' (g, O)
+      | (g, F.True, (O)::[]) -> transformOrder' (g, O)
     let rec select c = try Order.selLookup c with | _ -> Order.Lex []
     let rec error s = raise (Error s)
     let rec reset () = openStates := nil; solvedStates := nil

@@ -1,0 +1,23 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.delphin)
+ (name delphin)
+ (libraries 
+  base
+  compat
+  frontend
+  stream
+  tomega
+  lambda
+  print
+  names
+  subordinate
+  ml_yacc_lib_mod
+ )
+ (modules 
+  delphin
+  dextsyn
+  interface
+  parse_prg
+  trans))

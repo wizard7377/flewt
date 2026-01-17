@@ -34,11 +34,11 @@ module Init(Init:sig
        If   c is type constant identifier
        then S' is initial prover state.
     *)
-      (* init c1 .. cn = S1 .. Sn
+      (* init c1 .. cn = s1 .. Sn
 
        Invariant:
        If   c1 .. cn are mutually recursive
-       then S1 .. Sn is an initial prover state.
+       then s1 .. Sn is an initial prover state.
     *))
       = init
   end ;;

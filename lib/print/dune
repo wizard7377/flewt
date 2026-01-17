@@ -1,0 +1,19 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.print)
+ (name print)
+ (libraries 
+  base
+  lambda
+  names
+  formatter
+ )
+ (modules 
+  clause_print
+  print
+  print_omdoc
+  print_twega
+  print_xml
+  symbol
+  traverse))

@@ -221,15 +221,15 @@ module CompSyn =
                      (* proof skeletons instead of proof term *)
                      (* Representation invariants for compiled syntax:
      Judgments:
-       G |- g goal   g is a valid goal in G
-       G |- r resgoal  g is a valid residual goal in G
+       g |- g goal   g is a valid goal in g
+       g |- r resgoal  g is a valid residual goal in g
 
-       G |- A ~> g   A compiles to goal g
-       G |- A ~> r   A compiles to residual goal r
-       G |- A ~> <head , subgoals>
+       g |- A ~> g   A compiles to goal g
+       g |- A ~> r   A compiles to residual goal r
+       g |- A ~> <head , subgoals>
 
-     G |- p  goal
-     if  G |- p : type, p = H @ S        mod whnf *)
+     g |- p  goal
+     if  g |- p : type, p = H @ S        mod whnf *)
                      (* mod whnf *)(* Static programs --- compiled version of the signature (no indexing) *)
                      (* Compiled constant declaration           *)
                      (* c : A  -- static clause (residual goal) *)
@@ -247,16 +247,16 @@ module CompSyn =
                      (* goalSub (g, s) = g'
 
      Invariants:
-     If   G  |- s : G'    G' |- g : A
+     If   g  |- s : g'    g' |- g : A
      then g' = g[s]
-     and  G  |- g' : A
+     and  g  |- g' : A
   *)
                      (* resGoalSub (r, s) = r'
 
      Invariants:
-     If   G  |- s : G'    G' |- r : A
+     If   g  |- s : g'    g' |- r : A
      then r' = r[s]
-     and  G  |- r' : A [s]
+     and  g  |- r' : A [s]
   *)
                      (* functor CompSyn *))
                    module Names =

@@ -70,7 +70,7 @@ module Normalize(Normalize:sig
       | Dot (Prg (P), s) ->
           T.Dot ((T.Prg (normalizePrg (P, T.id))), (normalizeSub s))
       | Dot (F, s) -> T.Dot (F, (normalizeSub s))
-    let ((normalizeFor)(*      | normalizeFor (T.FVar (G, r))   think about it *)
+    let ((normalizeFor)(*      | normalizeFor (T.FVar (g, r))   think about it *)
       (* normalizePrg (P, t) = (P', t')
 
        Invariant:

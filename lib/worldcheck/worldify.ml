@@ -88,11 +88,11 @@ module Worldify(Worldify:sig
     exception Success of I.__Exp 
     let rec createEVarSub =
       function
-      | (G, I.Null) -> I.Shift (I.ctxLength G)
-      | (G, Decl (G', (Dec (_, V) as D))) ->
-          let s = createEVarSub (G, G') in
+      | (g, I.Null) -> I.Shift (I.ctxLength g)
+      | (g, Decl (g', (Dec (_, V) as D))) ->
+          let s = createEVarSub (g, g') in
           let V' = I.EClo (V, s) in
-          let X = I.newEVar (G, V') in I.Dot ((I.Exp X), s)
+          let X = I.newEVar (g, V') in I.Dot ((I.Exp X), s)
     let rec collectConstraints =
       function
       | nil -> nil
@@ -101,46 +101,46 @@ module Worldify(Worldify:sig
           (@) (Constraints.simplify constrs) collectConstraints Xs
     let rec collectEVars =
       function
-      | (G, Dot (Exp (X), s), Xs) ->
-          collectEVars (G, s, (Abstract.collectEVars (G, (X, I.id), Xs)))
-      | (G, Shift _, Xs) -> Xs
-    let rec noConstraints (G, s) =
-      match collectConstraints (collectEVars (G, s, nil)) with
+      | (g, Dot (Exp (X), s), Xs) ->
+          collectEVars (g, s, (Abstract.collectEVars (g, (X, I.id), Xs)))
+      | (g, Shift _, Xs) -> Xs
+    let rec noConstraints (g, s) =
+      match collectConstraints (collectEVars (g, s, nil)) with
       | nil -> true__
       | _ -> false__
-    let rec formatD (G, D) =
+    let rec formatD (g, D) =
       F.Hbox
-        (((::) ((::) (F.String "{") Print.formatDec (G, D)) F.String "}") ::
+        (((::) ((::) (F.String "{") Print.formatDec (g, D)) F.String "}") ::
            nil)
     let rec formatDList =
       function
-      | (G, nil, t) -> nil
-      | (G, (D)::nil, t) ->
-          let D' = I.decSub (D, t) in (formatD (G, D')) :: nil
-      | (G, (D)::L, t) ->
+      | (g, nil, t) -> nil
+      | (g, (D)::nil, t) ->
+          let D' = I.decSub (D, t) in (formatD (g, D')) :: nil
+      | (g, (D)::L, t) ->
           let D' = I.decSub (D, t) in
-          (::) ((formatD (G, D')) :: F.Break) formatDList
-            ((I.Decl (G, D')), L, (I.dot1 t))
-    let rec wGoalToString ((G, L), Seq (_, piDecs, t)) =
+          (::) ((formatD (g, D')) :: F.Break) formatDList
+            ((I.Decl (g, D')), L, (I.dot1 t))
+    let rec wGoalToString ((g, L), Seq (_, piDecs, t)) =
       F.makestring_fmt
         (F.HVbox
-           [F.HVbox (formatDList (G, L, I.id));
+           [F.HVbox (formatDList (g, L, I.id));
            F.Break;
            F.String "<|";
            F.Break;
-           F.HVbox (formatDList (G, piDecs, t))])
-    let rec worldToString (G, Seq (_, piDecs, t)) =
-      F.makestring_fmt (F.HVbox (formatDList (G, piDecs, t)))
-    let rec hypsToString (G, L) =
-      F.makestring_fmt (F.HVbox (formatDList (G, L, I.id)))
-    let rec mismatchToString (G, (V1, s1), (V2, s2)) =
+           F.HVbox (formatDList (g, piDecs, t))])
+    let rec worldToString (g, Seq (_, piDecs, t)) =
+      F.makestring_fmt (F.HVbox (formatDList (g, piDecs, t)))
+    let rec hypsToString (g, L) =
+      F.makestring_fmt (F.HVbox (formatDList (g, L, I.id)))
+    let rec mismatchToString (g, (V1, s1), (V2, s2)) =
       F.makestring_fmt
         (F.HVbox
-           [Print.formatExp (G, (I.EClo (V1, s1)));
+           [Print.formatExp (g, (I.EClo (V1, s1)));
            F.Break;
            F.String "<>";
            F.Break;
-           Print.formatExp (G, (I.EClo (V2, s2)))])
+           Print.formatExp (g, (I.EClo (V2, s2)))])
     module Trace :
       sig
         val clause : I.cid -> unit
@@ -171,32 +171,32 @@ module Worldify(Worldify:sig
           if (!Global.chatter) > 7
           then print (((^) "Unmatched hypotheses:\n" hypsToString GL) ^ "\n")
           else ()
-        let rec missing (G, R) =
+        let rec missing (g, R) =
           if (!Global.chatter) > 7
           then
-            print (((^) "Missing hypotheses:\n" worldToString (G, R)) ^ "\n")
+            print (((^) "Missing hypotheses:\n" worldToString (g, R)) ^ "\n")
           else ()
-        let rec mismatch (G, Vs1, Vs2) =
+        let rec mismatch (g, Vs1, Vs2) =
           if (!Global.chatter) > 7
           then
-            print (((^) "Mismatch:\n" mismatchToString (G, Vs1, Vs2)) ^ "\n")
+            print (((^) "Mismatch:\n" mismatchToString (g, Vs1, Vs2)) ^ "\n")
           else ()
         let rec success () =
           if (!Global.chatter) > 7 then print "Success\n" else ()
       end 
-    let rec decUName (G, D) = I.Decl (G, (Names.decUName (G, D)))
-    let rec decEName (G, D) = I.Decl (G, (Names.decEName (G, D)))
+    let rec decUName (g, D) = I.Decl (g, (Names.decUName (g, D)))
+    let rec decEName (g, D) = I.Decl (g, (Names.decEName (g, D)))
     let rec equivList =
       function
-      | (G, (_, nil), nil) -> true__
-      | (G, (t, (Dec (_, V1))::L1), (Dec (_, V2))::L2) ->
+      | (g, (_, nil), nil) -> true__
+      | (g, (t, (Dec (_, V1))::L1), (Dec (_, V2))::L2) ->
           (try
-             Unify.unify (G, (V1, t), (V2, I.id));
-             equivList (G, ((I.dot1 t), L1), L2)
+             Unify.unify (g, (V1, t), (V2, I.id));
+             equivList (g, ((I.dot1 t), L1), L2)
            with | Unify _ -> false__)
       | _ -> false__
-    let rec equivBlock ((G, L), L') =
-      let t = createEVarSub (I.Null, G) in equivList (I.Null, (t, L), L')
+    let rec equivBlock ((g, L), L') =
+      let t = createEVarSub (I.Null, g) in equivList (I.Null, (t, L), L')
     let rec equivBlocks arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (W1, nil) -> true__
@@ -210,8 +210,8 @@ module Worldify(Worldify:sig
           if Subordinate.below ((I.targetFam V), a)
           then (::) (I.decSub (D, t)) strengthen a ((I.dot1 t), L)
           else strengthen a ((I.Dot (I.Undef, t)), L)
-    let rec subsumedBlock a (W1) (G, L) =
-      let t = createEVarSub (I.Null, G) in
+    let rec subsumedBlock a (W1) (g, L) =
+      let t = createEVarSub (I.Null, g) in
       let L' = strengthen a (t, L) in
       if equivBlocks W1 L'
       then ()
@@ -241,27 +241,27 @@ module Worldify(Worldify:sig
     let rec subsumedCtx =
       function
       | (I.Null, W) -> ()
-      | (Decl (G, BDec (_, (b, _))), (Worlds (Bs) as W)) ->
+      | (Decl (g, BDec (_, (b, _))), (Worlds (Bs) as W)) ->
           (if List.exists (function | b' -> eqBlock (b, b')) Bs
            then ()
            else raise (Error "Dynamic world subsumption failed");
-           subsumedCtx (G, W))
-      | (Decl (G, _), (Worlds (Bs) as W)) -> subsumedCtx (G, W)
+           subsumedCtx (g, W))
+      | (Decl (g, _), (Worlds (Bs) as W)) -> subsumedCtx (g, W)
     let rec checkGoal arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (W, (G, Root (Const a, S), occ)) ->
+      | (W, (g, Root (Const a, S), occ)) ->
           let W' = W.getWorlds a in
-          (subsumedWorld a W' W; subsumedCtx (G, W))
-      | (W, (G, Pi ((D, _), V2), occ)) ->
-          checkGoal W ((decUName (G, D)), V2, (P.body occ))
+          (subsumedWorld a W' W; subsumedCtx (g, W))
+      | (W, (g, Pi ((D, _), V2), occ)) ->
+          checkGoal W ((decUName (g, D)), V2, (P.body occ))
     let rec checkClause arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (W, (G, Root (a, S), occ)) -> ()
-      | (W, (G, Pi (((Dec (_, V1) as D), I.Maybe), V2), occ)) ->
-          checkClause W ((decEName (G, D)), V2, (P.body occ))
-      | (W, (G, Pi (((Dec (_, V1) as D), I.No), V2), occ)) ->
-          (checkClause W ((decEName (G, D)), V2, (P.body occ));
-           checkGoal W (G, V1, (P.label occ)))
+      | (W, (g, Root (a, S), occ)) -> ()
+      | (W, (g, Pi (((Dec (_, V1) as D), I.Maybe), V2), occ)) ->
+          checkClause W ((decEName (g, D)), V2, (P.body occ))
+      | (W, (g, Pi (((Dec (_, V1) as D), I.No), V2), occ)) ->
+          (checkClause W ((decEName (g, D)), V2, (P.body occ));
+           checkGoal W (g, V1, (P.label occ)))
     let rec checkConDec (W) (ConDec (s, m, k, status, V, L)) =
       checkClause W (I.Null, V, P.top)
     let rec subGoalToDList =
@@ -277,26 +277,26 @@ module Worldify(Worldify:sig
       function
       | (_, ((Root _, s) as Vs)) ->
           (Trace.success (); raise (Success (Whnf.normalize Vs)))
-      | (G, ((Pi (((Dec (_, V1) as D1), _), V2) as V), s)) ->
-          (Trace.unmatched (G, (subGoalToDList (Whnf.normalize (V, s)))); ())
+      | (g, ((Pi (((Dec (_, V1) as D1), _), V2) as V), s)) ->
+          (Trace.unmatched (g, (subGoalToDList (Whnf.normalize (V, s)))); ())
     let rec accR =
       function
       | (GVs, One, k) -> k GVs
-      | (((G, (V, s)) as GVs), Block (c, (someDecs, piDecs)), k) ->
-          let t = createEVarSub (G, someDecs) in
+      | (((g, (V, s)) as GVs), Block (c, (someDecs, piDecs)), k) ->
+          let t = createEVarSub (g, someDecs) in
           let _ =
             Trace.matchBlock
-              ((G, (subGoalToDList (Whnf.normalize (V, s)))),
+              ((g, (subGoalToDList (Whnf.normalize (V, s)))),
                 (Seq (1, piDecs, t))) in
           let k' =
             function
-            | (G', Vs') ->
-                if noConstraints (G, t)
-                then k (G', Vs')
+            | (g', Vs') ->
+                if noConstraints (g, t)
+                then k (g', Vs')
                 else (Trace.constraintsRemain (); ()) in
           (try
              accR
-               (((decUName (G, (I.BDec (NONE, (c, t))))),
+               (((decUName (g, (I.BDec (NONE, (c, t))))),
                   (V, (I.comp (s, I.shift)))),
                  (Seq (1, piDecs, (I.comp (t, I.shift)))), k')
            with
@@ -305,12 +305,12 @@ module Worldify(Worldify:sig
                  (Success
                     (Whnf.normalize
                        ((I.Pi (((I.BDec (NONE, (c, t))), I.Maybe), V)), I.id))))
-      | ((G, ((Pi (((Dec (_, V1) as D), _), V2) as V), s)),
+      | ((g, ((Pi (((Dec (_, V1) as D), _), V2) as V), s)),
          (Seq (j, (Dec (_, V1'))::L2', t) as L'), k) ->
-          if Unify.unifiable (G, (V1, s), (V1', t))
+          if Unify.unifiable (g, (V1, s), (V1', t))
           then
             accR
-              ((G,
+              ((g,
                  (V2,
                    (I.Dot
                       ((I.Exp (I.Root ((I.Proj ((I.Bidx 1), j)), I.Nil))), s)))),
@@ -319,10 +319,10 @@ module Worldify(Worldify:sig
                      (I.Dot
                         ((I.Exp (I.Root ((I.Proj ((I.Bidx 1), j)), I.Nil))),
                           t)))), k)
-          else (Trace.mismatch (G, (V1, I.id), (V1', t)); ())
+          else (Trace.mismatch (g, (V1, I.id), (V1', t)); ())
       | (GVs, Seq (_, nil, t), k) -> k GVs
-      | (((G, (Root _, s)) as GVs), (Seq (_, L', t) as R), k) ->
-          (Trace.missing (G, R); ())
+      | (((g, (Root _, s)) as GVs), (Seq (_, L', t) as R), k) ->
+          (Trace.missing (g, R); ())
       | (GVs, Plus (r1, r2), k) ->
           (CSManager.trail (function | () -> accR (GVs, r1, k));
            accR (GVs, r2, k))
@@ -330,24 +330,24 @@ module Worldify(Worldify:sig
       | (GVs, (Star r' as r), k) ->
           (CSManager.trail (function | () -> k GVs);
            accR (GVs, r', (function | GVs' -> accR (GVs', r, k))))
-    let rec worldifyGoal (G, V, (Worlds cids as W), occ) =
+    let rec worldifyGoal (g, V, (Worlds cids as W), occ) =
       try
         let b = I.targetFam V in
         let Wb = W.getWorlds b in
         let Rb = worldsToReg Wb in
-        accR ((G, (V, I.id)), Rb, init);
+        accR ((g, (V, I.id)), Rb, init);
         raise (Error' (occ, "World violation"))
       with | Success (V') -> V'
     let rec worldifyClause =
       function
-      | (G, (Root (a, S) as V), W, occ) -> V
-      | (G, Pi (((Dec (x, V1) as D), I.Maybe), V2), W, occ) ->
+      | (g, (Root (a, S) as V), W, occ) -> V
+      | (g, Pi (((Dec (x, V1) as D), I.Maybe), V2), W, occ) ->
           let _ = print "{" in
-          let W2 = worldifyClause ((decEName (G, D)), V2, W, (P.body occ)) in
+          let W2 = worldifyClause ((decEName (g, D)), V2, W, (P.body occ)) in
           let _ = print "}" in I.Pi (((I.Dec (x, V1)), I.Maybe), W2)
-      | (G, Pi (((Dec (x, V1) as D), I.No), V2), W, occ) ->
-          let W1 = worldifyGoal (G, V1, W, (P.label occ)) in
-          let W2 = worldifyClause ((decEName (G, D)), V2, W, (P.body occ)) in
+      | (g, Pi (((Dec (x, V1) as D), I.No), V2), W, occ) ->
+          let W1 = worldifyGoal (g, V1, W, (P.label occ)) in
+          let W2 = worldifyClause ((decEName (g, D)), V2, W, (P.body occ)) in
           I.Pi (((I.Dec (x, W1)), I.No), W2)
     let rec worldifyConDec (W) (c, ConDec (s, m, k, status, V, L)) =
       if (!Global.chatter) = 4
@@ -360,12 +360,12 @@ module Worldify(Worldify:sig
        with | Error' (occ, msg) -> raise (Error (wrapMsg (c, occ, msg))))
     let rec worldifyBlock =
       function
-      | (G, nil) -> ()
-      | (G, (Dec (_, V) as D)::L) ->
+      | (g, nil) -> ()
+      | (g, (Dec (_, V) as D)::L) ->
           let a = I.targetFam V in
           let W' = W.getWorlds a in
-          (checkClause W' (G, (worldifyClause (I.Null, V, W', P.top)), P.top);
-           worldifyBlock ((decUName (G, D)), L))
+          (checkClause W' (g, (worldifyClause (I.Null, V, W', P.top)), P.top);
+           worldifyBlock ((decUName (g, D)), L))
     let rec worldifyBlocks =
       function
       | nil -> ()
@@ -406,35 +406,35 @@ module Worldify(Worldify:sig
       let _ = if (!Global.chatter) = 4 then print "\n" else () in condecs
     let ((worldify)(* Regular world expressions R
        Invariants:
-       If R = (D1,...,Dn)[s] then G |- s : G' and G' |- D1,...,Dn ctx
+       If R = (D1,...,Dn)[s] then g |- s : g' and g' |- D1,...,Dn ctx
        If R = r* then r = 1 or r does not accept the empty world
     *)
       (* Regular world expressions  *)(* R ::= LD                   *)
       (*     | (Di,...,Dn)[s]       *)(*     | R*                   *)
       (*     | R1 + R2              *)(*     | 1                    *)
-      (* signals worldcheck success *)(* createEVarSub G G' = s
+      (* signals worldcheck success *)(* createEVarSub g g' = s
 
        Invariant:
-       If   G is a context
-       and  G' is a context
-       then G |- s : G'
+       If   g is a context
+       and  g' is a context
+       then g |- s : g'
     *)
       (* from cover.fun *)(* collectConstraints (Xs) = constrs
        collect all the constraints that may be attached to EVars in Xs
 
        try simplifying away the constraints in case they are "hard"
     *)
-      (* constrs <> nil *)(* collectEVars (G, s, Xs) = Xs'
+      (* constrs <> nil *)(* collectEVars (g, s, Xs) = Xs'
        adds all uninstantiated EVars from s to Xs to obtain Xs'
        Invariant: s is EVar substitutions
     *)
       (* other cases impossible by invariants since s is EVarSubst *)
-      (* noConstraints (G, s) = true iff there are no remaining constraints in s
+      (* noConstraints (g, s) = true iff there are no remaining constraints in s
        Invariants: s is an EVar substitution X1...Xn.^k
     *)
       (************)(* Printing *)(************)
       (* Declarations *)(* Declaration lists *)
-      (* Names.decUName (G, I.decSub(D, t)) *)(* Names.decUName (G, I.decSub (D, t)) *)
+      (* Names.decUName (g, I.decSub(D, t)) *)(* Names.decUName (g, I.decSub (D, t)) *)
       (*
     fun hypsToDList (I.Root _) = nil
       | hypsToDList (I.Pi ((D, _), V)) =
@@ -446,19 +446,19 @@ module Worldify(Worldify:sig
       (* R = (D1,...,Dn)[t] *)(* R = (D1,...,Dn)[t] *)
       (* ******************** *)(* World Subsumption    *)
       (* The STATIC part      *)(* ******************** *)
-      (* equivList (G, (t, L), L')
+      (* equivList (g, (t, L), L')
 
         Invariant:
-        If  . |- t : G
-        and G |- L block
+        If  . |- t : g
+        and g |- L block
         then  B = true if  L [t] unifies with L'
               B = false otherwise
      *)
-      (* equivBlock ((G, L), L') = B
+      (* equivBlock ((g, L), L') = B
 
         Invariant:
-        If   G |- L block
-        then B = true if there exists a substitution . |- t : G, s.t. L[t] = L'
+        If   g |- L block
+        then B = true if there exists a substitution . |- t : g, s.t. L[t] = L'
              B = false otherwise
      *)
       (* equivBlocks W L = B
@@ -472,22 +472,22 @@ module Worldify(Worldify:sig
 
         Invariant:
         If   a is a type family,
-        and  . |- t : G
-        and  G |- L block
+        and  . |- t : g
+        and  g |- L block
         then . |- L' block
         where V \in L and not V < a then V \in L'
         and   V \in L and V < a then not V \in L'
      *)
-      (* subsumedBlock a W1 (G, L) = ()
+      (* subsumedBlock a W1 (g, L) = ()
 
         Invariant:
         If   a is a type family
         and  W1 the world in which the callee is defined
-        and (G, L) one block in the world of the caller
-        Then the function returns () if (G, L) is subsumed by W1
+        and (g, L) one block in the world of the caller
+        Then the function returns () if (g, L) is subsumed by W1
         otherwise Error is raised
      *)
-      (* G |- t : someDecs *)(* subsumedBlocks a W1 W2 = ()
+      (* g |- t : someDecs *)(* subsumedBlocks a W1 W2 = ()
 
         Invariant:
         Let W1 be the world in which the callee is defined
@@ -527,27 +527,27 @@ module Worldify(Worldify:sig
         B = true if b1 and b2 are equal (modulo renaming of variables)
         B = false otherwise
      *)
-      (* sumbsumedCtx (G, W) = ()
+      (* sumbsumedCtx (g, W) = ()
 
         Invariant:
-        Let G be a context of blocks
+        Let g be a context of blocks
         and W a world
-        Then the function returns () if every block in G
+        Then the function returns () if every block in g
         is listed in W
         otherwise Error is raised
      *)
       (******************************)(* Checking clauses and goals *)
-      (******************************)(* checkGoal W (G, V, occ) = ()
+      (******************************)(* checkGoal W (g, V, occ) = ()
         iff all (embedded) subgoals in V satisfy world spec W
         Effect: raises Error' (occ', msg) otherwise
 
-        Invariant: G |- V : type, V nf
+        Invariant: g |- V : type, V nf
      *)
-      (* checkClause (G, V, W, occ) = ()
+      (* checkClause (g, V, W, occ) = ()
        iff all subgoals in V satisfy world spec W
        Effect: raises Error' (occ', msg) otherwise
 
-       Invariant: G |- V : type, V nf
+       Invariant: g |- V : type, V nf
        occ is occurrence of V in current clause
      *)
       (**************************************)(* Matching hypotheses against worlds *)
@@ -555,38 +555,38 @@ module Worldify(Worldify:sig
        W = R, except that R is a regular expression
        with non-empty contextblocks as leaves
     *)
-      (* init b (G, L) raises Success iff V is empty
+      (* init b (g, L) raises Success iff V is empty
        or none of the remaining declarations are relevant to b
        otherwise fails by returning ()
        Initial continuation for world checker
 
-       Invariant: G |- L dlist, L nf
+       Invariant: g |- L dlist, L nf
     *)
-      (* accR ((G, (V, s)), R, k)   raises Success
+      (* accR ((g, (V, s)), R, k)   raises Success
        iff V[s] = {L1}{L2} P  such that R accepts L1
-           and k ((G, L1), L2) succeeds
+           and k ((g, L1), L2) succeeds
        otherwise fails by returning ()
-       Invariant: G |- (V s) type, L nf
+       Invariant: g |- (V s) type, L nf
                   R regular world expression
        trails at choice points to undo EVar instantiations during matching
     *)
-      (* G |- t : someDecs *)(* L is missing *)
+      (* g |- t : someDecs *)(* L is missing *)
       (* only possibility for non-termination in next rule *)(* r' does not accept empty declaration list *)
       (******************************)(* Worldifying clauses and goals *)
-      (******************************)(* worldifyGoal (G, V, W, occ) = ()
-       iff V = {{G'}} a @ S and G' satisfies worlds W
+      (******************************)(* worldifyGoal (g, V, W, occ) = ()
+       iff V = {{g'}} a @ S and g' satisfies worlds W
        Effect: raises Error' (occ', msg) otherwise
 
-       Invariant: G |- V : type, V nf
+       Invariant: g |- V : type, V nf
     *)
-      (* worldifyClause (G, V, W, occ) = ()
+      (* worldifyClause (g, V, W, occ) = ()
        iff all subgoals in V satisfy world spec W
        Effect: raises Error' (occ', msg) otherwise
 
-       Invariant: G |- V : type, V nf
+       Invariant: g |- V : type, V nf
        occ is occurrence of V in current clause
      *)
-      (*         val W1 = worldifyGoal (G, V1, W, P.label occ) *)
+      (*         val W1 = worldifyGoal (g, V1, W, P.label occ) *)
       (* W1*)(* worldcheck W a = ()
        iff all subgoals in all clauses defining a satisfy world spec W
        Effect: raises Error(msg) otherwise, where msg includes location
@@ -595,5 +595,5 @@ module Worldify(Worldify:sig
       worldify
     let worldifyGoal =
       function
-      | (G, V) -> worldifyGoal (G, V, (W.getWorlds (I.targetFam V)), P.top)
+      | (g, V) -> worldifyGoal (g, V, (W.getWorlds (I.targetFam V)), P.top)
   end ;;

@@ -1,0 +1,50 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.meta)
+ (name meta)
+ (libraries 
+  base
+  compat
+  global
+  trail
+  table
+  lambda
+  names
+  formatter
+  print
+  subordinate
+  modes
+  typecheck
+  index
+  opsem
+  compile
+  heuristic
+  timing
+  solvers
+  m2
+ )
+ (modules 
+  abstract
+  data
+  filling
+  funnames
+  funprint
+  funsyn
+  funtypecheck
+  funweaken
+  global
+  inference
+  init
+  meta
+  mpi
+  print
+  prover
+  recursion
+  relfun
+  search
+  splitting
+  statesyn
+  strategy
+  uniquesearch
+  weaken))

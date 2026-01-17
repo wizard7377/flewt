@@ -39,7 +39,7 @@ module type TOMEGA  =
     and __Dec =
       | UDec of
       ((IntSyn.__Dec)(* Declaration:               *)
-      (*     | F (G)                *)) 
+      (*     | F (g)                *)) 
       | PDec of (((string)(* D ::= x:A                  *))
       option * __For * __TC option * __TC option) 
     and __Prg =
@@ -74,7 +74,7 @@ module type TOMEGA  =
       IntSyn.__Ctx * __Prg option ref * __For * __TC option * __TC option *
       IntSyn.__Exp) 
       | Const of
-      ((lemma)(* X is just just for printing*)(*     | E (G, F, _, _, X)    *))
+      ((lemma)(* X is just just for printing*)(*     | E (g, F, _, _, X)    *))
       
       | Var of ((int)(* P ::= cc                   *)) 
       | LetPairExp of
@@ -221,7 +221,7 @@ module Tomega(Tomega:sig
     and __Dec =
       | UDec of
       ((IntSyn.__Dec)(* Declaration:               *)
-      (*     | F (G)                *)) 
+      (*     | F (g)                *)) 
       | PDec of (((string)(* D ::= x:A                  *))
       option * __For * __TC option * __TC option) 
     and __Prg =
@@ -255,7 +255,7 @@ module Tomega(Tomega:sig
       | EVar of (((__Dec)(*     | let D = P1 in P2     *))
       IntSyn.__Ctx * __Prg option ref * __For * __TC option * __TC option *
       IntSyn.__Exp) 
-      | Const of ((lemma)(*     | E (G, F, TC)         *)) 
+      | Const of ((lemma)(*     | E (g, F, TC)         *)) 
       | Var of ((int)(* P ::= cc                   *)) 
       | LetPairExp of
       (((IntSyn.__Dec)(*     | xx                   *)) *
@@ -384,7 +384,7 @@ module Tomega(Tomega:sig
     let rec embedCtx =
       function
       | I.Null -> I.Null
-      | Decl (G, D) -> I.Decl ((embedCtx G), (UDec D))
+      | Decl (g, D) -> I.Decl ((embedCtx g), (UDec D))
     let rec orderSub =
       function
       | (Arg ((U, s1), (V, s2)), s) ->
@@ -413,7 +413,7 @@ module Tomega(Tomega:sig
       function | NONE -> NONE | SOME (TC) -> SOME (normalizeTC TC)
     let rec convTC' =
       function
-      | (Arg (Us1, _), Arg (Us2, _)) -> Conv.conv (Us1, Us2)
+      | (Arg (us1, _), Arg (us2, _)) -> Conv.conv (us1, us2)
       | (Lex (Os1), Lex (Os2)) -> convTCs (Os1, Os2)
       | (Simul (Os1), Simul (Os2)) -> convTCs (Os1, Os2)
     let rec convTCs =
@@ -435,20 +435,20 @@ module Tomega(Tomega:sig
       | _ -> false__
     let rec transformTC' =
       function
-      | (G, Arg k) ->
-          let k' = ((I.ctxLength G) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (G, k') in
+      | (g, Arg k) ->
+          let k' = ((I.ctxLength g) - k) + 1 in
+          let Dec (_, V) = I.ctxDec (g, k') in
           O.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (G, Lex (Os)) -> O.Lex (map (function | O -> transformTC' (G, O)) Os)
-      | (G, Simul (Os)) ->
-          O.Simul (map (function | O -> transformTC' (G, O)) Os)
+      | (g, Lex (Os)) -> O.Lex (map (function | O -> transformTC' (g, O)) Os)
+      | (g, Simul (Os)) ->
+          O.Simul (map (function | O -> transformTC' (g, O)) Os)
     let rec transformTC =
       function
-      | (G, All ((UDec (D), _), F), Os) ->
-          Abs (D, (transformTC ((I.Decl (G, D)), F, Os)))
-      | (G, And (F1, F2), (O)::Os) ->
-          Conj ((transformTC (G, F1, [O])), (transformTC (G, F2, Os)))
-      | (G, Ex _, (O)::[]) -> Base (transformTC' (G, O))
+      | (g, All ((UDec (D), _), F), Os) ->
+          Abs (D, (transformTC ((I.Decl (g, D)), F, Os)))
+      | (g, And (F1, F2), (O)::Os) ->
+          Conj ((transformTC (g, F1, [O])), (transformTC (g, F2, Os)))
+      | (g, Ex _, (O)::[]) -> Base (transformTC' (g, O))
     let rec varSub =
       function
       | (1, Dot (Ft, t)) -> Ft
@@ -519,7 +519,7 @@ module Tomega(Tomega:sig
             (match getExpIndex U with
              | NONE -> NONE
              | SOME i -> getFrontIndex (revCoerceFront (I.bvarSub (i, t))))
-        | Lam (Dec (_, U1), U2) as U ->
+        | Lam (Dec (_, u1), u2) as U ->
             (try SOME (Whnf.etaContract U) with | Whnf.Eta -> NONE)
         | _ -> NONE
       and getBlockIndex = function | Bidx k -> SOME k | _ -> NONE in
@@ -586,19 +586,19 @@ module Tomega(Tomega:sig
       | (x::W1, W2) -> (exists (x, W2)) && (subset (W1, W2))
     let rec eqWorlds (Worlds (W1), Worlds (W2)) =
       (subset (W1, W2)) && (subset (W2, W1))
-    let rec ctxDec (G, k) =
+    let rec ctxDec (g, k) =
       let ctxDec' =
         function
-        | (Decl (G', UDec (Dec (x, V'))), 1) ->
+        | (Decl (g', UDec (Dec (x, V'))), 1) ->
             UDec (I.Dec (x, (I.EClo (V', (I.Shift k)))))
-        | (Decl (G', UDec (BDec (l, (c, s)))), 1) ->
+        | (Decl (g', UDec (BDec (l, (c, s)))), 1) ->
             UDec (I.BDec (l, (c, (I.comp (s, (I.Shift k))))))
-        | (Decl (G', PDec (x, F, TC1, TC2)), 1) ->
+        | (Decl (g', PDec (x, F, TC1, TC2)), 1) ->
             PDec
               (x, (forSub (F, (Shift k))), (TCSubOpt (TC1, (I.Shift k))),
                 (TCSubOpt (TC2, (I.Shift k))))
-        | (Decl (G', _), k') -> ctxDec' (G', (k' - 1)) in
-      ctxDec' (G, k)
+        | (Decl (g', _), k') -> ctxDec' (g', (k' - 1)) in
+      ctxDec' (g, k)
     let rec mkInst =
       function
       | 0 -> nil
@@ -606,19 +606,19 @@ module Tomega(Tomega:sig
     let rec deblockify =
       function
       | I.Null -> (I.Null, id)
-      | Decl (G, BDec (x, (c, s))) ->
-          let (G', t') = deblockify G in
+      | Decl (g, BDec (x, (c, s))) ->
+          let (g', t') = deblockify g in
           let (_, L) = I.constBlock c in
           let n = List.length L in
-          let G'' = append (G', (L, (I.comp (s, (coerceSub t'))))) in
+          let g'' = append (g', (L, (I.comp (s, (coerceSub t'))))) in
           let t'' = comp (t', (Shift n)) in
           let I = I.Inst (mkInst n) in
-          let t''' = Dot ((Block I), t'') in (G'', t''')
+          let t''' = Dot ((Block I), t'') in (g'', t''')
     let rec append =
       function
-      | (G', (nil, s)) -> G'
-      | (G', ((D)::L, s)) ->
-          append ((I.Decl (G', (I.decSub (D, s)))), (L, (I.dot1 s)))
+      | (g', (nil, s)) -> g'
+      | (g', ((D)::L, s)) ->
+          append ((I.Decl (g', (I.decSub (D, s)))), (L, (I.dot1 s)))
     let rec whnfFor =
       function
       | (All (D, _), t) as Ft -> Ft
@@ -722,24 +722,24 @@ module Tomega(Tomega:sig
 
        Invariant:
        If    Psi |- F front
-       and   G = mu G. G \in Psi
-       then  G   |- F' front
+       and   g = mu G. g \in Psi
+       then  g   |- F' front
     *)
       (* --Yu Liao Why cases: Block, Undef aren't defined *)
       (* embedFront F = F'
 
        Invariant:
        If    Psi |- F front
-       and   G = mu G. G \in Psi
-       then  G   |- F' front
+       and   g = mu G. g \in Psi
+       then  g   |- F' front
     *)
       (* coerceSub t = s
 
        Invariant:
        If    Psi |- t : Psi'
-       then  G   |- s : G'
-       where G = mu G. G \in Psi
-       and   G' = mu G. G \in Psi'
+       then  g   |- s : g'
+       where g = mu G. g \in Psi
+       and   g' = mu G. g \in Psi'
     *)
       (* Definition:
        |- Psi ctx[block] holds iff Psi = _x_1 : (L1, t1), ... _x_n : (Ln, tn)
@@ -749,38 +749,38 @@ module Tomega(Tomega:sig
       (* Invariant Yu? *)(* dotEta (Ft, s) = s'
 
        Invariant:
-       If   G |- s : G1, V  and G |- Ft : V [s]
+       If   g |- s : G1, V  and g |- Ft : V [s]
        then Ft  =eta*=>  Ft1
        and  s' = Ft1 . s
-       and  G |- s' : G1, V
+       and  g |- s' : G1, V
     *)
-      (* embedCtx G = Psi
+      (* embedCtx g = Psi
 
        Invariant:
-       If   G is an LF ctx
-       then Psi is G, embedded into Tomega
+       If   g is an LF ctx
+       then Psi is g, embedded into Tomega
     *)
       (* orderSub (O, s) = O'
 
          Invariant:
-         If   G' |- O order    and    G |- s : G'
-         then G |- O' order
-         and  G |- O' == O[s] order
+         If   g' |- O order    and    g |- s : g'
+         then g |- O' order
+         and  g |- O' == O[s] order
       *)
       (* normalizeTC (O) = O'
 
          Invariant:
-         If   G |- O TC
-         then G |- O' TC
-         and  G |- O = O' TC
+         If   g |- O TC
+         then g |- O' TC
+         and  g |- O = O' TC
          and  each sub term of O' is in normal form.
       *)
       (* convTC (O1, O2) = B'
 
          Invariant:
-         If   G |- O1 TC
-         and  G |- O2 TC
-         then B' holds iff G |- O1 == O2 TC
+         If   g |- O1 TC
+         and  g |- O2 TC
+         then B' holds iff g |- O1 == O2 TC
       *)
       (* bvarSub (n, t) = Ft'
 
@@ -809,10 +809,10 @@ module Tomega(Tomega:sig
       (* dot1 (t) = t'
 
        Invariant:
-       If   G |- t : G'
+       If   g |- t : g'
        then t' = 1. (t o ^)
-       and  for all V t.t.  G' |- V : L
-            G, V[t] |- t' : G', V
+       and  for all V t.t.  g' |- V : L
+            g, V[t] |- t' : g', V
 
        If t patsub then t' patsub
     *)
@@ -820,8 +820,8 @@ module Tomega(Tomega:sig
 
        Invariant:
        If   Psi is a context
-       then G is embed Psi
-       and  Psi |- w : G
+       then g is embed Psi
+       and  Psi |- w : g
     *)
       (* forSub (F, t) = F'
 
@@ -840,8 +840,8 @@ module Tomega(Tomega:sig
       (* invertSub s = s'
 
        Invariant:
-       If   G |- s : G'    (and s patsub)
-       then G' |- s' : G
+       If   g |- s : g'    (and s patsub)
+       then g' |- s' : g
        s.t. s o s' = id
     *)
       (* returns NONE if not found *)(* getPrgIndex returns NONE if it is not an index *)
@@ -855,54 +855,54 @@ module Tomega(Tomega:sig
                  NONE => lookup (n+1, s', p)
                | SOME k => if (k=p) then SOME n else lookup (n+1, s', p))
         *)
-      (* coerceCtx (Psi) = G
+      (* coerceCtx (Psi) = g
 
        Invariant:
        If   |- Psi ctx[block]
-       then |- G lf-ctx[block]
-       and  |- Psi == G
+       then |- g lf-ctx[block]
+       and  |- Psi == g
     *)
-      (* coerceCtx (Psi) = (G, s)
+      (* coerceCtx (Psi) = (g, s)
 
        Invariant:
        If   |- Psi ctx[block]
-       then |- G lf-ctx[block]
-       and  |- Psi == G
-       and  G |- s : Psi
+       then |- g lf-ctx[block]
+       and  |- Psi == g
+       and  g |- s : Psi
     *)
       (* convFor ((F1, t1), (F2, t2)) = B
 
        Invariant:
-       If   G |- t1 : G1
+       If   g |- t1 : G1
        and  G1 |- F1 : formula
-       and  G |- t2 : G2
+       and  g |- t2 : G2
        and  G2 |- F2 : formula
        and  (F1, F2 do not contain abstraction over contextblocks )
-       then B holds iff G |- F1[s1] = F2[s2] formula
+       then B holds iff g |- F1[s1] = F2[s2] formula
     *)
-      (* newEVar (G, V) = newEVarCnstr (G, V, nil) *)
-      (* ctxDec (G, k) = x:V
+      (* newEVar (g, V) = newEVarCnstr (g, V, nil) *)
+      (* ctxDec (g, k) = x:V
      Invariant:
-     If      |G| >= k, where |G| is size of G,
-     then    G |- k : V  and  G |- V : L
+     If      |g| >= k, where |g| is size of g,
+     then    g |- k : V  and  g |- V : L
   *)
-      (* ctxDec' (G'', k') = x:V
-             where G |- ^(k-k') : G'', 1 <= k' <= k
+      (* ctxDec' (g'', k') = x:V
+             where g |- ^(k-k') : g'', 1 <= k' <= k
            *)
       (* ctxDec' (Null, k')  should not occur by invariant *)(* mkInst (n) = iota
 
         Invariant:
         iota = n.n-1....1
      *)
-      (* deblockify G = (G', t')
+      (* deblockify g = (g', t')
 
        Invariant:
-       If   |- G ctx
-       then G' |- t' : G
+       If   |- g ctx
+       then g' |- t' : g
     *)
-      (* G' |- t' : G *)(* G'' = G', V1 ... Vn *)
-      (* G'' |- t'' : G *)(* I = (n, n-1 ... 1)  *)
-      (* G'' |- t''' : G, x:(c,s) *)(* whnfFor (F, t) = (F', t')
+      (* g' |- t' : g *)(* g'' = g', V1 ... Vn *)
+      (* g'' |- t'' : g *)(* I = (n, n-1 ... 1)  *)
+      (* g'' |- t''' : g, x:(c,s) *)(* whnfFor (F, t) = (F', t')
 
        Invariant:
        If    Psi |- F for

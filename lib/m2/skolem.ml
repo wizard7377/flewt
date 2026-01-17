@@ -97,11 +97,11 @@ module Skolem(Skolem:sig
       (* installSkolem' ((V, mS), s, k) = ()
 
            Invariant:
-                G |- V : type
-           and  G' |- s : G
-           and  |G'| = d
-           and  k is a continuation, mapping a type G' |- V' type
-                to . |- {{G'}} V'
+                g |- V : type
+           and  g' |- s : g
+           and  |g'| = d
+           and  k is a continuation, mapping a type g' |- V' type
+                to . |- {{g'}} V'
 
            Effects: New Skolem constants are generated, named, and indexed
         *)

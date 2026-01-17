@@ -1,0 +1,17 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.compress)
+ (name compress)
+ (libraries 
+  base
+  global
+  lambda
+ )
+ (modules 
+  compress
+  reductio
+  rep
+  sgn
+  strict
+  syntax))

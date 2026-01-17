@@ -1,0 +1,23 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.modes)
+ (name modes)
+ (libraries 
+  base
+  global
+  table
+  lambda
+  formatter
+  print
+  names
+  paths
+  index
+ )
+ (modules 
+  modecheck
+  modedec
+  modeprint
+  modes
+  modesyn
+  modetable))

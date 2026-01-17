@@ -1,0 +1,25 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.lambda)
+ (name lambda)
+ (libraries 
+  base
+  global
+  trail
+  table
+ )
+ (modules 
+  abstract
+  approx
+  constraints
+  conv
+  fgnopn
+  fgnopntable
+  intsyn
+  lambda
+  match
+  order
+  tomega
+  unify
+  whnf))

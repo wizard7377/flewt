@@ -1,0 +1,19 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.table)
+ (name table)
+ (libraries 
+  base
+  compat
+ )
+ (modules 
+  hash_table
+  queue
+  red_black_set
+  red_black_tree
+  ring
+  sparse_array
+  sparse_array2
+  string_hash
+  table))

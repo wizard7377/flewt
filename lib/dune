@@ -1,0 +1,52 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt)
+ (name flewt)
+ (libraries 
+  base
+  flewt.compat
+  flewt.compile 
+  flewt.compress
+  flewt.cover
+  flewt.delphin
+  flewt.domains
+  flewt.flit
+  flewt.formatter
+  flewt.frontend
+  flewt.global
+  flewt.heuristic
+  flewt.index
+  flewt.int-inf
+  flewt.inverse
+  flewt.lambda
+  flewt.m2
+  flewt.meta
+  flewt.modes
+  flewt.modules
+  flewt.msg
+  flewt.names
+  flewt.netserver
+  flewt.opsem
+  flewt.order
+  flewt.paths
+  flewt.print
+  flewt.prover
+  flewt.server
+  flewt.solvers
+  flewt.stream
+  flewt.style
+  flewt.subordinate
+  flewt.table
+  flewt.tabling
+  flewt.terminate
+  flewt.thm
+  flewt.timing
+  flewt.tomega
+  flewt.trail
+  flewt.typecheck
+  flewt.unique
+  flewt.worldcheck
+ )
+ (modules 
+  flewt))

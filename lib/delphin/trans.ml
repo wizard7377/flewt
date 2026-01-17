@@ -59,16 +59,16 @@ module Trans(Trans:sig
     let rec closure =
       function
       | (I.Null, V) -> V
-      | (Decl (G, D), V) -> closure (G, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (g, D), V) -> closure (g, (I.Pi ((D, I.Maybe), V)))
     let rec internalizeBlock arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (_, (nil, _)) -> ()
-      | ((n, G, Vb, S), ((Dec (SOME name, V))::L2, s)) ->
+      | ((n, g, Vb, S), ((Dec (SOME name, V))::L2, s)) ->
           let name' = "o_" ^ name in
           let V1 = I.EClo (V, s) in
           let V2 = I.Pi (((I.Dec (NONE, Vb)), I.Maybe), V1) in
-          let V3 = closure (G, V2) in
-          let m = I.ctxLength G in
+          let V3 = closure (g, V2) in
+          let m = I.ctxLength g in
           let condec = I.ConDec (name', NONE, m, I.Normal, V3, I.Type) in
           let _ = TypeCheck.check (V3, (I.Uni I.Type)) in
           let _ =
@@ -78,14 +78,14 @@ module Trans(Trans:sig
           let cid = I.sgnAdd condec in
           let _ = Names.installConstName cid in
           let _ = Array.update (internal, cid, (Const (m, n))) in
-          internalizeBlock ((n + 1), G, Vb, S)
+          internalizeBlock ((n + 1), g, Vb, S)
             (L2, (I.Dot ((I.Exp (I.Root ((I.Const cid), S))), s)))
     let rec makeSpine =
       function
       | (_, I.Null, S) -> S
-      | (n, Decl (G, D), S) ->
+      | (n, Decl (g, D), S) ->
           makeSpine
-            ((n + 1), G, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
+            ((n + 1), g, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
     let rec internalizeCondec =
       function
       | (cid, ConDec _) -> ()
@@ -292,10 +292,10 @@ module Trans(Trans:sig
       | Concat (W1, W2) -> (@) (transWorld W1) transWorld W2
       | Times (W) -> transWorld W
     let rec transFor' (Psi, D) =
-      let G = I.Decl (I.Null, D) in
+      let g = I.Decl (I.Null, D) in
       let JWithCtx (Decl (I.Null, D'), ReconTerm.JNothing) =
         ReconTerm.reconWithCtx
-          (Psi, (ReconTerm.jwithctx (G, ReconTerm.jnothing))) in
+          (Psi, (ReconTerm.jwithctx (g, ReconTerm.jnothing))) in
       D'
     let rec transFor =
       function
@@ -389,12 +389,12 @@ module Trans(Trans:sig
     let rec lookup =
       function
       | (I.Null, n, s) -> raise (Error ("Undeclared constant " ^ s))
-      | (Decl (G, PDec (NONE, _)), n, s) -> lookup (G, (n + 1), s)
-      | (Decl (G, UDec _), n, s) -> lookup (G, (n + 1), s)
-      | (Decl (G, PDec (SOME s', F)), n, s) ->
+      | (Decl (g, PDec (NONE, _)), n, s) -> lookup (g, (n + 1), s)
+      | (Decl (g, UDec _), n, s) -> lookup (g, (n + 1), s)
+      | (Decl (g, PDec (SOME s', F)), n, s) ->
           if s = s'
           then (n, (T.forSub (F, (T.Shift n))))
-          else lookup (G, (n + 1), s)
+          else lookup (g, (n + 1), s)
     let rec transHead =
       function
       | (Psi, Head s, args) ->
@@ -486,8 +486,8 @@ module Trans(Trans:sig
         (Psi, (s, F), Ds, sc, (function | Cs -> k ((Psi'', t'', P) :: Cs)),
           W)
     let rec transForDec (Psi, Form (s, eF), Ds, sc, W) =
-      let G = Names.ctxName (T.coerceCtx Psi) in
-      let F = transFor (G, eF) in
+      let g = Names.ctxName (T.coerceCtx Psi) in
+      let F = transFor (g, eF) in
       let World (W, F') as F'' = T.forSub (F, T.id) in
       let _ = TomegaTypeCheck.checkFor (Psi, F'') in
       let (P, Ds') = transFun1 (Psi, (s, F'), Ds, sc, W) in
@@ -577,8 +577,8 @@ module Trans(Trans:sig
       | (Psi, (World (_, F), s), W, args) ->
           transProgS' (Psi, (F, s), W, args)
       | (Psi, (All ((UDec (Dec (_, V)), T.Implicit), F'), s), W, args) ->
-          let G = T.coerceCtx Psi in
-          let X = I.newEVar (G, (I.EClo (V, (T.coerceSub s)))) in
+          let g = T.coerceCtx Psi in
+          let X = I.newEVar (g, (I.EClo (V, (T.coerceSub s)))) in
           let (S, Fs') =
             transProgS' (Psi, (F', (T.Dot ((T.Exp X), s))), W, args) in
           ((T.AppExp ((Whnf.normalize (X, I.id)), S)), Fs')
@@ -622,29 +622,29 @@ module Trans(Trans:sig
        then W is the result of parsing it
        otherwise Parsing.error is raised.
     *)
-      (* closure (G, V) = V'
+      (* closure (g, V) = V'
 
        Invariant:
-       {G}V = V'
+       {g}V = V'
     *)
-      (* internalizeBlock  (n, G, Vb, S) (L2, s) = ()
+      (* internalizeBlock  (n, g, Vb, S) (L2, s) = ()
 
        Invariant:
-       If   |- G ctx                the context of some variables
-       and  G |- Vb :  type         the type of the block
-       and  G |- L1, L2 decs
+       If   |- g ctx                the context of some variables
+       and  g |- Vb :  type         the type of the block
+       and  g |- L1, L2 decs
        and  G1, L1 |- L2 decs       block declarations still to be traversed
-       and  G, b:Vb |- s : G1, L1
+       and  g, b:Vb |- s : G1, L1
        and  n is the current projection
        then internalizeBlock adds new declarations into the signature that
               correspond to the block declarations.
     *)
-      (* G, B |- V' : type *)(* G |- {B} V' : type *)
-      (* makeSpine (n, G, S) = S'
+      (* g, B |- V' : type *)(* g |- {B} V' : type *)
+      (* makeSpine (n, g, S) = S'
 
        Invariant:
-       If  G0 = G, G'
-       and |G'| = n
+       If  G0 = g, g'
+       and |g'| = n
        and G0 |- S : V >> V'   for some V, V'
        then S' extends S
        and G0 |- S' : V >> type.
@@ -658,7 +658,7 @@ module Trans(Trans:sig
       (* sigToCtx () = ()
 
        Invariant:
-       G is the internal representation of the global signature
+       g is the internal representation of the global signature
        It converts every block declaration to a type family (stored in the global
        signature) and a list of declarations.
     *)
@@ -709,8 +709,8 @@ module Trans(Trans:sig
 
        Invariant:
        If   Psi0 |- t : Psi
-       and  |G| = n   for any G
-       then Psi0, G[t] |- t : Psi, G
+       and  |g| = n   for any g
+       then Psi0, g[t] |- t : Psi, g
     *)
       (* append (Psi1, Psi2) = Psi3
 
@@ -735,12 +735,12 @@ module Trans(Trans:sig
     *)
       (*          T.Let (T.PDec (NONE, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
       (* T.True is not right! -- cs Sat Jun 28 11:43:30 2003  *)
-      (* transHead (G, T, S) = (F', t')
+      (* transHead (g, T, S) = (F', t')
 
        Invariant:
-       If   G |- T : F
-       and  G |- S : world{W}all{G'}F' >> F'
-       then G |- t' : G'
+       If   g |- T : F
+       and  g |- S : world{W}all{g'}F' >> F'
+       then g |- t' : g'
     *)
       (* spineToSub ((S, t), s) = s'
 
@@ -830,7 +830,7 @@ module Trans(Trans:sig
     *)
       (*        val _ = print s
           val _ = print " :: "
-          val _ = print (TomegaPrint.forToString (T.embedCtx G, F'') ^ "\n") *)
+          val _ = print (TomegaPrint.forToString (T.embedCtx g, F'') ^ "\n") *)
       (* transValDec ((Psi, env), dDv, dDs, sc, W) = x
 
        Invariant:
@@ -912,7 +912,7 @@ module Trans(Trans:sig
           (T.Lam (T.UDec D, P), (T.All (D, F'), t'))
         end
 *)
-      (*        val _ = print (Print.expToString (G, U) ^ "\n") *)
+      (*        val _ = print (Print.expToString (g, U) ^ "\n") *)
       (* is this the right starting point --cs *)(* transProgram Ds = P
 
        Invariant:

@@ -10,7 +10,7 @@ module type CHECKING  =
       | And of
       ((Paths.occ)(*     | Exist                     *)
       (* Q ::= All                     *)(* Quantifier to mark parameters *)
-      (* If Q marks all parameters in a context G we write   G : Q  *)
+      (* If Q marks all parameters in a context g we write   g : Q  *)
       (*! structure Paths : PATHS !*)) 
     type 'a __Predicate =
       | Less of ((('a)(*     | And                     *)) *
@@ -74,7 +74,7 @@ module Checking(Checking:sig
       (*! structure Paths = Paths !*)) 
     type 'a __Predicate =
       | Less of
-      ((('a)(* If Q marks all parameters in a context G we write   G : Q               *)
+      ((('a)(* If Q marks all parameters in a context g we write   g : Q               *)
       (*     | And                     *)) * 'a) 
       | Leq of ('a * 'a) 
       | Eq of ('a * 'a) 
@@ -95,21 +95,21 @@ module Checking(Checking:sig
     module R = Order
     let rec atomicPredToString =
       function
-      | (G, Less ((Us, _), (Us', _))) ->
-          (^) ((Print.expToString (G, (I.EClo Us))) ^ " < ")
-            Print.expToString (G, (I.EClo Us'))
-      | (G, Leq ((Us, _), (Us', _))) ->
-          (^) ((Print.expToString (G, (I.EClo Us))) ^ " <= ")
-            Print.expToString (G, (I.EClo Us'))
-      | (G, Eq ((Us, _), (Us', _))) ->
-          (^) ((Print.expToString (G, (I.EClo Us))) ^ " = ")
-            Print.expToString (G, (I.EClo Us'))
+      | (g, Less ((Us, _), (Us', _))) ->
+          (^) ((Print.expToString (g, (I.EClo Us))) ^ " < ")
+            Print.expToString (g, (I.EClo Us'))
+      | (g, Leq ((Us, _), (Us', _))) ->
+          (^) ((Print.expToString (g, (I.EClo Us))) ^ " <= ")
+            Print.expToString (g, (I.EClo Us'))
+      | (g, Eq ((Us, _), (Us', _))) ->
+          (^) ((Print.expToString (g, (I.EClo Us))) ^ " = ")
+            Print.expToString (g, (I.EClo Us'))
     let rec atomicRCtxToString =
       function
-      | (G, nil) -> " "
-      | (G, (O)::nil) -> atomicPredToString (G, O)
-      | (G, (O)::D') ->
-          (^) ((atomicRCtxToString (G, D')) ^ ", ") atomicPredToString (G, O)
+      | (g, nil) -> " "
+      | (g, (O)::nil) -> atomicPredToString (g, O)
+      | (g, (O)::D') ->
+          (^) ((atomicRCtxToString (g, D')) ^ ", ") atomicPredToString (g, O)
     let rec shiftO arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (Arg ((U, us), (V, vs)), f) -> R.Arg ((U, (f us)), (V, (f vs)))
@@ -124,19 +124,19 @@ module Checking(Checking:sig
     let rec shiftRCtx (Rl) f = map (function | p -> shiftP p f) Rl
     let rec shiftArg arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (Less (((U1, s1), (V1, s1')), ((U2, s2), (V2, s2'))), f) ->
-          Less (((U1, (f s1)), (V1, (f s1'))), ((U2, (f s2)), (V2, (f s2'))))
-      | (Leq (((U1, s1), (V1, s1')), ((U2, s2), (V2, s2'))), f) ->
-          Leq (((U1, (f s1)), (V1, (f s1'))), ((U2, (f s2)), (V2, (f s2'))))
-      | (Eq (((U1, s1), (V1, s1')), ((U2, s2), (V2, s2'))), f) ->
-          Eq (((U1, (f s1)), (V1, (f s1'))), ((U2, (f s2)), (V2, (f s2'))))
+      | (Less (((u1, s1), (V1, s1')), ((u2, s2), (V2, s2'))), f) ->
+          Less (((u1, (f s1)), (V1, (f s1'))), ((u2, (f s2)), (V2, (f s2'))))
+      | (Leq (((u1, s1), (V1, s1')), ((u2, s2), (V2, s2'))), f) ->
+          Leq (((u1, (f s1)), (V1, (f s1'))), ((u2, (f s2)), (V2, (f s2'))))
+      | (Eq (((u1, s1), (V1, s1')), ((u2, s2), (V2, s2'))), f) ->
+          Eq (((u1, (f s1)), (V1, (f s1'))), ((u2, (f s2)), (V2, (f s2'))))
     let rec shiftACtx (Rl) f = map (function | p -> shiftArg p f) Rl
-    let rec fmtOrder (G, O) =
+    let rec fmtOrder (g, O) =
       let fmtOrder' =
         function
         | Arg (((U, s) as Us), ((V, s') as Vs)) ->
             F.Hbox
-              [F.String "("; Print.formatExp (G, (I.EClo Us)); F.String ")"]
+              [F.String "("; Print.formatExp (g, (I.EClo Us)); F.String ")"]
         | Lex (L) ->
             F.Hbox
               [F.String "{"; F.HOVbox0 1 0 1 (fmtOrders L); F.String "}"]
@@ -149,25 +149,25 @@ module Checking(Checking:sig
         | (O)::[] -> (fmtOrder' O) :: []
         | (O)::L -> (::) ((fmtOrder' O) :: F.Break) fmtOrders L in
       fmtOrder' O
-    let rec fmtComparison (G, O, comp, O') =
+    let rec fmtComparison (g, O, comp, O') =
       F.HOVbox0 1 0 1
-        [fmtOrder (G, O); F.Break; F.String comp; F.Break; fmtOrder (G, O')]
+        [fmtOrder (g, O); F.Break; F.String comp; F.Break; fmtOrder (g, O')]
     let rec fmtPredicate' =
       function
-      | (G, Less (O, O')) -> fmtComparison (G, O, "<", O')
-      | (G, Leq (O, O')) -> fmtComparison (G, O, "<=", O')
-      | (G, Eq (O, O')) -> fmtComparison (G, O, "=", O')
-      | (G, Pi (D, P)) ->
-          F.Hbox [F.String "Pi "; fmtPredicate' ((I.Decl (G, D)), P)]
-    let rec fmtPredicate (G, P) = fmtPredicate' ((Names.ctxName G), P)
+      | (g, Less (O, O')) -> fmtComparison (g, O, "<", O')
+      | (g, Leq (O, O')) -> fmtComparison (g, O, "<=", O')
+      | (g, Eq (O, O')) -> fmtComparison (g, O, "=", O')
+      | (g, Pi (D, P)) ->
+          F.Hbox [F.String "Pi "; fmtPredicate' ((I.Decl (g, D)), P)]
+    let rec fmtPredicate (g, P) = fmtPredicate' ((Names.ctxName g), P)
     let rec fmtRGCtx' =
       function
-      | (G, nil) -> ""
-      | (G, (P)::[]) -> F.makestring_fmt (fmtPredicate' (G, P))
-      | (G, (P)::Rl) ->
-          (^) ((F.makestring_fmt (fmtPredicate' (G, P))) ^ " ,") fmtRGCtx'
-            (G, Rl)
-    let rec fmtRGCtx (G, Rl) = fmtRGCtx' ((Names.ctxName G), Rl)
+      | (g, nil) -> ""
+      | (g, (P)::[]) -> F.makestring_fmt (fmtPredicate' (g, P))
+      | (g, (P)::Rl) ->
+          (^) ((F.makestring_fmt (fmtPredicate' (g, P))) ^ " ,") fmtRGCtx'
+            (g, Rl)
+    let rec fmtRGCtx (g, Rl) = fmtRGCtx' ((Names.ctxName g), Rl)
     let rec init () = true__
     let rec eqCid (c, c') = c = c'
     let rec conv ((Us, Vs), (Us', Vs')) =
@@ -190,7 +190,7 @@ module Checking(Checking:sig
       function
       | (GQ, ((Root (Const c, S) as X), s)) -> isAtomicS (GQ, (S, s))
       | (GQ, ((Root (Def c, S) as X), s)) -> isAtomicS (GQ, (S, s))
-      | (((G, Q) as GQ), ((Root (BVar n, S) as X), s)) ->
+      | (((g, Q) as GQ), ((Root (BVar n, S) as X), s)) ->
           (isExistential (I.ctxLookup (Q, n))) || (isAtomicS (GQ, (S, s)))
       | (GQ, _) -> false__
     let rec isAtomicS =
@@ -198,113 +198,113 @@ module Checking(Checking:sig
       | (GQ, (I.Nil, _)) -> true__
       | (GQ, (SClo (S, s'), s'')) -> isAtomicS (GQ, (S, (I.comp (s', s''))))
       | (GQ, (App (U', S'), s1')) -> false__
-    let rec eq (G, (Us, Vs), (Us', Vs')) =
-      (Unify.unifiable (G, Vs, Vs')) && (Unify.unifiable (G, Us, Us'))
+    let rec eq (g, (Us, Vs), (Us', Vs')) =
+      (Unify.unifiable (g, Vs, Vs')) && (Unify.unifiable (g, Us, Us'))
     let rec lookupEq =
       function
       | (GQ, nil, UsVs, UsVs', sc) -> false__
       | (GQ, (Less (_, _))::D, UsVs, UsVs', sc) ->
           lookupEq (GQ, D, UsVs, UsVs', sc)
-      | (((G, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, UsVs, UsVs', sc) ->
           (CSManager.trail
              (function
               | () ->
-                  (eq (G, UsVs1, UsVs)) &&
-                    ((eq (G, UsVs1', UsVs')) && (sc ()))))
+                  (eq (g, UsVs1, UsVs)) &&
+                    ((eq (g, UsVs1', UsVs')) && (sc ()))))
             ||
             ((CSManager.trail
                 (function
                  | () ->
-                     (eq (G, UsVs1, UsVs')) &&
-                       ((eq (G, UsVs1', UsVs)) && (sc ()))))
+                     (eq (g, UsVs1, UsVs')) &&
+                       ((eq (g, UsVs1', UsVs)) && (sc ()))))
                || (lookupEq (GQ, D, UsVs, UsVs', sc)))
     let rec lookupLt =
       function
       | (GQ, nil, UsVs, UsVs', sc) -> false__
       | (GQ, (Eq (_, _))::D, UsVs, UsVs', sc) ->
           lookupLt (GQ, D, UsVs, UsVs', sc)
-      | (((G, Q) as GQ), (Less (UsVs1, UsVs1'))::D, UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), (Less (UsVs1, UsVs1'))::D, UsVs, UsVs', sc) ->
           (CSManager.trail
              (function
               | () ->
-                  (eq (G, UsVs1, UsVs)) &&
-                    ((eq (G, UsVs1', UsVs')) && (sc ()))))
+                  (eq (g, UsVs1, UsVs)) &&
+                    ((eq (g, UsVs1', UsVs')) && (sc ()))))
             || (lookupLt (GQ, D, UsVs, UsVs', sc))
     let rec eqAtomic =
       function
-      | (((G, Q) as GQ), nil, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), nil, D', UsVs, UsVs', sc) ->
           (CSManager.trail
-             (function | () -> (eq (G, UsVs, UsVs')) && (sc ())))
+             (function | () -> (eq (g, UsVs, UsVs')) && (sc ())))
             || (lookupEq (GQ, D', UsVs, UsVs', sc))
-      | (((G, Q) as GQ), D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), D, D', UsVs, UsVs', sc) ->
           (CSManager.trail
-             (function | () -> (eq (G, UsVs, UsVs')) && (sc ())))
+             (function | () -> (eq (g, UsVs, UsVs')) && (sc ())))
             ||
             ((lookupEq (GQ, D, UsVs, UsVs', sc)) ||
                ((lookupEq (GQ, D', UsVs, UsVs', sc)) ||
                   (transEq (GQ, D, D', UsVs, UsVs', sc))))
     let rec transEq =
       function
-      | (((G, Q) as GQ), nil, D, UsVs, UsVs', sc) -> false__
-      | (((G, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), nil, D, UsVs, UsVs', sc) -> false__
+      | (((g, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
           (CSManager.trail
              (function
               | () ->
-                  (eq (G, UsVs1', UsVs')) &&
+                  (eq (g, UsVs1', UsVs')) &&
                     ((sc ()) &&
                        (eqAtomicR (GQ, (D @ D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
                 (function
                  | () ->
-                     (eq (G, UsVs1, UsVs')) &&
+                     (eq (g, UsVs1, UsVs')) &&
                        ((sc ()) &&
                           (eqAtomicR (GQ, (D @ D'), UsVs, UsVs1', sc, atomic)))))
                ||
                (transEq
                   (GQ, D, ((Eq (UsVs1, UsVs1')) :: D'), UsVs, UsVs', sc)))
-      | (((G, Q) as GQ), (Less (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), (Less (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
           transEq (GQ, D, D', UsVs, UsVs', sc)
     let rec ltAtomic =
       function
-      | (((G, Q) as GQ), nil, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), nil, D', UsVs, UsVs', sc) ->
           lookupLt (GQ, D', UsVs, UsVs', sc)
-      | (((G, Q) as GQ), D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), D, D', UsVs, UsVs', sc) ->
           (lookupLt (GQ, D, UsVs, UsVs', sc)) ||
             ((lookupLt (GQ, D', UsVs, UsVs', sc)) ||
                (transLt (GQ, D, D', UsVs, UsVs', sc)))
     let rec transLt =
       function
-      | (((G, Q) as GQ), nil, D, UsVs, UsVs', sc) -> false__
-      | (((G, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), nil, D, UsVs, UsVs', sc) -> false__
+      | (((g, Q) as GQ), (Eq (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
           (CSManager.trail
              (function
               | () ->
-                  (eq (G, UsVs1', UsVs')) &&
+                  (eq (g, UsVs1', UsVs')) &&
                     ((sc ()) &&
                        (ltAtomicR (GQ, (D @ D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
                 (function
                  | () ->
-                     (eq (G, UsVs1, UsVs')) &&
+                     (eq (g, UsVs1, UsVs')) &&
                        ((sc ()) &&
                           (ltAtomicR (GQ, (D @ D'), UsVs, UsVs1', sc, atomic)))))
                ||
                (transLt
                   (GQ, D, ((Eq (UsVs1, UsVs1')) :: D'), UsVs, UsVs', sc)))
-      | (((G, Q) as GQ), (Less (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
+      | (((g, Q) as GQ), (Less (UsVs1, UsVs1'))::D, D', UsVs, UsVs', sc) ->
           (CSManager.trail
              (function
               | () ->
-                  (eq (G, UsVs1', UsVs')) &&
+                  (eq (g, UsVs1', UsVs')) &&
                     ((sc ()) &&
                        (eqAtomicR (GQ, (D @ D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
                 (function
                  | () ->
-                     (eq (G, UsVs1', UsVs')) &&
+                     (eq (g, UsVs1', UsVs')) &&
                        ((sc ()) &&
                           (ltAtomicR (GQ, (D @ D'), UsVs, UsVs1, sc, atomic)))))
                ||
@@ -318,15 +318,15 @@ module Checking(Checking:sig
           ltAtomic (GQ, D, D', UsVs, UsVs', sc)
     let rec leftInstantiate =
       function
-      | (((G, Q) as GQ), nil, D', P, sc) ->
+      | (((g, Q) as GQ), nil, D', P, sc) ->
           if atomic (GQ, D', nil, P, sc)
           then
             (if (!Global.chatter) > 4
              then
                print
-                 (((^) (((^) " Proved: " atomicRCtxToString (G, D')) ^
+                 (((^) (((^) " Proved: " atomicRCtxToString (g, D')) ^
                           " ---> ")
-                     atomicPredToString (G, P))
+                     atomicPredToString (g, P))
                     ^ "\n")
              else ();
              true__)
@@ -341,24 +341,24 @@ module Checking(Checking:sig
       ltInstLW (GQ, D, D', (Whnf.whnfEta UsVs), UsVs', P', sc)
     let rec ltInstLW =
       function
-      | (((G, Q) as GQ), D, D',
+      | (((g, Q) as GQ), D, D',
          ((Lam ((Dec (_, V1) as Dec), U), s1),
           (Pi ((Dec (_, V2), _), V), s2)),
          ((U', s1'), (V', s2')), P', sc) ->
           if Subordinate.equiv ((I.targetFam V'), (I.targetFam V1))
           then
-            let X = I.newEVar (G, (I.EClo (V1, s1))) in
+            let X = I.newEVar (g, (I.EClo (V1, s1))) in
             let sc' = function | () -> (isParameter (Q, X)) && (sc ()) in
             ltInstL
-              ((G, Q), D, D',
+              ((g, Q), D, D',
                 ((U, (I.Dot ((I.Exp X), s1))), (V, (I.Dot ((I.Exp X), s2)))),
                 ((U', s1'), (V', s2')), P', sc')
           else
             if Subordinate.below ((I.targetFam V1), (I.targetFam V'))
             then
-              (let X = I.newEVar (G, (I.EClo (V1, s1))) in
+              (let X = I.newEVar (g, (I.EClo (V1, s1))) in
                ltInstL
-                 ((G, Q), D, D',
+                 ((g, Q), D, D',
                    ((U, (I.Dot ((I.Exp X), s1))),
                      (V, (I.Dot ((I.Exp X), s2)))), ((U', s1'), (V', s2')),
                    P', sc))
@@ -369,23 +369,23 @@ module Checking(Checking:sig
       leInstLW (GQ, D, D', (Whnf.whnfEta UsVs), UsVs', P', sc)
     let rec leInstLW =
       function
-      | (((G, Q) as GQ), D, D',
+      | (((g, Q) as GQ), D, D',
          ((Lam (Dec (_, V1), U), s1), (Pi ((Dec (_, V2), _), V), s2)),
          ((U', s1'), (V', s2')), P', sc) ->
           if Subordinate.equiv ((I.targetFam V'), (I.targetFam V1))
           then
-            let X = I.newEVar (G, (I.EClo (V1, s1))) in
+            let X = I.newEVar (g, (I.EClo (V1, s1))) in
             let sc' = function | () -> (isParameter (Q, X)) && (sc ()) in
             leInstL
-              ((G, Q), D, D',
+              ((g, Q), D, D',
                 ((U, (I.Dot ((I.Exp X), s1))), (V, (I.Dot ((I.Exp X), s2)))),
                 ((U', s1'), (V', s2')), P', sc')
           else
             if Subordinate.below ((I.targetFam V1), (I.targetFam V'))
             then
-              (let X = I.newEVar (G, (I.EClo (V1, s1))) in
+              (let X = I.newEVar (g, (I.EClo (V1, s1))) in
                leInstL
-                 ((G, Q), D, D',
+                 ((g, Q), D, D',
                    ((U, (I.Dot ((I.Exp X), s1))),
                      (V, (I.Dot ((I.Exp X), s2)))), ((U', s1'), (V', s2')),
                    P', sc))
@@ -396,12 +396,12 @@ module Checking(Checking:sig
       eqInstLW (GQ, D, D', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), P', sc)
     let rec eqInstLW =
       function
-      | (((G, Q) as GQ), D, D',
+      | (((g, Q) as GQ), D, D',
          ((Lam (Dec (_, V1'), U'), s1'), (Pi ((Dec (_, V2'), _), V'), s2')),
          ((Lam (Dec (_, V1''), U''), s1''),
           (Pi ((Dec (_, V2''), _), V''), s2'')),
          P', sc) ->
-          let X = I.newEVar (G, (I.EClo (V1'', s1''))) in
+          let X = I.newEVar (g, (I.EClo (V1'', s1''))) in
           eqInstL
             (GQ, D, D',
               ((U', (I.Dot ((I.Exp X), s1'))),
@@ -413,7 +413,7 @@ module Checking(Checking:sig
           eqIL (GQ, D, D', UsVs, UsVs', P', sc)
     let rec eqIL =
       function
-      | (((G, Q) as GQ), D, D', (((Root (Const c, S), s), Vs) as UsVs),
+      | (((g, Q) as GQ), D, D', (((Root (Const c, S), s), Vs) as UsVs),
          (((Root (Const c', S'), s'), Vs') as UsVs'), P', sc) ->
           if eqCid (c, c')
           then
@@ -425,14 +425,14 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq (UsVs, UsVs')) :: D)))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq (UsVs, UsVs')) :: D)))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (Def c, S), s), Vs) as UsVs),
+      | (((g, Q) as GQ), D, D', (((Root (Def c, S), s), Vs) as UsVs),
          (((Root (Def c', S'), s'), Vs') as UsVs'), P', sc) ->
           if eqCid (c, c')
           then
@@ -444,14 +444,14 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq (UsVs, UsVs')) :: D)))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq (UsVs, UsVs')) :: D)))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (Const c, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (Const c, S), s) as Us), Vs),
          (((Root (BVar n, S'), s') as Us'), Vs'), P', sc) ->
           if isAtomic (GQ, Us')
           then
@@ -462,14 +462,14 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq ((Us, Vs), (Us', Vs'))) :: D)))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq ((Us, Vs), (Us', Vs'))) :: D)))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (Def c, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (Def c, S), s) as Us), Vs),
          (((Root (BVar n, S'), s') as Us'), Vs'), P', sc) ->
           if isAtomic (GQ, Us')
           then
@@ -480,14 +480,14 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq ((Us, Vs), (Us', Vs'))) :: D)))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq ((Us, Vs), (Us', Vs'))) :: D)))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
          (((Root (Def c, S'), s') as Us'), Vs'), P', sc) ->
           if isAtomic (GQ, Us)
           then
@@ -498,14 +498,14 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq ((Us, Vs), (Us', Vs'))) :: D')))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq ((Us, Vs), (Us', Vs'))) :: D')))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
          (((Root (Const c, S'), s') as Us'), Vs'), P', sc) ->
           if isAtomic (GQ, Us)
           then
@@ -516,33 +516,33 @@ module Checking(Checking:sig
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (G, ((Eq ((Us, Vs), (Us', Vs'))) :: D')))
-                           atomicRCtxToString (G, D'))
+                                (g, ((Eq ((Us, Vs), (Us', Vs'))) :: D')))
+                           atomicRCtxToString (g, D'))
                           ^ " ---> ")
-                     atomicPredToString (G, P'))
+                     atomicPredToString (g, P'))
                     ^ "\n")
              else ();
              true__)
-      | (((G, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
          (((Root (BVar n', S'), s') as Us'), Vs'), P', sc) ->
           if n = n'
           then
-            let Dec (_, V') = I.ctxDec (G, n) in
+            let Dec (_, V') = I.ctxDec (g, n) in
             eqSpineIL
               (GQ, D, D', ((S, s), (V', I.id)), ((S', s'), (V', I.id)), P',
                 sc)
           else
             leftInstantiate
               (GQ, D, ((Eq ((Us, Vs), (Us', Vs'))) :: D'), P', sc)
-      | (((G, Q) as GQ), D, D', UsVs, UsVs', P', sc) ->
+      | (((g, Q) as GQ), D, D', UsVs, UsVs', P', sc) ->
           (if (!Global.chatter) > 4
            then
              print
                (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                              (G, ((Eq (UsVs, UsVs')) :: D)))
-                         atomicRCtxToString (G, D'))
+                              (g, ((Eq (UsVs, UsVs')) :: D)))
+                         atomicRCtxToString (g, D'))
                         ^ " ---> ")
-                   atomicPredToString (G, P'))
+                   atomicPredToString (g, P'))
                   ^ "\n")
            else ();
            true__)
@@ -622,14 +622,14 @@ module Checking(Checking:sig
       function
       | (GQ, D, ((Us, ((Root _, s') as Vs)) as UsVs), UsVs', sc, k) ->
           ltR (GQ, D, UsVs, UsVs', sc, k)
-      | (((G, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
+      | (((g, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
          ((U', s1'), (V', s2')), sc, k) ->
           let UsVs' =
             ((U', (I.comp (s1', I.shift))), (V', (I.comp (s2', I.shift)))) in
           let UsVs = ((U, (I.dot1 s1)), (V, (I.dot1 s2))) in
           let D' = shiftACtx D (function | s -> I.comp (s, I.shift)) in
           ltAtomicR
-            (((I.Decl (G, (N.decLUName (G, (I.decSub (Dec, s2)))))),
+            (((I.Decl (g, (N.decLUName (g, (I.decSub (Dec, s2)))))),
                (I.Decl (Q, All))), D', UsVs, UsVs', sc, k)
     let rec leAtomicR (GQ, D, UsVs, UsVs', sc, k) =
       leAtomicRW (GQ, D, (Whnf.whnfEta UsVs), UsVs', sc, k)
@@ -637,23 +637,23 @@ module Checking(Checking:sig
       function
       | (GQ, D, ((Us, ((Root _, s') as Vs)) as UsVs), UsVs', sc, k) ->
           leR (GQ, D, UsVs, UsVs', sc, k)
-      | (((G, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
+      | (((g, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
          ((U', s1'), (V', s2')), sc, k) ->
           let D' = shiftACtx D (function | s -> I.comp (s, I.shift)) in
           let UsVs' =
             ((U', (I.comp (s1', I.shift))), (V', (I.comp (s2', I.shift)))) in
           let UsVs = ((U, (I.dot1 s1)), (V, (I.dot1 s2))) in
           leAtomicR
-            (((I.Decl (G, (N.decLUName (G, (I.decSub (Dec, s2)))))),
+            (((I.Decl (g, (N.decLUName (g, (I.decSub (Dec, s2)))))),
                (I.Decl (Q, All))), D', UsVs, UsVs', sc, k)
-    let rec eqAtomicR (((G, Q) as GQ), D, UsVs, UsVs', sc, k) =
+    let rec eqAtomicR (((g, Q) as GQ), D, UsVs, UsVs', sc, k) =
       eqAtomicRW (GQ, D, (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), sc, k)
     let rec eqAtomicRW =
       function
-      | (((G, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
+      | (((g, Q) as GQ), D, ((Lam (_, U), s1), (Pi ((Dec, _), V), s2)),
          ((Lam (_, U'), s1'), (Pi ((Dec', _), V'), s2')), sc, k) ->
           eqAtomicR
-            (((I.Decl (G, (N.decLUName (G, (I.decSub (Dec, s2)))))),
+            (((I.Decl (g, (N.decLUName (g, (I.decSub (Dec, s2)))))),
                (I.Decl (Q, All))),
               (shiftACtx D (function | s -> I.comp (s, I.shift))),
               ((U, (I.dot1 s1')), (V, (I.dot1 s2'))),
@@ -661,7 +661,7 @@ module Checking(Checking:sig
       | (GQ, D, (Us, ((Root _, s2) as Vs)), (Us', ((Root _, s2') as Vs')),
          sc, k) -> eqR (GQ, D, (Us, Vs), (Us', Vs'), sc, k)
       | (GQ, D, (Us, Vs), (Us', Vs'), sc, k) -> false__
-    let rec ltR (((G, Q) as GQ), D, UsVs, UsVs', sc, k) =
+    let rec ltR (((g, Q) as GQ), D, UsVs, UsVs', sc, k) =
       ltRW (GQ, D, UsVs, (Whnf.whnfEta UsVs'), sc, k)
     let rec ltRW =
       function
@@ -677,20 +677,20 @@ module Checking(Checking:sig
           else
             ltSpineR
               (GQ, D, (Us, Vs), ((S', s'), ((I.constType c), I.id)), sc, k)
-      | (((G, Q) as GQ), D, (Us, Vs),
+      | (((g, Q) as GQ), D, (Us, Vs),
          (((Root (BVar n, S'), s') as Us'), Vs'), sc, k) ->
           if isAtomic (GQ, Us')
           then k (GQ, D, nil, (Less ((Us, Vs), (Us', Vs'))), sc)
           else
-            (let Dec (_, V') = I.ctxDec (G, n) in
+            (let Dec (_, V') = I.ctxDec (g, n) in
              ltSpineR (GQ, D, (Us, Vs), ((S', s'), (V', I.id)), sc, k))
       | (GQ, D, _, ((EVar _, _), _), _, _) -> false__
-      | (((G, Q) as GQ), D, ((U, s1), (V, s2)),
+      | (((g, Q) as GQ), D, ((U, s1), (V, s2)),
          ((Lam (Dec (_, V1'), U'), s1'), (Pi ((Dec (_, V2'), _), V'), s2')),
          sc, k) ->
           if Subordinate.equiv ((I.targetFam V), (I.targetFam V1'))
           then
-            let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+            let X = I.newEVar (g, (I.EClo (V1', s1'))) in
             let sc' = function | () -> (isParameter (Q, X); sc ()) in
             ltR
               (GQ, D, ((U, s1), (V, s2)),
@@ -699,7 +699,7 @@ module Checking(Checking:sig
           else
             if Subordinate.below ((I.targetFam V1'), (I.targetFam V))
             then
-              (let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+              (let X = I.newEVar (g, (I.EClo (V1', s1'))) in
                ltR
                  (GQ, D, ((U, s1), (V, s2)),
                    ((U', (I.Dot ((I.Exp X), s1'))),
@@ -723,12 +723,12 @@ module Checking(Checking:sig
       leRW (GQ, D, UsVs, (Whnf.whnfEta UsVs'), sc, k)
     let rec leRW =
       function
-      | (((G, Q) as GQ), D, ((U, s1), (V, s2)),
+      | (((g, Q) as GQ), D, ((U, s1), (V, s2)),
          ((Lam (Dec (_, V1'), U'), s1'), (Pi ((Dec (_, V2'), _), V'), s2')),
          sc, k) ->
           if Subordinate.equiv ((I.targetFam V), (I.targetFam V1'))
           then
-            let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+            let X = I.newEVar (g, (I.EClo (V1', s1'))) in
             let sc' = function | () -> (isParameter (Q, X)) && (sc ()) in
             leR
               (GQ, D, ((U, s1), (V, s2)),
@@ -737,7 +737,7 @@ module Checking(Checking:sig
           else
             if Subordinate.below ((I.targetFam V1'), (I.targetFam V))
             then
-              (let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+              (let X = I.newEVar (g, (I.EClo (V1', s1'))) in
                leR
                  (GQ, D, ((U, s1), (V, s2)),
                    ((U', (I.Dot ((I.Exp X), s1'))),
@@ -746,8 +746,8 @@ module Checking(Checking:sig
       | (GQ, D, UsVs, UsVs', sc, k) ->
           (ltR (GQ, D, UsVs, UsVs', sc, k)) ||
             (eqR (GQ, D, UsVs, UsVs', sc, k))
-    let rec eqR (((G, Q) as GQ), D, UsVs, UsVs', sc, k) =
-      (CSManager.trail (function | () -> (eq (G, UsVs, UsVs')) && (sc ())))
+    let rec eqR (((g, Q) as GQ), D, UsVs, UsVs', sc, k) =
+      (CSManager.trail (function | () -> (eq (g, UsVs, UsVs')) && (sc ())))
         || (eqR' (GQ, D, UsVs, UsVs', sc, k))
     let rec eqR' =
       function
@@ -792,11 +792,11 @@ module Checking(Checking:sig
           if isAtomic (GQ, Us)
           then k (GQ, D, nil, (Eq ((Us, Vs), (Us', Vs'))), sc)
           else false__
-      | (((G, Q) as GQ), D, (((Root (BVar n, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, (((Root (BVar n, S), s) as Us), Vs),
          (((Root (BVar n', S'), s') as Us'), Vs'), sc, k) ->
           if n = n'
           then
-            let Dec (_, V') = I.ctxDec (G, n) in
+            let Dec (_, V') = I.ctxDec (g, n) in
             eqSpineR
               (GQ, D, ((S, s), (V', I.id)), ((S', s'), (V', I.id)), sc, k)
           else k (GQ, D, nil, (Eq ((Us, Vs), (Us', Vs'))), sc)
@@ -823,7 +823,7 @@ module Checking(Checking:sig
       | (GQ, D, SsVs, SsVs', sc, k) -> false__
     let rec leftDecompose =
       function
-      | (((G, Q) as GQ), nil, D', P) -> rightDecompose (GQ, D', P)
+      | (((g, Q) as GQ), nil, D', P) -> rightDecompose (GQ, D', P)
       | (GQ, (Less (Arg (UsVs), Arg (UsVs')))::D, D', P) ->
           ltAtomicL (GQ, D, D', UsVs, UsVs', P)
       | (GQ, (Less (Lex (O), Lex (O')))::D, D', P) ->
@@ -844,11 +844,11 @@ module Checking(Checking:sig
           eqsL (GQ, D, D', O, O', P)
       | (GQ, (Eq (Simul (O), Simul (O')))::D, D', P) ->
           eqsL (GQ, D, D', O, O', P)
-      | (((G, Q) as GQ), (Pi (Dec, O))::D, D', P) ->
+      | (((g, Q) as GQ), (Pi (Dec, O))::D, D', P) ->
           (if (!Global.chatter) > 3
            then
              (print " Ignoring quantified order ";
-              print (F.makestring_fmt (fmtPredicate (G, (Pi (Dec, O))))))
+              print (F.makestring_fmt (fmtPredicate (g, (Pi (Dec, O))))))
            else ();
            leftDecompose (GQ, D, D', P))
     let rec ltLexL =
@@ -878,9 +878,9 @@ module Checking(Checking:sig
       ltAtomicLW (GQ, D, D', UsVs, (Whnf.whnfEta UsVs'), P)
     let rec ltAtomicLW =
       function
-      | (((G, Q) as GQ), D, D', UsVs, (Us', ((Root _, s') as Vs')), P) ->
+      | (((g, Q) as GQ), D, D', UsVs, (Us', ((Root _, s') as Vs')), P) ->
           ltL (GQ, D, D', UsVs, (Us', Vs'), P)
-      | (((G, Q) as GQ), D, D', ((U, s1), (V, s2)),
+      | (((g, Q) as GQ), D, D', ((U, s1), (V, s2)),
          ((Lam (_, U'), s1'), (Pi ((Dec', _), V'), s2')), P) ->
           let D1 = shiftRCtx D (function | s -> I.comp (s, I.shift)) in
           let D1' = shiftACtx D' (function | s -> I.comp (s, I.shift)) in
@@ -889,7 +889,7 @@ module Checking(Checking:sig
           let UsVs' = ((U', (I.dot1 s1')), (V', (I.dot1 s2'))) in
           let P' = shiftP P (function | s -> I.comp (s, I.shift)) in
           ltAtomicL
-            (((I.Decl (G, (N.decLUName (G, (I.decSub (Dec', s2')))))),
+            (((I.Decl (g, (N.decLUName (g, (I.decSub (Dec', s2')))))),
                (I.Decl (Q, All))), D1, D1', UsVs, UsVs', P')
     let rec leAtomicL (GQ, D, D', UsVs, UsVs', P) =
       leAtomicLW (GQ, D, D', UsVs, (Whnf.whnfEta UsVs'), P)
@@ -897,7 +897,7 @@ module Checking(Checking:sig
       function
       | (GQ, D, D', UsVs, (Us', ((Root (H, S), s') as Vs')), P) ->
           leL (GQ, D, D', UsVs, (Us', Vs'), P)
-      | (((G, Q) as GQ), D, D', ((U, s1), (V, s2)),
+      | (((g, Q) as GQ), D, D', ((U, s1), (V, s2)),
          ((Lam (_, U'), s1'), (Pi ((Dec', _), V'), s2')), P) ->
           let D1 = shiftRCtx D (function | s -> I.comp (s, I.shift)) in
           let D1' = shiftACtx D' (function | s -> I.comp (s, I.shift)) in
@@ -906,7 +906,7 @@ module Checking(Checking:sig
           let UsVs' = ((U', (I.dot1 s1')), (V', (I.dot1 s2'))) in
           let P' = shiftP P (function | s -> I.comp (s, I.shift)) in
           leAtomicL
-            (((I.Decl (G, (N.decLUName (G, (I.decSub (Dec', s2')))))),
+            (((I.Decl (g, (N.decLUName (g, (I.decSub (Dec', s2')))))),
                (I.Decl (Q, All))), D1, D1', UsVs, UsVs', P')
     let rec eqAtomicL (GQ, D, D', UsVs, UsVs', P) =
       eqAtomicLW (GQ, D, D', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), P)
@@ -927,12 +927,12 @@ module Checking(Checking:sig
       ltLW (GQ, D, D', UsVs, ((Whnf.whnf Us'), Vs'), P)
     let rec ltLW =
       function
-      | (((G, Q) as GQ), D, D', UsVs,
+      | (((g, Q) as GQ), D, D', UsVs,
          (((Root (BVar n, S'), s') as Us'), Vs'), P) ->
           if isAtomic (GQ, Us')
           then leftDecompose (GQ, D, ((Less (UsVs, (Us', Vs'))) :: D'), P)
           else
-            (let Dec (_, V') = I.ctxDec (G, n) in
+            (let Dec (_, V') = I.ctxDec (g, n) in
              ltSpineL (GQ, D, D', UsVs, ((S', s'), (V', I.id)), P))
       | (GQ, D, D', UsVs, ((Root (Const c, S'), s'), Vs'), P) ->
           ltSpineL (GQ, D, D', UsVs, ((S', s'), ((I.constType c), I.id)), P)
@@ -999,11 +999,11 @@ module Checking(Checking:sig
           if isAtomic (GQ, Us)
           then leftDecompose (GQ, D, ((Eq ((Us, Vs), (Us', Vs'))) :: D'), P)
           else true__
-      | (((G, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
+      | (((g, Q) as GQ), D, D', (((Root (BVar n, S), s) as Us), Vs),
          (((Root (BVar n', S'), s') as Us'), Vs'), P) ->
           if n = n'
           then
-            let Dec (_, V') = I.ctxDec (G, n) in
+            let Dec (_, V') = I.ctxDec (g, n) in
             eqSpineL
               (GQ, D, D', ((S, s), (V', I.id)), ((S', s'), (V', I.id)), P)
           else leftDecompose (GQ, D, ((Eq ((Us, Vs), (Us', Vs'))) :: D'), P)
@@ -1030,10 +1030,10 @@ module Checking(Checking:sig
               ((S, s1), (V2, (I.Dot ((I.Exp (I.EClo (U, s1))), s2)))),
               ((S', s1'), (V2', (I.Dot ((I.Exp (I.EClo (U', s1'))), s2')))),
               P)
-    let rec deduce (G, Q, D, P) = leftDecompose ((G, Q), D, nil, P)
+    let rec deduce (g, Q, D, P) = leftDecompose ((g, Q), D, nil, P)
     let ((deduce)(* Reasoning about order relations *)
       (*
-    Typing context        G
+    Typing context        g
     mixed prefix context  Q  := . | All | Existental
 
     Orders                0  := U[s1] : V[s2] | Lex O1 ... On | Simul O1 ... On
@@ -1048,20 +1048,20 @@ module Checking(Checking:sig
 
     Invariant:
 
-    sometimes we write G |- P as an abbreviation
+    sometimes we write g |- P as an abbreviation
 
-    if P = (O < O')    then G |- O and G |- O'
-    if P = (O <= O')    then G |- O and G |- O'
-    if P = (O = O')    then G |- O and G |- O'
+    if P = (O < O')    then g |- O and g |- O'
+    if P = (O <= O')    then g |- O and g |- O'
+    if P = (O = O')    then g |- O and g |- O'
 
-    if O = Lex O1 .. On  then G |- O1 and ....G |- On
-    if O = Simul O1 .. On  then G |- O1 and ....G |- On
+    if O = Lex O1 .. On  then g |- O1 and ....G |- On
+    if O = Simul O1 .. On  then g |- O1 and ....G |- On
 
     if O = U[s1] : V[s2]
-      then     G : Q
-           and G |- s1 : G1, G1 |- U : V1
-           and G |- s2 : G2   G2 |- V : L
-           and G |- U[s1] : V[s2]
+      then     g : Q
+           and g |- s1 : G1, G1 |- U : V1
+           and g |- s2 : G2   G2 |- V : L
+           and g |- U[s1] : V[s2]
 
   *)
       (*--------------------------------------------------------------------*)
@@ -1083,8 +1083,8 @@ module Checking(Checking:sig
       (* isParameter (Q, X) = B
 
        Invariant:
-       If   G |- X : V
-       and  G : Q
+       If   g |- X : V
+       and  g : Q
        then B holds iff X is unrestricted (uninstantiated and free
        of constraints, or lowered only) or instantiated to a universal parameter
     *)
@@ -1093,22 +1093,22 @@ module Checking(Checking:sig
 
        Invariant: it participated only in matching, not full unification
     *)
-      (* constraints must be empty *)(* isAtomic (G, X) = true
+      (* constraints must be empty *)(* isAtomic (g, X) = true
        Invariant:
-       If G |- X : V
-       and G : Q
+       If g |- X : V
+       and g : Q
        then B holds iff X is an atomic term which is not a parameter
      *)
       (* should disallow orelse ? *)(*      | isAtomicW (GQ, (X as (I.EClo _))) = true    existential var *)
       (*-----------------------------------------------------------*)
-      (* eq (G, ((U, s1), (V, s2)), ((U', s1'), (V', s2')), sc) = B
+      (* eq (g, ((U, s1), (V, s2)), ((U', s1'), (V', s2')), sc) = B
 
        Invariant:
        B holds  iff
-            G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s' : G3  G3 |- U' : V'
+            g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s' : G3  G3 |- U' : V'
        and  U[s1] is unifiable with to U'[s']
        and  all restrictions in sc are satisfied
        and V[s2] is atomic
@@ -1121,11 +1121,11 @@ module Checking(Checking:sig
      and  D is an atomic order relation ctx
      and  UsVs and UsVs' are atomic and may contain EVars
 
-          G : Q
-     and  G |- s1 : G1   G1 |- U : V1
-     and  G |- s2 : G2   G2 |- V : L
-     and  G |- U[s1] : V [s2]
-     and  G |- s' : G3  G3 |- U' : V'
+          g : Q
+     and  g |- s1 : G1   G1 |- U : V1
+     and  g |- s2 : G2   G2 |- V : L
+     and  g |- U[s1] : V [s2]
+     and  g |- s' : G3  G3 |- U' : V'
 
      if there exists Eq(UsVs1, UsVs1') in D
         s.t. UsVs1 unifies with UsVs and
@@ -1147,11 +1147,11 @@ module Checking(Checking:sig
      and  D is an atomic order relation ctx
      and  UsVs and UsVs' are atomic and may contain EVars
 
-          G : Q
-     and  G |- s1 : G1   G1 |- U : V1
-     and  G |- s2 : G2   G2 |- V : L
-     and  G |- U[s1] : V [s2]
-     and  G |- s' : G3  G3 |- U' : V'
+          g : Q
+     and  g |- s1 : G1   G1 |- U : V1
+     and  g |- s2 : G2   G2 |- V : L
+     and  g |- U[s1] : V [s2]
+     and  g |- s' : G3  G3 |- U' : V'
 
      if there exists Less(UsVs1, UsVs1') in D
         s.t. UsVs1 unifies with UsVs and
@@ -1233,20 +1233,20 @@ module Checking(Checking:sig
     B iff
           D and P are maximally decomposed,
       and they may contain EVars
-      and G : Q
-      and G |- P
-      and G |- D
+      and g : Q
+      and g |- P
+      and g |- D
       and D --> P
 
       *)
       (*-----------------------------------------------------------*)
-      (* leftInstantiate ((G,Q), D, D', P, sc) = B
+      (* leftInstantiate ((g,Q), D, D', P, sc) = B
 
      B iff
-           G : Q
-       and G |- D
-       and G |- D'
-       and G |- P
+           g : Q
+       and g |- D
+       and g |- D'
+       and g |- P
 
        and  D is an atomic order relation ctx, which does not
               contain any EVars
@@ -1258,18 +1258,18 @@ module Checking(Checking:sig
 
     D' accumulates all orders
     *)
-      (* should never happen by invariant *)(* ltInstL ((G, Q), D, D', UsVs, UsVs', P, sc) = B
+      (* should never happen by invariant *)(* ltInstL ((g, Q), D, D', UsVs, UsVs', P, sc) = B
      Invariant:
        B holds  iff
-            G : Q
+            g : Q
        and  D is an atomic order relation ctx
        and  D' is an atomic order relation ctx
        and  P' is a atomic order relation
 
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V [s2]
-       and  G |- s' : G3  G3 |- U' : V'
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V [s2]
+       and  g |- s' : G3  G3 |- U' : V'
        and  sc is a constraint continuation representing restrictions on EVars
        and  V[s2] atomic
        and  only U[s1] contains EVars
@@ -1278,18 +1278,18 @@ module Checking(Checking:sig
       (* == I.targetFam V2' *)(* = I.newEVar (I.EClo (V2', s2')) *)
       (* enforces that X can only bound to parameter or remain uninstantiated *)
       (* = I.newEVar (I.EClo (V2', s2')) *)(* impossible, if additional invariant assumed (see ltW) *)
-      (* leInstL ((G, Q), D, D', UsVs, UsVs', P', sc) = B
+      (* leInstL ((g, Q), D, D', UsVs, UsVs', P', sc) = B
      Invariant:
        B holds  iff
-            G : Q
+            g : Q
        and  D is an atomic order relation ctx
        and  D' is an atomic order relation ctx
        and  P' is a atomic order relation
 
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V [s2]
-       and  G |- s' : G3  G3 |- U' : V'
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V [s2]
+       and  g |- s' : G3  G3 |- U' : V'
        and  sc is a constraint continuation representing restrictions on EVars
        and  V[s2] atomic
        and  only U[s1] contains EVars
@@ -1298,35 +1298,35 @@ module Checking(Checking:sig
       (* == I.targetFam V2' *)(* = I.newEVar (I.EClo (V2', s2')) *)
       (* enforces that X can only bound to parameter or remain uninstantiated *)
       (* = I.newEVar (I.EClo (V2', s2')) *)(* impossible, if additional invariant assumed (see ltW) *)
-      (* eqInstL ((G, Q), D, D', UsVs, UsVs', P, sc) = B
+      (* eqInstL ((g, Q), D, D', UsVs, UsVs', P, sc) = B
 
      Invariant:
        B holds  iff
-            G : Q
+            g : Q
        and  D is an atomic order relation ctx
        and  D' is an atomic order relation ctx
        and  P' is a atomic order relation
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V [s2]
-       and  G |- s' : G3  G3 |- U' : V'
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V [s2]
+       and  g |- s' : G3  G3 |- U' : V'
        and  sc is a constraint continuation representing restrictions on EVars
        and  V[s2] atomic
        and  only U[s1] and U'[s'] contain EVars
        and  D, D', U[s1] = U'[s'] ---> P'
     *)
-      (* = I.newEVar (I.EClo (V2', s2')) *)(* eqIL ((G, Q), D, D', UsVs, UsVs', P, sc) = B
+      (* = I.newEVar (I.EClo (V2', s2')) *)(* eqIL ((g, Q), D, D', UsVs, UsVs', P, sc) = B
 
      Invariant:
        B holds  iff
-            G : Q
+            g : Q
        and  D is an atomic order relation ctx
        and  D' is an atomic order relation ctx
        and  P' is a atomic order relation
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V [s2]
-       and  G |- s' : G3  G3 |- U' : V'
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V [s2]
+       and  g |- s' : G3  G3 |- U' : V'
        and  sc is a constraint continuation representing restrictions on EVars
        and  V[s2] atomic
        and  only U[s1] and U'[s'] contain EVars
@@ -1340,80 +1340,80 @@ module Checking(Checking:sig
       (* rightDecompose (GQ, D', P) = B
 
     B iff
-        G : Q
+        g : Q
     and D is maximally unfolded, but does not contain any EVars
     and P is a order relation
-    and G |- P
+    and g |- P
     and D --> P
 
     *)
       (* ordLtR (GQ, D, O1, O2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- O1 augmented subterm
-       and  G |- O2 augmented subterm not containing any EVars
+       If   g : Q
+       and  g |- O1 augmented subterm
+       and  g |- O2 augmented subterm not containing any EVars
        then B' holds iff D --> O1 < O2
     *)
       (* ordLeR (GQ, D, O1, O2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- O1 augmented subterm
-       and  G |- O2 augmented subterm not containing any EVars
+       If   g : Q
+       and  g |- O1 augmented subterm
+       and  g |- O2 augmented subterm not containing any EVars
        then B' holds iff D --> O1 <= O2
     *)
       (* ordEqR (GQ, D, O1, O2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- O1 augmented subterm
-       and  G |- O2 augmented subterm not containing any EVars
+       If   g : Q
+       and  g |- O1 augmented subterm
+       and  g |- O2 augmented subterm not containing any EVars
        then B' holds iff D --> O1 = O2
     *)
       (* ordEqsR (GQ, D', L1, L2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms not containing any EVars
+       If   g : Q
+       and  g |- L1 list of augmented subterms
+       and  g |- L2 list of augmented subterms not containing any EVars
        then B' holds iff D' --> L1 = L2
     *)
       (* ltLexR (GQ, D', L1, L2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms not contianing any EVars
+       If   g : Q
+       and  g |- L1 list of augmented subterms
+       and  g |- L2 list of augmented subterms not contianing any EVars
        then B' holds iff D' --> L1 is lexically smaller than L2
     *)
       (* ltSimulR (GQ, D, L1, L2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms not contianing any EVars
+       If   g : Q
+       and  g |- L1 list of augmented subterms
+       and  g |- L2 list of augmented subterms not contianing any EVars
        then B' holds iff D implies that L1 is simultaneously smaller than L2
     *)
-      (* leSimulR (G, Q, L1, L2) = B'
+      (* leSimulR (g, Q, L1, L2) = B'
 
        Invariant:
-       If   G : Q
-       and  G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms not containing any EVars
+       If   g : Q
+       and  g |- L1 list of augmented subterms
+       and  g |- L2 list of augmented subterms not containing any EVars
        then B' holds iff D implies that L1 is simultaneously less than or equal to L2
     *)
       (*--------------------------------------------------------------*)
       (* Atomic Orders (Right) *)(* ltAtomicR (GQ, (D, D'), UsVs, UsVs', sc, k) = B
      Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D' implies U[s1] is a strict subterm of U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1423,13 +1423,13 @@ module Checking(Checking:sig
       (* leAtomicR (GQ, D, UsVs, UsVs', sc, k) = B
      Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D implies U[s1] is a subterm of U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1439,13 +1439,13 @@ module Checking(Checking:sig
       (* eqAtomicR (GQ, D, UsVs, UsVs', sc, k) = B
      Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D implies U[s1] is structurally equivalent to U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1457,13 +1457,13 @@ module Checking(Checking:sig
 
        Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D' --> U[s1] is a strict subterm of U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1482,13 +1482,13 @@ module Checking(Checking:sig
 
        Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D' --> U[s1] is a subterm of U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1501,13 +1501,13 @@ module Checking(Checking:sig
 
        Invariant:
        B' holds  iff
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
        and  D' --> U[s1] = U'[s1']
        and  sc is a constraint continuation representing restrictions on EVars
        and only U'[s'] contains EVars
@@ -1520,9 +1520,9 @@ module Checking(Checking:sig
       (* either leftInstantiate D or atomic reasoning *)
       (* UsVs = Lam *)(* either leftInstantiate D or atomic reasoning *)
       (*--------------------------------------------------------------*)
-      (* leftDecompose (G, Q, D, D', P) = B
+      (* leftDecompose (g, Q, D, D', P) = B
 
-      if G : Q and
+      if g : Q and
          D --> P  where D might contain orders (lex and simul)
 
       then D' --> P
@@ -1568,25 +1568,25 @@ module Checking(Checking:sig
     *)
       (*--------------------------------------------------------------*)
       (* Atomic Orders (left) *)(* U := Root(c, S) | Root(n, S) | Lam(x:A, U) *)
-      (* ltAtomicL (GQ as (G, Q), D, D', ((U, s1), (V, s2)), ((U', s1'), (V', s2')), P) = B
+      (* ltAtomicL (GQ as (g, Q), D, D', ((U, s1), (V, s2)), ((U', s1'), (V', s2')), P) = B
 
      B holds iff
 
-            G : Q
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+            g : Q
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
 
-       and  G |- D, D', (U[s1]:V[s2]) < U'[s1']:V'[s2']) --> P
+       and  g |- D, D', (U[s1]:V[s2]) < U'[s1']:V'[s2']) --> P
 
 
-       if G |- D, D', (Us:Vs) < (\x1:A1....\xn:An. U'[s1']: V'[s2']) --> P and
+       if g |- D, D', (Us:Vs) < (\x1:A1....\xn:An. U'[s1']: V'[s2']) --> P and
                (n >= 0)
        then
-          G, a1:A1, .... an:An |-
+          g, a1:A1, .... an:An |-
              D^n, D'^n, (Us^n:Vs^n) < U'[a1... an . s1'^n]:V'[a1. ... . an . s2'^n] --> P^n
 
        where D^n, (Us^n, P^n) means all substitutions in D (U, P etc)
@@ -1601,18 +1601,18 @@ module Checking(Checking:sig
 
        B holds iff
 
-            G : Q
+            g : Q
 
        and  D is an Order relation ctx
        and  D' is an atomic order relation ctx
        and  P is a order relation
 
-       and  G |- s1 : G1   G1 |- U : V1
-       and  G |- s2 : G2   G2 |- V : L
-       and  G |- U[s1] : V[s2]
-       and  G |- s1' : G3   G3 |- U' : V1'
-       and  G |- s2' : G4   G4 |- V' : L
-       and  G |- U'[s1'] : V'[s2']
+       and  g |- s1 : G1   G1 |- U : V1
+       and  g |- s2 : G2   G2 |- V : L
+       and  g |- U[s1] : V[s2]
+       and  g |- s1' : G3   G3 |- U' : V1'
+       and  g |- s2' : G4   G4 |- V' : L
+       and  g |- U'[s1'] : V'[s2']
 
        and D, D', U[s1] = U'[s1'] --> P
 
@@ -1629,12 +1629,12 @@ module Checking(Checking:sig
 
 *)
       (* UsVs = Lam *)(*--------------------------------------------------------------*)
-      (* Infer: D --> P *)(* deduce (G, Q, D, P) = B
+      (* Infer: D --> P *)(* deduce (g, Q, D, P) = B
 
       B iff
-         G :  Q
-     and G |- D
-     and G |- P
+         g :  Q
+     and g |- D
+     and g |- P
      and D implies P
     *))
       = deduce

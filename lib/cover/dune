@@ -1,0 +1,28 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.cover)
+ (name cover)
+ (libraries 
+  base
+  global
+  lambda
+  names
+  paths
+  table
+  formatter
+  print
+  subordinate
+  modes
+  typecheck
+  thm
+  terminate
+  index
+  solvers
+  worldcheck
+  timing
+  unique
+ )
+ (modules 
+  cover
+  total))

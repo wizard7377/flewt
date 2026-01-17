@@ -96,14 +96,14 @@ module Redundant(Redundant:sig
     let rec spineEqual =
       function
       | (T.Nil, (T.Nil, t2)) -> true__
-      | (AppExp (E1, S1), (AppExp (E2, S2), t2)) ->
+      | (AppExp (E1, s1), (AppExp (E2, s2), t2)) ->
           (Conv.conv ((E1, I.id), (E2, (T.coerceSub t2)))) &&
-            (spineEqual (S1, (S2, t2)))
-      | (AppBlock (B1, S1), (AppBlock (B2, S2), t2)) ->
+            (spineEqual (s1, (s2, t2)))
+      | (AppBlock (B1, s1), (AppBlock (B2, s2), t2)) ->
           (blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))) &&
-            (spineEqual (S1, (S2, t2)))
-      | (AppPrg (P1, S1), (AppPrg (P2, S2), t2)) ->
-          (prgEqual (P1, (P2, t2))) && (spineEqual (S1, (S2, t2)))
+            (spineEqual (s1, (s2, t2)))
+      | (AppPrg (P1, s1), (AppPrg (P2, s2), t2)) ->
+          (prgEqual (P1, (P2, t2))) && (spineEqual (s1, (s2, t2)))
       | (SClo (S, t1), (SClo (s, t2a), t2)) ->
           raise
             (Error (("SClo should not exist!")
@@ -115,8 +115,8 @@ module Redundant(Redundant:sig
           (decEqual (D1, (D2, t2))) && (prgEqual (P1, (P2, (T.dot1 t2))))
       | (New (P1), (New (P2), t2)) -> prgEqual (P1, (P2, t2))
       | (Choose (P1), (Choose (P2), t2)) -> prgEqual (P1, (P2, t2))
-      | (PairExp (U1, P1), (PairExp (U2, P2), t2)) ->
-          (Conv.conv ((U1, I.id), (U2, (T.coerceSub t2)))) &&
+      | (PairExp (u1, P1), (PairExp (u2, P2), t2)) ->
+          (Conv.conv ((u1, I.id), (u2, (T.coerceSub t2)))) &&
             (prgEqual (P1, (P2, t2)))
       | (PairBlock (B1, P1), (PairBlock (B2, P2), t2)) ->
           (blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))) &&
@@ -130,18 +130,18 @@ module Redundant(Redundant:sig
            | NONE -> false__
            | SOME i -> x1 = i)
       | (Redex
-         (((P1)(*      | prgEqual ((T.Root (H1, S1)), (T.Root (H2, S2), t2)) =
+         (((P1)(*      | prgEqual ((T.Root (H1, s1)), (T.Root (H2, s2), t2)) =
                 (case (H1, H2)
-                   of (T.Const lemma1, T.Const lemma2) => ((lemma1=lemma2) andalso (spineEqual(S1, (S2,t2))))
+                   of (T.Const lemma1, T.Const lemma2) => ((lemma1=lemma2) andalso (spineEqual(s1, (s2,t2))))
                  |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
                               NONE => false
-                            | SOME i => ((x1 = i) andalso (spineEqual(S1, (S2,t2)))))
+                            | SOME i => ((x1 = i) andalso (spineEqual(s1, (s2,t2)))))
                  |  _ => false)
 *)),
-          S1),
-         (Redex (P2, S2), t2)) ->
-          (prgEqual (P1, (P2, t2))) && (spineEqual (S1, (S2, t2)))
+          s1),
+         (Redex (P2, s2), t2)) ->
+          (prgEqual (P1, (P2, t2))) && (spineEqual (s1, (s2, t2)))
       | (Rec (D1, P1), (Rec (D2, P2), t2)) ->
           (decEqual (D1, (D2, t2))) && (prgEqual (P1, (P2, (T.dot1 t2))))
       | (Case (Cases (O1)), (Case (Cases (O2)), t2)) ->
@@ -206,7 +206,7 @@ module Redundant(Redundant:sig
           (match getExpIndex U with
            | NONE -> NONE
            | SOME i -> getFrontIndex (T.revCoerceFront (I.bvarSub (i, t))))
-      | Lam (Dec (_, U1), U2) as U ->
+      | Lam (Dec (_, u1), u2) as U ->
           (try SOME (Whnf.etaContract U) with | Whnf.Eta -> NONE)
       | _ -> NONE
     let rec getBlockIndex =
@@ -239,17 +239,17 @@ module Redundant(Redundant:sig
       function
       | (((T.Nil)(* Note that what we are merging it with will need to go under an extra renaming substitution *)),
          (T.Nil, t2)) -> T.Nil
-      | (AppExp (E1, S1), (AppExp (E2, S2), t2)) ->
+      | (AppExp (E1, s1), (AppExp (E2, s2), t2)) ->
           if Conv.conv ((E1, I.id), (E2, (T.coerceSub t2)))
-          then T.AppExp (E1, (mergeSpines (S1, (S2, t2))))
+          then T.AppExp (E1, (mergeSpines (s1, (s2, t2))))
           else raise (Error "Spine not equal (AppExp)")
-      | (AppBlock (B1, S1), (AppBlock (B2, S2), t2)) ->
+      | (AppBlock (B1, s1), (AppBlock (B2, s2), t2)) ->
           if blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))
-          then T.AppBlock (B1, (mergeSpines (S1, (S2, t2))))
+          then T.AppBlock (B1, (mergeSpines (s1, (s2, t2))))
           else raise (Error "Spine not equal (AppBlock)")
-      | (AppPrg (P1, S1), (AppPrg (P2, S2), t2)) ->
+      | (AppPrg (P1, s1), (AppPrg (P2, s2), t2)) ->
           if prgEqual (P1, (P2, t2))
-          then T.AppPrg (P1, (mergeSpines (S1, (S2, t2))))
+          then T.AppPrg (P1, (mergeSpines (s1, (s2, t2))))
           else raise (Error "Prg (in App) not equal")
       | (SClo (S, t1), (SClo (s, t2a), t2)) ->
           raise
@@ -270,10 +270,10 @@ module Redundant(Redundant:sig
           if prgEqual (P1, (P2, t2))
           then T.Choose P1
           else raise (Error "Choose don't match")
-      | (PairExp (U1, P1), (PairExp (U2, P2), t2)) ->
+      | (PairExp (u1, P1), (PairExp (u2, P2), t2)) ->
           let t2' = T.coerceSub t2 in
-          if Conv.conv ((U1, I.id), (U2, t2'))
-          then T.PairExp (U1, (mergePrgs (P1, (P2, t2))))
+          if Conv.conv ((u1, I.id), (u2, t2'))
+          then T.PairExp (u1, (mergePrgs (P1, (P2, t2))))
           else raise (Error "cannot merge PairExp")
       | (PairBlock (B1, P1), (PairBlock (B2, P2), t2)) ->
           let B2' = I.blockSub (B2, (T.coerceSub t2)) in
@@ -297,25 +297,25 @@ module Redundant(Redundant:sig
                then T.Var x1
                else raise (Error "Variables do not match."))
       | (Redex
-         (((P1)(*      | mergePrgs ((T.Root (H1, S1)), (T.Root (H2, S2), t2)) =
+         (((P1)(*      | mergePrgs ((T.Root (H1, s1)), (T.Root (H2, s2), t2)) =
                 (case (H1, H2)
                    of (T.Const lemma1, T.Const lemma2) =>
                      if (lemma1=lemma2) then
-                        T.Root (H1, mergeSpines((S1),(S2,t2)))
+                        T.Root (H1, mergeSpines((s1),(s2,t2)))
                      else raise Error "Roots do not match"
                    |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
                               NONE => raise Error "Root does not match."
                             | SOME i =>
                                 (if (x1 = i) then
-                                   T.Root (T.Var x1, mergeSpines((S1),(S2,t2)))
+                                   T.Root (T.Var x1, mergeSpines((s1),(s2,t2)))
                                  else
                                    raise Error "Root does not match."))
                    |  _ => raise Error "Root does not match.")
 *)),
-          S1),
-         (Redex (P2, S2), t2)) ->
-          let newS = mergeSpines (S1, (S2, t2)) in
+          s1),
+         (Redex (P2, s2), t2)) ->
+          let newS = mergeSpines (s1, (s2, t2)) in
           if prgEqual (P1, (P2, t2))
           then T.Redex (P1, newS)
           else raise (Error "Redex Prgs don't match")
@@ -357,8 +357,8 @@ module Redundant(Redundant:sig
      For debug purposes *)(* invertSub s = s'
 
        Invariant:
-       If   G |- s : G'    (and s patsub)
-       then G' |- s' : G
+       If   g |- s : g'    (and s patsub)
+       then g' |- s' : g
        s.t. s o s' = id
     *))
       =

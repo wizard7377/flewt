@@ -54,17 +54,17 @@ module Elim(Elim:sig
       function
       | I.Null -> I.Null
       | Decl (Psi, D) -> I.Decl ((strip Psi), (stripDec D))
-    let rec expand (Focus ((EVar (Psi, r, G, V, _, _) as Y), W)) =
+    let rec expand (Focus ((EVar (Psi, r, g, V, _, _) as Y), W)) =
       let matchCtx =
         function
         | (I.Null, _, Fs) -> Fs
-        | (Decl (G, PDec (x, F, _, _)), n, Fs) ->
-            matchCtx (G, (n + 1), ((Local (Y, n)) :: Fs))
-        | (Decl (G, UDec _), n, Fs) -> matchCtx (G, (n + 1), Fs) in
+        | (Decl (g, PDec (x, F, _, _)), n, Fs) ->
+            matchCtx (g, (n + 1), ((Local (Y, n)) :: Fs))
+        | (Decl (g, UDec _), n, Fs) -> matchCtx (g, (n + 1), Fs) in
       matchCtx (Psi, 1, nil)
     let rec apply =
       function
-      | Local ((EVar (Psi, r, G, NONE, NONE, _) as R), n) ->
+      | Local ((EVar (Psi, r, g, NONE, NONE, _) as R), n) ->
           let PDec (_, F0, _, _) = T.ctxDec (Psi, n) in
           (match F0 with
            | All ((UDec (Dec (_, V)), _), F) ->
@@ -74,7 +74,7 @@ module Elim(Elim:sig
                  T.PDec
                    (x, (T.forSub (F, (T.Dot ((T.Exp X), T.id)))), NONE, NONE) in
                let Psi' = I.Decl (Psi, D) in
-               let Y = T.newEVar ((strip Psi'), (T.forSub (G, T.shift))) in
+               let Y = T.newEVar ((strip Psi'), (T.forSub (g, T.shift))) in
                (:=) r SOME
                  (T.Let (D, (T.Redex ((T.Var n), (T.AppExp (X, T.Nil)))), Y))
            | Ex ((D1, _), F) ->
@@ -83,10 +83,10 @@ module Elim(Elim:sig
                let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec NONE)) in
                let D2 = T.PDec (x, F, NONE, NONE) in
                let Psi'' = I.Decl (Psi', D2) in
-               let Y = T.newEVar ((strip Psi''), (T.forSub (G, (T.Shift 2)))) in
+               let Y = T.newEVar ((strip Psi''), (T.forSub (g, (T.Shift 2)))) in
                (:=) r SOME (T.LetPairExp (D1', D2, (T.Var n), Y))
            | T.True ->
-               let Y = T.newEVar ((strip Psi), G) in
+               let Y = T.newEVar ((strip Psi), g) in
                (:=) r SOME (T.LetUnit ((T.Var n), Y)))
       | Local (EVar (Psi, r, FClo (F, s), TC1, TC2, X), n) ->
           apply

@@ -29,10 +29,10 @@ module FunWeaken(FunWeaken:sig
           let (Psi', s') = strengthenPsi (Psi, s) in
           ((I.Decl (Psi', (F.Prim (Weaken.strengthenDec (D, s'))))),
             (I.dot1 s'))
-      | (Decl (Psi, Block (CtxBlock (l, G))), s) ->
+      | (Decl (Psi, Block (CtxBlock (l, g))), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
-          let (G'', s'') = Weaken.strengthenCtx (G, s') in
-          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, G''))))), s'')
+          let (g'', s'') = Weaken.strengthenCtx (g, s') in
+          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, g''))))), s'')
     let rec strengthenPsi' =
       function
       | (nil, s) -> (nil, s)
@@ -41,10 +41,10 @@ module FunWeaken(FunWeaken:sig
           let s' = I.dot1 s in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
           (((F.Prim D') :: Psi''), s'')
-      | ((Block (CtxBlock (l, G)))::Psi, s) ->
-          let (G', s') = Weaken.strengthenCtx (G, s) in
+      | ((Block (CtxBlock (l, g)))::Psi, s) ->
+          let (g', s') = Weaken.strengthenCtx (g, s) in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
-          (((F.Block (F.CtxBlock (l, G'))) :: Psi''), s'')
+          (((F.Block (F.CtxBlock (l, g'))) :: Psi''), s'')
     let ((strengthenPsi)(*! sharing Weaken.IntSyn = FunSyn'.IntSyn !*)
       (*! structure FunSyn = FunSyn' !*)(* strengthenPsi (Psi, s) = (Psi', s')
 

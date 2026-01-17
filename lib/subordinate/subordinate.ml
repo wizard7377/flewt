@@ -37,7 +37,7 @@ module type SUBORDINATE  =
       (IntSyn.dctx * IntSyn.__Exp) ->
         ((unit)(* respects current subordination? *))
     val checkNoDef :
-      IntSyn.cid -> ((unit)(* respectsN(G, V), V in nf *))
+      IntSyn.cid -> ((unit)(* respectsN(g, V), V in nf *))
     val weaken :
       (IntSyn.dctx * IntSyn.cid) ->
         ((IntSyn.__Sub)(* not involved in type-level definition? *))
@@ -266,10 +266,10 @@ module Subordinate(Subordinate:sig
            installTypeN' (V, a))
     let rec installDec (Dec (_, V)) = installTypeN V
     let rec installSome =
-      function | I.Null -> () | Decl (G, D) -> (installSome G; installDec D)
+      function | I.Null -> () | Decl (g, D) -> (installSome g; installDec D)
     let rec installBlock b =
-      let BlockDec (_, _, G, Ds) = I.sgnLookup b in
-      installSome G; List.app (function | D -> installDec D) Ds
+      let BlockDec (_, _, g, Ds) = I.sgnLookup b in
+      installSome g; List.app (function | D -> installDec D) Ds
     let rec checkBelow (a, b) =
       if not (below (a, b))
       then
@@ -291,8 +291,8 @@ module Subordinate(Subordinate:sig
           respectsTypeN' (V', a)
       | (Root _, _) -> ()
     let rec respectsTypeN (V) = respectsTypeN' (V, (I.targetFam V))
-    let rec respects (G, (V, s)) = respectsTypeN (Whnf.normalize (V, s))
-    let rec respectsN (G, V) = respectsTypeN V
+    let rec respects (g, (V, s)) = respectsTypeN (Whnf.normalize (V, s))
+    let rec respectsN (g, V) = respectsTypeN V
     let rec famsToString (bs, msg) =
       IntSet.foldl
         (function
@@ -307,8 +307,8 @@ module Subordinate(Subordinate:sig
     let rec weaken =
       function
       | (I.Null, a) -> I.id
-      | (Decl (G', (Dec (name, V) as D)), a) ->
-          let w' = weaken (G', a) in
+      | (Decl (g', (Dec (name, V) as D)), a) ->
+          let w' = weaken (g', a) in
           if belowEq ((I.targetFam V), a)
           then I.dot1 w'
           else I.comp (w', I.shift)
@@ -519,7 +519,7 @@ module Subordinate(Subordinate:sig
     fun famsToString (nil, msg) = msg
       | famsToString (a::AL, msg) = famsToString (AL, Names.qidToString (Names.constQid a) ^ " " ^ msg)
     *)
-      (* weaken (G, a) = (w') *)(* showDef () = ()
+      (* weaken (g, a) = (w') *)(* showDef () = ()
        Effect: print some statistics about constant definitions
     *)
       (* ignore blocks and skolem constants *)) = reset

@@ -95,50 +95,50 @@ module MTPSplitting(MTPSplitting:sig
     let rec aux =
       function
       | (I.Null, I.Null) -> I.Null
-      | (Decl (G, D), Decl (B, Lemma _)) -> I.Decl ((aux (G, B)), (F.Prim D))
-      | ((Decl (_, D) as G), (Decl (_, Parameter (SOME l)) as B)) ->
+      | (Decl (g, D), Decl (B, Lemma _)) -> I.Decl ((aux (g, B)), (F.Prim D))
+      | ((Decl (_, D) as g), (Decl (_, Parameter (SOME l)) as B)) ->
           let LabelDec (name, _, G2) = F.labelLookup l in
-          let (Psi', G') = aux' (G, B, (List.length G2)) in
-          I.Decl (Psi', (F.Block (F.CtxBlock ((SOME l), G'))))
+          let (Psi', g') = aux' (g, B, (List.length G2)) in
+          I.Decl (Psi', (F.Block (F.CtxBlock ((SOME l), g'))))
     let rec aux' =
       function
-      | (G, B, 0) -> ((aux (G, B)), I.Null)
-      | (Decl (G, D), Decl (B, Parameter (SOME _)), n) ->
-          let (Psi', G') = aux' (G, B, (n - 1)) in (Psi', (I.Decl (G', D)))
+      | (g, B, 0) -> ((aux (g, B)), I.Null)
+      | (Decl (g, D), Decl (B, Parameter (SOME _)), n) ->
+          let (Psi', g') = aux' (g, B, (n - 1)) in (Psi', (I.Decl (g', D)))
     let rec conv (Gs, Gs') =
       let exception Conv  in
         let conv =
           function
           | ((I.Null, s), (I.Null, s')) -> (s, s')
-          | ((Decl (G, Dec (_, V)), s), (Decl (G', Dec (_, V')), s')) ->
-              let (s1, s1') = conv ((G, s), (G', s')) in
+          | ((Decl (g, Dec (_, V)), s), (Decl (g', Dec (_, V')), s')) ->
+              let (s1, s1') = conv ((g, s), (g', s')) in
               let (s2, s2') as ps = ((I.dot1 s1), (I.dot1 s1')) in
               if Conv.conv ((V, s1), (V', s1')) then ps else raise Conv
           | _ -> raise Conv in
         try conv (Gs, Gs'); true__ with | Conv -> false__
-    let rec createEVarSpine (G, Vs) = createEVarSpineW (G, (Whnf.whnf Vs))
+    let rec createEVarSpine (g, Vs) = createEVarSpineW (g, (Whnf.whnf Vs))
     let rec createEVarSpineW =
       function
-      | (G, ((Uni (I.Type), s) as Vs)) -> (I.Nil, Vs)
-      | (G, ((Root _, s) as Vs)) -> (I.Nil, Vs)
-      | (G, (Pi (((Dec (_, V1) as D), _), V2), s)) ->
-          let X = I.newEVar (G, (I.EClo (V1, s))) in
-          let (S, Vs) = createEVarSpine (G, (V2, (I.Dot ((I.Exp X), s)))) in
+      | (g, ((Uni (I.Type), s) as Vs)) -> (I.Nil, Vs)
+      | (g, ((Root _, s) as Vs)) -> (I.Nil, Vs)
+      | (g, (Pi (((Dec (_, V1) as D), _), V2), s)) ->
+          let X = I.newEVar (g, (I.EClo (V1, s))) in
+          let (S, Vs) = createEVarSpine (g, (V2, (I.Dot ((I.Exp X), s)))) in
           ((I.App (X, S)), Vs)
-    let rec createAtomConst (G, H) =
+    let rec createAtomConst (g, H) =
       let cid = match H with | Const cid -> cid | Skonst cid -> cid in
       let V = I.constType cid in
-      let (S, Vs) = createEVarSpine (G, (V, I.id)) in ((I.Root (H, S)), Vs)
-    let rec createAtomBVar (G, k) =
-      let Dec (_, V) = I.ctxDec (G, k) in
-      let (S, Vs) = createEVarSpine (G, (V, I.id)) in
+      let (S, Vs) = createEVarSpine (g, (V, I.id)) in ((I.Root (H, S)), Vs)
+    let rec createAtomBVar (g, k) =
+      let Dec (_, V) = I.ctxDec (g, k) in
+      let (S, Vs) = createEVarSpine (g, (V, I.id)) in
       ((I.Root ((I.BVar k), S)), Vs)
     let rec someEVars =
       function
-      | (G, nil, s) -> s
-      | (G, (Dec (_, V))::L, s) ->
+      | (g, nil, s) -> s
+      | (g, (Dec (_, V))::L, s) ->
           someEVars
-            (G, L, (I.Dot ((I.Exp (I.newEVar (G, (I.EClo (V, s))))), s)))
+            (g, L, (I.Dot ((I.Exp (I.newEVar (g, (I.EClo (V, s))))), s)))
     let rec maxNumberParams a =
       let maxNumberParams' n =
         if n < 0
@@ -165,7 +165,7 @@ module MTPSplitting(MTPSplitting:sig
     let rec ctxSub =
       function
       | (nil, s) -> nil
-      | ((D)::G, s) -> (::) (I.decSub (D, s)) ctxSub (G, (I.dot1 s))
+      | ((D)::g, s) -> (::) (I.decSub (D, s)) ctxSub (g, (I.dot1 s))
     let rec createTags =
       function
       | (0, l) -> I.Null
@@ -173,60 +173,60 @@ module MTPSplitting(MTPSplitting:sig
     let rec createLemmaTags =
       function
       | I.Null -> I.Null
-      | Decl (G, D) ->
+      | Decl (g, D) ->
           I.Decl
-            ((createLemmaTags G), (S.Lemma (S.Splits (!MTPGlobal.maxSplit))))
+            ((createLemmaTags g), (S.Lemma (S.Splits (!MTPGlobal.maxSplit))))
     let rec constCases =
       function
-      | (G, Vs, nil, abstract, ops) -> ops
-      | (G, Vs, (Const c)::Sgn, abstract, ops) ->
-          let (U, Vs') = createAtomConst (G, (I.Const c)) in
+      | (g, Vs, nil, abstract, ops) -> ops
+      | (g, Vs, (Const c)::Sgn, abstract, ops) ->
+          let (U, Vs') = createAtomConst (g, (I.Const c)) in
           constCases
-            (G, Vs, Sgn, abstract,
+            (g, Vs, Sgn, abstract,
               (CSManager.trail
                  (function
                   | () ->
                       (try
-                         if Unify.unifiable (G, Vs, Vs')
+                         if Unify.unifiable (g, Vs, Vs')
                          then (Active (abstract U)) :: ops
                          else ops
                        with | Error _ -> InActive :: ops))))
     let rec paramCases =
       function
-      | (G, Vs, 0, abstract, ops) -> ops
-      | (G, Vs, k, abstract, ops) ->
-          let (U, Vs') = createAtomBVar (G, k) in
+      | (g, Vs, 0, abstract, ops) -> ops
+      | (g, Vs, k, abstract, ops) ->
+          let (U, Vs') = createAtomBVar (g, k) in
           paramCases
-            (G, Vs, (k - 1), abstract,
+            (g, Vs, (k - 1), abstract,
               (CSManager.trail
                  (function
                   | () ->
                       (try
-                         if Unify.unifiable (G, Vs, Vs')
+                         if Unify.unifiable (g, Vs, Vs')
                          then (Active (abstract U)) :: ops
                          else ops
                        with | Error _ -> InActive :: ops))))
-    let rec constAndParamCases ops0 (c, G, k, (V, s'), abstract) =
+    let rec constAndParamCases ops0 (c, g, k, (V, s'), abstract) =
       constCases
-        (G, (V, s'), (Index.lookup c), abstract,
-          (paramCases (G, (V, s'), k, abstract, ops0)))
-    let rec metaCases (d, ops0) (c, G, k, Vs, abstract) =
-      let g = I.ctxLength G in
+        (g, (V, s'), (Index.lookup c), abstract,
+          (paramCases (g, (V, s'), k, abstract, ops0)))
+    let rec metaCases (d, ops0) (c, g, k, Vs, abstract) =
+      let g = I.ctxLength g in
       let select =
         function
         | (0, ops) -> ops
         | (d', ops) ->
             let n = (g - d') + 1 in
-            let Dec (_, V) = I.ctxDec (G, n) in
+            let Dec (_, V) = I.ctxDec (g, n) in
             let ops' =
               if (I.targetFam V) = c
               then
-                let (U, Vs') = createAtomBVar (G, n) in
+                let (U, Vs') = createAtomBVar (g, n) in
                 CSManager.trail
                   (function
                    | () ->
                        (try
-                          if Unify.unifiable (G, Vs, Vs')
+                          if Unify.unifiable (g, Vs, Vs')
                           then (Active (abstract U)) :: ops
                           else ops
                         with | Error _ -> InActive :: ops))
@@ -235,38 +235,38 @@ module MTPSplitting(MTPSplitting:sig
       select (d, ops0)
     let rec lowerSplitDest =
       function
-      | (G, k, ((Root (Const c, _) as V), s'), abstract, cases) ->
-          cases (c, G, (I.ctxLength G), (V, s'), abstract)
-      | (G, k, (Pi ((D, P), V), s'), abstract, cases) ->
+      | (g, k, ((Root (Const c, _) as V), s'), abstract, cases) ->
+          cases (c, g, (I.ctxLength g), (V, s'), abstract)
+      | (g, k, (Pi ((D, P), V), s'), abstract, cases) ->
           let D' = I.decSub (D, s') in
           lowerSplitDest
-            ((I.Decl (G, D')), (k + 1), (V, (I.dot1 s')),
+            ((I.Decl (g, D')), (k + 1), (V, (I.dot1 s')),
               (function | U -> abstract (I.Lam (D', U))), cases)
-    let rec abstractErrorLeft ((G, B), s) =
+    let rec abstractErrorLeft ((g, B), s) =
       raise (MTPAbstract.Error "Cannot split left of parameters")
-    let rec abstractErrorRight ((G, B), s) =
+    let rec abstractErrorRight ((g, B), s) =
       raise (MTPAbstract.Error "Cannot split right of parameters")
     let rec split (((Dec (_, V) as D), T), sc, abstract) =
       let split' (n, cases) =
         if n < 0
         then
-          let ((G', B'), s', (G0, B0), _) = sc (I.Null, I.Null) in
+          let ((g', B'), s', (G0, B0), _) = sc (I.Null, I.Null) in
           let abstract' (U') =
-            let ((G'', B''), s'') =
+            let ((g'', B''), s'') =
               MTPAbstract.abstractSub'
-                ((G', B'), (I.Dot ((I.Exp U'), s')), (I.Decl (B0, T))) in
+                ((g', B'), (I.Dot ((I.Exp U'), s')), (I.Decl (B0, T))) in
             let _ =
               if !Global.doubleCheck
               then
-                let Psi'' = aux (G'', B'') in
+                let Psi'' = aux (g'', B'') in
                 let _ = TypeCheck.typeCheckCtx (F.makectx Psi'') in
                 let Psi = aux ((I.Decl (G0, D)), (I.Decl (B0, T))) in
                 let _ = TypeCheck.typeCheckCtx (F.makectx Psi) in
                 FunTypeCheck.checkSub (Psi'', s'', Psi)
               else () in
-            abstract ((G'', B''), s'') in
+            abstract ((g'', B''), s'') in
           lowerSplitDest
-            (G', 0, (V, s'), abstract', (constAndParamCases cases))
+            (g', 0, (V, s'), abstract', (constAndParamCases cases))
         else
           (let LabelDec (name, G1, G2) = F.labelLookup n in
            let t = someEVars (I.Null, G1, I.id) in
@@ -274,30 +274,30 @@ module MTPSplitting(MTPSplitting:sig
            let G2t = ctxSub (G2, t) in
            let length = List.length G2 in
            let B2 = createTags (length, n) in
-           let ((G', B'), s', (G0, B0), p) =
+           let ((g', B'), s', (G0, B0), p) =
              sc ((Names.ctxName (F.listToCtx G2t)), B2) in
            let abstract' (U') =
              if p
              then
                raise (MTPAbstract.Error "Cannot split right of parameters")
              else
-               (let ((G'', B''), s'') =
+               (let ((g'', B''), s'') =
                   MTPAbstract.abstractSub
-                    (t, B1, (G', B'), (I.Dot ((I.Exp U'), s')),
+                    (t, B1, (g', B'), (I.Dot ((I.Exp U'), s')),
                       (I.Decl (B0, T))) in
                 let _ =
                   if !Global.doubleCheck
                   then
-                    let Psi'' = aux (G'', B'') in
+                    let Psi'' = aux (g'', B'') in
                     let _ = TypeCheck.typeCheckCtx (F.makectx Psi'') in
                     let Psi = aux ((I.Decl (G0, D)), (I.Decl (B0, T))) in
                     let _ = TypeCheck.typeCheckCtx (F.makectx Psi) in
                     FunTypeCheck.checkSub (Psi'', s'', Psi)
                   else () in
-                abstract ((G'', B''), s'')) in
+                abstract ((g'', B''), s'')) in
            let cases' =
              lowerSplitDest
-               (G', 0, (V, s'), abstract', (metaCases (length, cases))) in
+               (g', 0, (V, s'), abstract', (metaCases (length, cases))) in
            split' ((n - 1), cases')) in
       split' (((F.labelSize ()) - 1), nil)
     let rec occursInExp =
@@ -328,19 +328,19 @@ module MTPSplitting(MTPSplitting:sig
     let rec isIndexSucc (D, isIndex) k =
       (occursInDec (k, D)) || (isIndex (k + 1))
     let rec isIndexFail (D, isIndex) k = isIndex (k + 1)
-    let rec abstractInit (State (n, (G, B), (IH, OH), d, O, H, F) as S)
-      ((G', B'), s') =
-      if !Global.doubleCheck then TypeCheck.typeCheckCtx G' else ();
+    let rec abstractInit (State (n, (g, B), (IH, OH), d, O, H, F) as S)
+      ((g', B'), s') =
+      if !Global.doubleCheck then TypeCheck.typeCheckCtx g' else ();
       if !Global.doubleCheck
-      then FunTypeCheck.isFor (G', (F.forSub (F, s')))
+      then FunTypeCheck.isFor (g', (F.forSub (F, s')))
       else ();
       S.State
-        (n, (G', B'), (IH, OH), d, (S.orderSub (O, s')),
+        (n, (g', B'), (IH, OH), d, (S.orderSub (O, s')),
           (map (function | (i, F') -> (i, (F.forSub (F', s')))) H),
           (F.forSub (F, s')))
-    let rec abstractCont ((D, T), abstract) ((G, B), s) =
+    let rec abstractCont ((D, T), abstract) ((g, B), s) =
       abstract
-        (((I.Decl (G, (Whnf.normalizeDec (D, s)))),
+        (((I.Decl (g, (Whnf.normalizeDec (D, s)))),
            (I.Decl (B, (S.normalizeTag (T, s))))), (I.dot1 s))
     let rec makeAddressInit (S) k = (S, k)
     let rec makeAddressCont makeAddress k = makeAddress (k + 1)
@@ -367,18 +367,18 @@ module MTPSplitting(MTPSplitting:sig
           (((function
              | (Gp, Bp) ->
                  ((Gp, Bp), (I.Shift (I.ctxLength Gp)), GB, false__))), nil)
-      | (((Decl (G, D), Decl (B, (Lemma (Splits _ as K) as T))) as GB),
+      | (((Decl (g, D), Decl (B, (Lemma (Splits _ as K) as T))) as GB),
          isIndex, abstract, makeAddress, induction) ->
           let (sc, ops) =
             expand'
-              ((G, B), (isIndexSucc (D, isIndex)),
+              ((g, B), (isIndexSucc (D, isIndex)),
                 (abstractCont ((D, T), abstract)),
                 (makeAddressCont makeAddress), (inductionCont induction)) in
           let Dec (xOpt, V) = D in
           let sc' (Gp, Bp) =
-            let ((G', B'), s', (G0, B0), p') = sc (Gp, Bp) in
-            let X = I.newEVar (G', (I.EClo (V, s'))) in
-            ((G', B'), (I.Dot ((I.Exp X), s')),
+            let ((g', B'), s', (G0, B0), p') = sc (Gp, Bp) in
+            let X = I.newEVar (g', (I.EClo (V, s'))) in
+            ((g', B'), (I.Dot ((I.Exp X), s')),
               ((I.Decl (G0, D)), (I.Decl (B0, T))), p') in
           let ops' =
             if (not (isIndex 1)) && ((S.splitDepth K) > 0)
@@ -386,57 +386,57 @@ module MTPSplitting(MTPSplitting:sig
               let a = I.targetFam V in
               (makeOperator
                  ((makeAddress 1), (split ((D, T), sc, abstract)), K,
-                   (I.ctxLength G), (induction 1), (maxNumberCases (V, a)),
+                   (I.ctxLength g), (induction 1), (maxNumberCases (V, a)),
                    (Subordinate.below (a, a))))
                 :: ops
             else ops in
           (sc', ops')
-      | ((Decl (G, D), Decl (B, (Lemma (S.RL) as T))), isIndex, abstract,
+      | ((Decl (g, D), Decl (B, (Lemma (S.RL) as T))), isIndex, abstract,
          makeAddress, induction) ->
           let (sc, ops) =
             expand'
-              ((G, B), (isIndexSucc (D, isIndex)),
+              ((g, B), (isIndexSucc (D, isIndex)),
                 (abstractCont ((D, T), abstract)),
                 (makeAddressCont makeAddress), (inductionCont induction)) in
           let Dec (xOpt, V) = D in
           let sc' (Gp, Bp) =
-            let ((G', B'), s', (G0, B0), p') = sc (Gp, Bp) in
-            let X = I.newEVar (G', (I.EClo (V, s'))) in
-            ((G', B'), (I.Dot ((I.Exp X), s')),
+            let ((g', B'), s', (G0, B0), p') = sc (Gp, Bp) in
+            let X = I.newEVar (g', (I.EClo (V, s'))) in
+            ((g', B'), (I.Dot ((I.Exp X), s')),
               ((I.Decl (G0, D)), (I.Decl (B0, T))), p') in
           (sc', ops)
-      | ((Decl (G, D), Decl (B, (Lemma (S.RLdone) as T))), isIndex, abstract,
+      | ((Decl (g, D), Decl (B, (Lemma (S.RLdone) as T))), isIndex, abstract,
          makeAddress, induction) ->
           let (sc, ops) =
             expand'
-              ((G, B), (isIndexSucc (D, isIndex)),
+              ((g, B), (isIndexSucc (D, isIndex)),
                 (abstractCont ((D, T), abstract)),
                 (makeAddressCont makeAddress), (inductionCont induction)) in
           let Dec (xOpt, V) = D in
           let sc' (Gp, Bp) =
-            let ((G', B'), s', (G0, B0), p') = sc (Gp, Bp) in
-            let X = I.newEVar (G', (I.EClo (V, s'))) in
-            ((G', B'), (I.Dot ((I.Exp X), s')),
+            let ((g', B'), s', (G0, B0), p') = sc (Gp, Bp) in
+            let X = I.newEVar (g', (I.EClo (V, s'))) in
+            ((g', B'), (I.Dot ((I.Exp X), s')),
               ((I.Decl (G0, D)), (I.Decl (B0, T))), p') in
           (sc', ops)
-      | ((Decl (G, D), Decl (B, (Parameter (SOME _) as T))), isIndex,
+      | ((Decl (g, D), Decl (B, (Parameter (SOME _) as T))), isIndex,
          abstract, makeAddress, induction) ->
           let (sc, ops) =
             expand'
-              ((G, B), (isIndexSucc (D, isIndex)), abstractErrorLeft,
+              ((g, B), (isIndexSucc (D, isIndex)), abstractErrorLeft,
                 (makeAddressCont makeAddress), (inductionCont induction)) in
           let Dec (xOpt, V) = D in
           let sc' (Gp, Bp) =
-            let ((G', B'), s', (G0, B0), _) = sc (Gp, Bp) in
-            (((I.Decl (G', (Names.decName (G', (I.decSub (D, s')))))),
+            let ((g', B'), s', (G0, B0), _) = sc (Gp, Bp) in
+            (((I.Decl (g', (Names.decName (g', (I.decSub (D, s')))))),
                (I.Decl (B', T))), (I.dot1 s'),
               ((I.Decl (G0, D)), (I.Decl (B0, T))), true__) in
           (sc', ops)
-    let rec expand (State (n, (G0, B0), _, _, O, _, _) as S0) =
-      let _ = if !Global.doubleCheck then FunTypeCheck.isState S0 else () in
+    let rec expand (State (n, (G0, B0), _, _, O, _, _) as s0) =
+      let _ = if !Global.doubleCheck then FunTypeCheck.isState s0 else () in
       let (_, ops) =
         expand'
-          ((G0, B0), isIndexInit, (abstractInit S0), (makeAddressInit S0),
+          ((G0, B0), isIndexInit, (abstractInit s0), (makeAddressInit s0),
             (inductionInit O)) in
       ops
     let rec index (Operator ((S, index), Sl, { c = k })) = k
@@ -453,7 +453,7 @@ module MTPSplitting(MTPSplitting:sig
          | InActive -> raise (Error "Not applicable: leftover constraints"))
         Sl
     let rec menu
-      (Operator ((State (n, (G, B), (IH, OH), d, O, H, F), i), Sl, I) as Op)
+      (Operator ((State (n, (g, B), (IH, OH), d, O, H, F), i), Sl, I) as Op)
       =
       let active =
         function
@@ -477,90 +477,90 @@ module MTPSplitting(MTPSplitting:sig
             (((" [active: " ^ (Int.toString n)) ^ " inactive: ") ^
                (Int.toString m))
               ^ "]" in
-      (((((^) "Splitting : " Print.decToString (G, (I.ctxDec (G, i)))) ^ " ")
+      (((((^) "Splitting : " Print.decToString (g, (I.ctxDec (g, i)))) ^ " ")
           ^ (H.indexToString I))
          ^ (flagToString ((active (Sl, 0)), (inactive (Sl, 0)))))
         ^ ""
     let ((expand)(* recursive case *)(* non-recursive case *)
-      (* aux (G, B) = L'
+      (* aux (g, B) = L'
 
        Invariant:
-       If   . |- G ctx
-       and  G |- B tags
+       If   . |- g ctx
+       and  g |- B tags
        then . |- L' = GxB lfctx
     *)
-      (* conv ((G, s), (G', s')) = B
+      (* conv ((g, s), (g', s')) = B
 
        Invariant:
-       B iff G [s]  == G' [s']
+       B iff g [s]  == g' [s']
        Might migrate in to conv module  --cs
     *)
-      (* createEVarSpineW (G, (V, s)) = ((V', s') , S')
+      (* createEVarSpineW (g, (V, s)) = ((V', s') , S')
 
        Invariant:
-       If   G |- s : G1   and  G1 |- V = Pi {V1 .. Vn}. W : L
+       If   g |- s : G1   and  G1 |- V = Pi {V1 .. Vn}. W : L
        and  G1, V1 .. Vn |- W atomic
-       then G |- s' : G2  and  G2 |- V' : L
+       then g |- s' : G2  and  G2 |- V' : L
        and  S = X1; ...; Xn; Nil
-       and  G |- W [1.2...n. s o ^n] = V' [s']
-       and  G |- S : V [s] >  V' [s']
+       and  g |- W [1.2...n. s o ^n] = V' [s']
+       and  g |- S : V [s] >  V' [s']
     *)
-      (* s = id *)(* s = id *)(* createAtomConst (G, c) = (U', (V', s'))
+      (* s = id *)(* s = id *)(* createAtomConst (g, c) = (U', (V', s'))
 
        Invariant:
        If   S |- c : Pi {V1 .. Vn}. V
        then . |- U' = c @ (Xn; .. Xn; Nil)
        and  . |- U' : V' [s']
     *)
-      (* createAtomBVar (G, k) = (U', (V', s'))
+      (* createAtomBVar (g, k) = (U', (V', s'))
 
        Invariant:
-       If   G |- k : Pi {V1 .. Vn}. V
+       If   g |- k : Pi {V1 .. Vn}. V
        then . |- U' = k @ (Xn; .. Xn; Nil)
        and  . |- U' : V' [s']
     *)
-      (* someEVars (G, G1, s) = s'
+      (* someEVars (g, G1, s) = s'
 
        Invariant:
-       If   |- G ctx
-       and  G |- s : G'
-       then G |- s' : G', G1
+       If   |- g ctx
+       and  g |- s : g'
+       then g |- s' : g', G1
 
        Remark: This is someEVars from recursion.fun with a generalized ih --cs
     *)
-      (* ctxSub (G, s) = G'
+      (* ctxSub (g, s) = g'
 
        Invariant:
        If   G2 |- s : G1
-       and  G1 |- G ctx
-       then G2 |- G' = G[s] ctx
+       and  G1 |- g ctx
+       then G2 |- g' = g[s] ctx
     *)
-      (* constCases (G, (V, s), I, abstract, ops) = ops'
+      (* constCases (g, (V, s), I, abstract, ops) = ops'
 
        Invariant:
-       If   G |- s : G'  G' |- V : type
+       If   g |- s : g'  g' |- V : type
        and  I a list of of constant declarations
        and  abstract an abstraction function
        and  ops a list of possible splitting operators
        then ops' is a list extending ops, containing all possible
          operators from I
     *)
-      (* paramCases (G, (V, s), k, abstract, ops) = ops'
+      (* paramCases (g, (V, s), k, abstract, ops) = ops'
 
        Invariant:
-       If   G |- s : G'  G' |- V : type
+       If   g |- s : g'  g' |- V : type
        and  k a variable
        and  abstract an abstraction function
        and  ops a list of possible splitting operators
        then ops' is a list extending ops, containing all possible
-         operators introduced by parameters <= k in G
+         operators introduced by parameters <= k in g
     *)
-      (* abstract state *)(* lowerSplitDest (G, k, (V, s'), abstract) = ops'
+      (* abstract state *)(* lowerSplitDest (g, k, (V, s'), abstract) = ops'
 
        Invariant:
-       If  G0, G |- s' : G1  G1 |- V: type
-       and  k = |local parameters in G|
-       and  G is the context of local parameters
+       If  G0, g |- s' : G1  G1 |- V: type
+       and  k = |local parameters in g|
+       and  g is the context of local parameters
        and  abstract abstraction function
        then ops' is a list of all operators unifying with V[s']
             (it contains constant and parameter cases)
@@ -568,37 +568,37 @@ module MTPSplitting(MTPSplitting:sig
       (* split (x:D, sc, B, abstract) = cases'
 
        Invariant :
-       If   |- G ctx
-       and  G |- B tags
-       and  G |- D : L
+       If   |- g ctx
+       and  g |- B tags
+       and  g |- D : L
        then sc is a function, which maps
                 Gp, Bp          (. |- Gp ctx   Gp |- Bp tags)
-            to (G', B'), s', (G, B), p'
-                              (. |- G' = Gp, G'' ctx
-                               G'' contains only parameter declarations from G
-                               G' |- B' tags
-                               G' |- s' : G
-                               and p' holds iff (G', B') contains a parameter
+            to (g', B'), s', (g, B), p'
+                              (. |- g' = Gp, g'' ctx
+                               g'' contains only parameter declarations from g
+                               g' |- B' tags
+                               g' |- s' : g
+                               and p' holds iff (g', B') contains a parameter
                              block independent of Gp, Bp)
         and  abstract is an abstraction function which maps
-               (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : G)
+               (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : g)
             to S'            (|- S' state)
 
-       then cases' = (S1, ... Sn) are cases of the split
+       then cases' = (s1, ... Sn) are cases of the split
     *)
-      (* |- G' = parameter blocks of G  ctx*)(* G' |- B' tags *)
-      (* G' |- s' : G *)(* G' |- U' : V[s'] *)(* G' |- U'.s' : G, V[s'] *)
+      (* |- g' = parameter blocks of g  ctx*)(* g' |- B' tags *)
+      (* g' |- s' : g *)(* g' |- U' : V[s'] *)(* g' |- U'.s' : g, V[s'] *)
       (* . |- t : G1 *)(* . |- G2 [t] ctx *)(* G2 [t] |- B2 tags *)
-      (* . |- G' ctx *)(* G' |- B' tags *)
-      (* G' |- s : G = G0 *)(* G0 |- B0 tags *)
+      (* . |- g' ctx *)(* g' |- B' tags *)
+      (* g' |- s : g = G0 *)(* G0 |- B0 tags *)
       (* abstract' U = S'
 
                    Invariant:
-                   If   G' |- U' : V[s']
+                   If   g' |- U' : V[s']
                    then |- S' state *)
-      (* G' |- U' : V[s'] *)(* G' |- U.s' : G, V *)
-      (* . |- t : G1 *)(* . |- G'' ctx *)
-      (* G'' |- B'' tags *)(* G'' = G1'', G2', G2'' *)
+      (* g' |- U' : V[s'] *)(* g' |- U.s' : g, V *)
+      (* . |- t : G1 *)(* . |- g'' ctx *)
+      (* g'' |- B'' tags *)(* g'' = G1'', G2', G2'' *)
       (* where G1'' |- G2' ctx, G2' is the abstracted parameter block *)
       (* occursInExp (k, U) = B,
 
@@ -607,56 +607,56 @@ module MTPSplitting(MTPSplitting:sig
        then  B iff k occurs in U
     *)
       (* no case for Redex, EVar, EClo *)(* no case for FVar *)
-      (* no case for SClo *)(* abstractInit S ((G', B'), s') = S'
+      (* no case for SClo *)(* abstractInit S ((g', B'), s') = S'
 
        Invariant:
-       If   |- S = (n, (G, B), (IH, OH), d, O, H, F) state
-       and  |- G' ctx
-       and  G' |- B' tags
-       and  G' |- s' : G
-       then |- S' = (n, (G', B'), (IH, OH), d, O[s'], H[s'], F[s']) state
+       If   |- S = (n, (g, B), (IH, OH), d, O, H, F) state
+       and  |- g' ctx
+       and  g' |- B' tags
+       and  g' |- s' : g
+       then |- S' = (n, (g', B'), (IH, OH), d, O[s'], H[s'], F[s']) state
     *)
       (* abstractCont ((x:V, T), abstract) = abstract'
 
        Invariant:
-       If   |- G ctx
-       and  G |- V : type
-       and  G |- B tags
+       If   |- g ctx
+       and  g |- V : type
+       and  g |- B tags
        and  abstract is an abstraction function which maps
-                    (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : G, D)
+                    (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : g, D)
                  to S'            (|- S' state)
        then abstract' is an abstraction function which maps
-                    (Gn', Bn'), sn'  (|- Gn' ctx,  Gn' |- Bn' tags,  Gn' |- sn' : G)
+                    (Gn', Bn'), sn'  (|- Gn' ctx,  Gn' |- Bn' tags,  Gn' |- sn' : g)
                  to S'               (|- S' state)
     *)
       (* no other case should be possible by invariant *)
-      (* expand' ((G, B), isIndex, abstract, makeAddress) = (sc', ops')
+      (* expand' ((g, B), isIndex, abstract, makeAddress) = (sc', ops')
 
        Invariant:
-       If   |- G ctx
-       and  G |- B tags
+       If   |- g ctx
+       and  g |- B tags
        and  isIndex (k) = B function s.t. B holds iff k index
        and  abstract is an abstraction function which maps
-               (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : G)
+               (Gn, Bn), sn  (|- Gn ctx,  Gn |- Bn tags,  Gn |- sn : g)
             to S'            (|- S' state)
        and  makeAddress, a function which calculates the index of the variable
             to be split
        then sc' is a function, which maps
                Gp, Bp         (. |- Gp ctx   Gp |- Bp tags)
-            to (G', B'), s', (G, B), p'
-                              (. |- G' = Gp, G'' ctx
-                               G'' contains only parameter declarations from G
-                               G' |- B' tags
-                               G' |- s' : G
-                               and p' holds iff (G', B') contains a parameter
+            to (g', B'), s', (g, B), p'
+                              (. |- g' = Gp, g'' ctx
+                               g'' contains only parameter declarations from g
+                               g' |- B' tags
+                               g' |- s' : g
+                               and p' holds iff (g', B') contains a parameter
                              block independent of Gp, Bp)
        and  ops' is a list of splitting operators
 
        Optimization possible :
-         instead of reconstructin (G, B) as the result of sc, just take (G, B)
+         instead of reconstructin (g, B) as the result of sc, just take (g, B)
     *)
-      (* G' |- X : V[s'] *)(* G' |- X.s' : G, D *)
-      (* no case of (I.Decl (G, D), I.Decl (G, S.Parameter NONE)) *)
+      (* g' |- X : V[s'] *)(* g' |- X.s' : g, D *)
+      (* no case of (I.Decl (g, D), I.Decl (g, S.Parameter NONE)) *)
       (* expand (S) = ops'
 
        Invariant:

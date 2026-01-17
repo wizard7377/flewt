@@ -30,9 +30,9 @@ module Weaken(Weaken:sig
     let rec strengthenCtx =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = strengthenCtx (G, s) in
-          ((I.Decl (G', (strengthenDec (D, s')))), (I.dot1 s'))
+      | (Decl (g, D), s) ->
+          let (g', s') = strengthenCtx (g, s) in
+          ((I.Decl (g', (strengthenDec (D, s')))), (I.dot1 s'))
     let rec strengthenSub (s, t) = Whnf.compInv (s, t)
     let rec strengthenSpine =
       function
@@ -43,23 +43,23 @@ module Weaken(Weaken:sig
       (* strengthenExp (U, s) = U'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- U : V
-       then G' |- U' = U[s^-1] : V [s^-1]
+       If   g |- s : g'
+       and  g |- U : V
+       then g' |- U' = U[s^-1] : V [s^-1]
     *)
       (* strengthenDec (x:V, s) = x:V'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- V : L
-       then G' |- V' = V[s^-1] : L
+       If   g |- s : g'
+       and  g |- V : L
+       then g' |- V' = V[s^-1] : L
     *)
-      (* strengthenCtx (G, s) = (G', s')
+      (* strengthenCtx (g, s) = (g', s')
 
-       If   G0 |- G ctx
+       If   G0 |- g ctx
        and  G0 |- s G1
-       then G1 |- G' = G[s^-1] ctx
-       and  G0 |- s' : G1, G'
+       then G1 |- g' = g[s^-1] ctx
+       and  G0 |- s' : G1, g'
     *))
       = strengthenExp
     let strengthenSpine = strengthenSpine

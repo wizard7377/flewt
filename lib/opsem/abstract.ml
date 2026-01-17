@@ -52,8 +52,8 @@ module AbstractTabled(AbstractTabled:sig
       function | Shift n -> 0 | Dot (E, s) -> (+) 1 lengthSub s
     let rec compose' =
       function
-      | (IntSyn.Null, G) -> G
-      | (Decl (G', D), G) -> IntSyn.Decl ((compose' (G', G)), D)
+      | (IntSyn.Null, g) -> g
+      | (Decl (g', D), g) -> IntSyn.Decl ((compose' (g', g)), D)
     let rec isId =
       function
       | Shift n -> n = 0
@@ -68,11 +68,11 @@ module AbstractTabled(AbstractTabled:sig
     let rec equalCtx =
       function
       | (I.Null, s, I.Null, s') -> true__
-      | (Decl (G, D), s, Decl (G', D'), s') ->
+      | (Decl (g, D), s, Decl (g', D'), s') ->
           (Conv.convDec ((D, s), (D', s'))) &&
-            (equalCtx (G, (I.dot1 s), G', (I.dot1 s')))
-      | (Decl (G, D), s, I.Null, s') -> false__
-      | (I.Null, s, Decl (G', D'), s') -> false__
+            (equalCtx (g, (I.dot1 s), g', (I.dot1 s')))
+      | (Decl (g, D), s, I.Null, s') -> false__
+      | (I.Null, s, Decl (g', D'), s') -> false__
     let rec eqEVarW arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (EVar (r1, _, _, _), EV (EVar (r2, _, _, _))) -> r1 = r2
@@ -155,16 +155,16 @@ module AbstractTabled(AbstractTabled:sig
     let rec raiseType =
       function
       | (I.Null, V) -> V
-      | (Decl (G, D), V) -> raiseType (G, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (g, D), V) -> raiseType (g, (I.Pi ((D, I.Maybe), V)))
     let rec reverseCtx =
       function
-      | (I.Null, G) -> G
-      | (Decl (G, D), G') -> reverseCtx (G, (I.Decl (G', D)))
+      | (I.Null, g) -> g
+      | (Decl (g, D), g') -> reverseCtx (g, (I.Decl (g', D)))
     let rec ctxToEVarSub =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (G, Dec (_, A)), s) ->
-          let s' = ctxToEVarSub (G, s) in
+      | (Decl (g, Dec (_, A)), s) ->
+          let s' = ctxToEVarSub (g, s) in
           let X = IntSyn.newEVar (IntSyn.Null, (I.EClo (A, s'))) in
           IntSyn.Dot ((IntSyn.Exp X), s')
     let rec collectExpW =
@@ -345,15 +345,15 @@ module AbstractTabled(AbstractTabled:sig
     let rec collectCtx =
       function
       | (Gss, DProg (I.Null, I.Null), (K, DupVars), d) -> (K, DupVars)
-      | (Gss, DProg (Decl (G, D), Decl (dPool, C.Parameter)), (K, DupVars),
+      | (Gss, DProg (Decl (g, D), Decl (dPool, C.Parameter)), (K, DupVars),
          d) ->
           let (K', DupVars') =
-            collectCtx (Gss, (C.DProg (G, dPool)), (K, DupVars), (d - 1)) in
+            collectCtx (Gss, (C.DProg (g, dPool)), (K, DupVars), (d - 1)) in
           collectDec (Gss, (D, I.id), (K', DupVars'), (d - 1), false__)
-      | (Gss, DProg (Decl (G, D), Decl (dPool, Dec (r, s, Ha))),
+      | (Gss, DProg (Decl (g, D), Decl (dPool, Dec (r, s, Ha))),
          (K, DupVars), d) ->
           let (K', DupVars') =
-            collectCtx (Gss, (C.DProg (G, dPool)), (K, DupVars), (d - 1)) in
+            collectCtx (Gss, (C.DProg (g, dPool)), (K, DupVars), (d - 1)) in
           collectDec (Gss, (D, I.id), (K', DupVars'), (d - 1), false__)
     let rec abstractExpW =
       function
@@ -551,28 +551,28 @@ module AbstractTabled(AbstractTabled:sig
           (posEA', Vars', (I.Dec (x, V')), eqn')
     let rec abstractCtx' =
       function
-      | (Gs, epos, Vars, total, depth, DProg (I.Null, I.Null), G', eqn) ->
-          (epos, Vars, G', eqn)
+      | (Gs, epos, Vars, total, depth, DProg (I.Null, I.Null), g', eqn) ->
+          (epos, Vars, g', eqn)
       | (Gs, epos, Vars, total, depth, DProg
-         (Decl (G, D), Decl (dPool, C.Parameter)), G', eqn) ->
-          let d = IntSyn.ctxLength G in
+         (Decl (g, D), Decl (dPool, C.Parameter)), g', eqn) ->
+          let d = IntSyn.ctxLength g in
           let ((epos', _), Vars', D', _) =
             abstractDec
               (Gs, (epos, total), Vars, I.Null, total, (depth - 1),
                 (D, I.id), NONE) in
           abstractCtx'
-            (Gs, epos', Vars', total, (depth - 1), (C.DProg (G, dPool)),
-              (I.Decl (G', D')), eqn)
-      | (Gs, epos, Vars, total, depth, DProg (Decl (G, D), Decl (dPool, _)),
-         G', eqn) ->
-          let d = IntSyn.ctxLength G in
+            (Gs, epos', Vars', total, (depth - 1), (C.DProg (g, dPool)),
+              (I.Decl (g', D')), eqn)
+      | (Gs, epos, Vars, total, depth, DProg (Decl (g, D), Decl (dPool, _)),
+         g', eqn) ->
+          let d = IntSyn.ctxLength g in
           let ((epos', _), Vars', D', _) =
             abstractDec
               (Gs, (epos, total), Vars, I.Null, total, (depth - 1),
                 (D, I.id), NONE) in
           abstractCtx'
-            (Gs, epos', Vars', total, (depth - 1), (C.DProg (G, dPool)),
-              (I.Decl (G', D')), eqn)
+            (Gs, epos', Vars', total, (depth - 1), (C.DProg (g, dPool)),
+              (I.Decl (g', D')), eqn)
     let rec abstractCtx (Gs, epos, Vars, total, depth, dProg) =
       abstractCtx'
         (Gs, epos, Vars, total, depth, dProg, I.Null, TableParam.Trivial)
@@ -610,21 +610,21 @@ module AbstractTabled(AbstractTabled:sig
       avarCtx (Vars, DupVars, 0)
     let rec lowerEVar' =
       function
-      | (X, G, (Pi ((D', _), V'), s')) ->
+      | (X, g, (Pi ((D', _), V'), s')) ->
           let D'' = I.decSub (D', s') in
           let (X', U) =
-            lowerEVar' (X, (I.Decl (G, D'')), (Whnf.whnf (V', (I.dot1 s')))) in
+            lowerEVar' (X, (I.Decl (g, D'')), (Whnf.whnf (V', (I.dot1 s')))) in
           (X', (I.Lam (D'', U)))
-      | (X, G, Vs') -> let X' = X in (X', X')
+      | (X, g, Vs') -> let X' = X in (X', X')
     let rec lowerEVar1 =
       function
-      | (X, EVar (r, G, _, _), ((Pi _ as V), s)) ->
-          let (X', U) = lowerEVar' (X, G, (V, s)) in
+      | (X, EVar (r, g, _, _), ((Pi _ as V), s)) ->
+          let (X', U) = lowerEVar' (X, g, (V, s)) in
           I.EVar ((ref (SOME U)), I.Null, V, (ref nil))
       | (_, X, _) -> X
     let rec lowerEVar =
       function
-      | (E, (EVar (r, G, V, ref nil) as X)) ->
+      | (E, (EVar (r, g, V, ref nil) as X)) ->
           lowerEVar1 (E, X, (Whnf.whnf (V, I.id)))
       | (E, EVar _) ->
           raise
@@ -647,22 +647,22 @@ module AbstractTabled(AbstractTabled:sig
           let s' = avarsToSub (Vars', s) in
           let AVar r as X' = I.newAVar () in
           I.Dot ((I.Exp (I.EClo (X', (I.Shift (~ d))))), s')
-    let rec abstractEVarCtx ((DProg (G, dPool) as dp), p, s) =
+    let rec abstractEVarCtx ((DProg (g, dPool) as dp), p, s) =
       let (Gs, ss, d) =
         if !TableParam.strengthen
         then
-          let w' = Subordinate.weaken (G, (I.targetFam p)) in
+          let w' = Subordinate.weaken (g, (I.targetFam p)) in
           let iw = Whnf.invert w' in
-          let G' = Whnf.strengthen (iw, G) in
-          let d' = I.ctxLength G' in (G', iw, d')
-        else (G, I.id, (I.ctxLength G)) in
+          let g' = Whnf.strengthen (iw, g) in
+          let d' = I.ctxLength g' in (g', iw, d')
+        else (g, I.id, (I.ctxLength g)) in
       let (K, DupVars) = collectCtx ((Gs, ss), dp, (I.Null, I.Null), d) in
       let (K', DupVars') =
         collectExp ((Gs, ss), I.Null, (p, s), K, DupVars, true__, d) in
       let epos = I.ctxLength K' in
       let apos = I.ctxLength DupVars' in
       let total = epos + apos in
-      let (epos', Vars', G', eqn) =
+      let (epos', Vars', g', eqn) =
         abstractCtx ((Gs, ss), epos, I.Null, total, d, dp) in
       let (posEA'', Vars'', U', eqn') =
         abstractExp
@@ -672,14 +672,14 @@ module AbstractTabled(AbstractTabled:sig
       let DEVars = makeEVarCtx ((Gs, ss), Vars'', I.Null, Vars'', 0) in
       let s' = avarsToSub (DupVars', I.id) in
       let s'' = evarsToSub (Vars'', s') in
-      let G'' = reverseCtx (G', I.Null) in
+      let g'' = reverseCtx (g', I.Null) in
       if !TableParam.strengthen
       then
-        let w' = Subordinate.weaken (G'', (I.targetFam U')) in
+        let w' = Subordinate.weaken (g'', (I.targetFam U')) in
         let iw = Whnf.invert w' in
-        let Gs' = Whnf.strengthen (iw, G'') in
+        let Gs' = Whnf.strengthen (iw, g'') in
         (Gs', DAVars, DEVars, U', eqn', s'')
-      else (G'', DAVars, DEVars, U', eqn', s'')
+      else (g'', DAVars, DEVars, U', eqn', s'')
     let ((abstractEVarCtx)(*
        We write {{K}} for the context of K, where EVars have
        been translated to declarations and their occurrences to BVars.
@@ -690,7 +690,7 @@ module AbstractTabled(AbstractTabled:sig
        We write {{U}}_K, {{S}}_K for the corresponding translation of an
        expression or spine.
 
-       Just like contexts G, any K is implicitly assumed to be
+       Just like contexts g, any K is implicitly assumed to be
        well-formed and in dependency order.
 
        We write  K ||- U  if all EVars in U are collected in K.
@@ -720,19 +720,19 @@ module AbstractTabled(AbstractTabled:sig
        where P' = Maybe if D occurs in V, P' = No otherwise
     *)
       (* optimize to have fewer traversals? -cs *)(* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
-      (* raiseType (G, V) = {{G}} V
+      (* raiseType (g, V) = {{g}} V
 
        Invariant:
-       If G |- V : L
-       then  . |- {{G}} V : L
+       If g |- V : L
+       then  . |- {{g}} V : L
 
        All abstractions are potentially dependent.
     *)
       (* collectExpW ((Gs, ss), Gl, (U, s), K, DupVars, flag) = (K', DupVars')
 
        Invariant:
-       If    G, Gl |- s : G1     G1 |- U : V      (U,s) in whnf
-                Gs |- ss : G  (Gs is the strengthened context and ss is the strengthening substitution)
+       If    g, Gl |- s : G1     G1 |- U : V      (U,s) in whnf
+                Gs |- ss : g  (Gs is the strengthened context and ss is the strengthening substitution)
 
        No circularities in U
              (enforced by extended occurs-check for FVars in Unify)
@@ -753,14 +753,14 @@ module AbstractTabled(AbstractTabled:sig
       (* Possible optimization: Calculate also the normal form of the term *)
       (* should we apply I.dot1(ss) ? Tue Oct 15 21:55:16 2002 -bp *)
       (* No other cases can occur due to whnf invariant *)
-      (* collectExp (Gss, G, Gl, (U, s), K) = K'
+      (* collectExp (Gss, g, Gl, (U, s), K) = K'
        same as collectExpW  but  (U,s) need not to be in whnf
     *)
       (* collectSpine (Gss, Gl, (S, s), K, DupVars, flag) = (K', DupVars')
 
        Invariant:
-       If    G, Gl |- s : G1     G1 |- S : V > P
-                Gs |- ss : G
+       If    g, Gl |- s : G1     G1 |- S : V > P
+                Gs |- ss : g
        then  K' = K, K'' and DupVars' = DupVars, DupVars''
        where K'' contains all EVars in (S, s)
        and DupVars'' contains all duplicates in (S, s)
@@ -807,33 +807,33 @@ module AbstractTabled(AbstractTabled:sig
                      in
                        collectSub(Gss, Gl, s, K', DupVars, flag, d)
                      end             *)
-      (* inefficient! *)(* equalCtx (compose'(Gl, G), s, GX, s)  *)
+      (* inefficient! *)(* equalCtx (compose'(Gl, g), s, GX, s)  *)
       (* X is fully applied *)(* X is not fully applied *)
-      (* collectDec (Gss, G, (x:V, s), K, DupVars, flag) = (K', DupVars')
+      (* collectDec (Gss, g, (x:V, s), K, DupVars, flag) = (K', DupVars')
 
        Invariant:
-       If    G |- s : G1     G1 |- V : L
-            Gs |- ss : G
+       If    g |- s : G1     G1 |- V : L
+            Gs |- ss : g
        then  K' = K, K'' and DupVars' = DupVars, DupVars''
        where K'' contains all EVars in (V, s)
        and DupVars'' contains all duplicates in (S, s)
     *)
       (*      val (K',DupVars') =  collectExp (Gss, I.Null, (V, s), K, I.Null, false, d)*)
-      (* collectSub (G, s, K, DupVars, flag) = (K', DupVars)
+      (* collectSub (g, s, K, DupVars, flag) = (K', DupVars)
 
        Invariant:
-       If    G |- s : G1
+       If    g |- s : G1
 
        then  K' = K, K'' and DupVars' = DupVars, DupVars''
        where K'' contains all EVars in s
        and DupVars'' contains all duplicates in s
     *)
       (* inefficient? *)(* inefficient? *)
-      (* collectCtx (Gss, G0, G, K) = (K', DupVars)
+      (* collectCtx (Gss, G0, g, K) = (K', DupVars)
        Invariant:
-       If G0 |- G ctx,
-       then G0' = G0,G
-       and K' = K, K'' where K'' contains all EVars in G
+       If G0 |- g ctx,
+       then G0' = G0,g
+       and K' = K, K'' where K'' contains all EVars in g
     *)
       (* abstractExpW (epos, apos, Vars, Gl, total, depth, (U, s), eqn) = (epos', apos', Vars', U', eqn')
       (abstraction and linearization of existential variables in (U,s))
@@ -841,7 +841,7 @@ module AbstractTabled(AbstractTabled:sig
        U' = {{U[s]}}_(K, Dup)
 
        Invariant:
-       If     G, Gl |- U[s] : V and  U[s] is in whnf
+       If     g, Gl |- U[s] : V and  U[s] is in whnf
        and   |Gl| = depth
              |Dup, K| = total
 
@@ -858,7 +858,7 @@ module AbstractTabled(AbstractTabled:sig
              each pair (_, EV X) in Vars' )
 
        then   {{Dup}}, {{K}}  ||- U
-       and {{Dup}} {{K}} , G, Gl |-  U' : V'
+       and {{Dup}} {{K}} , g, Gl |-  U' : V'
        and eqn' = eqn, eqn'' where eqn'' are residual equations relating between elements
            in {{K}} and {{Dup}}
 
@@ -912,77 +912,77 @@ module AbstractTabled(AbstractTabled:sig
        S' = {{s}}_K* @@ S
 
        Invariant:
-       If    G, Gl |- s : G1
+       If    g, Gl |- s : G1
        and  |Gl| = depth
 
        and   {{Dup}} {{K}} ||- s
-       then {{Dup}} {{K}}, G, Gl |- S' : {G1}.W > W   (for some W)
+       then {{Dup}} {{K}}, g, Gl |- S' : {G1}.W > W   (for some W)
        and  . ||- S'
     *)
       (* k = depth *)(* abstractSpine (flag, Gs, posEA, Vars, Gl, total, depth, (S, s), eqn) = (posEA', Vars', S', eqn')
        where S' = {{S[s]}}_K*   and K* = K, Dup
 
        Invariant:
-       If   Gl, G |- s : G1     G1 |- S : V > P
+       If   Gl, g |- s : G1     G1 |- S : V > P
        and  K* ||- S
-       and  |G| = depth
+       and  |g| = depth
 
-       then {{K*}}, G, G |- S' : V' > P'
+       then {{K*}}, g, g |- S' : V' > P'
        and  . ||- S'
     *)
       (* abstractSub' (flag, Gs, epos, K, Gl, total, s) = (epos', K', s')      (implicit raising)
 
         Invariant:
-        If   G |- s : G1
-       and  |G| = depth
+        If   g |- s : G1
+       and  |g| = depth
        and  K ||- s
-       and {{K}}, G |- {{s}}_K : G1
-       then Gs, G |- s' : G1    where  s' == {{s}}_K
+       and {{K}}, g |- {{s}}_K : G1
+       then Gs, g |- s' : G1    where  s' == {{s}}_K
 
          *)
       (* abstractDec (Gs, posEA, Vars, Gl, total, depth, (x:V, s)) = (posEA', Vars', x:V')
        where V = {{V[s]}}_K*
 
        Invariant:
-       If   G |- s : G1     G1 |- V : L
+       If   g |- s : G1     G1 |- V : L
        and  K* ||- V
-       and  |G| = depth
+       and  |g| = depth
 
-       then {{K*}}, G |- V' : L
+       then {{K*}}, g |- V' : L
        and  . ||- V'
     *)
       (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*)
       (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*)
-      (* abstractCtx (Gs, epos, K, total, depth, C.DProg(G,dPool)) = (epos', K', G')
-       where G' = {{G}}_K
+      (* abstractCtx (Gs, epos, K, total, depth, C.DProg(g,dPool)) = (epos', K', g')
+       where g' = {{g}}_K
 
        Invariants:
-       If K ||- G
-       and |G| = depth
-       then {{K}} |- G' ctx
-       and . ||- G'
+       If K ||- g
+       and |g| = depth
+       then {{K}} |- g' ctx
+       and . ||- g'
        and epos = current epos
 
        note: we will linearize all dynamic assumptions in G.
     *)
       (*        let
-          val d = IntSyn.ctxLength (G)
+          val d = IntSyn.ctxLength (g)
           val ((epos', _), Vars', D', eqn') = abstractDec (Gs, (epos, total), Vars, I.Null, total , depth - 1, (D, I.id), SOME(eqn))
         in
-          abstractCtx' (Gs, epos', Vars', total, depth - 1, C.DProg(G, dPool), I.Decl (G', D'), eqn')
+          abstractCtx' (Gs, epos', Vars', total, depth - 1, C.DProg(g, dPool), I.Decl (g', D'), eqn')
         end
 *)
-      (* makeEVarCtx (Gs, Kall, D, K, eqn) = G'  *)(* add case for foreign expressions ? *)
-      (* lowerEVar' (G, V[s]) = (X', U), see lowerEVar *)
-      (* lowerEVar1 (X, V[s]), V[s] in whnf, see lowerEVar *)(* lowerEVar1 (X, I.EVar (r, G, _, _), (V as I.Pi _, s)) = *)
+      (* makeEVarCtx (Gs, Kall, D, K, eqn) = g'  *)(* add case for foreign expressions ? *)
+      (* lowerEVar' (g, V[s]) = (X', U), see lowerEVar *)
+      (* lowerEVar1 (X, V[s]), V[s] in whnf, see lowerEVar *)(* lowerEVar1 (X, I.EVar (r, g, _, _), (V as I.Pi _, s)) = *)
       (* lowerEVar (X) = X'
 
        Invariant:
-       If   G |- X : {{G'}} P
+       If   g |- X : {{g'}} P
             X not subject to any constraints
-       then G, G' |- X' : P
+       then g, g' |- X' : P
 
-       Effect: X is instantiated to [[G']] X' if G' is empty
+       Effect: X is instantiated to [[g']] X' if g' is empty
                otherwise X = X' and no effect occurs.
     *)
       (* It is not clear if this case can happen *)(* pre-Twelf 1.2 code walk, Fri May  8 11:05:08 1998 *)
@@ -998,11 +998,11 @@ module AbstractTabled(AbstractTabled:sig
         then
         s = X1 . X2 . ... s'
      *)
-      (* abstractEVarCtx (G, p, s) = (G', D', U', s')
+      (* abstractEVarCtx (g, p, s) = (g', D', U', s')
 
-     if G |- p[s] and s contains free variables X_n .... X_1
+     if g |- p[s] and s contains free variables X_n .... X_1
      then
-       D' |- Pi  G' . U'
+       D' |- Pi  g' . U'
        where D' is the abstraction over the free vars X_n .... X_1
 
        and s' is a substitution the free variables
@@ -1010,20 +1010,20 @@ module AbstractTabled(AbstractTabled:sig
 
        . |- s' : D'
 
-       . |- (Pi G' .U' )[s']  is equivalent to . |- Pi G . p[s]
+       . |- (Pi g' .U' )[s']  is equivalent to . |- Pi g . p[s]
 
-       Note: G' and U' are possibly strengthened
+       Note: g' and U' are possibly strengthened
    *)
-      (* K ||- G i.e. K contains all EVars in G *)(* DupVars' , K' ||- p[s]  i.e. K' contains all EVars in (p,s) and G and
+      (* K ||- g i.e. K contains all EVars in g *)(* DupVars' , K' ||- p[s]  i.e. K' contains all EVars in (p,s) and g and
                                          DupVars' contains all duplicate EVars p[s] *)
-      (* {{G}}_Vars' , i.e. abstract over the existential variables in G*)
+      (* {{g}}_Vars' , i.e. abstract over the existential variables in g*)
       (* = 0 *)(* abstract over existential variables in p[s] and linearize the expression *)
       (* depth *)(* note: depth will become negative during makeEVarCtx *))
       = abstractEVarCtx
     let ((abstractAnswSub)(* abstractAnswSub s = (D', s')
 
    if  |- s : Delta' and s may contain free variables and
-     D |- Pi G. U  and  |- s : D and  |- (Pi G . U)[s]
+     D |- Pi G. U  and  |- s : D and  |- (Pi g . U)[s]
     then
 
     D' |- s' : D   where D' contains all the
@@ -1044,5 +1044,5 @@ module AbstractTabled(AbstractTabled:sig
                 (* total *))) in
           let DEVars = makeEVarCtx ((I.Null, I.id), Vars, I.Null, Vars, 0) in
           let s1' = ctxToEVarSub (DEVars, I.id) in (DEVars, s')
-    let raiseType = function | (G, U) -> raiseType (G, U)
+    let raiseType = function | (g, U) -> raiseType (g, U)
   end ;;

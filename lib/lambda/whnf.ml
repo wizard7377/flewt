@@ -73,19 +73,19 @@ module Whnf() : WHNF =
     let rec appendSpine =
       function
       | ((Nil, s1), Ss2) -> SClo Ss2
-      | ((App (U1, S1), s1), Ss2) ->
-          App ((EClo (U1, s1)), (appendSpine ((S1, s1), Ss2)))
-      | ((SClo (S1, s1'), s1), Ss2) ->
-          appendSpine ((S1, (comp (s1', s1))), Ss2)
+      | ((App (u1, s1), s1), Ss2) ->
+          App ((EClo (u1, s1)), (appendSpine ((s1, s1), Ss2)))
+      | ((SClo (s1, s1'), s1), Ss2) ->
+          appendSpine ((s1, (comp (s1', s1))), Ss2)
     let rec whnfRedex =
       function
       | (Us, (SClo (S, s2'), s2)) -> whnfRedex (Us, (S, (comp (s2', s2))))
       | (((Root (R), s1) as Us), (Nil, s2)) -> Us
-      | ((Root (H1, S1), s1), (S2, s2)) ->
-          ((Root (H1, (appendSpine ((S1, s1), (S2, s2))))), id)
-      | ((Lam (_, U1), s1), (App (U2, S), s2)) ->
+      | ((Root (H1, s1), s1), (s2, s2)) ->
+          ((Root (H1, (appendSpine ((s1, s1), (s2, s2))))), id)
+      | ((Lam (_, u1), s1), (App (u2, S), s2)) ->
           whnfRedex
-            ((whnf (U1, (dotEta ((frontSub ((Exp U2), s2)), s1)))), (S, s2))
+            ((whnf (u1, (dotEta ((frontSub ((Exp u2), s2)), s1)))), (S, s2))
       | (((Lam _, s1) as Us), _) -> Us
       | (((EVar _, s1) as Us), (Nil, s2)) -> Us
       | ((((EVar _ as X), s1) as Us), Ss2) ->
@@ -98,20 +98,20 @@ module Whnf() : WHNF =
       | (((Pi _, s1) as Us), _) -> Us
     let rec lowerEVar' =
       function
-      | (G, (Pi ((D', _), V'), s')) ->
+      | (g, (Pi ((D', _), V'), s')) ->
           let D'' = decSub (D', s') in
           let (X', U) =
-            lowerEVar' ((Decl (G, D'')), (whnfExpandDef (V', (dot1 s')))) in
+            lowerEVar' ((Decl (g, D'')), (whnfExpandDef (V', (dot1 s')))) in
           (X', (Lam (D'', U)))
-      | (G, Vs') -> let X' = newEVar (G, (EClo Vs')) in (X', X')
+      | (g, Vs') -> let X' = newEVar (g, (EClo Vs')) in (X', X')
     let rec lowerEVar1 =
       function
-      | (EVar (r, G, _, _), ((Pi _, _) as Vs)) ->
-          let (X', U) = lowerEVar' (G, Vs) in let _ = (:=) r SOME U in X'
+      | (EVar (r, g, _, _), ((Pi _, _) as Vs)) ->
+          let (X', U) = lowerEVar' (g, Vs) in let _ = (:=) r SOME U in X'
       | (X, _) -> X
     let rec lowerEVar =
       function
-      | EVar (r, G, V, ref nil) as X ->
+      | EVar (r, g, V, ref nil) as X ->
           lowerEVar1 (X, (whnfExpandDef (V, id)))
       | EVar _ ->
           raise
@@ -170,18 +170,18 @@ module Whnf() : WHNF =
     let rec whnfExpandDef (Us) = whnfExpandDefW (whnf Us)
     let rec newLoweredEVarW =
       function
-      | (G, (Pi ((D, _), V), s)) ->
+      | (g, (Pi ((D, _), V), s)) ->
           let D' = decSub (D, s) in
-          Lam (D', (newLoweredEVar ((Decl (G, D')), (V, (dot1 s)))))
-      | (G, Vs) -> newEVar (G, (EClo Vs))
-    let rec newLoweredEVar (G, Vs) = newLoweredEVarW (G, (whnfExpandDef Vs))
+          Lam (D', (newLoweredEVar ((Decl (g, D')), (V, (dot1 s)))))
+      | (g, Vs) -> newEVar (g, (EClo Vs))
+    let rec newLoweredEVar (g, Vs) = newLoweredEVarW (g, (whnfExpandDef Vs))
     let rec newSpineVarW =
       function
-      | (G, (Pi ((Dec (_, Va), _), Vr), s)) ->
-          let X = newLoweredEVar (G, (Va, s)) in
-          App (X, (newSpineVar (G, (Vr, (dotEta ((Exp X), s))))))
-      | (G, _) -> Nil
-    let rec newSpineVar (G, Vs) = newSpineVarW (G, (whnfExpandDef Vs))
+      | (g, (Pi ((Dec (_, Va), _), Vr), s)) ->
+          let X = newLoweredEVar (g, (Va, s)) in
+          App (X, (newSpineVar (g, (Vr, (dotEta ((Exp X), s))))))
+      | (g, _) -> Nil
+    let rec newSpineVar (g, Vs) = newSpineVarW (g, (whnfExpandDef Vs))
     let rec spineToSub =
       function
       | (Nil, s) -> s
@@ -256,7 +256,7 @@ module Whnf() : WHNF =
     let rec normalizeCtx =
       function
       | Null -> Null
-      | Decl (G, D) -> Decl ((normalizeCtx G), (normalizeDec (D, id)))
+      | Decl (g, D) -> Decl ((normalizeCtx g), (normalizeDec (D, id)))
     let rec invert s =
       let lookup =
         function
@@ -279,12 +279,12 @@ module Whnf() : WHNF =
     let rec strengthen =
       function
       | (Shift n, Null) -> Null
-      | (Dot (Idx k, t), Decl (G, D)) ->
+      | (Dot (Idx k, t), Decl (g, D)) ->
           let t' = comp (t, invShift) in
-          Decl ((strengthen (t', G)), (decSub (D, t')))
-      | (Dot (Undef, t), Decl (G, D)) -> strengthen (t, G)
-      | (Shift n, G) ->
-          strengthen ((Dot ((Idx (n + 1)), (Shift (n + 1)))), G)
+          Decl ((strengthen (t', g)), (decSub (D, t')))
+      | (Dot (Undef, t), Decl (g, D)) -> strengthen (t, g)
+      | (Shift n, g) ->
+          strengthen ((Dot ((Idx (n + 1)), (Shift (n + 1)))), g)
     let rec isId' =
       function
       | (Shift k, k') -> k = k'
@@ -353,10 +353,10 @@ module Whnf() : WHNF =
       (* exception Undefined *)(* etaContract (U, s, n) = k'
 
        Invariant:
-       if   G, V1, .., Vn |- s : G1  and  G1 |- U : V
+       if   g, V1, .., Vn |- s : G1  and  G1 |- U : V
        then if   lam V1...lam Vn. U[s] =eta*=> k
             then k' = k
-            and  G |- k' : Pi V1...Pi Vn. V [s]
+            and  g |- k' : Pi V1...Pi Vn. V [s]
             else Eta is raised
               (even if U[s] might be eta-reducible to some other expressions).
     *)
@@ -365,7 +365,7 @@ module Whnf() : WHNF =
       (* Impossible: L, Pi D.V *)(* etaContract' (S, s, n) = R'
 
        Invariant:
-       If  G |- s : G1    and  G1 |- S : V > W
+       If  g |- s : G1    and  G1 |- S : V > W
        then if   S[s] =eta*=> n ; n-1 ; ... ; 1 ; Nil
             then ()
        else Eta is raised
@@ -373,57 +373,57 @@ module Whnf() : WHNF =
       (* dotEta (Ft, s) = s'
 
        Invariant:
-       If   G |- s : G1, V  and G |- Ft : V [s]
+       If   g |- s : G1, V  and g |- Ft : V [s]
        then Ft  =eta*=>  Ft1
        and  s' = Ft1 . s
-       and  G |- s' : G1, V
+       and  g |- s' : G1, V
     *)
-      (* appendSpine ((S1, s1), (S2, s2)) = S'
+      (* appendSpine ((s1, s1), (s2, s2)) = S'
 
        Invariant:
-       If    G |- s1 : G1   G1 |- S1 : V1' > V1
-       and   G |- s2 : G2   G2 |- S2 : V2  > V2'
-       and   G |- V1 [s1] == V2 [s2]
-       then  G |- S' : V1' [s1] > V2' [s2]
+       If    g |- s1 : G1   G1 |- s1 : V1' > V1
+       and   g |- s2 : G2   G2 |- s2 : V2  > V2'
+       and   g |- V1 [s1] == V2 [s2]
+       then  g |- S' : V1' [s1] > V2' [s2]
     *)
       (* whnfRedex ((U, s1), (S, s2)) = (U', s')
 
        Invariant:
-       If    G |- s1 : G1   G1 |- U : V1,   (U,s1) whnf
-             G |- s2 : G2   G2 |- S : V2 > W2
-             G |- V1 [s1] == V2 [s2] == V : L
-       then  G |- s' : G',  G' |- U' : W'
-       and   G |- W'[s'] == W2[s2] == W : L
-       and   G |- U'[s'] == (U[s1] @ S[s2]) : W
+       If    g |- s1 : G1   G1 |- U : V1,   (U,s1) whnf
+             g |- s2 : G2   G2 |- S : V2 > W2
+             g |- V1 [s1] == V2 [s2] == V : L
+       then  g |- s' : g',  g' |- U' : W'
+       and   g |- W'[s'] == W2[s2] == W : L
+       and   g |- U'[s'] == (U[s1] @ S[s2]) : W
        and   (U',s') whnf
 
        Effects: EVars may be lowered to base type.
     *)
-      (* S2 = App _, only possible if term is not eta-expanded *)
-      (* S2[s2] = Nil *)(* Ss2 must be App, since prior cases do not apply *)
+      (* s2 = App _, only possible if term is not eta-expanded *)
+      (* s2[s2] = Nil *)(* Ss2 must be App, since prior cases do not apply *)
       (* lowerEVar X results in redex, optimize by unfolding call to whnfRedex *)
       (* Uni and Pi can arise after instantiation of EVar X : K *)
-      (* S2[s2] = Nil *)(* S2[s2] = Nil *)
+      (* s2[s2] = Nil *)(* s2[s2] = Nil *)
       (* Other cases impossible since (U,s1) whnf *)
-      (* lowerEVar' (G, V[s]) = (X', U), see lowerEVar *)
+      (* lowerEVar' (g, V[s]) = (X', U), see lowerEVar *)
       (* lowerEVar1 (X, V[s]), V[s] in whnf, see lowerEVar *)(* lowerEVar (X) = X'
 
        Invariant:
-       If   G |- X : {{G'}} P
+       If   g |- X : {{g'}} P
             X not subject to any constraints
-       then G, G' |- X' : P
+       then g, g' |- X' : P
 
-       Effect: X is instantiated to [[G']] X' if G' is empty
+       Effect: X is instantiated to [[g']] X' if g' is empty
                otherwise X = X' and no effect occurs.
     *)
       (* It is not clear if this case can happen *)(* pre-Twelf 1.2 code walk, Fri May  8 11:05:08 1998 *)
       (* whnfRoot ((H, S), s) = (U', s')
 
        Invariant:
-       If    G |- s : G1      G1 |- H : V
+       If    g |- s : G1      G1 |- H : V
                               G1 |- S : V > W
-       then  G |- s' : G'     G' |- U' : W'
-       and   G |- W [s] = W' [s'] : L
+       then  g |- s' : g'     g' |- U' : W'
+       and   g |- W [s] = W' [s'] : L
 
        Effects: EVars may be instantiated when lowered
     *)
@@ -443,10 +443,10 @@ module Whnf() : WHNF =
       (* whnf (U, s) = (U', s')
 
        Invariant:
-       If    G |- s : G'    G' |- U : V
-       then  G |- s': G''   G''|- U' : V'
-       and   G |- V [s] == V' [s'] == V'' : L
-       and   G |- U [s] == U' [s'] : V''
+       If    g |- s : g'    g' |- U : V
+       then  g |- s': g''   g''|- U' : V'
+       and   g |- V [s] == V' [s'] == V'' : L
+       and   g |- U [s] == U' [s'] : V''
        and   (U', s') whnf
     *)
       (*
@@ -463,22 +463,22 @@ module Whnf() : WHNF =
       (* possible opt: call lowerEVar1 *)(* expandDef (Root (Def (d), S), s) = (U' ,s')
 
        Invariant:
-       If    G |- s : G1     G1 |- S : V > W            ((d @ S), s) in whnf
+       If    g |- s : G1     G1 |- S : V > W            ((d @ S), s) in whnf
                              .  |- d = U : V'
-       then  G |- s' : G'    G' |- U' : W'
-       and   G |- V' == V [s] : L
-       and   G |- W' [s'] == W [s] == W'' : L
-       and   G |- (U @ S) [s] == U' [s'] : W'
+       then  g |- s' : g'    g' |- U' : W'
+       and   g |- V' == V [s] : L
+       and   g |- W' [s'] == W [s] == W'' : L
+       and   g |- (U @ S) [s] == U' [s'] : W'
        and   (U', s') in whnf
     *)
       (* why the call to whnf?  isn't constDef (d) in nf? -kw *)
       (* inferSpine ((S, s1), (V, s2)) = (V', s')
 
        Invariant:
-       If  G |- s1 : G1  and  G1 |- S : V1 > V1'
-       and G |- s2 : G2  and  G2 |- V : L,  (V, s2) in whnf
-       and G |- S[s1] : V[s2] > W  (so V1[s1] == V[s2] and V1[s1] == W)
-       then G |- V'[s'] = W
+       If  g |- s1 : G1  and  G1 |- S : V1 > V1'
+       and g |- s2 : G2  and  G2 |- V : L,  (V, s2) in whnf
+       and g |- S[s1] : V[s2] > W  (so V1[s1] == V[s2] and V1[s1] == W)
+       then g |- V'[s'] = W
     *)
       (* FIX: this is almost certainly mis-design -kw *)
       (* inferCon (C) = V  if C = c or C = d or C = sk and |- C : V *)
@@ -486,31 +486,31 @@ module Whnf() : WHNF =
       (* etaExpand' (U, (V,s)) = U'
 
        Invariant :
-       If    G |- U : V [s]   (V,s) in whnf
-       then  G |- U' : V [s]
-       and   G |- U == U' : V[s]
+       If    g |- U : V [s]   (V,s) in whnf
+       then  g |- U' : V [s]
+       and   g |- U == U' : V[s]
        and   (U', id) in whnf and U' in head-eta-long form
     *)
       (* quite inefficient -cs *)(* FIX: this is almost certainly mis-design -kw *)
       (* etaExpandRoot (Root(H, S)) = U' where H = c or H = d
 
        Invariant:
-       If   G |- H @ S : V  where H = c or H = d
-       then G |- U' : V
-       and  G |- H @ S == U'
+       If   g |- H @ S : V  where H = c or H = d
+       then g |- U' : V
+       and  g |- H @ S == U'
        and (U',id) in whnf and U' in head-eta-long form
     *)
       (* FIX: this is almost certainly mis-design -kw *)
       (* whnfEta ((U, s1), (V, s2)) = ((U', s1'), (V', s2)')
 
        Invariant:
-       If   G |- s1 : G1  G1 |- U : V1
-       and  G |- s2 : G2  G2 |- V : L
-       and  G |- V1[s1] == V[s2] : L
+       If   g |- s1 : G1  G1 |- U : V1
+       and  g |- s2 : G2  G2 |- V : L
+       and  g |- V1[s1] == V[s2] : L
 
-       then G |- s1' : G1'  G1' |- U' : V1'
-       and  G |- s2' : G2'  G2' |- V' : L'
-       and  G |- V1'[s1'] == V'[s2'] : L
+       then g |- s1' : G1'  G1' |- U' : V1'
+       and  g |- s2' : G2'  G2' |- V' : L'
+       and  g |- V1'[s1'] == V'[s2'] : L
        and (U', s1') is in whnf
        and (V', s2') is in whnf
        and (U', s1') == Lam x.U'' if V[s2] == Pi x.V''
@@ -521,7 +521,7 @@ module Whnf() : WHNF =
       (* Invariant:
 
        normalizeExp (U, s) = U'
-       If   G |- s : G' and G' |- U : V
+       If   g |- s : g' and g' |- U : V
        then U [s] = U'
        and  U' in existential normal form
 
@@ -536,37 +536,37 @@ module Whnf() : WHNF =
       (* invert s = s'
 
        Invariant:
-       If   G |- s : G'    (and s patsub)
-       then G' |- s' : G
+       If   g |- s : g'    (and s patsub)
+       then g' |- s' : g
        s.t. s o s' = id
     *)
-      (* strengthen (t, G) = G'
+      (* strengthen (t, g) = g'
 
        Invariant:
-       If   G'' |- t : G     and t strsub *)
-      (* = 0 *)(* k = 1 *)(* G |- D dec *)
-      (* G' |- t' : G *)(* G' |- D[t'] dec *)(* isId s = B
+       If   g'' |- t : g     and t strsub *)
+      (* = 0 *)(* k = 1 *)(* g |- D dec *)
+      (* g' |- t' : g *)(* g' |- D[t'] dec *)(* isId s = B
 
        Invariant:
-       If   G |- s: G', s weakensub
+       If   g |- s: g', s weakensub
        then B holds
-            iff s = id, G' = G
+            iff s = id, g' = g
     *)
       (* cloInv (U, w) = U[w^-1]
 
        Invariant:
-       If G |- U : V
-          G |- w : G'  w weakening subst
+       If g |- U : V
+          g |- w : g'  w weakening subst
           U[w^-1] defined (without pruning or constraints)
 
-       then G' |- U[w^-1] : V[w^-1]
+       then g' |- U[w^-1] : V[w^-1]
        Effects: None
     *)
       (* cloInv (s, w) = s o w^-1
 
        Invariant:
-       If G |- s : G1
-          G |- w : G2  s weakening subst
+       If g |- s : G1
+          g |- w : G2  s weakening subst
           s o w^-1 defined (without pruning or constraints)
 
        then G2 |- s o w^-1 : G1
@@ -577,7 +577,7 @@ module Whnf() : WHNF =
       (* isPatSub s = B
 
        Invariant:
-       If    G |- s : G'
+       If    g |- s : g'
        and   s = n1 .. nm ^k
        then  B iff  n1, .., nm pairwise distinct
                and  ni <= k or ni = _ for all 1 <= i <= m
@@ -596,7 +596,7 @@ module Whnf() : WHNF =
                       NONE otherwise
 
        Invariant:
-       If    G |- s : G'
+       If    g |- s : g'
        and   s = n1 .. nm ^k
        then  B iff  n1, .., nm pairwise distinct
                and  ni <= k or ni = _ for all 1 <= i <= m

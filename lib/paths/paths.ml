@@ -53,7 +53,7 @@ module type PATHS  =
 
      An occurrence is a path in reverse order.
   *)
-    (* #, covers Uni, EVar, Redex(?) *)(* H @ S1; ...; #; ...; Sn; Nil *)
+    (* #, covers Uni, EVar, Redex(?) *)(* H @ s1; ...; #; ...; Sn; Nil *)
     val top : occ
     val label : occ -> occ
     val body : occ -> occ
@@ -312,7 +312,7 @@ module Paths = (Make_Paths)(struct  end)(* functor Paths *)
 (* Simple-minded implementation *)(* Maps occurrences to regions *)
 (* Occurrence trees for expressions and spines *)(* could also be: type occ = path -> path *)
 (* Occurrences: paths in reverse order *)(* #, covers Uni, EVar, Redex(?) *)
-(* C @ S1; ...; #; ...; Sn; Nil *)(* # @ S, term in normal form *)
+(* C @ s1; ...; #; ...; Sn; Nil *)(* # @ S, term in normal form *)
 (* [x:V] # or {x:V} # *)(* [x:#] U or {x:#} V *)
 (* Follow path through a term to obtain subterm *)(* In the general case, regions only approximate true source location *)
 (* Paths, occurrences and occurrence trees only work well for normal forms *)

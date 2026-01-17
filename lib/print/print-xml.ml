@@ -38,90 +38,90 @@ module PrintXML(PrintXML:sig
     let rec sexp fmts = F.Hbox [F.HVbox fmts]
     let rec fmtCon =
       function
-      | (G, BVar n) ->
-          let Dec (SOME n, _) = I.ctxDec (G, n) in
+      | (g, BVar n) ->
+          let Dec (SOME n, _) = I.ctxDec (g, n) in
           sexp [Str (("<Var name = \"" ^ n) ^ "\"/>")]
-      | (G, Const cid) ->
+      | (g, Const cid) ->
           sexp
             [Str "<Const name=\"";
             Str (I.conDecName (I.sgnLookup cid));
             Str "\"/>"]
-      | (G, Def cid) ->
+      | (g, Def cid) ->
           sexp [Str "<Def>"; F.Break; Integer cid; Str "</Def>"]
-      | (G, FgnConst (csid, condec)) -> sexp [Str "FngConst"]
+      | (g, FgnConst (csid, condec)) -> sexp [Str "FngConst"]
     let rec fmtUni =
       function | I.Type -> Str "<Type/>" | I.Kind -> Str "<Kind/>"
     let rec fmtExpW =
       function
-      | (G, (Uni (L), s)) ->
+      | (g, (Uni (L), s)) ->
           sexp [Str "<Uni>"; F.Break; fmtUni L; Str "</Uni>"]
-      | (G, (Pi (((Dec (_, V1) as D), P), V2), s)) ->
+      | (g, (Pi (((Dec (_, V1) as D), P), V2), s)) ->
           (match P with
            | I.Maybe ->
-               let D' = Names.decLUName (G, D) in
-               let G' = I.Decl (G, D') in
+               let D' = Names.decLUName (g, D) in
+               let g' = I.Decl (g, D') in
                sexp
                  [Str "<Pi>";
                  F.Break;
-                 fmtDec (G, (D', s));
+                 fmtDec (g, (D', s));
                  F.Break;
-                 fmtExp (G', (V2, (I.dot1 s)));
+                 fmtExp (g', (V2, (I.dot1 s)));
                  Str "</Pi>"]
            | I.No ->
-               let G' = I.Decl (G, D) in
+               let g' = I.Decl (g, D) in
                sexp
                  [Str "<Arrow>";
                  F.Break;
-                 fmtDec' (G, (D, s));
+                 fmtDec' (g, (D, s));
                  F.Break;
-                 fmtExp (G', (V2, (I.dot1 s)));
+                 fmtExp (g', (V2, (I.dot1 s)));
                  Str "</Arrow>"])
-      | (G, (Root (H, S), s)) ->
-          (match fmtSpine (G, (S, s)) with
-           | NONE -> fmtCon (G, H)
+      | (g, (Root (H, S), s)) ->
+          (match fmtSpine (g, (S, s)) with
+           | NONE -> fmtCon (g, H)
            | SOME fmts ->
                F.HVbox
                  [Str "<App>";
-                 fmtCon (G, H);
+                 fmtCon (g, H);
                  F.Break;
                  sexp fmts;
                  Str "</App>"])
-      | (G, (Lam (D, U), s)) ->
-          let D' = Names.decLUName (G, D) in
-          let G' = I.Decl (G, D') in
+      | (g, (Lam (D, U), s)) ->
+          let D' = Names.decLUName (g, D) in
+          let g' = I.Decl (g, D') in
           sexp
             [Str "<Lam>";
             F.Break;
-            fmtDec (G, (D', s));
+            fmtDec (g, (D', s));
             F.Break;
-            fmtExp (G', (U, (I.dot1 s)));
+            fmtExp (g', (U, (I.dot1 s)));
             Str "</Lam>"]
-      | (G, (FgnExp (csid, F), s)) -> sexp [Str "FgnExp"]
-    let rec fmtExp (G, (U, s)) = fmtExpW (G, (Whnf.whnf (U, s)))
+      | (g, (FgnExp (csid, F), s)) -> sexp [Str "FgnExp"]
+    let rec fmtExp (g, (U, s)) = fmtExpW (g, (Whnf.whnf (U, s)))
     let rec fmtSpine =
       function
-      | (G, (I.Nil, _)) -> NONE
-      | (G, (SClo (S, s'), s)) -> fmtSpine (G, (S, (I.comp (s', s))))
-      | (G, (App (U, S), s)) ->
-          (match fmtSpine (G, (S, s)) with
-           | NONE -> SOME [fmtExp (G, (U, s))]
-           | SOME fmts -> SOME ([fmtExp (G, (U, s)); F.Break] @ fmts))
+      | (g, (I.Nil, _)) -> NONE
+      | (g, (SClo (S, s'), s)) -> fmtSpine (g, (S, (I.comp (s', s))))
+      | (g, (App (U, S), s)) ->
+          (match fmtSpine (g, (S, s)) with
+           | NONE -> SOME [fmtExp (g, (U, s))]
+           | SOME fmts -> SOME ([fmtExp (g, (U, s)); F.Break] @ fmts))
     let rec fmtDec =
       function
-      | (G, (Dec (NONE, V), s)) ->
-          sexp [Str "<Dec>"; F.Break; fmtExp (G, (V, s)); Str "</Dec>"]
-      | (G, (Dec (SOME x, V), s)) ->
+      | (g, (Dec (NONE, V), s)) ->
+          sexp [Str "<Dec>"; F.Break; fmtExp (g, (V, s)); Str "</Dec>"]
+      | (g, (Dec (SOME x, V), s)) ->
           sexp
             [Str "<Dec name =";
             Name x;
             Str ">";
             F.Break;
-            fmtExp (G, (V, s));
+            fmtExp (g, (V, s));
             Str "</Dec>"]
     let rec fmtDec' =
       function
-      | (G, (Dec (NONE, V), s)) -> sexp [fmtExp (G, (V, s))]
-      | (G, (Dec (SOME x, V), s)) -> sexp [fmtExp (G, (V, s))]
+      | (g, (Dec (NONE, V), s)) -> sexp [fmtExp (g, (V, s))]
+      | (g, (Dec (SOME x, V), s)) -> sexp [fmtExp (g, (V, s))]
     let rec fmtConDec =
       function
       | ConDec (name, parent, imp, _, V, L) ->
@@ -173,63 +173,63 @@ module PrintXML(PrintXML:sig
             Str "</Abbrevdef>"]
       | BlockDec (name, _, _, _) ->
           Str (("<! Skipping Skolem constant " ^ name) ^ ">")
-    let rec fmtEqn (Eqn (G, U1, U2)) =
+    let rec fmtEqn (Eqn (g, u1, u2)) =
       sexp
         [Str "<Equation>";
         F.Break;
-        fmtExp (G, (U1, I.id));
+        fmtExp (g, (u1, I.id));
         F.Break;
-        fmtExp (G, (U2, I.id));
+        fmtExp (g, (u2, I.id));
         Str "</Equation>"]
-    let rec fmtEqnName (Eqn (G, U1, U2)) =
-      fmtEqn (I.Eqn ((Names.ctxLUName G), U1, U2))
+    let rec fmtEqnName (Eqn (g, u1, u2)) =
+      fmtEqn (I.Eqn ((Names.ctxLUName g), u1, u2))
     let rec formatDec
-      (((G)(* Shorthands *)(* fmtCon (c) = "c" where the name is assigned according the the Name table
+      (((g)(* Shorthands *)(* fmtCon (c) = "c" where the name is assigned according the the Name table
      maintained in the names module.
      FVar's are printed with a preceding "`" (backquote) character
   *)
        (* FIX -cs Fri Jan 28 17:45:35 2005*)(* I.Skonst, I.FVar cases should be impossible *)
-       (* fmtUni (L) = "L" *)(* fmtExpW (G, (U, s)) = fmt
+       (* fmtUni (L) = "L" *)(* fmtExpW (g, (U, s)) = fmt
 
      format the expression U[s].
 
      Invariants:
-       G is a "printing context" (names in it are unique, but
-            types may be incorrect) approximating G'
-       G'' |- U : V   G' |- s : G''  (so  G' |- U[s] : V[s])
+       g is a "printing context" (names in it are unique, but
+            types may be incorrect) approximating g'
+       g'' |- U : V   g' |- s : g''  (so  g' |- U[s] : V[s])
        (U,s) in whnf
   *)
        (* if Pi is dependent but anonymous, invent name here *)(* could sometimes be EName *)
        (* Str "tw*maybe", F.Break, *)(* Str "tw*no", F.Break,*)
        (* FIX -cs Fri Jan 28 17:45:43 2005 *)(* I.EClo, I.Redex, I.EVar not possible *)
-       (* fmtSpine (G, (S, s)) = fmts
+       (* fmtSpine (g, (S, s)) = fmts
      format spine S[s] at printing depth d, printing length l, in printing
-     context G which approximates G', where G' |- S[s] is valid
+     context g which approximates g', where g' |- S[s] is valid
   *)
        (* fmtConDec (condec) = fmt
      formats a constant declaration (which must be closed and in normal form)
 
      This function prints the quantifiers and abstractions only if hide = false.
   *)
-       (* fmtEqn assumes that G is a valid printing context *)(* print context?? *)
-       (* fmtEqnName and fmtEqns do not assume that G is a valid printing
+       (* fmtEqn assumes that g is a valid printing context *)(* print context?? *)
+       (* fmtEqnName and fmtEqns do not assume that g is a valid printing
      context and will name or rename variables to make it so.
      fmtEqns should only be used for printing constraints.
   *)
-       (* In the functions below, G must be a "printing context", that is,
+       (* In the functions below, g must be a "printing context", that is,
      (a) unique names must be assigned to each declaration which may
          actually applied in the scope (typically, using Names.decName)
      (b) types need not be well-formed, since they are not used
   *)),
        D)
-      = fmtDec (G, (D, I.id))
-    let rec formatExp (G, U) = fmtExp (G, (U, I.id))
+      = fmtDec (g, (D, I.id))
+    let rec formatExp (g, U) = fmtExp (g, (U, I.id))
     let rec formatConDec
-      ((condec)(*  fun formatSpine (G, S) = sexp (fmtSpine (G, (S, I.id))) *))
+      ((condec)(*  fun formatSpine (g, S) = sexp (fmtSpine (g, (S, I.id))) *))
       = fmtConDec condec
     let rec formatEqn (E) = fmtEqn E
-    let rec decToString (G, D) = F.makestring_fmt (formatDec (G, D))
-    let rec expToString (G, U) = F.makestring_fmt (formatExp (G, U))
+    let rec decToString (g, D) = F.makestring_fmt (formatDec (g, D))
+    let rec expToString (g, U) = F.makestring_fmt (formatExp (g, U))
     let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
     let rec eqnToString (E) = F.makestring_fmt (formatEqn E)
     let rec printSgn () =

@@ -1,0 +1,62 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.frontend)
+ (name frontend)
+ (libraries 
+  base
+  compat
+  timing
+  stream
+  global
+  table
+  lambda
+  names
+  paths
+  print
+  typecheck
+  style
+  modes
+  tabling
+  terminate
+  index
+  thm
+  m2
+  compile
+  opsem
+  subordinate
+  modules
+  meta
+  solvers
+  worldcheck
+  unique
+  cover
+  tomega
+  prover
+  flit
+  msg
+ )
+ (modules 
+  buildid
+  fquery
+  frontend
+  lexer
+  parse_condec
+  parse_fixity
+  parse_mode
+  parse_module
+  parse_query
+  parse_term
+  parse_thm
+  parser
+  parsing
+  recon_condec
+  recon_mode
+  recon_module
+  recon_query
+  recon_term
+  recon_thm
+  solve
+  twelf
+  unknownexn
+  version))

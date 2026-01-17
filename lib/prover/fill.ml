@@ -59,27 +59,27 @@ module Fill(Fill:sig
     module T = Tomega
     module I = IntSyn
     exception Success of int 
-    let rec expand (FocusLF (EVar (r, G, V, _) as Y)) =
+    let rec expand (FocusLF (EVar (r, g, V, _) as Y)) =
       let try__ =
         function
         | (((Root _, _) as Vs), Fs, O) ->
             (try
                CSManager.trail
-                 (function | () -> (Unify.unify (G, Vs, (V, I.id)); O :: Fs))
+                 (function | () -> (Unify.unify (g, Vs, (V, I.id)); O :: Fs))
              with | Unify _ -> Fs)
         | ((Pi ((Dec (_, V1), _), V2), s), Fs, O) ->
-            let X = I.newEVar (G, (I.EClo (V1, s))) in
+            let X = I.newEVar (g, (I.EClo (V1, s))) in
             try__ ((V2, (I.Dot ((I.Exp X), s))), Fs, O)
         | ((EClo (V, s'), s), Fs, O) -> try__ ((V, (I.comp (s', s))), Fs, O) in
       let matchCtx =
         function
         | (I.Null, _, Fs) -> Fs
-        | (Decl (G, Dec (x, V)), n, Fs) ->
+        | (Decl (g, Dec (x, V)), n, Fs) ->
             matchCtx
-              (G, (n + 1),
+              (g, (n + 1),
                 (try__
                    ((V, (I.Shift (n + 1))), Fs, (FillWithBVar (Y, (n + 1))))))
-        | (Decl (G, NDec _), n, Fs) -> matchCtx (G, (n + 1), Fs) in
+        | (Decl (g, NDec _), n, Fs) -> matchCtx (g, (n + 1), Fs) in
       let matchSig =
         function
         | (nil, Fs) -> Fs
@@ -87,27 +87,27 @@ module Fill(Fill:sig
             matchSig
               (L,
                 (try__ (((I.constType c), I.id), Fs, (FillWithConst (Y, c))))) in
-      matchCtx (G, 0, (matchSig ((Index.lookup (I.targetFam V)), nil)))
+      matchCtx (g, 0, (matchSig ((Index.lookup (I.targetFam V)), nil)))
     let rec apply =
       function
-      | FillWithBVar ((EVar (r, G, V, _) as Y), n) ->
+      | FillWithBVar ((EVar (r, g, V, _) as Y), n) ->
           let doit =
             function
             | (((Root _, _) as Vs), k) ->
-                (Unify.unify (G, Vs, (V, I.id)); k I.Nil)
+                (Unify.unify (g, Vs, (V, I.id)); k I.Nil)
             | ((Pi ((Dec (_, V1), _), V2), s), k) ->
-                let X = I.newEVar (G, (I.EClo (V1, s))) in
+                let X = I.newEVar (g, (I.EClo (V1, s))) in
                 doit
                   ((V2, (I.Dot ((I.Exp X), s))),
                     (function | S -> k (I.App (X, S))))
             | ((EClo (V, t), s), k) -> doit ((V, (I.comp (t, s))), k) in
-          let Dec (_, W) = I.ctxDec (G, n) in
+          let Dec (_, W) = I.ctxDec (g, n) in
           doit
             ((W, I.id),
               (function
                | S ->
                    Unify.unify
-                     (G, (Y, I.id), ((I.Root ((I.BVar n), S)), I.id))))
+                     (g, (Y, I.id), ((I.Root ((I.BVar n), S)), I.id))))
       | FillWithConst ((EVar (r, G0, V, _) as Y), c) ->
           let doit =
             function
@@ -127,12 +127,12 @@ module Fill(Fill:sig
                      (G0, (Y, I.id), ((I.Root ((I.Const c), S)), I.id))))
     let rec menu =
       function
-      | FillWithBVar ((EVar (_, G, _, _) as X), n) ->
-          (match I.ctxLookup ((Names.ctxName G), n) with
+      | FillWithBVar ((EVar (_, g, _, _) as X), n) ->
+          (match I.ctxLookup ((Names.ctxName g), n) with
            | Dec (SOME x, _) ->
-               (((^) "Fill " Names.evarName (G, X)) ^ " with variable ") ^ x)
-      | FillWithConst ((EVar (_, G, _, _) as X), c) ->
-          (^) (((^) "Fill " Names.evarName (G, X)) ^ " with constant ")
+               (((^) "Fill " Names.evarName (g, X)) ^ " with variable ") ^ x)
+      | FillWithConst ((EVar (_, g, _, _) as X), c) ->
+          (^) (((^) "Fill " Names.evarName (g, X)) ^ " with constant ")
             IntSyn.conDecName (IntSyn.sgnLookup c)
     let ((expand)(* expand' S = op'
 
@@ -140,10 +140,10 @@ module Fill(Fill:sig
        If   |- S state
        then op' satifies representation invariant.
     *)
-      (* Y is lowered *)(* matchCtx (G, n, Fs) = Fs'
+      (* Y is lowered *)(* matchCtx (g, n, Fs) = Fs'
 
            Invariant:
-           If G0 = G, G' and |G'| = n and Fs a list of filling operators that
+           If G0 = g, g' and |g'| = n and Fs a list of filling operators that
            satisfy the representation invariant, then Fs' is a list of filling operators
            that satisfy the representation invariant.
         *)
@@ -153,7 +153,7 @@ module Fill(Fill:sig
        If op is a filling operator that satisfies the representation invariant.
        The apply operation is guaranteed to always succeed.
     *)
-      (* Y is lowered *)(* Invariant : G |- s : G'   G' |- V : type *)
+      (* Y is lowered *)(* Invariant : g |- s : g'   g' |- V : type *)
       (* Unify must succeed *)(* Unify must succeed *)
       (* menu op = s'
 

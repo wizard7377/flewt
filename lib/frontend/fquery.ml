@@ -34,15 +34,15 @@ module Fquery(Fquery:sig
   *))
       = if (!Global.chatter) >= 3 then Print.evarInstToString Xs else ""
     let rec expToString
-      ((GU)(* expToString (G, U) = msg
+      ((GU)(* expToString (g, U) = msg
      formats expression as a string.
      Abbreviate as empty string if chatter level is < 3.
   *))
       = if (!Global.chatter) >= 3 then Print.expToString GU else ""
     let rec lower =
       function
-      | (0, G, V) -> (G, V)
-      | (n, G, Pi ((D, _), V)) -> lower ((n - 1), (I.Decl (G, D)), V)
+      | (0, g, V) -> (g, V)
+      | (n, g, Pi ((D, _), V)) -> lower ((n - 1), (I.Decl (g, D)), V)
     let rec run (quy, Loc (fileName, r)) =
       let (((V)(* optName = SOME(X) or NONE, Xs = free variables in query excluding X *)),
            optName, Xs)
@@ -58,12 +58,12 @@ module Fquery(Fquery:sig
                ".\n")
         else () in
       let (k, V1) = Abstract.abstractDecImp V in
-      let (G, V2) = lower (k, I.Null, V1) in
-      let ((a)(* G |- V'' : type *)) = I.targetFam V2 in
+      let (g, V2) = lower (k, I.Null, V1) in
+      let ((a)(* g |- V'' : type *)) = I.targetFam V2 in
       let W = W.lookup a in
-      let V3 = Worldify.worldifyGoal (G, V2) in
-      let _ = TypeCheck.typeCheck (G, (V3, (I.Uni I.Type))) in
-      let P = Converter.convertGoal ((T.embedCtx G), V3) in
+      let V3 = Worldify.worldifyGoal (g, V2) in
+      let _ = TypeCheck.typeCheck (g, (V3, (I.Uni I.Type))) in
+      let P = Converter.convertGoal ((T.embedCtx g), V3) in
       let V = Timers.time Timers.delphin Opsem.evalPrg P in
       print (((^) "Delphin: " TomegaPrint.prgToString (I.Null, V)) ^ "\n")
   end ;;

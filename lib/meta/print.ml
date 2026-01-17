@@ -38,37 +38,37 @@ module MTPrint(MTPrint:sig
     module N = Names
     module S = StateSyn
     module Fmt = Formatter
-    let rec nameState (State (n, (G, B), (IH, OH), d, O, H, F)) =
+    let rec nameState (State (n, (g, B), (IH, OH), d, O, H, F)) =
       let _ = Names.varReset I.Null in
-      let G' = Names.ctxName G in S.State (n, (G', B), (IH, OH), d, O, H, F)
+      let g' = Names.ctxName g in S.State (n, (g', B), (IH, OH), d, O, H, F)
     let rec formatOrder =
       function
-      | (G, Arg (Us, Vs)) ->
-          [Print.formatExp (G, (I.EClo Us));
+      | (g, Arg (Us, Vs)) ->
+          [Print.formatExp (g, (I.EClo Us));
           Fmt.String ":";
-          Print.formatExp (G, (I.EClo Vs))]
-      | (G, Lex (Os)) ->
+          Print.formatExp (g, (I.EClo Vs))]
+      | (g, Lex (Os)) ->
           [Fmt.String "{";
-          Fmt.HVbox0 1 0 1 (formatOrders (G, Os));
+          Fmt.HVbox0 1 0 1 (formatOrders (g, Os));
           Fmt.String "}"]
-      | (G, Simul (Os)) ->
+      | (g, Simul (Os)) ->
           [Fmt.String "[";
-          Fmt.HVbox0 1 0 1 (formatOrders (G, Os));
+          Fmt.HVbox0 1 0 1 (formatOrders (g, Os));
           Fmt.String "]"]
     let rec formatOrders =
       function
-      | (G, nil) -> nil
-      | (G, (O)::nil) -> formatOrder (G, O)
-      | (G, (O)::Os) ->
-          (@) ((formatOrder (G, O)) @ [Fmt.String ","; Fmt.Break])
-            formatOrders (G, Os)
+      | (g, nil) -> nil
+      | (g, (O)::nil) -> formatOrder (g, O)
+      | (g, (O)::Os) ->
+          (@) ((formatOrder (g, O)) @ [Fmt.String ","; Fmt.Break])
+            formatOrders (g, Os)
     let rec formatTag =
       function
-      | (G, Parameter l) -> [Fmt.String "<p>"]
-      | (G, Lemma (Splits k)) ->
+      | (g, Parameter l) -> [Fmt.String "<p>"]
+      | (g, Lemma (Splits k)) ->
           [Fmt.String "<i"; Fmt.String (Int.toString k); Fmt.String ">"]
-      | (G, Lemma (S.RL)) -> [Fmt.String "<i >"]
-      | (G, Lemma (S.RLdone)) -> [Fmt.String "<i*>"]
+      | (g, Lemma (S.RL)) -> [Fmt.String "<i >"]
+      | (g, Lemma (S.RLdone)) -> [Fmt.String "<i*>"]
     let rec formatCtx =
       function
       | (I.Null, B) -> []
@@ -79,26 +79,26 @@ module MTPrint(MTPrint:sig
                ((formatTag (I.Null, T)) @
                   [Fmt.Break; Print.formatDec (I.Null, D)])]
           else [Print.formatDec (I.Null, D)]
-      | (Decl (G, D), Decl (B, T)) ->
+      | (Decl (g, D), Decl (B, T)) ->
           if (!Global.chatter) >= 4
           then
-            ((formatCtx (G, B)) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
+            ((formatCtx (g, B)) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
               [Fmt.HVbox
-                 ((formatTag (G, T)) @ [Fmt.Break; Print.formatDec (G, D)])]
+                 ((formatTag (g, T)) @ [Fmt.Break; Print.formatDec (g, D)])]
           else
-            ((formatCtx (G, B)) @ [Fmt.String ","; Fmt.Break]) @
-              [Fmt.Break; Print.formatDec (G, D)]
-    let rec formatState (State (n, (G, B), (IH, OH), d, O, H, F)) =
+            ((formatCtx (g, B)) @ [Fmt.String ","; Fmt.Break]) @
+              [Fmt.Break; Print.formatDec (g, D)]
+    let rec formatState (State (n, (g, B), (IH, OH), d, O, H, F)) =
       Fmt.Vbox0 0 1
-        [Fmt.HVbox0 1 0 1 (formatOrder (G, O));
+        [Fmt.HVbox0 1 0 1 (formatOrder (g, O));
         Fmt.Break;
         Fmt.String "========================";
         Fmt.Break;
-        Fmt.HVbox0 1 0 1 (formatCtx (G, B));
+        Fmt.HVbox0 1 0 1 (formatCtx (g, B));
         Fmt.Break;
         Fmt.String "------------------------";
         Fmt.Break;
-        FunPrint.formatForBare (G, F)]
+        FunPrint.formatForBare (g, F)]
     let rec stateToString (S) = Fmt.makestring_fmt (formatState S)
     let ((nameState)(* nameState S = S'
 
@@ -113,15 +113,15 @@ module MTPrint(MTPrint:sig
        If   T is a tag
        then fmt' is a a format descibing the tag T
     *)
-      (*      | formatTag (G, S.Assumption k) = [Fmt.String "<a",
+      (*      | formatTag (g, S.Assumption k) = [Fmt.String "<a",
                                          Fmt.String (Int.toString k),
                                          Fmt.String ">"] *)
-      (* formatCtx (G, B) = fmt'
+      (* formatCtx (g, B) = fmt'
 
        Invariant:
-       If   |- G ctx       and G is already named
-       and  |- B : G tags
-       then fmt' is a format describing the context (G, B)
+       If   |- g ctx       and g is already named
+       and  |- B : g tags
+       then fmt' is a format describing the context (g, B)
     *)
       (* formatState S = fmt'
 

@@ -1,0 +1,35 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.opsem)
+ (name opsem)
+ (libraries 
+  base
+  compat
+  global
+  table
+  lambda
+  names
+  print
+  formatter
+  index
+  typecheck
+  solvers
+  subordinate
+  tabling
+  compile
+ )
+ (modules 
+  abstract
+  absmachine
+  absmachine_sbt
+  opsem
+  ptrecon
+  sw_subtree
+  subtree
+  subtree_inst
+  swmachine
+  tabled
+  table_param
+  tmachine
+  trace))

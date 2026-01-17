@@ -1,0 +1,24 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.unique)
+ (name unique)
+ (libraries 
+  base
+  global
+  lambda
+  names
+  paths
+  table
+  formatter
+  print
+  subordinate
+  modes
+  typecheck
+  index
+  solvers
+  worldcheck
+  timing
+ )
+ (modules 
+  unique))

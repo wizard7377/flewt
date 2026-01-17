@@ -421,7 +421,7 @@ module ParseTerm(ParseTerm:sig
       (* Currently, we cannot override fixity status of identifiers *)
       (* Thus isQuoted always returns false *)(* for some reason, there's no dot after %define decls -kw *)
       (* possible error recovery: insert DOT *)(* cannot happen at present *)
-      (* Parses contexts of the form  G ::= {id:term} | G, {id:term} *)
+      (* Parses contexts of the form  g ::= {id:term} | g, {id:term} *)
       (* parseDec "{id:term} | {id}" *)(* parseCtx (b, ds, f) = ds'
        if   f is a stream "{x1:V1}...{xn:Vn} s"
        and  b is true if no declarations has been parsed yet

@@ -128,13 +128,13 @@ module Mpi(Mpi:sig
       match !Menu with
       | NONE -> raise (Error "Menu is empty")
       | SOME (M) -> menuToString' (1, M)
-    let rec makeConDec (State (name, Prefix (G, M, B), V)) =
+    let rec makeConDec (State (name, Prefix (g, M, B), V)) =
       let makeConDec' =
         function
         | (I.Null, V, k) -> I.ConDec (name, NONE, k, I.Normal, V, I.Type)
-        | (Decl (G, D), V, k) ->
-            makeConDec' (G, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
-      makeConDec' (G, V, 0)
+        | (Decl (g, D), V, k) ->
+            makeConDec' (g, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
+      makeConDec' (g, V, 0)
     let rec makeSignature =
       function
       | nil -> M.SgnEmpty

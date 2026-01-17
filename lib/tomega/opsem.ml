@@ -64,11 +64,11 @@ module Opsem(Opsem:sig
               Unify.unifyBlock
                 ((T.coerceCtx Psi), (I.blockSub (B1, (T.coerceSub t1))), B2)
             with | Unify _ -> raise NoMatch))
-      | (Psi, (PairExp (U1, P1), t1), PairExp (U2, P2)) ->
+      | (Psi, (PairExp (u1, P1), t1), PairExp (u2, P2)) ->
           (matchVal (Psi, (P1, t1), P2);
            (try
               Unify.unify
-                ((T.coerceCtx Psi), (U1, (T.coerceSub t1)), (U2, I.id))
+                ((T.coerceCtx Psi), (u1, (T.coerceSub t1)), (u2, I.id))
             with | Unify _ -> raise NoMatch))
       | (Psi, (PClo (P, t1'), t1), Pt) ->
           matchVal (Psi, (P, (T.comp (t1', t1))), Pt)
@@ -99,32 +99,32 @@ module Opsem(Opsem:sig
     let rec raisePrg =
       function
       | (((Psi)(* raisePrg is used in handling of NEW construct
-   raisePrg (G, P, F) = (P', F'))
+   raisePrg (g, P, F) = (P', F'))
 
        Invariant:
-       If   Psi, G |- P in F
-       and  Psi |- G : blockctx
+       If   Psi, g |- P in F
+       and  Psi |- g : blockctx
        then Psi |- P' in F'
-       and  P = raise (G, P')   (using subordination)
-       and  F = raise (G, F')   (using subordination)
+       and  P = raise (g, P')   (using subordination)
+       and  F = raise (g, F')   (using subordination)
 *)),
-         G, T.Unit) -> T.Unit
-      | (Psi, G, PairPrg (P1, P2)) ->
-          let P1' = raisePrg (Psi, G, P1) in
-          let P2' = raisePrg (Psi, G, P2) in T.PairPrg (P1', P2')
-      | (Psi, G, PairExp (U, P)) ->
-          let V = TypeCheck.infer' ((append ((T.coerceCtx Psi), G)), U) in
+         g, T.Unit) -> T.Unit
+      | (Psi, g, PairPrg (P1, P2)) ->
+          let P1' = raisePrg (Psi, g, P1) in
+          let P2' = raisePrg (Psi, g, P2) in T.PairPrg (P1', P2')
+      | (Psi, g, PairExp (U, P)) ->
+          let V = TypeCheck.infer' ((append ((T.coerceCtx Psi), g)), U) in
           let ((w)(* this is a real time sink, it would be much better if we did not have to
       compute the type information of U,
       more thought is required
    *))
-            = S.weaken (G, (I.targetFam V)) in
-          let ((iw)(* G  |- w  : G'    *)) = Whnf.invert w in
-          let ((G')(* G' |- iw : G     *)) =
-            Whnf.strengthen (iw, G) in
-          let ((U')(* Psi0, G' |- B'' ctx *)) =
-            A.raiseTerm (G', (I.EClo (U, iw))) in
-          let P' = raisePrg (Psi, G, P) in T.PairExp (U', P')
+            = S.weaken (g, (I.targetFam V)) in
+          let ((iw)(* g  |- w  : g'    *)) = Whnf.invert w in
+          let ((g')(* g' |- iw : g     *)) =
+            Whnf.strengthen (iw, g) in
+          let ((U')(* Psi0, g' |- B'' ctx *)) =
+            A.raiseTerm (g', (I.EClo (U, iw))) in
+          let P' = raisePrg (Psi, g, P) in T.PairExp (U', P')
     let rec evalPrg =
       function
       | (((Psi)(* evalPrg (Psi, (P, t)) = V
@@ -179,30 +179,30 @@ module Opsem(Opsem:sig
           let ((V)(* unnecessary naming, remove later --cs *))
             = evalPrg ((I.Decl (Psi, D''')), (P, (T.dot1 t))) in
           let B = T.coerceCtx (I.Decl (I.Null, D''')) in
-          let (G, t') = T.deblockify B in
-          let newP = raisePrg (Psi, G, (T.normalizePrg (V, t'))) in newP
+          let (g, t') = T.deblockify B in
+          let newP = raisePrg (Psi, g, (T.normalizePrg (V, t'))) in newP
       | (Psi, (Box (W, P), t)) -> evalPrg (Psi, (P, t))
       | (Psi, (Choose (P), t)) ->
           let substToSpine' =
             function
             | (Shift
                ((n)(* This function was imported from cover.fun   -- cs Thu Mar 20 11:47:06 2003 *)
-               (* substtospine' (s, G, T) = S @ T
-                If   G' |- s : G
-                then G' |- S : {{G}} a >> a  for arbitrary a
-                    {{G}} erases void declarations in G
+               (* substtospine' (s, g, T) = S @ T
+                If   g' |- s : g
+                then g' |- S : {{g}} a >> a  for arbitrary a
+                    {{g}} erases void declarations in g
               *)),
                I.Null, T) -> T
-            | (Shift n, (Decl _ as G), T) ->
+            | (Shift n, (Decl _ as g), T) ->
                 substToSpine'
-                  ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), G, T)
-            | (Dot (Exp (U), s), Decl (G, V), T) ->
-                substToSpine' (s, G, (T.AppExp (U, T)))
-            | (Dot (Idx n, s), Decl (G, Dec (_, V)), T) ->
+                  ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), g, T)
+            | (Dot (Exp (U), s), Decl (g, V), T) ->
+                substToSpine' (s, g, (T.AppExp (U, T)))
+            | (Dot (Idx n, s), Decl (g, Dec (_, V)), T) ->
                 let (((Us)(* Eta-expand *)), _) =
                   Whnf.whnfEta
                     (((I.Root ((I.BVar n), I.Nil)), I.id), (V, I.id)) in
-                substToSpine' (s, G, (T.AppExp ((I.EClo Us), T))) in
+                substToSpine' (s, g, (T.AppExp ((I.EClo Us), T))) in
           let choose =
             function
             | (k, I.Null) -> raise Abort
@@ -289,23 +289,23 @@ module Opsem(Opsem:sig
          _, Shift _) -> ()
       | (((Psi)(* By Invariant *)), Shift n, (Dot _ as t))
           -> matchSub (Psi, (T.Dot ((T.Idx (n + 1)), (T.Shift (n + 1)))), t)
-      | (Psi, Dot (Exp (U1), t1), Dot (Exp (U2), t2)) ->
+      | (Psi, Dot (Exp (u1), t1), Dot (Exp (u2), t2)) ->
           (matchSub (Psi, t1, t2);
-           (try Unify.unify ((T.coerceCtx Psi), (U1, I.id), (U2, I.id))
+           (try Unify.unify ((T.coerceCtx Psi), (u1, I.id), (u2, I.id))
             with | Unify s -> raise NoMatch))
-      | (Psi, Dot (Exp (U1), t1), Dot (Idx k, t2)) ->
+      | (Psi, Dot (Exp (u1), t1), Dot (Idx k, t2)) ->
           (matchSub (Psi, t1, t2);
            (try
               Unify.unify
-                ((T.coerceCtx Psi), (U1, I.id),
+                ((T.coerceCtx Psi), (u1, I.id),
                   ((I.Root ((I.BVar k), I.Nil)), I.id))
             with | Unify _ -> raise NoMatch))
-      | (Psi, Dot (Idx k, t1), Dot (Exp (U2), t2)) ->
+      | (Psi, Dot (Idx k, t1), Dot (Exp (u2), t2)) ->
           (matchSub (Psi, t1, t2);
            (try
               Unify.unify
                 ((T.coerceCtx Psi), ((I.Root ((I.BVar k), I.Nil)), I.id),
-                  (U2, I.id))
+                  (u2, I.id))
             with | Unify _ -> raise NoMatch))
       | (Psi, Dot (Prg (P1), t1), Dot (Prg (P2), t2)) ->
           (matchSub (Psi, t1, t2); matchPrg (Psi, P1, P2))
@@ -373,18 +373,18 @@ module Opsem(Opsem:sig
       | (Psi, d, (Let (D', P1, Case (Cs)), t)) ->
           let printLF arg__0 arg__1 =
             match (arg__0, arg__1) with
-            | ((((_)(* lf value definition *)(* printLF (G, s, G') k = ()
+            | ((((_)(* lf value definition *)(* printLF (g, s, g') k = ()
              Invariant:
-             G |- s : G'
+             g |- s : g'
           *)),
                 _, _),
                0) -> ()
-            | ((G, Dot (Exp (U), s'), Decl (G', Dec (SOME name, V))), k) ->
-                let _ = printLF (G, s', G') (k - 1) in
+            | ((g, Dot (Exp (U), s'), Decl (g', Dec (SOME name, V))), k) ->
+                let _ = printLF (g, s', g') (k - 1) in
                 print
-                  (((((("def " ^ name) ^ " = ") ^ (Print.expToString (G, U)))
+                  (((((("def " ^ name) ^ " = ") ^ (Print.expToString (g, U)))
                        ^ " : ")
-                      ^ (Print.expToString (G, (I.EClo (V, s')))))
+                      ^ (Print.expToString (g, (I.EClo (V, s')))))
                      ^ "\n") in
           let match__ (Psi, t1, Cases ((Psi', t2, P)::C)) =
             let t = createVarSub (Psi, Psi') in

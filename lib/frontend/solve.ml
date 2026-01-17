@@ -68,7 +68,7 @@ module Solve(Solve:sig
   *))
       = if (!Global.chatter) >= 3 then Print.evarInstToString Xs else ""
     let rec expToString
-      ((GU)(* expToString (G, U) = msg
+      ((GU)(* expToString (g, U) = msg
      formats expression as a string.
      Abbreviate as empty string if chatter level is < 3.
   *))

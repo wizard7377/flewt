@@ -20,7 +20,7 @@ module Qed(Qed:sig
     exception Error of string 
     module M = MetaSyn
     module I = IntSyn
-    let rec subgoal (State (name, Prefix (G, M, B), V)) =
+    let rec subgoal (State (name, Prefix (g, M, B), V)) =
       let check =
         function
         | I.Null -> true__

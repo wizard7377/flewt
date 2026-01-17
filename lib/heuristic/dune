@@ -1,0 +1,10 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.heuristic)
+ (name heuristic)
+ (libraries 
+  base
+ )
+ (modules 
+  heuristic))

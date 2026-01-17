@@ -51,14 +51,14 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (Psi, T.Nil, (F, t)) -> (F, t)
       | (Psi, AppExp (M, S), (All ((UDec (Dec (_, A)), _), F), t)) ->
           let _ = chatter 4 (function | () -> "[appExp") in
-          let G = T.coerceCtx Psi in
-          let _ = TypeCheck.typeCheck (G, (M, (I.EClo (A, (T.coerceSub t))))) in
+          let g = T.coerceCtx Psi in
+          let _ = TypeCheck.typeCheck (g, (M, (I.EClo (A, (T.coerceSub t))))) in
           let _ = chatter 4 (function | () -> "]") in
           inferSpine (Psi, S, (F, (T.Dot ((T.Exp M), t))))
       | (Psi, AppBlock (Bidx k, S),
          (All ((UDec (BDec (_, (cid, s))), _), F2), t2)) ->
           let UDec (BDec (_, (cid', s'))) = T.ctxDec (Psi, k) in
-          let (G', _) = I.conDecBlock (I.sgnLookup cid') in
+          let (g', _) = I.conDecBlock (I.sgnLookup cid') in
           let _ =
             if cid <> cid'
             then raise (Error "Block label incompatible")
@@ -124,20 +124,20 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
           checkPrg ((I.Decl (Psi, (T.UDec D))), (P, (F, (T.dot1 t2))))
       | (Psi, (PairExp (M, P), (Ex ((Dec (x, A), _), F2), t))) ->
           let _ = chatter 4 (function | () -> "[pair [e]") in
-          let G = T.coerceCtx Psi in
-          let _ = TypeCheck.typeCheck (G, (M, (I.EClo (A, (T.coerceSub t))))) in
+          let g = T.coerceCtx Psi in
+          let _ = TypeCheck.typeCheck (g, (M, (I.EClo (A, (T.coerceSub t))))) in
           let _ = chatter 4 (function | () -> "]") in
           checkPrg (Psi, (P, (F2, (T.Dot ((T.Exp M), t)))))
       | (Psi, (PairBlock (Bidx k, P), (Ex ((BDec (_, (cid, s)), _), F2), t)))
           ->
           let UDec (BDec (_, (cid', s'))) = T.ctxDec (Psi, k) in
-          let (G', _) = I.conDecBlock (I.sgnLookup cid) in
+          let (g', _) = I.conDecBlock (I.sgnLookup cid) in
           let _ =
             if cid' <> cid then raise (Error "Block label mismatch") else () in
           let _ =
             convSub
               (Psi, (T.embedSub s'), (T.comp ((T.embedSub s), t)),
-                (T.revCoerceCtx G')) in
+                (T.revCoerceCtx g')) in
           checkPrg (Psi, (P, (F2, (T.Dot ((T.Block (I.Bidx k)), t)))))
       | (Psi, (PairPrg (P1, P2), (And (F1, F2), t))) ->
           let _ = chatter 4 (function | () -> "[and") in
@@ -166,9 +166,9 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
           let F'' = TA.raiseF ((I.Decl (I.Null, D)), (F', I.id)) in
           (convFor (Psi, (F'', T.id), (F, t));
            chatter 5 (function | () -> "]\n"))
-      | (Psi, (Redex (P1, S2), (F, t))) ->
+      | (Psi, (Redex (P1, s2), (F, t))) ->
           let F' = inferPrg (Psi, P1) in
-          checkSpine (Psi, S2, (F', T.id), (F, t))
+          checkSpine (Psi, s2, (F', T.id), (F, t))
       | (Psi, (Box (W, P), (World (W', F), t))) ->
           checkPrgW (Psi, (P, (F, t)))
     let rec checkSpine =
@@ -212,14 +212,14 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (_, (T.True, _), (T.True, _)) -> ()
       | (Psi, (All (((UDec (Dec (_, A1)) as D), _), F1), t1),
          (All ((UDec (Dec (_, A2)), _), F2), t2)) ->
-          let G = T.coerceCtx Psi in
+          let g = T.coerceCtx Psi in
           let s1 = T.coerceSub t1 in
           let s2 = T.coerceSub t2 in
           let _ = Conv.conv ((A1, s1), (A2, s2)) in
           let _ =
-            TypeCheck.typeCheck (G, ((I.EClo (A1, s1)), (I.Uni I.Type))) in
+            TypeCheck.typeCheck (g, ((I.EClo (A1, s1)), (I.Uni I.Type))) in
           let _ =
-            TypeCheck.typeCheck (G, ((I.EClo (A2, s2)), (I.Uni I.Type))) in
+            TypeCheck.typeCheck (g, ((I.EClo (A2, s2)), (I.Uni I.Type))) in
           let D' = T.decSub (D, t1) in
           let _ =
             convFor
@@ -228,11 +228,11 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (Psi, (All (((UDec (BDec (_, (l1, s1))) as D), _), F1), t1),
          (All ((UDec (BDec (_, (l2, s2))), _), F2), t2)) ->
           let _ = if l1 <> l2 then raise (Error "Contextblock clash") else () in
-          let (G', _) = I.conDecBlock (I.sgnLookup l1) in
+          let (g', _) = I.conDecBlock (I.sgnLookup l1) in
           let _ =
             convSub
               (Psi, (T.comp ((T.embedSub s1), t1)),
-                (T.comp ((T.embedSub s2), t2)), (T.embedCtx G')) in
+                (T.comp ((T.embedSub s2), t2)), (T.embedCtx g')) in
           let D' = T.decSub (D, t1) in
           let _ =
             convFor
@@ -240,14 +240,14 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
           ()
       | (Psi, (Ex (((Dec (_, A1) as D), _), F1), t1),
          (Ex ((Dec (_, A2), _), F2), t2)) ->
-          let G = T.coerceCtx Psi in
+          let g = T.coerceCtx Psi in
           let s1 = T.coerceSub t1 in
           let s2 = T.coerceSub t2 in
           let _ = Conv.conv ((A1, s1), (A2, s2)) in
           let _ =
-            TypeCheck.typeCheck (G, ((I.EClo (A1, s1)), (I.Uni I.Type))) in
+            TypeCheck.typeCheck (g, ((I.EClo (A1, s1)), (I.Uni I.Type))) in
           let _ =
-            TypeCheck.typeCheck (G, ((I.EClo (A2, s2)), (I.Uni I.Type))) in
+            TypeCheck.typeCheck (g, ((I.EClo (A2, s2)), (I.Uni I.Type))) in
           let D' = I.decSub (D, s1) in
           let _ =
             convFor
@@ -257,12 +257,12 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (Psi, (Ex (((BDec (name, (l1, s1)) as D), _), F1), t1),
          (Ex ((BDec (_, (l2, s2)), _), F2), t2)) ->
           let _ = if l1 <> l2 then raise (Error "Contextblock clash") else () in
-          let (G', _) = I.conDecBlock (I.sgnLookup l1) in
+          let (g', _) = I.conDecBlock (I.sgnLookup l1) in
           let s1 = T.coerceSub t1 in
           let _ =
             convSub
               (Psi, (T.comp ((T.embedSub s1), t1)),
-                (T.comp ((T.embedSub s2), t2)), (T.embedCtx G')) in
+                (T.comp ((T.embedSub s2), t2)), (T.embedCtx g')) in
           let D' = I.decSub (D, s1) in
           let _ =
             convFor
@@ -285,59 +285,59 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | _ -> raise (Error "Typecheck error")
     let rec convSub =
       function
-      | (G, Shift k1, Shift k2, G') ->
+      | (g, Shift k1, Shift k2, g') ->
           if k1 = k2 then () else raise (Error "Sub not equivalent")
-      | (G, Shift k, (Dot _ as s2), G') ->
-          convSub (G, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), s2, G')
-      | (G, (Dot _ as s1), Shift k, G') ->
-          convSub (G, s1, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), G')
-      | (G, Dot (Idx k1, s1), Dot (Idx k2, s2), Decl (G', _)) ->
+      | (g, Shift k, (Dot _ as s2), g') ->
+          convSub (g, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), s2, g')
+      | (g, (Dot _ as s1), Shift k, g') ->
+          convSub (g, s1, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), g')
+      | (g, Dot (Idx k1, s1), Dot (Idx k2, s2), Decl (g', _)) ->
           if k1 = k2
-          then convSub (G, s1, s2, G')
+          then convSub (g, s1, s2, g')
           else raise (Error "Sub not equivalent")
-      | (G, Dot (Exp (M1), s1), Dot (Exp (M2), s2), Decl
-         (G', UDec (Dec (_, A)))) ->
+      | (g, Dot (Exp (M1), s1), Dot (Exp (M2), s2), Decl
+         (g', UDec (Dec (_, A)))) ->
           let _ = TypeCheck.checkConv (M1, M2) in
-          let _ = TypeCheck.typeCheck ((T.coerceCtx G), (M1, A)) in
-          convSub (G, s1, s2, G')
-      | (G, Dot (Block (Bidx v1), s1), Dot (Block (Bidx v2), s2), Decl
-         (G', UDec (BDec (_, (l, s))))) ->
-          let UDec (BDec (_, (l1, s11))) = T.ctxDec (G, v1) in
-          let UDec (BDec (_, (l2, s22))) = T.ctxDec (G, v2) in
+          let _ = TypeCheck.typeCheck ((T.coerceCtx g), (M1, A)) in
+          convSub (g, s1, s2, g')
+      | (g, Dot (Block (Bidx v1), s1), Dot (Block (Bidx v2), s2), Decl
+         (g', UDec (BDec (_, (l, s))))) ->
+          let UDec (BDec (_, (l1, s11))) = T.ctxDec (g, v1) in
+          let UDec (BDec (_, (l2, s22))) = T.ctxDec (g, v2) in
           let _ = if l1 = l2 then () else raise (Error "Sub not equivalent") in
           let _ = if l1 = l then () else raise (Error "Sub not equivalent") in
-          let (G'', _) = I.conDecBlock (I.sgnLookup l) in
+          let (g'', _) = I.conDecBlock (I.sgnLookup l) in
           let _ =
             convSub
-              (G, (T.embedSub s11), (T.embedSub s22), (T.revCoerceCtx G'')) in
+              (g, (T.embedSub s11), (T.embedSub s22), (T.revCoerceCtx g'')) in
           let _ =
             convSub
-              (G, (T.embedSub s11), (T.embedSub s), (T.revCoerceCtx G'')) in
-          convSub (G, s1, s2, G')
-      | (G, Dot (Prg (P1), s1), Dot (Prg (P2), s2), Decl
-         (G', PDec (_, F, _, _))) ->
+              (g, (T.embedSub s11), (T.embedSub s), (T.revCoerceCtx g'')) in
+          convSub (g, s1, s2, g')
+      | (g, Dot (Prg (P1), s1), Dot (Prg (P2), s2), Decl
+         (g', PDec (_, F, _, _))) ->
           let _ = isValue P1 in
           let _ = isValue P2 in
-          let _ = convValue (G, P1, P2, F) in convSub (G, s1, s2, G')
-      | (G, Dot (Idx k1, s1), Dot (Exp (M2), s2), Decl
-         (G', UDec (Dec (_, A)))) ->
+          let _ = convValue (g, P1, P2, F) in convSub (g, s1, s2, g')
+      | (g, Dot (Idx k1, s1), Dot (Exp (M2), s2), Decl
+         (g', UDec (Dec (_, A)))) ->
           let _ = TypeCheck.checkConv ((I.Root ((I.BVar k1), I.Nil)), M2) in
-          let _ = TypeCheck.typeCheck ((T.coerceCtx G), (M2, A)) in
-          convSub (G, s1, s2, G')
-      | (G, Dot (Exp (M1), s1), Dot (Idx k2, s2), Decl
-         (G', UDec (Dec (_, A)))) ->
+          let _ = TypeCheck.typeCheck ((T.coerceCtx g), (M2, A)) in
+          convSub (g, s1, s2, g')
+      | (g, Dot (Exp (M1), s1), Dot (Idx k2, s2), Decl
+         (g', UDec (Dec (_, A)))) ->
           let _ = TypeCheck.checkConv (M1, (I.Root ((I.BVar k2), I.Nil))) in
-          let _ = TypeCheck.typeCheck ((T.coerceCtx G), (M1, A)) in
-          convSub (G, s1, s2, G')
-      | (G, Dot (Idx k1, s1), Dot (Prg (P2), s2), Decl
-         (G', PDec (_, F, _, _))) ->
+          let _ = TypeCheck.typeCheck ((T.coerceCtx g), (M1, A)) in
+          convSub (g, s1, s2, g')
+      | (g, Dot (Idx k1, s1), Dot (Prg (P2), s2), Decl
+         (g', PDec (_, F, _, _))) ->
           let _ = isValue P2 in
-          let _ = convValue (G, (T.Var k1), P2, F) in convSub (G, s1, s2, G')
-      | (G, Dot (Prg (P1), s1), Dot (Idx k2, s2), Decl
-         (G', PDec (_, F, _, _))) ->
+          let _ = convValue (g, (T.Var k1), P2, F) in convSub (g, s1, s2, g')
+      | (g, Dot (Prg (P1), s1), Dot (Idx k2, s2), Decl
+         (g', PDec (_, F, _, _))) ->
           let _ = isValue P1 in
-          let _ = convValue (G, P1, (T.Var k2), F) in convSub (G, s1, s2, G')
-    let rec convValue (G, P1, P2, F) = ()
+          let _ = convValue (g, P1, (T.Var k2), F) in convSub (g, s1, s2, g')
+    let rec convValue (g, P1, P2, F) = ()
     let rec checkFor =
       function
       | (Psi, (T.True, _)) -> ()
@@ -364,35 +364,35 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
     let rec checkSub =
       function
       | (I.Null, Shift 0, I.Null) -> ()
-      | (Decl (G, D), Shift k, I.Null) ->
+      | (Decl (g, D), Shift k, I.Null) ->
           if k > 0
-          then checkSub (G, (T.Shift (k - 1)), I.Null)
+          then checkSub (g, (T.Shift (k - 1)), I.Null)
           else raise (Error "Sub is not well typed!")
-      | (G, Shift k, G') ->
-          checkSub (G, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), G')
-      | (G, Dot (Idx k, s'), Decl (G', UDec (Dec (_, A)))) ->
-          let _ = checkSub (G, s', G') in
-          let UDec (Dec (_, A')) = T.ctxDec (G, k) in
+      | (g, Shift k, g') ->
+          checkSub (g, (T.Dot ((T.Idx (k + 1)), (T.Shift (k + 1)))), g')
+      | (g, Dot (Idx k, s'), Decl (g', UDec (Dec (_, A)))) ->
+          let _ = checkSub (g, s', g') in
+          let UDec (Dec (_, A')) = T.ctxDec (g, k) in
           if Conv.conv ((A', I.id), (A, (T.coerceSub s')))
           then ()
           else raise (Error "Sub isn't well typed!")
-      | (G, Dot (Idx k, s'), Decl (G', UDec (BDec (l, (_, s))))) ->
-          let _ = checkSub (G, s', G') in
-          let UDec (BDec (l1, (_, s1))) = T.ctxDec (G, k) in
+      | (g, Dot (Idx k, s'), Decl (g', UDec (BDec (l, (_, s))))) ->
+          let _ = checkSub (g, s', g') in
+          let UDec (BDec (l1, (_, s1))) = T.ctxDec (g, k) in
           if l <> l1
           then raise (Error "Sub isn't well typed!")
           else
             if Conv.convSub ((I.comp (s, (T.coerceSub s'))), s1)
             then ()
             else raise (Error "Sub isn't well typed!")
-      | (G, Dot (Idx k, s), Decl (G', PDec (_, F', _, _))) ->
-          let _ = checkSub (G, s, G') in
-          let PDec (_, F1, _, _) = T.ctxDec (G, k) in
-          convFor (G, (F1, T.id), (F', s))
-      | (G, Dot (Exp (M), s), Decl (G', UDec (Dec (_, A)))) ->
-          let _ = checkSub (G, s, G') in
+      | (g, Dot (Idx k, s), Decl (g', PDec (_, F', _, _))) ->
+          let _ = checkSub (g, s, g') in
+          let PDec (_, F1, _, _) = T.ctxDec (g, k) in
+          convFor (g, (F1, T.id), (F', s))
+      | (g, Dot (Exp (M), s), Decl (g', UDec (Dec (_, A)))) ->
+          let _ = checkSub (g, s, g') in
           TypeCheck.typeCheck
-            ((T.coerceCtx G), (M, (I.EClo (A, (T.coerceSub s)))))
+            ((T.coerceCtx g), (M, (I.EClo (A, (T.coerceSub s)))))
       | (Psi, Dot (Prg (P), t), Decl (Psi', PDec (_, F', _, _))) ->
           let _ = chatter 4 (function | () -> "$") in
           let _ = checkSub (Psi, t, Psi') in
@@ -400,8 +400,8 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (Psi, Dot (Block (B), t), Decl (Psi', UDec (BDec (l2, (c, s2))))) ->
           let _ = chatter 4 (function | () -> "$") in
           let _ = checkSub (Psi, t, Psi') in
-          let (G, L) = I.constBlock c in
-          let _ = TypeCheck.typeCheckSub ((T.coerceCtx Psi'), s2, G) in
+          let (g, L) = I.constBlock c in
+          let _ = TypeCheck.typeCheckSub ((T.coerceCtx Psi'), s2, g) in
           checkBlock (Psi, (B, (c, (I.comp (s2, (T.coerceSub t))))))
       | (Psi, Dot _, I.Null) -> raise (Error "Sub is not well typed")
     let rec checkBlock =
@@ -415,16 +415,16 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
             then ()
             else raise (Error "Sub isn't well typed!")
       | (Psi, (Inst (UL), (c2, s2))) ->
-          let (G, L) = I.constBlock c2 in
-          let _ = TypeCheck.typeCheckSub ((T.coerceCtx Psi), s2, G) in
+          let (g, L) = I.constBlock c2 in
+          let _ = TypeCheck.typeCheckSub ((T.coerceCtx Psi), s2, g) in
           checkInst (Psi, UL, (1, L, s2))
     let rec checkInst =
       function
       | (Psi, nil, (_, nil, _)) -> ()
       | (Psi, (U)::UL, (n, (D)::L, s2)) ->
-          let G = T.coerceCtx Psi in
+          let g = T.coerceCtx Psi in
           let Dec (_, V) = I.decSub (D, s2) in
-          let _ = TypeCheck.typeCheck (G, (U, V)) in
+          let _ = TypeCheck.typeCheck (g, (U, V)) in
           checkInst (Psi, UL, ((n + 1), L, (I.dot1 s2)))
     let rec isValue =
       function
@@ -488,7 +488,7 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
     *)
       (* also check that both worlds are equal -- cs Mon Apr 21 01:28:01 2003 *)
       (* For s1==s2, the variables in s1 and s2 must refer to the same cell in the context -- Yu Liao *)
-      (* checkConv doesn't need context G?? -- Yu Liao *)
+      (* checkConv doesn't need context g?? -- Yu Liao *)
       (* checkSub (Psi, t, Psi') = ()
 
        Invariant
@@ -496,7 +496,7 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
        otherwise exception Error is raised
     *)
       (* Psi |- t : Psi' *)(* Psi' |- s2 : SOME variables of c *)
-      (* Psi |- s2 : G *)(* Psi |- s2 : G *)(* Invariant:
+      (* Psi |- s2 : g *)(* Psi |- s2 : g *)(* Invariant:
 
       If   Psi |- s2 : Psi'    Psi' |-  Bn ... Bm
       and  Psi |- s : [cn :An ... cm:Am]

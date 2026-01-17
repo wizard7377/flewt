@@ -1,0 +1,24 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.compile)
+ (name compile)
+ (libraries 
+  base
+  global
+  table
+  lambda
+  names
+  print
+  formatter
+  index
+  typecheck
+  solvers
+  subordinate
+ )
+ (modules 
+  assign 
+  compile 
+  compsyn 
+  cprint 
+  subtree))

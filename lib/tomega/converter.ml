@@ -95,9 +95,9 @@ module Converter(Converter:sig
     let rec strengthenCtx =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = strengthenCtx (G, s) in
-          ((I.Decl (G', (strengthenDec (D, s')))), (I.dot1 s'))
+      | (Decl (g, D), s) ->
+          let (g', s') = strengthenCtx (g, s) in
+          ((I.Decl (g', (strengthenDec (D, s')))), (I.dot1 s'))
     let rec strengthenFor =
       function
       | (T.True, s) -> T.True
@@ -152,9 +152,9 @@ module Converter(Converter:sig
     let rec ctxSub =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = ctxSub (G, s) in
-          ((I.Decl (G', (I.decSub (D, s')))), (I.dot1 s))
+      | (Decl (g, D), s) ->
+          let (g', s') = ctxSub (g, s) in
+          ((I.Decl (g', (I.decSub (D, s')))), (I.dot1 s))
     let rec validMode =
       function
       | M.Mnil -> ()
@@ -165,13 +165,13 @@ module Converter(Converter:sig
     let rec validSig =
       function
       | (Psi0, nil) -> ()
-      | (Psi0, (G, V)::Sig) ->
+      | (Psi0, (g, V)::Sig) ->
           let append =
             function
-            | (G, I.Null) -> G
-            | (G, Decl (G', D)) -> I.Decl ((append (G, G')), D) in
+            | (g, I.Null) -> g
+            | (g, Decl (g', D)) -> I.Decl ((append (g, g')), D) in
           (TypeCheck.typeCheck
-             ((T.coerceCtx (append (Psi0, (T.embedCtx G)))),
+             ((T.coerceCtx (append (Psi0, (T.embedCtx g)))),
                (V, (I.Uni I.Type)));
            validSig (Psi0, Sig))
     let rec convertOneFor cid =
@@ -260,14 +260,14 @@ module Converter(Converter:sig
       function
       | (0, Psi) -> (Psi, I.Null)
       | (n, Decl (Psi, UDec (D))) ->
-          let (Psi', G') = popn ((n - 1), Psi) in (Psi', (I.Decl (G', D)))
+          let (Psi', g') = popn ((n - 1), Psi) in (Psi', (I.Decl (g', D)))
     let rec domain =
       function
-      | (G, Dot (Idx _, s)) -> (domain (G, s)) + 1
+      | (g, Dot (Idx _, s)) -> (domain (g, s)) + 1
       | (I.Null, Shift 0) -> 0
-      | ((Decl _ as G), Shift 0) ->
-          domain (G, (I.Dot ((I.Idx 1), (I.Shift 1))))
-      | (Decl (G, _), Shift n) -> domain (G, (I.Shift (n - 1)))
+      | ((Decl _ as g), Shift 0) ->
+          domain (g, (I.Dot ((I.Idx 1), (I.Shift 1))))
+      | (Decl (g, _), Shift n) -> domain (g, (I.Shift (n - 1)))
     let rec strengthen (Psi, (a, S), w, m) =
       let mS = modeSpine a in
       let args =
@@ -290,46 +290,46 @@ module Converter(Converter:sig
         | (n, ((UDec (Dec (_, V)))::Psi1, L)) ->
             (occursInExp (n, V)) || (occursInPsi ((n + 1), (Psi1, L)))
         | (n, ((UDec (BDec (_, (cid, s))))::Psi1, L)) ->
-            let BlockDec (_, _, G, _) = I.sgnLookup cid in
-            (occursInSub (n, s, G)) || (occursInPsi ((n + 1), (Psi1, L)))
+            let BlockDec (_, _, g, _) = I.sgnLookup cid in
+            (occursInSub (n, s, g)) || (occursInPsi ((n + 1), (Psi1, L)))
       and occursInSub =
         function
         | (_, _, I.Null) -> false__
-        | (n, Shift k, G) ->
-            occursInSub (n, (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), G)
-        | (n, Dot (Idx k, s), Decl (G, _)) ->
-            (n = k) || (occursInSub (n, s, G))
-        | (n, Dot (Exp (U), s), Decl (G, _)) ->
-            (occursInExp (n, U)) || (occursInSub (n, s, G))
-        | (n, Dot (Block _, s), Decl (G, _)) -> occursInSub (n, s, G)
+        | (n, Shift k, g) ->
+            occursInSub (n, (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), g)
+        | (n, Dot (Idx k, s), Decl (g, _)) ->
+            (n = k) || (occursInSub (n, s, g))
+        | (n, Dot (Exp (U), s), Decl (g, _)) ->
+            (occursInExp (n, U)) || (occursInSub (n, s, g))
+        | (n, Dot (Block _, s), Decl (g, _)) -> occursInSub (n, s, g)
       and occursInG =
         function
         | (n, I.Null, k) -> k n
-        | (n, Decl (G, Dec (_, V)), k) ->
+        | (n, Decl (g, Dec (_, V)), k) ->
             occursInG
-              (n, G,
+              (n, g,
                 (function | n' -> (occursInExp (n', V)) || (k (n' + 1)))) in
-      let occursBlock (G, (Psi2, L)) =
+      let occursBlock (g, (Psi2, L)) =
         let occursBlock =
           function
           | (I.Null, n) -> false__
-          | (Decl (G, D), n) ->
-              (occursInPsi (n, (Psi2, L))) || (occursBlock (G, (n + 1))) in
-        occursBlock (G, 1) in
+          | (Decl (g, D), n) ->
+              (occursInPsi (n, (Psi2, L))) || (occursBlock (g, (n + 1))) in
+        occursBlock (g, 1) in
       let inBlock =
         function
         | (I.Null, (bw, w1)) -> (bw, w1)
-        | (Decl (G, D), (bw, w1)) ->
+        | (Decl (g, D), (bw, w1)) ->
             if isIdx1 (I.bvarSub (1, w1))
-            then inBlock (G, (true__, (dot1inv w1)))
-            else inBlock (G, (bw, (strengthenSub (w1, I.shift)))) in
+            then inBlock (g, (true__, (dot1inv w1)))
+            else inBlock (g, (bw, (strengthenSub (w1, I.shift)))) in
       let blockSub =
         function
         | (I.Null, w) -> (I.Null, w)
-        | (Decl (G, Dec (name, V)), w) ->
-            let (G', w') = blockSub (G, w) in
+        | (Decl (g, Dec (name, V)), w) ->
+            let (g', w') = blockSub (g, w) in
             let V' = strengthenExp (V, w') in
-            ((I.Decl (G', (I.Dec (name, V')))), (I.dot1 w')) in
+            ((I.Decl (g', (I.Dec (name, V')))), (I.dot1 w')) in
       let strengthen' =
         function
         | (I.Null, Psi2, L, w1) -> (I.Null, I.id, I.id)
@@ -415,22 +415,22 @@ module Converter(Converter:sig
       | (f, I.Nil) -> I.Nil
       | (f, App (U, S)) -> I.App ((renameExp f U), (renameSpine f S))
     let rec rename (BDec (_, (c, s)), V) =
-      let (G, L) = I.constBlock c in
+      let (g, L) = I.constBlock c in
       let makeSubst =
         function
-        | (n, G, s, nil, f) -> (G, f)
-        | (n, G, s, (Dec (x, V') as D)::L, f) ->
+        | (n, g, s, nil, f) -> (g, f)
+        | (n, g, s, (Dec (x, V') as D)::L, f) ->
             if Subordinate.belowEq ((I.targetFam V'), (I.targetFam V))
             then
               makeSubst
-                ((n + 1), (I.Decl (G, (I.decSub (D, s)))), (I.dot1 s), L, f)
-            else makeSubst (n, G, (I.comp (s, I.shift)), L, f) in
-      let (G', f) = makeSubst (1, G, s, L, (function | x -> I.Proj x)) in
-      (G, (renameExp f V))
+                ((n + 1), (I.Decl (g, (I.decSub (D, s)))), (I.dot1 s), L, f)
+            else makeSubst (n, g, (I.comp (s, I.shift)), L, f) in
+      let (g', f) = makeSubst (1, g, s, L, (function | x -> I.Proj x)) in
+      (g, (renameExp f V))
     let rec append =
       function
-      | (G, I.Null) -> G
-      | (G, Decl (G', D)) -> I.Decl ((append (G, G')), D)
+      | (g, I.Null) -> g
+      | (g, Decl (g', D)) -> I.Decl ((append (g, g')), D)
     let rec traverseNeg arg__0 arg__1 =
       match (arg__0, arg__1) with
       | ((L, wmap, projs),
@@ -460,35 +460,35 @@ module Converter(Converter:sig
     let rec traversePos arg__0 arg__1 =
       match (arg__0, arg__1) with
       | ((L, wmap, projs),
-         ((Psi0, Psi, G), Pi (((BDec (x, (c, s)) as D), _), V), SOME
+         ((Psi0, Psi, g), Pi (((BDec (x, (c, s)) as D), _), V), SOME
           (w1, (P, Q)))) ->
           let c' = wmap c in
-          let n = (+) (I.ctxLength Psi0) I.ctxLength G in
+          let n = (+) (I.ctxLength Psi0) I.ctxLength g in
           let (Gsome, Lpi) = I.constBlock c in
           let _ =
             TypeCheck.typeCheckCtx
-              (T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx G)))) in
+              (T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx g)))) in
           let _ =
             TypeCheck.typeCheckSub
-              ((T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx G)))),
+              ((T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx g)))),
                 s, Gsome) in
           let (Gsome', Lpi') = I.constBlock c' in
           let _ =
             TypeCheck.typeCheckCtx
-              (T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx G)))) in
+              (T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx g)))) in
           let _ =
             TypeCheck.typeCheckSub
-              ((T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx G)))),
+              ((T.coerceCtx (append ((append (Psi0, Psi)), (T.embedCtx g)))),
                 s, Gsome') in
           traversePos (L, wmap, projs)
-            ((Psi0, Psi, (I.Decl (G, (I.BDec (x, (c', s)))))), V,
+            ((Psi0, Psi, (I.Decl (g, (I.BDec (x, (c', s)))))), V,
               (SOME ((I.dot1 w1), (P, Q))))
       | ((L, wmap, projs),
-         ((Psi0, G, B), (Root (Const a, S) as V), SOME (w1, (P, Q)))) ->
-          let Psi1 = append (Psi0, (append (G, (T.embedCtx B)))) in
+         ((Psi0, g, B), (Root (Const a, S) as V), SOME (w1, (P, Q)))) ->
+          let Psi1 = append (Psi0, (append (g, (T.embedCtx B)))) in
           let _ =
             TomegaTypeCheck.checkCtx
-              (append ((append (Psi0, G)), (T.embedCtx B))) in
+              (append ((append (Psi0, g)), (T.embedCtx B))) in
           let n = domain (Psi1, w1) in
           let m = I.ctxLength Psi0 in
           let lookupbase a =
@@ -534,7 +534,7 @@ module Converter(Converter:sig
           let (S'', F'') = apply ((S, (modeSpine a)), (F, T.id)) in
           let _ =
             TomegaTypeCheck.checkFor
-              ((append ((append (Psi0, G)), (T.embedCtx B))),
+              ((append ((append (Psi0, g)), (T.embedCtx B))),
                 (T.forSub (F'', (T.embedSub w1)))) in
           let P'' = T.Redex (HP, S'') in
           let b = I.ctxLength B in
@@ -544,13 +544,13 @@ module Converter(Converter:sig
           let subCtx =
             function
             | (I.Null, s) -> (I.Null, s)
-            | (Decl (G, D), s) ->
-                let (G', s') = subCtx (G, s) in
-                ((I.Decl (G', (I.decSub (D, s')))), (I.dot1 s')) in
+            | (Decl (g, D), s) ->
+                let (g', s') = subCtx (g, s) in
+                ((I.Decl (g', (I.decSub (D, s')))), (I.dot1 s')) in
           let (B'', _) = subCtx (B', w1') in
           let _ =
             TomegaTypeCheck.checkCtx
-              (append ((append (Psi0, G)), (T.embedCtx B''))) in
+              (append ((append (Psi0, g)), (T.embedCtx B''))) in
           let (GB', iota) = T.deblockify B' in
           let _ =
             try TypeCheck.typeCheckSub (GB', (T.coerceSub iota), B')
@@ -560,14 +560,14 @@ module Converter(Converter:sig
           let lift =
             function
             | (I.Null, P) -> P
-            | (Decl (G, D), P) ->
+            | (Decl (g, D), P) ->
                 let (Bint, _) = T.deblockify (I.Decl (I.Null, D)) in
-                lift (G, (T.New (T.Lam ((T.UDec D), P)))) in
+                lift (g, (T.New (T.Lam ((T.UDec D), P)))) in
           let P''' = lift (B', P'') in
-          let _ = TomegaTypeCheck.checkCtx (append (Psi0, G)) in
+          let _ = TomegaTypeCheck.checkCtx (append (Psi0, g)) in
           let _ =
             TomegaTypeCheck.checkFor
-              ((append (Psi0, G)), (T.forSub (F''', (T.embedSub w1')))) in
+              ((append (Psi0, g)), (T.forSub (F''', (T.embedSub w1')))) in
           let (Psi1'', w2, z2) = strengthen (Psi1, (a, S), w1, M.Minus) in
           let w3 = peeln (b, w2) in
           let z3 = peeln (b, z2) in
@@ -596,11 +596,11 @@ module Converter(Converter:sig
       let traverseSig' =
         function
         | nil -> nil
-        | (G, V)::Sig ->
+        | (g, V)::Sig ->
             (TypeCheck.typeCheck
-               ((append ((T.coerceCtx Psi0), G)), (V, (I.Uni I.Type)));
+               ((append ((T.coerceCtx Psi0), g)), (V, (I.Uni I.Type)));
              (match traverseNeg (L, wmap, projs)
-                      ((Psi0, (T.embedCtx G)), V, I.id)
+                      ((Psi0, (T.embedCtx g)), V, I.id)
               with
               | SOME (wf, (P', Q')) -> (traverseSig' Sig) @ [P' Q'])) in
       traverseSig' Sig
@@ -622,39 +622,39 @@ module Converter(Converter:sig
         function
         | nil -> (nil, ((function | c -> raise (Error "World not found"))))
         | cid::cids' ->
-            let BlockDec (s, m, G, L) = I.sgnLookup cid in
+            let BlockDec (s, m, g, L) = I.sgnLookup cid in
             let L' = transformList (L, I.id) in
             let (cids'', wmap) = transformWorlds' cids' in
-            let cid' = I.sgnAdd (I.BlockDec (s, m, G, L')) in
+            let cid' = I.sgnAdd (I.BlockDec (s, m, g, L')) in
             ((cid' :: cids''),
               ((function | c -> if c = cid then cid' else wmap c))) in
       let (cids', wmap) = transformWorlds' cids in ((T.Worlds cids'), wmap)
     let rec dynamicSig (Psi0, a, Worlds cids) =
       let findDec =
         function
-        | (G, _, nil, w, Sig) -> Sig
-        | (G, n, (D)::L, w, Sig) ->
+        | (g, _, nil, w, Sig) -> Sig
+        | (g, n, (D)::L, w, Sig) ->
             let Dec (x, V') as D' = I.decSub (D, w) in
             let b = I.targetFam V' in
             let Sig' =
-              if b = a then (G, (Whnf.normalize (V', I.id))) :: Sig else Sig in
+              if b = a then (g, (Whnf.normalize (V', I.id))) :: Sig else Sig in
             findDec
-              (G, (n + 1), L,
+              (g, (n + 1), L,
                 (I.Dot
                    ((I.Exp (I.Root ((I.Proj ((I.Bidx 1), n)), I.Nil))), w)),
                 Sig') in
       let mediateSub =
         function
         | I.Null -> (I.Null, (I.Shift (I.ctxLength Psi0)))
-        | Decl (G, D) ->
-            let (G0, s') = mediateSub G in
+        | Decl (g, D) ->
+            let (G0, s') = mediateSub g in
             let D' = I.decSub (D, s') in ((I.Decl (G0, D')), (I.dot1 s')) in
       let findDecs' =
         function
         | (nil, Sig) -> Sig
         | (cid::cids', Sig) ->
-            let BlockDec (s, m, G, L) = I.sgnLookup cid in
-            let (G0, s') = mediateSub G in
+            let BlockDec (s, m, g, L) = I.sgnLookup cid in
+            let (G0, s') = mediateSub g in
             let D' = Names.decName (G0, (I.BDec (NONE, (cid, s')))) in
             let s'' = I.comp (s', I.shift) in
             let Sig' = findDec ((I.Decl (G0, D')), 1, L, s'', Sig) in
@@ -802,40 +802,40 @@ module Converter(Converter:sig
       function
       | 0 -> T.Unit
       | n -> T.PairExp ((I.Root ((I.BVar n), I.Nil)), (mkResult (n - 1)))
-    let rec convertGoal (G, V) =
+    let rec convertGoal (g, V) =
       let a = I.targetFam V in
       let W = WorldSyn.lookup a in
       let (W', wmap) = transformWorlds ([a], W) in
       let SOME (_, (P', Q')) =
         traversePos ([], wmap, NONE)
-          ((I.Null, G, I.Null), V,
+          ((I.Null, g, I.Null), V,
             (SOME
-               ((I.Shift (I.ctxLength G)),
+               ((I.Shift (I.ctxLength g)),
                  ((function | P -> (I.Null, T.id, P)),
-                   (mkResult (I.ctxLength G)))))) in
+                   (mkResult (I.ctxLength g)))))) in
       let (_, _, P'') = P' Q' in P''
     let ((convertFor)(* ABP - 4/20/03, determine if Front is (I.Idx 1) *)
       (* strengthenExp (U, s) = U'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- U : V
-       then G' |- U' = U[s^-1] : V [s^-1]
+       If   g |- s : g'
+       and  g |- U : V
+       then g' |- U' = U[s^-1] : V [s^-1]
     *)
       (* strengthenDec (x:V, s) = x:V'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- V : L
-       then G' |- V' = V[s^-1] : L
+       If   g |- s : g'
+       and  g |- V : L
+       then g' |- V' = V[s^-1] : L
     *)
-      (* G0 |- t : Gsome *)(* G0  |- s : G' *)(* to show  G' |- t o s^1 : Gsome *)
-      (* strengthenCtx (G, s) = (G', s')
+      (* G0 |- t : Gsome *)(* G0  |- s : g' *)(* to show  g' |- t o s^1 : Gsome *)
+      (* strengthenCtx (g, s) = (g', s')
 
-       If   G0 |- G ctx
+       If   G0 |- g ctx
        and  G0 |- w : G1
-       then G1 |- G' = G[w^-1] ctx
-       and  G0 |- w' : G1, G'
+       then G1 |- g' = g[w^-1] ctx
+       and  G0 |- w' : G1, g'
     *)
       (* strengthenFor (F, s) = F'
 
@@ -869,27 +869,27 @@ module Converter(Converter:sig
        then Psi1 |- Psi' = Psi[s^-1] ctx
        and  Psi0 |- s' : Psi1, Psi'  weakening substitution
     *)
-      (* ctxSub (G, s) = (G', s')
+      (* ctxSub (g, s) = (g', s')
 
        Invariant:
-       if   Psi |- G ctx
+       if   Psi |- g ctx
        and  Psi' |- s : Psi
-       then Psi' |- G' ctx
-       and  Psi', G' |- s' : G
-       and  G' = G [s],  declarationwise defined
+       then Psi' |- g' ctx
+       and  Psi', g' |- s' : g
+       and  g' = g [s],  declarationwise defined
     *)
       (* convertFor' (V, mS, w1, w2, n) = (F', F'')
 
            Invariant:
-           If   G |- V = {{G'}} type :kind
-           and  G |- w1 : G+
-           and  G+, G'+, G- |- w2 : G
-           and  G+, G'+, G- |- ^n : G+
-           and  mS is a spine for G'
+           If   g |- V = {{g'}} type :kind
+           and  g |- w1 : g+
+           and  g+, g'+, g- |- w2 : g
+           and  g+, g'+, g- |- ^n : g+
+           and  mS is a spine for g'
            then F'  is a formula excepting a another formula as argument s.t.
-                If G+, G'+ |- F formula,
+                If g+, g'+ |- F formula,
                 then . |- F' F formula
-           and  G+, G'+ |- F'' formula
+           and  g+, g'+ |- F'' formula
         *)
       (* shiftPlus (mS) = s'
 
@@ -918,14 +918,14 @@ module Converter(Converter:sig
       (* no case for SClo *)(* dot1inv w = w'
 
        Invariant:
-       If   G, A |- w : G', A
-       then G |- w' : G'
+       If   g, A |- w : g', A
+       then g |- w' : g'
        and  w = 1.w' o ^
     *)
       (* shiftinv (w) = w'
 
        Invariant:
-       If   G, A |- w : G'
+       If   g, A |- w : g'
        and  1 does not occur in w
        then w  = w' o ^
     *)
@@ -953,13 +953,13 @@ module Converter(Converter:sig
        where Psi' extends Psi1 (but is a subset of Psi?)
     *)
       (* is this ok? -- cs *)(* no other cases *)
-      (* testBlock (G, (bw, w1)) = (bw', w')
+      (* testBlock (g, (bw, w1)) = (bw', w')
 
            Invariant:
-           If   |- G ctx
+           If   |- g ctx
            and  |- G1 ctx
            and  |- G2 ctx
-           and  G1 |- w1 : G2, G
+           and  G1 |- w1 : G2, g
            and  bw is a boolean value
            then there ex. a G1'
            s.t. |- G1' ctx
@@ -1040,66 +1040,66 @@ module Converter(Converter:sig
            and  PQ'  is a pair that can generate a proof term
         *)
       (* Psi0, Psi |- w : Psi0, Psi' *)(* Sigma (a) = Va *)
-      (* Psi0, Psi |- S : {G} type > type *)(* Psi1 = Psi0, Psi *)
+      (* Psi0, Psi |- S : {g} type > type *)(* Psi1 = Psi0, Psi *)
       (* Psi1 |- w0 : Psi0 *)(* |- Psi' ctx *)(* Psi1 |- w' : Psi' *)
-      (* Psi' |- s'' : G+ *)(* G |- w'' : G+ *)
+      (* Psi' |- s'' : g+ *)(* g |- w'' : g+ *)
       (* T.UDec *)(* Psi0 = x1::F1 ... xn::Fn *)
-      (* |- Psi0 matches L *)(* Psi0, G, B |- V : type *)
-      (* Psi0, G, B |- w1 : Psi0, G', B' *)(* Psi1 = Psi0, G, B *)
-      (* n = |Psi0, G', B'| *)(* m = |Psi0| *)(* strengthened invariant Psi0 might be empty --cs Fri Apr 11 15:25:32 2003 *)
+      (* |- Psi0 matches L *)(* Psi0, g, B |- V : type *)
+      (* Psi0, g, B |- w1 : Psi0, g', B' *)(* Psi1 = Psi0, g, B *)
+      (* n = |Psi0, g', B'| *)(* m = |Psi0| *)(* strengthened invariant Psi0 might be empty --cs Fri Apr 11 15:25:32 2003 *)
       (* apply ((S, mS), F')= (S'', F'')
 
                  Invariant:
-                 Psi0, G, B |- S : V >> type
+                 Psi0, g, B |- S : V >> type
                    (mS is the corresponding mode spine)
-                 and  Psi0, G', B |- F'  :: for
-                 then Psi0, G', B |- F'' :: for
-                 and  Psi0, G', B |- S'' :: F' >> F''
+                 and  Psi0, g', B |- F'  :: for
+                 then Psi0, g', B |- F'' :: for
+                 and  Psi0, g', B |- S'' :: F' >> F''
               *)
-      (* Psi0, G', B' |- D = x:V' : type *)(* Psi0, G', B', x:V' |- F' :: for *)
-      (* Psi0, G', B' |- U' : V' *)(* Psi0, G', B' |- F'' :: for *)
-      (* Psi0, G', B' |- S'' : F' [t'] >> F'' *)(* Psi0, G', B' |- U' ; S''
+      (* Psi0, g', B' |- D = x:V' : type *)(* Psi0, g', B', x:V' |- F' :: for *)
+      (* Psi0, g', B' |- U' : V' *)(* Psi0, g', B' |- F'' :: for *)
+      (* Psi0, g', B' |- S'' : F' [t'] >> F'' *)(* Psi0, g', B' |- U' ; S''
                                                        : all {x:V'} F' >> F'' *)
-      (* Psi0, G', B' |- F'' :: for *)(* Psi0, G', B' |- S'' :: F' >> F'' *)
+      (* Psi0, g', B' |- F'' :: for *)(* Psi0, g', B' |- S'' :: F' >> F'' *)
       (*T.Var k' *)(* was T.Root  -cs Sun Jan  5 23:15:06 2003 *)
-      (* Psi0, G', B' |- P'' :: F'' *)(* b = |B| = |B'| *)
-      (* Psi0, G |- w1' : Psi0, G' *)(* |- Psi0, G', B' ctx *)
-      (* n' = |Psi0, G'| *)(* Psi0, G' |- GB' ctx *)
-      (* Psi0, G, B |- w1 : Psi0, G', B' *)(* Psi0, G', GB'  |- s' : Psi0, G', B' *)
-      (* Psi0, G', GB' |- RR for *)(* Psi0, G |- w1' : Psi0, G' *)
-      (* Psi0, G' |- F''' for *)(* lift (B, (P, F)) = (P', F')
+      (* Psi0, g', B' |- P'' :: F'' *)(* b = |B| = |B'| *)
+      (* Psi0, g |- w1' : Psi0, g' *)(* |- Psi0, g', B' ctx *)
+      (* n' = |Psi0, g'| *)(* Psi0, g' |- GB' ctx *)
+      (* Psi0, g, B |- w1 : Psi0, g', B' *)(* Psi0, g', GB'  |- s' : Psi0, g', B' *)
+      (* Psi0, g', GB' |- RR for *)(* Psi0, g |- w1' : Psi0, g' *)
+      (* Psi0, g' |- F''' for *)(* lift (B, (P, F)) = (P', F')
 
                  Invariant:
-                 If   Psi0, G, B |- P :: F
-                 then Psi0, G |- P'  :: F'
+                 If   Psi0, g, B |- P :: F
+                 then Psi0, g |- P'  :: F'
                  and  P' =  (lam B. P)
                  and  F' = raiseFor (B, F)
               *)
-      (* Psi0, G' |- P''' :: F''' *)(* |- Psi0, Psi1'' ctx *)
-      (* Psi0, G, B |- w2 : Psi1'' *)(* Psi1'' = Psi0, G3, B3' *)
-      (* |B| = |GB'| *)(* Psi'' |-  z2 : Psi0, G', B' *)
-      (* Psi0, G, B |- w2 : Psi0, G3, B3' *)(* Psi0, G |- w3 : Psi0, G3 *)
-      (* Psi0, G3 |-  z3 : Psi0, G' *)(* Psi2 = Psi0, G3 *)
+      (* Psi0, g' |- P''' :: F''' *)(* |- Psi0, Psi1'' ctx *)
+      (* Psi0, g, B |- w2 : Psi1'' *)(* Psi1'' = Psi0, G3, B3' *)
+      (* |B| = |GB'| *)(* Psi'' |-  z2 : Psi0, g', B' *)
+      (* Psi0, g, B |- w2 : Psi0, G3, B3' *)(* Psi0, g |- w3 : Psi0, G3 *)
+      (* Psi0, G3 |-  z3 : Psi0, g' *)(* Psi2 = Psi0, G3 *)
       (* Psi0, G3, B3' |- Pat' :: For *)(* Psi0, G3 |- F4 for *)
       (* ' F4 *)(* Psi0, G3 |- Pat :: F4  *)(* Here's a commutative diagram
                                            at work which one has to prove
                                            correct
                                         *)
-      (* Psi0, G3 |- t :: Psi0, G', x :: F4  *)(* traverse (Psi0, L, Sig, wmap) = C'
+      (* Psi0, G3 |- t :: Psi0, g', x :: F4  *)(* traverse (Psi0, L, Sig, wmap) = C'
 
        Invariant:
        If   |- Psi0  ctx
        and  L is a the theorem we would like to transform
        and  Sig is a signature
-       and  forall (G, V) in Sig the following holds:
-                    Psi0, G |- V : type
+       and  forall (g, V) in Sig the following holds:
+                    Psi0, g |- V : type
                and  head (V) in L
        and  wmap is a mapping of old labels L to L'
             where L' is a new label and w' is a weakensub
             with the following properties.
             If   Sig (L) = (Gsome, Lblock)
             and  Sig (L') = (Gsome, Lblock')
-       then C' is a list of cases (corresponding to each (G, V) in Sig)
+       then C' is a list of cases (corresponding to each (g, V) in Sig)
     *)
       (* transformWorlds (fams, W) = (W', wmap)
 
@@ -1116,11 +1116,11 @@ module Converter(Converter:sig
       (* convertList (a, L, w) = L'
 
              Invariant:
-             If   G0 |- G, L : ctx
-             and  G0, G |- w : G0, G'
-             then G0 |- G', L' ctx
+             If   G0 |- g, L : ctx
+             and  G0, g |- w : G0, g'
+             then G0 |- g', L' ctx
           *)
-      (* Design decision: Let's keep all of G *)(* dynamicSig (Psi0, fams, W) = Sig'
+      (* Design decision: Let's keep all of g *)(* dynamicSig (Psi0, fams, W) = Sig'
 
        Invariant:
        If   |- Psi0 ctx
@@ -1130,22 +1130,22 @@ module Converter(Converter:sig
        and  |- Psi0, Gi ctx
        and  Psi, Gi |- Vi : type.
     *)
-      (* findDec (G, n, L, s, S) = S'
+      (* findDec (g, n, L, s, S) = S'
 
              Invariant:
-             If   G |-  L : ctx
-             and  G |- w: G'
-             then |- G', L' ctx
+             If   g |-  L : ctx
+             and  g |- w: g'
+             then |- g', L' ctx
           *)
-      (* mediateSub G = (G0, s)
+      (* mediateSub g = (G0, s)
 
              Invariant:
-             If   . |- G ctx
+             If   . |- g ctx
              then Psi0 |- G0 ctx
-             and  Psi0, G0 |- s : G
+             and  Psi0, G0 |- s : g
           *)
-      (* G |- L ctx *)(* Psi0, G0 |- s'' : G *)
-      (* Psi0, G0 |- D : dec *)(* Psi0, G0, D' |- s'' : G *)
+      (* g |- L ctx *)(* Psi0, G0 |- s'' : g *)
+      (* Psi0, G0 |- D : dec *)(* Psi0, G0, D' |- s'' : g *)
       (* staticSig Sig = Sig'
 
        Invariant:

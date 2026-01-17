@@ -1,0 +1,29 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.solvers)
+ (name solvers)
+ (libraries 
+  base
+  compat
+  trail
+  global
+  domains
+  lambda
+  names
+  modes
+  table
+  print
+  formatter
+ )
+ (modules 
+  cs_eq_bools
+  cs_eq_field
+  cs_eq_integers
+  cs_eq_strings
+  cs_ineq_field
+  cs_ineq_integers
+  cs_integers_word
+  cs_manager
+  cs
+  solvers))

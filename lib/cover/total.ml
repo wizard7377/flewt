@@ -82,7 +82,7 @@ module Total(Total:sig
                     (Origins.linesInfoLookup fileName), msg)))
     let rec checkDynOrder =
       function
-      | (((G)(* G is unused here *)), Vs, 0, occ) ->
+      | (((g)(* g is unused here *)), Vs, 0, occ) ->
           (if (!Global.chatter) >= 5
            then
              print
@@ -92,50 +92,50 @@ module Total(Total:sig
            (* raise Error' (occ, "Output coverage for clauses of order >= 3 not yet implemented") *)
            (* Functional calculus now checks this *)
            (* Sun Jan  5 12:17:06 2003 -fp *)))
-      | (G, Vs, n, occ) ->
+      | (g, Vs, n, occ) ->
           checkDynOrderW
-            (((G)(* n > 0 *)), (Whnf.whnf Vs), n, occ)
+            (((g)(* n > 0 *)), (Whnf.whnf Vs), n, occ)
     let rec checkDynOrderW =
       function
-      | (G, (Root _, s), n, occ) -> ()
-      | (((G)(* atomic subgoal *)),
+      | (g, (Root _, s), n, occ) -> ()
+      | (((g)(* atomic subgoal *)),
          (Pi (((Dec (_, V1) as D1), I.No), V2), s), n, occ) ->
-          (checkDynOrder (G, (V1, s), (n - 1), (P.label occ));
+          (checkDynOrder (g, (V1, s), (n - 1), (P.label occ));
            checkDynOrder
              ((I.Decl
-                 (((G)
+                 (((g)
                    (* dynamic (= non-dependent) assumption --- calculate dynamic order of V1 *)),
                    D1)), (V2, (I.dot1 s)), n, (P.body occ)))
-      | (G, (Pi ((D1, I.Maybe), V2), s), n, occ) ->
+      | (g, (Pi ((D1, I.Maybe), V2), s), n, occ) ->
           checkDynOrder
             ((I.Decl
-                (((G)
+                (((g)
                   (* static (= dependent) assumption --- consider only body *)),
                   D1)), (V2, (I.dot1 s)), n, (P.body occ))
     let rec checkClause
-      (((G)(* checkClause (G, (V, s), occ) = ()
-       checkGoal (G, (V, s), occ) = ()
+      (((g)(* checkClause (g, (V, s), occ) = ()
+       checkGoal (g, (V, s), occ) = ()
        iff local output coverage for V is satisfied
            for clause V[s] or goal V[s], respectively.
        Effect: raises Error' (occ, msg) if coverage is not satisfied at occ.
 
-       Invariants: G |- V[s] : type
+       Invariants: g |- V[s] : type
     *)),
        Vs, occ)
-      = checkClauseW (G, (Whnf.whnf Vs), occ)
+      = checkClauseW (g, (Whnf.whnf Vs), occ)
     let rec checkClauseW =
       function
-      | (G, (Pi ((D1, I.Maybe), V2), s), occ) ->
+      | (g, (Pi ((D1, I.Maybe), V2), s), occ) ->
           let ((D1')(* quantifier *)) =
-            N.decEName (G, (I.decSub (D1, s))) in
-          checkClause ((I.Decl (G, D1')), (V2, (I.dot1 s)), (P.body occ))
-      | (G, (Pi (((Dec (_, V1) as D1), I.No), V2), s), occ) ->
+            N.decEName (g, (I.decSub (D1, s))) in
+          checkClause ((I.Decl (g, D1')), (V2, (I.dot1 s)), (P.body occ))
+      | (g, (Pi (((Dec (_, V1) as D1), I.No), V2), s), occ) ->
           let ((_)(* subgoal *)) =
-            checkClause ((I.Decl (G, D1)), (V2, (I.dot1 s)), (P.body occ)) in
-          checkGoal (G, (V1, s), (P.label occ))
-      | (G, (Root _, s), occ) -> ((())(* clause head *))
-    let rec checkGoal (G, Vs, occ) = checkGoalW (G, (Whnf.whnf Vs), occ)
-    let rec checkGoalW (G, (V, s), occ) =
+            checkClause ((I.Decl (g, D1)), (V2, (I.dot1 s)), (P.body occ)) in
+          checkGoal (g, (V1, s), (P.label occ))
+      | (g, (Root _, s), occ) -> ((())(* clause head *))
+    let rec checkGoal (g, Vs, occ) = checkGoalW (g, (Whnf.whnf Vs), occ)
+    let rec checkGoalW (g, (V, s), occ) =
       let a = I.targetFam V in
       let _ =
         if not (total a)
@@ -146,8 +146,8 @@ module Total(Total:sig
                  (((^) "Subgoal " N.qidToString (N.constQid a)) ^
                     " not declared to be total")))
         else () in
-      let _ = checkDynOrderW (G, (V, s), 2, occ) in
-      try Cover.checkOut (G, (V, s))
+      let _ = checkDynOrderW (g, (V, s), 2, occ) in
+      try Cover.checkOut (g, (V, s))
       with
       | Error msg ->
           raise

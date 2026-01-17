@@ -223,12 +223,12 @@ module ReconThm(ReconThm:sig
     let rec dec (name, t) = (name, t)
     let rec ctxAppend =
       function
-      | (G, I.Null) -> G
-      | (G, Decl (G', D)) -> I.Decl ((ctxAppend (G, G')), D)
+      | (g, I.Null) -> g
+      | (g, Decl (g', D)) -> I.Decl ((ctxAppend (g, g')), D)
     let rec ctxMap arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (f, I.Null) -> I.Null
-      | (f, Decl (G, D)) -> I.Decl ((ctxMap f G), (f D))
+      | (f, Decl (g, D)) -> I.Decl ((ctxMap f g), (f D))
     let rec ctxBlockToString (G0, (G1, G2)) =
       let _ = Names.varReset I.Null in
       let G0' = Names.ctxName G0 in
@@ -290,8 +290,8 @@ module ReconThm(ReconThm:sig
       let (gbs, g, M, k) = t (nil, I.Null, I.Null, 0) in
       let _ = Names.varReset IntSyn.Null in
       let GBs = List.map abstractCtxPair gbs in
-      let JWithCtx (G, _) = T.recon (T.jwithctx (g, T.jnothing)) in
-      L.ThDecl (GBs, G, M, k)
+      let JWithCtx (g, _) = T.recon (T.jwithctx (g, T.jnothing)) in
+      L.ThDecl (GBs, g, M, k)
     let rec theoremDecToTheoremDec (name, t) = (name, (theoremToTheorem t))
     let rec abstractWDecl (W) = let W' = List.map Names.Qid W in W'
     type nonrec wdecl = (ThmSyn.__WDecl * Paths.region list)

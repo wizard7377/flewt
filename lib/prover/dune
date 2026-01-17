@@ -1,0 +1,37 @@
+(library 
+ (wrapped (transition "Convert SML convention to OCaml convention"))
+ 
+ (public_name flewt.prover)
+ (name prover)
+ (libraries 
+  base
+  tomega
+  lambda
+  global
+  names
+  print
+  index
+  modes
+  typecheck
+  table
+  subordinate
+  solvers
+  opsem
+  trail
+  compile
+  worldcheck
+  formatter
+  timing
+ )
+ (modules 
+  data
+  elim
+  fill
+  fixedpoint
+  introduce
+  interactive
+  prover
+  search
+  split
+  state
+  weaken))

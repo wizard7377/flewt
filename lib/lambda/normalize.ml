@@ -80,7 +80,7 @@ module Normalize(Normalize:sig
           T.Dot ((T.Exp (Whnf.normalize (E, I.id))), (normalizeSub s))
       | Dot (Block k, s) -> T.Dot ((T.Block k), (normalizeSub s))
       | Dot (Idx k, s) -> T.Dot ((T.Idx k), (normalizeSub s))
-    let ((normalizeFor)(*      | normalizeFor (T.FVar (G, r))   think about it *)
+    let ((normalizeFor)(*      | normalizeFor (T.FVar (g, r))   think about it *)
       (* normalizePrg (P, t) = (P', t')
 
        Invariant:

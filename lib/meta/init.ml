@@ -43,10 +43,10 @@ module MTPInit(MTPInit:sig
     let rec init (F, OF) =
       let init' =
         function
-        | ((G, B), All (_, O), All (Prim (D), F'), Ss) ->
-            let D' = Names.decName (G, D) in
+        | ((g, B), All (_, O), All (Prim (D), F'), Ss) ->
+            let D' = Names.decName (g, D) in
             init'
-              (((I.Decl (G, D')),
+              (((I.Decl (g, D')),
                  (I.Decl (B, (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
                 O, F', Ss)
         | (GB, And (O1, O2), And (F1, F2), Ss) ->
@@ -70,7 +70,7 @@ module MTPInit(MTPInit:sig
       (* it is possible to calculuate
                  index/induction variable information here
                  define occursOrder in StateSyn.fun  --cs *)
-      (*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
+      (*      | init' (g, B, O, (F.All (F.Block _, F), s)) =
            no such case yet  --cs *)
       (* added in case there are no existentials -fp *)) =
       init

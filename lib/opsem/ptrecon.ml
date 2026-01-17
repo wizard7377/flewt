@@ -52,16 +52,16 @@ module PtRecon(PtRecon:sig
       | _ -> false__
     let rec compose' =
       function
-      | (IntSyn.Null, G) -> G
-      | (Decl (G, D), G') -> IntSyn.Decl ((compose' (G, G')), D)
+      | (IntSyn.Null, g) -> g
+      | (Decl (g, D), g') -> IntSyn.Decl ((compose' (g, g')), D)
     let rec shift =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (G, D), s) -> I.dot1 (shift (G, s))
+      | (Decl (g, D), s) -> I.dot1 (shift (g, s))
     let rec solve' =
       function
       | (((O)(* We write
-       G |- M : g
+       g |- M : g
      if M is a canonical proof term for goal g which could be found
      following the operational semantics.  In general, the
      success continuation sc may be applied to such M's in the order
@@ -69,7 +69,7 @@ module PtRecon(PtRecon:sig
      the success continuation.
 
      Similarly, we write
-       G |- S : r
+       g |- S : r
      if S is a canonical proof spine for residual goal r which could
      be found following the operational semantics.  A success continuation
      sc may be applies to such S's in the order they are found and
@@ -80,31 +80,31 @@ module PtRecon(PtRecon:sig
          (* solve' (o, (g, s), dp, sc) => ()
      Invariants:
        o = oracle
-       dp = (G, dPool) where  G ~ dPool  (context G matches dPool)
-       G |- s : G'
-       G' |- g  goal
-       if  G |- M : g[s]
+       dp = (g, dPool) where  g ~ dPool  (context g matches dPool)
+       g |- s : g'
+       g' |- g  goal
+       if  g |- M : g[s]
        then  sc M  is evaluated
      Effects: instantiation of EVars in g, s, and dp
               any effect  sc M  might have
   *)),
-         (Atom p, s), (DProg (G, dPool) as dp), sc) ->
+         (Atom p, s), (DProg (g, dPool) as dp), sc) ->
           matchAtom (O, (p, s), dp, sc)
-      | (O, (Impl (r, A, Ha, g), s), DProg (G, dPool), sc) ->
+      | (O, (Impl (r, A, Ha, g), s), DProg (g, dPool), sc) ->
           let D' = I.Dec (NONE, (I.EClo (A, s))) in
           ((if !TableParam.strengthen
             then
-              (match MT.memberCtx ((G, (I.EClo (A, s))), G) with
+              (match MT.memberCtx ((g, (I.EClo (A, s))), g) with
                | SOME (D) ->
-                   let X = I.newEVar (G, (I.EClo (A, s))) in
+                   let X = I.newEVar (g, (I.EClo (A, s))) in
                    solve'
-                     (O, (g, (I.Dot ((I.Exp X), s))), (C.DProg (G, dPool)),
+                     (O, (g, (I.Dot ((I.Exp X), s))), (C.DProg (g, dPool)),
                        (function | (O, M) -> sc (O, (I.Lam (D', M)))))
                | NONE ->
                    solve'
                      (O, (g, (I.dot1 s)),
                        (C.DProg
-                          ((I.Decl (G, D')),
+                          ((I.Decl (g, D')),
                             (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
                        (function | (O, M) -> sc (O, (I.Lam (D', M))))))
             else
@@ -113,45 +113,45 @@ module PtRecon(PtRecon:sig
                   (* need to reuse label for this assumption .... *)),
                   (g, (I.dot1 s)),
                   (C.DProg
-                     ((I.Decl (G, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+                     ((I.Decl (g, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
                   (function | (O, M) -> sc (O, (I.Lam (D', M))))))
-            (*      solve' (O, (g, I.dot1 s), C.DProg (I.Decl(G, D'), I.Decl (dPool, C.Dec (r, s, Ha))),
+            (*      solve' (O, (g, I.dot1 s), C.DProg (I.Decl(g, D'), I.Decl (dPool, C.Dec (r, s, Ha))),
                (fn (O,M) => sc (O, (I.Lam (D', M)))))*))
-      | (O, (All (D, g), s), DProg (G, dPool), sc) ->
-          let D' = Names.decLUName (G, (I.decSub (D, s))) in
+      | (O, (All (D, g), s), DProg (g, dPool), sc) ->
+          let D' = Names.decLUName (g, (I.decSub (D, s))) in
           solve'
             (((O)(* val D' = I.decSub (D, s) *)),
               (g, (I.dot1 s)),
-              (C.DProg ((I.Decl (G, D')), (I.Decl (dPool, C.Parameter)))),
+              (C.DProg ((I.Decl (g, D')), (I.Decl (dPool, C.Parameter)))),
               (function | (O, M) -> sc (O, (I.Lam (D', M)))))
     let rec rSolve =
       function
       | (((O)(* rsolve (O, (p,s'), (r,s), dp, sc) = ()
      Invariants:
        O = oracle
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       G' |- r  resgoal
-       G |- s' : G''
-       G'' |- p : H @ S' (mod whnf)
-       if G |- S : r[s]
+       dp = (g, dPool) where g ~ dPool
+       g |- s : g'
+       g' |- r  resgoal
+       g |- s' : g''
+       g'' |- p : H @ S' (mod whnf)
+       if g |- S : r[s]
        then sc S is evaluated
      Effects: instantiation of EVars in p[s'], r[s], and dp
               any effect  sc S  might have
   *)),
-         ps', (Eq (Q), s), DProg (G, dPool), sc) ->
-          if Unify.unifiable (G, (Q, s), ps')
+         ps', (Eq (Q), s), DProg (g, dPool), sc) ->
+          if Unify.unifiable (g, (Q, s), ps')
           then sc (O, I.Nil)
           else
             (let ((_)(* effect: instantiate EVars *)
                (* call success continuation *)) =
                print "Unification Failed -- SHOULD NEVER HAPPEN!\n";
-               print ((Print.expToString (G, (I.EClo ps'))) ^ " unify ");
-               print ((Print.expToString (G, (I.EClo (Q, s)))) ^ "\n") in
+               print ((Print.expToString (g, (I.EClo ps'))) ^ " unify ");
+               print ((Print.expToString (g, (I.EClo (Q, s)))) ^ "\n") in
              ())
       | (((O)(* fail *)), ps', (Assign (Q, eqns), s),
-         (DProg (G, dPool) as dp), sc) ->
-          (match Assign.assignable (G, ps', (Q, s)) with
+         (DProg (g, dPool) as dp), sc) ->
+          (match Assign.assignable (g, ps', (Q, s)) with
            | SOME cnstr ->
                if aSolve ((eqns, s), dp, cnstr)
                then sc (O, I.Nil)
@@ -159,9 +159,9 @@ module PtRecon(PtRecon:sig
                  print "aSolve cnstr not solvable -- SHOULD NEVER HAPPEN\n"
            | NONE ->
                print "Clause Head not assignable -- SHOULD NEVER HAPPEN\n")
-      | (O, ps', (And (r, A, g), s), (DProg (G, dPool) as dp), sc) ->
+      | (O, ps', (And (r, A, g), s), (DProg (g, dPool) as dp), sc) ->
           let ((X)(* is this EVar redundant? -fp *)) =
-            I.newEVar (G, (I.EClo (A, s))) in
+            I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (O, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function
@@ -169,14 +169,14 @@ module PtRecon(PtRecon:sig
                    solve'
                      (O, (g, s), dp,
                        (function | (O, M) -> sc (O, (I.App (M, S)))))))
-      | (O, ps', (Exists (Dec (_, A), r), s), (DProg (G, dPool) as dp), sc)
+      | (O, ps', (Exists (Dec (_, A), r), s), (DProg (g, dPool) as dp), sc)
           ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+          let X = I.newEVar (g, (I.EClo (A, s))) in
           rSolve
             (O, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function | (O, S) -> sc (O, (I.App (X, S)))))
       | (O, ps', (Axists (ADec (SOME (X), d), r), s),
-         (DProg (G, dPool) as dp), sc) ->
+         (DProg (g, dPool) as dp), sc) ->
           let X' = I.newAVar () in
           ((rSolve
               (O, ps',
@@ -187,26 +187,26 @@ module PtRecon(PtRecon:sig
       function
       | ((((C.Trivial)(* aSolve ((ag, s), dp, sc) = res
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       if G |- ag[s] auxgoal
+       dp = (g, dPool) where g ~ dPool
+       g |- s : g'
+       if g |- ag[s] auxgoal
        then sc () is evaluated with return value res
        else res = Fail
      Effects: instantiation of EVars in ag[s], dp and sc () *)),
           s),
          dp, cnstr) -> Assign.solveCnstr cnstr
-      | ((UnifyEq (G', e1, N, eqns), s), (DProg (G, dPool) as dp), cnstr) ->
-          let G'' = compose' (G', G) in
-          let s' = shift (G', s) in
-          (Assign.unifiable (G'', (N, s'), (e1, s'))) &&
+      | ((UnifyEq (g', e1, N, eqns), s), (DProg (g, dPool) as dp), cnstr) ->
+          let g'' = compose' (g', g) in
+          let s' = shift (g', s) in
+          (Assign.unifiable (g'', (N, s'), (e1, s'))) &&
             (aSolve ((eqns, s), dp, cnstr))
     let rec matchAtom
       (((Ho)(* matchatom (O, (p, s), dp, sc) => ()
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       G' |- p : type, p = H @ S mod whnf
-       if G |- M :: p[s]
+       dp = (g, dPool) where g ~ dPool
+       g |- s : g'
+       g' |- p : type, p = H @ S mod whnf
+       if g |- M :: p[s]
        then sc M is evaluated
      Effects: instantiation of EVars in p[s] and dp
               any effect  sc M  might have
@@ -214,7 +214,7 @@ module PtRecon(PtRecon:sig
      This first tries the local assumptions in dp then
      the static signature.
   *))::O,
-       ((Root (Ha, S), s) as ps'), (DProg (G, dPool) as dp), sc)
+       ((Root (Ha, S), s) as ps'), (DProg (g, dPool) as dp), sc)
       =
       let matchSig =
         function
@@ -268,6 +268,6 @@ module PtRecon(PtRecon:sig
       | Pc i -> matchSig ((Index.lookup (cidFromHead Ha)), i)
       | Dc i -> matchDProg (dPool, i, i)
       | Csolver (U) -> sc (O, U)
-    let rec solve (O, (g, s), (DProg (G, dPool) as dp), sc) =
+    let rec solve (O, (g, s), (DProg (g, dPool) as dp), sc) =
       try solve' (O, (g, s), dp, sc) with | Error msg -> print msg
   end ;;

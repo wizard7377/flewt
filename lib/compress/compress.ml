@@ -91,7 +91,7 @@ module Compress(Compress:sig module Global : GLOBAL end) =
       | Type -> Base
     let rec eta_expand_term arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((G)(* hereditarily perform some eta-expansions on
+      | (((g)(* hereditarily perform some eta-expansions on
      a (term, type, spine, etc.) in a context
     (and if not synthesizing) at a simple type.
 
@@ -109,62 +109,62 @@ module Compress(Compress:sig module Global : GLOBAL end) =
     Fortunately, this weakened form of eta-expansion is all
     we need to reconcile the discrepancy between what twelf
     maintains as an invariant, and full eta-longness. *)),
-         NTerm t, T) -> NTerm (eta_expand_nterm G t T)
-      | (G, ATerm t, T) -> ATerm (eta_expand_aterm G t)
+         NTerm t, T) -> NTerm (eta_expand_nterm g t T)
+      | (g, ATerm t, T) -> ATerm (eta_expand_aterm g t)
     let rec eta_expand_nterm arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (G, Lam t, Arrow (t1, t2)) -> Lam (eta_expand_term (t1 :: G) t t2)
-      | (G, NRoot (h, s), T) -> NRoot (h, (eta_expand_spine G s T))
-      | (G, Lam t, Base) ->
+      | (g, Lam t, Arrow (t1, t2)) -> Lam (eta_expand_term (t1 :: g) t t2)
+      | (g, NRoot (h, s), T) -> NRoot (h, (eta_expand_spine g s T))
+      | (g, Lam t, Base) ->
           raise (Syntax "Lambda occurred where term of base type expected")
     let rec eta_expand_aterm arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, ARoot (Const n, s)) ->
+      | (g, ARoot (Const n, s)) ->
           let stp = simplify_tp (typeOf (Sgn.o_classifier n)) in
-          ARoot ((Const n), (eta_expand_spine G s stp))
-      | (G, ARoot (Var n, s)) ->
-          let stp = List.nth (G, n) in
-          ARoot ((Var n), (eta_expand_var_spine G s stp))
-      | (G, ERoot _) ->
+          ARoot ((Const n), (eta_expand_spine g s stp))
+      | (g, ARoot (Var n, s)) ->
+          let stp = List.nth (g, n) in
+          ARoot ((Var n), (eta_expand_var_spine g s stp))
+      | (g, ERoot _) ->
           raise (Syntax "invariant violated in eta_expand_aterm")
     let rec eta_expand_tp arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, TRoot (n, s)) ->
+      | (g, TRoot (n, s)) ->
           let stp = simplify_knd (kindOf (Sgn.o_classifier n)) in
-          TRoot (n, (eta_expand_spine G s stp))
-      | (G, TPi (m, a, b)) ->
+          TRoot (n, (eta_expand_spine g s stp))
+      | (g, TPi (m, a, b)) ->
           TPi
-            (m, (eta_expand_tp G a),
-              (eta_expand_tp ((simplify_tp a) :: G) b))
+            (m, (eta_expand_tp g a),
+              (eta_expand_tp ((simplify_tp a) :: g) b))
     let rec eta_expand_knd arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, Type) -> Type
-      | (G, KPi (m, a, b)) ->
+      | (g, Type) -> Type
+      | (g, KPi (m, a, b)) ->
           KPi
-            (m, (eta_expand_tp G a),
-              (eta_expand_knd ((simplify_tp a) :: G) b))
+            (m, (eta_expand_tp g a),
+              (eta_expand_knd ((simplify_tp a) :: g) b))
     let rec eta_expand_spine arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (G, [], Base) -> []
-      | (((G)(* this seems risky, but okay as long as the only eta-shortness we find is in variable-headed pattern spines *)),
+      | (g, [], Base) -> []
+      | (((g)(* this seems risky, but okay as long as the only eta-shortness we find is in variable-headed pattern spines *)),
          (Elt m)::tl, Arrow (t1, t2)) ->
-          (::) (Elt (eta_expand_term G m t1)) eta_expand_spine G tl t2
-      | (G, (AElt m)::tl, Arrow (t1, t2)) ->
-          (::) (AElt (eta_expand_aterm G m)) eta_expand_spine G tl t2
-      | (G, (Ascribe (m, a))::tl, Arrow (t1, t2)) ->
-          (::) (Ascribe ((eta_expand_nterm G m t1), (eta_expand_tp G a)))
-            eta_expand_spine G tl t2
-      | (G, (Omit)::tl, Arrow (t1, t2)) -> (::) Omit eta_expand_spine G tl t2
+          (::) (Elt (eta_expand_term g m t1)) eta_expand_spine g tl t2
+      | (g, (AElt m)::tl, Arrow (t1, t2)) ->
+          (::) (AElt (eta_expand_aterm g m)) eta_expand_spine g tl t2
+      | (g, (Ascribe (m, a))::tl, Arrow (t1, t2)) ->
+          (::) (Ascribe ((eta_expand_nterm g m t1), (eta_expand_tp g a)))
+            eta_expand_spine g tl t2
+      | (g, (Omit)::tl, Arrow (t1, t2)) -> (::) Omit eta_expand_spine g tl t2
       | (_, _, _) ->
           raise (Syntax "Can't figure out how to eta expand spine")
     let rec eta_expand_var_spine arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((G)(* the behavior here is that we are eta-expanding all of the elements of the spine, not the head of *this* spine *)),
+      | (((g)(* the behavior here is that we are eta-expanding all of the elements of the spine, not the head of *this* spine *)),
          [], _) -> []
-      | (((G)(* in fact this spine may not be eta-long yet *)),
+      | (((g)(* in fact this spine may not be eta-long yet *)),
          (Elt m)::tl, Arrow (t1, t2)) ->
-          (::) (Elt (eta_expand_immediate ((eta_expand_term G m t1), t1)))
-            eta_expand_spine G tl t2
+          (::) (Elt (eta_expand_immediate ((eta_expand_term g m t1), t1)))
+            eta_expand_spine g tl t2
       | (_, _, _) ->
           raise
             (Syntax "Can't figure out how to eta expand var-headed spine")
@@ -189,43 +189,43 @@ module Compress(Compress:sig module Global : GLOBAL end) =
     let kindOf = S.kindOf
     exception Debug of (S.spine * S.tp * S.tp) 
     let rec compress_type
-      ((G)(* val compress_type : Syntax.tp list -> Syntax.mode list option * Syntax.tp -> Syntax.tp *)
+      ((g)(* val compress_type : Syntax.tp list -> Syntax.mode list option * Syntax.tp -> Syntax.tp *)
       (* the length of the mode list, if there is one, should correspond to the number of pis in the input type.
     however, as indicated in the XXX comment below, it seems necessary to treat SOME of empty list
     as if it were NONE. This doesn't seem right. *))
       s =
-      compress_type' ((G)
+      compress_type' ((g)
         (* if !debug < 0
                           then *))
         s
     let rec compress_type' arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((G)(* else  (if !debug = 0 then raise Debug(G, s) else ();
-                                debug := !debug - 1; compress_type' G s) *)),
+      | (((g)(* else  (if !debug = 0 then raise Debug(g, s) else ();
+                                debug := !debug - 1; compress_type' g s) *)),
          (NONE, TPi (_, a, b))) ->
           S.TPi
-            (S.MINUS, (compress_type G (NONE, a)),
-              (compress_type (a :: G) (NONE, b)))
-      | (G, (SOME (m::ms), TPi (_, a, b))) ->
+            (S.MINUS, (compress_type g (NONE, a)),
+              (compress_type (a :: g) (NONE, b)))
+      | (g, (SOME (m::ms), TPi (_, a, b))) ->
           S.TPi
-            (m, (compress_type G (NONE, a)),
-              (compress_type (a :: G) ((SOME ms), b)))
-      | (G, (SOME [], TRoot (cid, sp))) ->
+            (m, (compress_type g (NONE, a)),
+              (compress_type (a :: g) ((SOME ms), b)))
+      | (g, (SOME [], TRoot (cid, sp))) ->
           S.TRoot
             (cid,
-              (compress_type_spine G
+              (compress_type_spine g
                  (sp, (kindOf (Sgn.o_classifier cid)),
                    (kindOf (Sgn.classifier cid)))))
-      | (G, (NONE, (TRoot _ as a))) -> compress_type G ((SOME []), a)
-      | (G, (SOME [], (TPi _ as a))) -> compress_type G (NONE, a)
+      | (g, (NONE, (TRoot _ as a))) -> compress_type g ((SOME []), a)
+      | (g, (SOME [], (TPi _ as a))) -> compress_type g (NONE, a)
     let rec compress_type_spine arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((G)(* XXX sketchy *)(* XXX: optimization: don't compute mstar if omit? *)),
+      | (((g)(* XXX sketchy *)(* XXX: optimization: don't compute mstar if omit? *)),
          ([], w, wstar)) -> []
-      | (G, ((Elt m)::sp, KPi (_, a, v), KPi (mode, astar, vstar))) ->
-          let mstar = compress_term G (m, a) in
+      | (g, ((Elt m)::sp, KPi (_, a, v), KPi (mode, astar, vstar))) ->
+          let mstar = compress_term g (m, a) in
           let sstar =
-            compress_type_spine G
+            compress_type_spine g
               (sp, (S.subst_knd (S.TermDot (m, a, S.Id)) v),
                 (S.subst_knd (S.TermDot (mstar, astar, S.Id)) vstar)) in
           (match (mode, mstar) with
@@ -233,14 +233,14 @@ module Compress(Compress:sig module Global : GLOBAL end) =
            | (S.MINUS, _) -> (S.Elt mstar) :: sstar
            | (S.PLUS, ATerm t) -> (S.AElt t) :: sstar
            | (S.PLUS, NTerm t) ->
-               (S.Ascribe (t, (compress_type G (NONE, a)))) :: sstar)
+               (S.Ascribe (t, (compress_type g (NONE, a)))) :: sstar)
     let rec compress_spine arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, ([], w, wstar)) -> []
-      | (G, ((Elt m)::sp, TPi (_, a, v), TPi (mode, astar, vstar))) ->
-          let mstar = compress_term G (m, a) in
+      | (g, ([], w, wstar)) -> []
+      | (g, ((Elt m)::sp, TPi (_, a, v), TPi (mode, astar, vstar))) ->
+          let mstar = compress_term g (m, a) in
           let sstar =
-            compress_spine G
+            compress_spine g
               (sp, (S.subst_tp (S.TermDot (m, a, S.Id)) v),
                 (S.subst_tp (S.TermDot (mstar, astar, S.Id)) vstar)) in
           (match (mode, mstar) with
@@ -248,35 +248,35 @@ module Compress(Compress:sig module Global : GLOBAL end) =
            | (S.MINUS, _) -> (S.Elt mstar) :: sstar
            | (S.PLUS, ATerm t) -> (S.AElt t) :: sstar
            | (S.PLUS, NTerm t) ->
-               (S.Ascribe (t, (compress_type G (NONE, a)))) :: sstar)
+               (S.Ascribe (t, (compress_type g (NONE, a)))) :: sstar)
     let rec compress_term arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, (ATerm (ARoot (Var n, sp)), _)) ->
-          let a = S.ctxLookup (G, n) in
-          let astar = compress_type G (NONE, a) in
-          S.ATerm (S.ARoot ((S.Var n), (compress_spine G (sp, a, astar))))
-      | (G, (ATerm (ARoot (Const n, sp)), _)) ->
+      | (g, (ATerm (ARoot (Var n, sp)), _)) ->
+          let a = S.ctxLookup (g, n) in
+          let astar = compress_type g (NONE, a) in
+          S.ATerm (S.ARoot ((S.Var n), (compress_spine g (sp, a, astar))))
+      | (g, (ATerm (ARoot (Const n, sp)), _)) ->
           let a = typeOf (Sgn.o_classifier n) in
           let astar = typeOf (Sgn.classifier n) in
           let term_former =
             match Sgn.get_p n with
             | SOME false__ -> S.NTerm o S.NRoot
             | _ -> S.ATerm o S.ARoot in
-          term_former ((S.Const n), (compress_spine G (sp, a, astar)))
-      | (G, (NTerm (Lam t), TPi (_, a, b))) ->
-          S.NTerm (S.Lam (compress_term (a :: G) (t, b)))
+          term_former ((S.Const n), (compress_spine g (sp, a, astar)))
+      | (g, (NTerm (Lam t), TPi (_, a, b))) ->
+          S.NTerm (S.Lam (compress_term (a :: g) (t, b)))
     let rec compress_kind arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, (NONE, KPi (_, a, k))) ->
+      | (g, (NONE, KPi (_, a, k))) ->
           S.KPi
-            (S.MINUS, (compress_type G (NONE, a)),
-              (compress_kind (a :: G) (NONE, k)))
-      | (G, (SOME (m::ms), KPi (_, a, k))) ->
+            (S.MINUS, (compress_type g (NONE, a)),
+              (compress_kind (a :: g) (NONE, k)))
+      | (g, (SOME (m::ms), KPi (_, a, k))) ->
           S.KPi
-            (m, (compress_type G (NONE, a)),
-              (compress_kind (a :: G) ((SOME ms), k)))
-      | (G, (SOME [], S.Type)) -> S.Type
-      | (G, (NONE, S.Type)) -> S.Type
+            (m, (compress_type g (NONE, a)),
+              (compress_kind (a :: g) ((SOME ms), k)))
+      | (g, (SOME [], S.Type)) -> S.Type
+      | (g, (NONE, S.Type)) -> S.Type
     let rec compress =
       function
       | (((cid)(* compress : cid * IntSyn.ConDec -> ConDec *)),

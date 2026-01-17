@@ -75,19 +75,19 @@ module Approx(Approx:sig
        X- undefined
 
      Note that erasure is always defined on well-typed terms at type
-     family or kind level.  Also, if G |- U1 = U2 : V and U1,U2 are at
-     type family or kind level, then U1- and U2- are defined and
+     family or kind level.  Also, if g |- u1 = u2 : V and u1,u2 are at
+     type family or kind level, then u1- and u2- are defined and
      equal.  We can define the approximate typing judgment
              
-       G |- U ~:~ V
+       g |- U ~:~ V
                   
      by replacing appeals to equality in the usual presentation of the
      LF type theory with appeals to
 
-       G |- U1 = U2 ~:~ V,
+       g |- u1 = u2 ~:~ V,
 
      which is defined to mean
-           G |- U1 ~:~ V  and  G |- U2 ~:~ V  and  U1- = U2-
+           g |- u1 ~:~ V  and  g |- u2 ~:~ V  and  u1- = u2-
                                                          
      This is a mutual recursion between the two judgments, just as for
      the standard LF type theory.
@@ -97,7 +97,7 @@ module Approx(Approx:sig
        |- u : v
 
      defined in the obvious way.  If |- u : v : l then for any
-     well-formed G there are most general U, V such that G |- U : V
+     well-formed g there are most general U, V such that g |- U : V
      and U- = u and V- = v.  *)
       (* others impossible by invariant *)) 
       | Next of
@@ -110,7 +110,7 @@ module Approx(Approx:sig
       | Const of I.__Head 
       | CVar of ((__Exp)(* Const/Def/NSDef *)) option ref 
       | Undefined 
-    let ((Type)(* Because approximate type reconstruction uses the pattern G |- U
+    let ((Type)(* Because approximate type reconstruction uses the pattern g |- U
      ~:~ V ~:~ L and universe unification on L, if U is to be an
      arbitrary input expression, there must be an internal universe
      Hyperkind such that |- Type ~:~ Kind ~:~ Hyperkind.  The
@@ -186,8 +186,8 @@ module Approx(Approx:sig
       function
       | Uni
           ((L)(* expToApx (U) = (U-, V-)
-     if G |- U : V
-     or G |- U ":" V = "hyperkind" *))
+     if g |- U : V
+     or g |- U ":" V = "hyperkind" *))
           -> let L' = uniToApx L in ((Uni L'), (Uni (whnfUni (Next L'))))
       | Pi ((Dec (_, V1), _), V2) ->
           let (((V1', _))(* Type *)) = expToApx V1 in
@@ -206,12 +206,12 @@ module Approx(Approx:sig
       | EClo (U, _) -> expToApx U
     let rec classToApx
       ((V)(* classToApx (V) = (V-, L-)
-     if G |- V : L
-     or G |- V ":" L = "hyperkind" *))
+     if g |- V : L
+     or g |- V ":" L = "hyperkind" *))
       = let (V', L') = expToApx V in let Uni (L'') = whnf L' in (V', L'')
     let rec exactToApx
       (((U)(* exactToApx (U, V) = (U-, V-)
-     if G |- U : V *)),
+     if g |- U : V *)),
        V)
       =
       let (V', L') = classToApx V in
@@ -241,54 +241,54 @@ module Approx(Approx:sig
       apxToUniW (whnfUni L)
     let rec apxToClassW =
       function
-      | (((G)(* apxToClass (G, v, L-, allowed) = V
+      | (((g)(* apxToClass (g, v, L-, allowed) = V
      pre: L is ground and <= Hyperkind,
           and if L is Hyperkind then the target classifier
           of v is ground
           v : L-
-     post: V is most general such that V- = v and G |- V : L *)),
+     post: V is most general such that V- = v and g |- V : L *)),
          Uni (L), _, ((allowed)(* Next L *))) ->
           I.Uni (apxToUni L)
-      | (G, Arrow (V1, V2), L, allowed) ->
+      | (g, Arrow (V1, V2), L, allowed) ->
           let ((V1')(* this is probably very bad -- it should be possible to infer
          more accurately which pis can be dependent *)
             (* also, does the name of the bound variable here matter? *))
-            = apxToClass (G, V1, Type, allowed) in
+            = apxToClass (g, V1, Type, allowed) in
           let D = I.Dec (NONE, V1') in
-          let V2' = apxToClass ((I.Decl (G, D)), V2, L, allowed) in
+          let V2' = apxToClass ((I.Decl (g, D)), V2, L, allowed) in
           I.Pi ((D, I.Maybe), V2')
-      | (G, (CVar r as V), L, ((allowed)(* Type or Kind *)))
+      | (g, (CVar r as V), L, ((allowed)(* Type or Kind *)))
           ->
           let ((name)(* convert undetermined CVars to FVars *))
             = getReplacementName (V, (Uni L), (Next L), allowed) in
-          let s = I.Shift (I.ctxLength G) in
+          let s = I.Shift (I.ctxLength g) in
           I.Root ((I.FVar (name, (I.Uni (apxToUni L)), s)), I.Nil)
-      | (G, Const (H), L, ((allowed)(* Type *))) ->
+      | (g, Const (H), L, ((allowed)(* Type *))) ->
           I.Root
             (H,
-              (Whnf.newSpineVar (G, ((I.conDecType (headConDec H)), I.id))))
+              (Whnf.newSpineVar (g, ((I.conDecType (headConDec H)), I.id))))
     let rec apxToClass
-      (((G)(* Undefined case impossible *)), V, L, allowed)
-      = apxToClassW (G, (whnf V), L, allowed)
+      (((g)(* Undefined case impossible *)), V, L, allowed)
+      = apxToClassW (g, (whnf V), L, allowed)
     let rec apxToExactW =
       function
-      | (((G)(* apxToExact (G, u, (V, s), allowed) = U
+      | (((g)(* apxToExact (g, u, (V, s), allowed) = U
      if u : V-
-     and G' |- V : L and G |- s : G'
-     then U- = u and G |- U : V[s] and U is the most general such *)),
+     and g' |- V : L and g |- s : g'
+     then U- = u and g |- U : V[s] and U is the most general such *)),
          U, (Pi ((D, _), V), s), allowed) ->
           let D' = I.decSub (D, s) in
           I.Lam
             (D',
-              (apxToExact ((I.Decl (G, D')), U, (V, (I.dot1 s)), allowed)))
-      | (G, U, (Uni (L), s), allowed) ->
-          apxToClass (G, U, (uniToApx L), allowed)
-      | (G, U, ((Root (FVar (name, _, _), _), s) as Vs), allowed) ->
+              (apxToExact ((I.Decl (g, D')), U, (V, (I.dot1 s)), allowed)))
+      | (g, U, (Uni (L), s), allowed) ->
+          apxToClass (g, U, (uniToApx L), allowed)
+      | (g, U, ((Root (FVar (name, _, _), _), s) as Vs), allowed) ->
           let (((V, L, _))(* Next L *)) =
             findByReplacementName name in
           let Uni (L) = whnf L in
           (match whnfUni L with
-           | Level 1 -> I.newEVar (G, (I.EClo Vs))
+           | Level 1 -> I.newEVar (g, (I.EClo Vs))
            | Level 2 ->
                let ((name')(* U must be a CVar *)) =
                  getReplacementName ((whnf U), V, (Level 2), allowed) in
@@ -296,12 +296,12 @@ module Approx(Approx:sig
                  (* probably could avoid the following call by removing the
                   substitutions in Vs instead *))
                  = apxToClass (I.Null, V, (Level 2), allowed) in
-               let s' = I.Shift (I.ctxLength G) in
+               let s' = I.Shift (I.ctxLength g) in
                I.Root ((I.FVar (name', V', s')), I.Nil))
-      | (G, U, Vs, ((allowed)(* an atomic type, not Def *)))
-          -> I.newEVar (G, (I.EClo Vs))
-    let rec apxToExact (G, U, Vs, allowed) =
-      apxToExactW (G, U, (Whnf.whnfExpandDef Vs), allowed)
+      | (g, U, Vs, ((allowed)(* an atomic type, not Def *)))
+          -> I.newEVar (g, (I.EClo Vs))
+    let rec apxToExact (g, U, Vs, allowed) =
+      apxToExactW (g, U, (Whnf.whnfExpandDef Vs), allowed)
     exception Unify of
       ((string)(* matching for the approximate language *)) 
     let rec occurUniW =
@@ -385,13 +385,13 @@ module Approx(Approx:sig
       | (Const (Def d1), (Arrow _ as V2)) -> match__ ((constDefApx d1), V2)
       | ((Arrow _ as V1), Const (NSDef d2)) -> match__ (V1, (constDefApx d2))
       | (Const (NSDef d1), (Arrow _ as V2)) -> match__ ((constDefApx d1), V2)
-      | (CVar r1, (CVar r2 as U2)) -> if r1 = r2 then () else (:=) r1 SOME U2
-      | (CVar r1, U2) -> (occurW (r1, U2); (:=) r1 SOME U2)
-      | (U1, CVar r2) -> (occurW (r2, U1); (:=) r2 SOME U1)
+      | (CVar r1, (CVar r2 as u2)) -> if r1 = r2 then () else (:=) r1 SOME u2
+      | (CVar r1, u2) -> (occurW (r1, u2); (:=) r1 SOME u2)
+      | (u1, CVar r2) -> (occurW (r2, u1); (:=) r2 SOME u1)
       | _ -> raise (Unify "Type/kind expression clash")
-    let rec match__ (U1, U2) = matchW ((whnf U1), (whnf U2))
-    let rec matchable (U1, U2) =
-      try match__ (U1, U2); true__ with | Unify _ -> false__
+    let rec match__ (u1, u2) = matchW ((whnf u1), (whnf u2))
+    let rec matchable (u1, u2) =
+      try match__ (u1, u2); true__ with | Unify _ -> false__
     let rec makeGroundUni =
       function
       | Level _ -> false__

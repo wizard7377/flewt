@@ -124,12 +124,12 @@ module TypecheckEE : TYPECHECK =
          (*  Equivalence wrt Definitions                                               *)
          (* -------------------------------------------------------------------------- *)),
          Uni u2) -> u1 = u2
-      | (Pi { arg = U1; body = V1; body = V1 }, Pi
-         { arg = U2; body = V2; body = V2 }) ->
-          (equiv_exp (U1, U2)) && (equiv_exp (V1, V2))
+      | (Pi { arg = u1; body = V1; body = V1 }, Pi
+         { arg = u2; body = V2; body = V2 }) ->
+          (equiv_exp (u1, u2)) && (equiv_exp (V1, V2))
       | (Lam { body = U }, Lam { body = U' }) -> equiv_exp (U, U')
-      | (Root (BVar i, S1), Root (BVar i', S2)) ->
-          (i = i') && (equiv_spine (S1, S2))
+      | (Root (BVar i, s1), Root (BVar i', s2)) ->
+          (i = i') && (equiv_spine (s1, s2))
       | ((Root (Const c, S) as exp), (Root (Const c', S') as exp')) ->
           if c = c'
           then equiv_spine (S, S')

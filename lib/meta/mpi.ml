@@ -98,13 +98,13 @@ module MTPi(MTPi:sig
       | c::nil -> I.conDecName (I.sgnLookup c)
       | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
     let rec printFillResult (_, P) =
-      let formatTuple (G, P) =
+      let formatTuple (g, P) =
         let formatTuple' =
           function
           | F.Unit -> nil
-          | Inx (M, F.Unit) -> [Print.formatExp (G, M)]
+          | Inx (M, F.Unit) -> [Print.formatExp (g, M)]
           | Inx (M, P') ->
-              (::) (((::) (Print.formatExp (G, M)) Fmt.String ",") ::
+              (::) (((::) (Print.formatExp (g, M)) Fmt.String ",") ::
                       Fmt.Break)
                 formatTuple' P' in
         match P with
@@ -112,10 +112,10 @@ module MTPi(MTPi:sig
         | _ ->
             Fmt.HVbox0 1 1 1
               ((Fmt.String "(") :: ((formatTuple' P) @ [Fmt.String ")"])) in
-      let State (n, (G, B), (IH, OH), d, O, H, F) = current () in
+      let State (n, (g, B), (IH, OH), d, O, H, F) = current () in
       TextIO.print
         (("Filling successful with proof term:\n" ^
-            (Formatter.makestring_fmt (formatTuple (G, P))))
+            (Formatter.makestring_fmt (formatTuple (g, P))))
            ^ "\n")
     let rec SplittingToMenu =
       function
@@ -205,21 +205,21 @@ module MTPi(MTPi:sig
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec transformOrder' =
       function
-      | (G, Arg k) ->
-          let k' = ((I.ctxLength G) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (G, k') in
+      | (g, Arg k) ->
+          let k' = ((I.ctxLength g) - k) + 1 in
+          let Dec (_, V) = I.ctxDec (g, k') in
           S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (G, Lex (Os)) ->
-          S.Lex (map (function | O -> transformOrder' (G, O)) Os)
-      | (G, Simul (Os)) ->
-          S.Simul (map (function | O -> transformOrder' (G, O)) Os)
+      | (g, Lex (Os)) ->
+          S.Lex (map (function | O -> transformOrder' (g, O)) Os)
+      | (g, Simul (Os)) ->
+          S.Simul (map (function | O -> transformOrder' (g, O)) Os)
     let rec transformOrder =
       function
-      | (G, All (Prim (D), F), Os) ->
-          S.All (D, (transformOrder ((I.Decl (G, D)), F, Os)))
-      | (G, And (F1, F2), (O)::Os) ->
-          S.And ((transformOrder (G, F1, [O])), (transformOrder (G, F2, Os)))
-      | (G, Ex _, (O)::[]) -> transformOrder' (G, O)
+      | (g, All (Prim (D), F), Os) ->
+          S.All (D, (transformOrder ((I.Decl (g, D)), F, Os)))
+      | (g, And (F1, F2), (O)::Os) ->
+          S.And ((transformOrder (g, F1, [O])), (transformOrder (g, F2, Os)))
+      | (g, Ex _, (O)::[]) -> transformOrder' (g, O)
     let rec select c = try Order.selLookup c with | _ -> Order.Lex []
     let rec init (k, names) =
       let cL =

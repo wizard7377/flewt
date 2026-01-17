@@ -49,13 +49,13 @@ module Translate : TRANSLATE =
     let rec translate_exp =
       function
       | Uni uni -> S.Uni (translate_uni uni)
-      | Pi ((Dec (name, U1), depend), U2) ->
+      | Pi ((Dec (name, u1), depend), u2) ->
           S.Pi
             {
               var = name;
-              arg = (translate_exp U1);
+              arg = (translate_exp u1);
               depend = (translate_depend depend);
-              body = (translate_exp U2)
+              body = (translate_exp u2)
             }
       | Root (H, S) -> S.Root ((translate_head H), (translate_spine S))
       | Lam (Dec (name, _), U) ->

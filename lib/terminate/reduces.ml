@@ -60,14 +60,14 @@ module Reduces(Reduces:sig
                     (Origins.linesInfoLookup fileName), msg)))
     let rec concat =
       function
-      | (G', I.Null) -> G'
-      | (G', Decl (G, D)) -> I.Decl ((concat (G', G)), D)
-    let rec fmtOrder (G, O) =
+      | (g', I.Null) -> g'
+      | (g', Decl (g, D)) -> I.Decl ((concat (g', g)), D)
+    let rec fmtOrder (g, O) =
       let fmtOrder' =
         function
         | Arg (((U, s) as Us), ((V, s') as Vs)) ->
             F.Hbox
-              [F.String "("; Print.formatExp (G, (I.EClo Us)); F.String ")"]
+              [F.String "("; Print.formatExp (g, (I.EClo Us)); F.String ")"]
         | Lex (L) ->
             F.Hbox
               [F.String "{"; F.HOVbox0 1 0 1 (fmtOrders L); F.String "}"]
@@ -80,26 +80,26 @@ module Reduces(Reduces:sig
         | (O)::[] -> (fmtOrder' O) :: []
         | (O)::L -> (::) ((fmtOrder' O) :: F.Break) fmtOrders L in
       fmtOrder' O
-    let rec fmtComparison (G, O, comp, O') =
+    let rec fmtComparison (g, O, comp, O') =
       F.HOVbox0 1 0 1
-        [fmtOrder (G, O); F.Break; F.String comp; F.Break; fmtOrder (G, O')]
+        [fmtOrder (g, O); F.Break; F.String comp; F.Break; fmtOrder (g, O')]
     let rec fmtPredicate =
       function
-      | (G, Less (O, O')) -> fmtComparison (G, O, "<", O')
-      | (G, Leq (O, O')) -> fmtComparison (G, O, "<=", O')
-      | (G, Eq (O, O')) -> fmtComparison (G, O, "=", O')
-      | (G, Pi (D, P)) ->
-          F.Hbox [F.String "Pi "; fmtPredicate ((I.Decl (G, D)), P)]
+      | (g, Less (O, O')) -> fmtComparison (g, O, "<", O')
+      | (g, Leq (O, O')) -> fmtComparison (g, O, "<=", O')
+      | (g, Eq (O, O')) -> fmtComparison (g, O, "=", O')
+      | (g, Pi (D, P)) ->
+          F.Hbox [F.String "Pi "; fmtPredicate ((I.Decl (g, D)), P)]
     let rec rlistToString' =
       function
-      | (G, nil) -> ""
-      | (G, (P)::[]) -> F.makestring_fmt (fmtPredicate (G, P))
-      | (G, (P)::Rl) ->
-          (^) ((F.makestring_fmt (fmtPredicate (G, P))) ^ " ,")
-            rlistToString' (G, Rl)
-    let rec rlistToString (G, Rl) = rlistToString' ((Names.ctxName G), Rl)
-    let rec orderToString (G, P) =
-      F.makestring_fmt (fmtPredicate ((Names.ctxName G), P))
+      | (g, nil) -> ""
+      | (g, (P)::[]) -> F.makestring_fmt (fmtPredicate (g, P))
+      | (g, (P)::Rl) ->
+          (^) ((F.makestring_fmt (fmtPredicate (g, P))) ^ " ,")
+            rlistToString' (g, Rl)
+    let rec rlistToString (g, Rl) = rlistToString' ((Names.ctxName g), Rl)
+    let rec orderToString (g, P) =
+      F.makestring_fmt (fmtPredicate ((Names.ctxName g), P))
     let rec select (c, (S, s)) =
       let SO = R.selLookup c in
       let Vid = ((I.constType c), I.id) in
@@ -153,12 +153,12 @@ module Reduces(Reduces:sig
         | Leq (O1, O2) -> C.Leq ((select' O1), (select' O2))
         | Eq (O1, O2) -> C.Eq ((select' O1), (select' O2)) in
       try SOME (selectP (R.selLookupROrder c)) with | Error s -> NONE
-    let rec abstractRO (G, D, O) = C.Pi (D, O)
-    let rec getROrder (G, Q, Vs, occ) =
-      getROrderW (G, Q, (Whnf.whnf Vs), occ)
+    let rec abstractRO (g, D, O) = C.Pi (D, O)
+    let rec getROrder (g, Q, Vs, occ) =
+      getROrderW (g, Q, (Whnf.whnf Vs), occ)
     let rec getROrderW =
       function
-      | (G, Q, ((Root (Const a, S), s) as Vs), occ) ->
+      | (g, Q, ((Root (Const a, S), s) as Vs), occ) ->
           let O = selectROrder (a, (S, s)) in
           let _ =
             match O with
@@ -170,23 +170,23 @@ module Reduces(Reduces:sig
                     (((^) (((^) "Reduction predicate for " N.qidToString
                               (N.constQid a))
                              ^ " added : ")
-                        orderToString (G, O))
+                        orderToString (g, O))
                        ^ "\n")
                 else () in
           O
-      | (G, Q, (Pi ((D, I.Maybe), V), s), occ) ->
+      | (g, Q, (Pi ((D, I.Maybe), V), s), occ) ->
           let O =
             getROrder
-              ((I.Decl (G, (N.decLUName (G, (I.decSub (D, s)))))),
+              ((I.Decl (g, (N.decLUName (g, (I.decSub (D, s)))))),
                 (I.Decl (Q, C.All)), (V, (I.dot1 s)), (P.body occ)) in
           (match O with
            | NONE -> NONE
-           | SOME (O') -> SOME (abstractRO (G, (I.decSub (D, s)), O')))
-      | (G, Q, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
+           | SOME (O') -> SOME (abstractRO (g, (I.decSub (D, s)), O')))
+      | (g, Q, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
           let O =
-            getROrder (G, Q, (V2, (I.comp (I.invShift, s))), (P.body occ)) in
+            getROrder (g, Q, (V2, (I.comp (I.invShift, s))), (P.body occ)) in
           (match O with | NONE -> NONE | SOME (O') -> SOME O')
-      | (G, Q, ((Root (Def a, S), s) as Vs), occ) ->
+      | (g, Q, ((Root (Def a, S), s) as Vs), occ) ->
           raise
             (Error'
                (occ,
@@ -277,35 +277,35 @@ module Reduces(Reduces:sig
     let rec checkSubgoals =
       function
       | (G0, Q0, Rl, Vs, n,
-         (Decl (G, (Dec (_, V') as D)), Decl (Q, And occ))) ->
+         (Decl (g, (Dec (_, V') as D)), Decl (Q, And occ))) ->
           let _ = checkGoal (G0, Q0, Rl, (V', (I.Shift (n + 1))), Vs, occ) in
           let RO = getROrder (G0, Q0, (V', (I.Shift (n + 1))), occ) in
           let Rl' = match RO with | NONE -> Rl | SOME (O) -> O :: Rl in
-          checkSubgoals (G0, Q0, Rl', Vs, (n + 1), (G, Q))
-      | (G0, Q0, Rl, Vs, n, (Decl (G, D), Decl (Q, C.Exist))) ->
-          checkSubgoals (G0, Q0, Rl, Vs, (n + 1), (G, Q))
-      | (G0, Q0, Rl, Vs, n, (Decl (G, D), Decl (Q, C.All))) ->
-          checkSubgoals (G0, Q0, Rl, Vs, (n + 1), (G, Q))
+          checkSubgoals (G0, Q0, Rl', Vs, (n + 1), (g, Q))
+      | (G0, Q0, Rl, Vs, n, (Decl (g, D), Decl (Q, C.Exist))) ->
+          checkSubgoals (G0, Q0, Rl, Vs, (n + 1), (g, Q))
+      | (G0, Q0, Rl, Vs, n, (Decl (g, D), Decl (Q, C.All))) ->
+          checkSubgoals (G0, Q0, Rl, Vs, (n + 1), (g, Q))
       | (G0, Q0, Rl, Vs, n, (I.Null, I.Null)) -> ()
-    let rec checkClause (GQR, G, Q, Vs, occ) =
-      checkClauseW (GQR, G, Q, (Whnf.whnf Vs), occ)
+    let rec checkClause (GQR, g, Q, Vs, occ) =
+      checkClauseW (GQR, g, Q, (Whnf.whnf Vs), occ)
     let rec checkClauseW =
       function
-      | (GQR, G, Q, (Pi ((D, I.Maybe), V), s), occ) ->
+      | (GQR, g, Q, (Pi ((D, I.Maybe), V), s), occ) ->
           checkClause
-            (GQR, (I.Decl (G, (N.decEName (G, (I.decSub (D, s)))))),
+            (GQR, (I.Decl (g, (N.decEName (g, (I.decSub (D, s)))))),
               (I.Decl (Q, C.Exist)), (V, (I.dot1 s)), (P.body occ))
-      | (GQR, G, Q, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
+      | (GQR, g, Q, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
           checkClause
-            (GQR, (I.Decl (G, (I.decSub (D, s)))),
+            (GQR, (I.Decl (g, (I.decSub (D, s)))),
               (I.Decl (Q, (C.And (P.label occ)))), (V2, (I.dot1 s)),
               (P.body occ))
-      | (((G0, Q0, Rl) as GQR), G, Q, ((Root (Const a, S), s) as Vs), occ) ->
-          let n = I.ctxLength G in
+      | (((G0, Q0, Rl) as GQR), g, Q, ((Root (Const a, S), s) as Vs), occ) ->
+          let n = I.ctxLength g in
           let Rl' = C.shiftRCtx Rl (function | s -> I.comp (s, (I.Shift n))) in
           checkSubgoals
-            ((concat (G0, G)), (concat (Q0, Q)), Rl', Vs, 0, (G, Q))
-      | (GQR, G, Q, (Root (Def a, S), s), occ) ->
+            ((concat (G0, g)), (concat (Q0, Q)), Rl', Vs, 0, (g, Q))
+      | (GQR, g, Q, (Root (Def a, S), s), occ) ->
           raise
             (Error'
                (occ,
@@ -315,22 +315,22 @@ module Reduces(Reduces:sig
                     ^ ".")))
     let rec checkClause' (Vs, occ) =
       checkClause ((I.Null, I.Null, nil), I.Null, I.Null, Vs, occ)
-    let rec checkRGoal (G, Q, Rl, Vs, occ) =
-      checkRGoalW (G, Q, Rl, (Whnf.whnf Vs), occ)
+    let rec checkRGoal (g, Q, Rl, Vs, occ) =
+      checkRGoalW (g, Q, Rl, (Whnf.whnf Vs), occ)
     let rec checkRGoalW =
       function
-      | (G, Q, Rl, ((Root (Const a, S), s) as Vs), occ) -> ()
-      | (G, Q, Rl, (Pi ((D, I.Maybe), V), s), occ) ->
+      | (g, Q, Rl, ((Root (Const a, S), s) as Vs), occ) -> ()
+      | (g, Q, Rl, (Pi ((D, I.Maybe), V), s), occ) ->
           checkRGoal
-            ((I.Decl (G, (N.decLUName (G, (I.decSub (D, s)))))),
+            ((I.Decl (g, (N.decLUName (g, (I.decSub (D, s)))))),
               (I.Decl (Q, C.All)),
               (C.shiftRCtx Rl (function | s -> I.comp (s, I.shift))),
               (V, (I.dot1 s)), (P.body occ))
-      | (G, Q, Rl, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
-          (checkRClause (G, Q, Rl, (V1, s), (P.label occ));
+      | (g, Q, Rl, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
+          (checkRClause (g, Q, Rl, (V1, s), (P.label occ));
            checkRGoal
-             (G, Q, Rl, (V2, (I.comp (I.invShift, s))), (P.body occ)))
-      | (G, Q, Rl, (Root (Def a, S), s), occ) ->
+             (g, Q, Rl, (V2, (I.comp (I.invShift, s))), (P.body occ)))
+      | (g, Q, Rl, (Root (Def a, S), s), occ) ->
           raise
             (Error'
                (occ,
@@ -338,26 +338,26 @@ module Reduces(Reduces:sig
                           ^ "Illegal use of ")
                      N.qidToString (N.constQid a))
                     ^ ".")))
-    let rec checkRImp (G, Q, Rl, Vs, Vs', occ) =
-      checkRImpW (G, Q, Rl, (Whnf.whnf Vs), Vs', occ)
+    let rec checkRImp (g, Q, Rl, Vs, Vs', occ) =
+      checkRImpW (g, Q, Rl, (Whnf.whnf Vs), Vs', occ)
     let rec checkRImpW =
       function
-      | (G, Q, Rl, (Pi ((D', I.Maybe), V'), s'), (V, s), occ) ->
+      | (g, Q, Rl, (Pi ((D', I.Maybe), V'), s'), (V, s), occ) ->
           checkRImp
-            ((I.Decl (G, (N.decEName (G, (I.decSub (D', s')))))),
+            ((I.Decl (g, (N.decEName (g, (I.decSub (D', s')))))),
               (I.Decl (Q, C.Exist)),
               (C.shiftRCtx Rl (function | s -> I.comp (s, I.shift))),
               (V', (I.dot1 s')), (V, (I.comp (s, I.shift))), occ)
-      | (G, Q, Rl, (Pi (((Dec (_, V1) as D'), I.No), V2), s'), (V, s), occ)
+      | (g, Q, Rl, (Pi (((Dec (_, V1) as D'), I.No), V2), s'), (V, s), occ)
           ->
           let Rl' =
-            match getROrder (G, Q, (V1, s'), occ) with
+            match getROrder (g, Q, (V1, s'), occ) with
             | NONE -> Rl
             | SOME (O) -> O :: Rl in
-          checkRImp (G, Q, Rl', (V2, (I.comp (I.invShift, s'))), (V, s), occ)
-      | (G, Q, Rl, ((Root (Const a, S), s) as Vs'), Vs, occ) ->
-          checkRGoal (G, Q, Rl, Vs, occ)
-      | (G, Q, Rl, ((Root (Def a, S), s) as Vs'), Vs, occ) ->
+          checkRImp (g, Q, Rl', (V2, (I.comp (I.invShift, s'))), (V, s), occ)
+      | (g, Q, Rl, ((Root (Const a, S), s) as Vs'), Vs, occ) ->
+          checkRGoal (g, Q, Rl, Vs, occ)
+      | (g, Q, Rl, ((Root (Def a, S), s) as Vs'), Vs, occ) ->
           raise
             (Error'
                (occ,
@@ -365,29 +365,29 @@ module Reduces(Reduces:sig
                           ^ "Illegal use of ")
                      N.qidToString (N.constQid a))
                     ^ ".")))
-    let rec checkRClause (G, Q, Rl, Vs, occ) =
-      checkRClauseW (G, Q, Rl, (Whnf.whnf Vs), occ)
+    let rec checkRClause (g, Q, Rl, Vs, occ) =
+      checkRClauseW (g, Q, Rl, (Whnf.whnf Vs), occ)
     let rec checkRClauseW =
       function
-      | (G, Q, Rl, (Pi ((D, I.Maybe), V), s), occ) ->
+      | (g, Q, Rl, (Pi ((D, I.Maybe), V), s), occ) ->
           checkRClause
-            ((I.Decl (G, (N.decEName (G, (I.decSub (D, s)))))),
+            ((I.Decl (g, (N.decEName (g, (I.decSub (D, s)))))),
               (I.Decl (Q, C.Exist)),
               (C.shiftRCtx Rl (function | s -> I.comp (s, I.shift))),
               (V, (I.dot1 s)), (P.body occ))
-      | (G, Q, Rl, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
-          let G' = I.Decl (G, (I.decSub (D, s))) in
+      | (g, Q, Rl, (Pi (((Dec (_, V1) as D), I.No), V2), s), occ) ->
+          let g' = I.Decl (g, (I.decSub (D, s))) in
           let Q' = I.Decl (Q, C.Exist) in
           let Rl' = C.shiftRCtx Rl (function | s -> I.comp (s, I.shift)) in
           let Rl'' =
-            match getROrder (G', Q', (V1, (I.comp (s, I.shift))), occ) with
+            match getROrder (g', Q', (V1, (I.comp (s, I.shift))), occ) with
             | NONE -> Rl'
             | SOME (O) -> O :: Rl' in
-          (checkRClause (G', Q', Rl'', (V2, (I.dot1 s)), (P.body occ));
+          (checkRClause (g', Q', Rl'', (V2, (I.dot1 s)), (P.body occ));
            checkRImp
-             (G', Q', Rl'', (V2, (I.dot1 s)), (V1, (I.comp (s, I.shift))),
+             (g', Q', Rl'', (V2, (I.dot1 s)), (V1, (I.comp (s, I.shift))),
                (P.label occ)))
-      | (G, Q, Rl, ((Root (Const a, S), s) as Vs), occ) ->
+      | (g, Q, Rl, ((Root (Const a, S), s) as Vs), occ) ->
           let RO =
             match selectROrder (a, (S, s)) with
             | NONE ->
@@ -403,21 +403,21 @@ module Reduces(Reduces:sig
             then
               print
                 (((^) (((^) "Verifying reduction property:\n" rlistToString
-                          (G, Rl))
+                          (g, Rl))
                          ^ " ---> ")
-                    orderToString (G, RO))
+                    orderToString (g, RO))
                    ^ " \n")
             else () in
-          if C.deduce (G, Q, Rl, RO)
+          if C.deduce (g, Q, Rl, RO)
           then ()
           else
             raise
               (Error'
                  (occ,
-                   ((^) (((^) "Reduction violation:\n" rlistToString (G, Rl))
+                   ((^) (((^) "Reduction violation:\n" rlistToString (g, Rl))
                            ^ " ---> ")
-                      orderToString (G, RO))))
-      | (G, Q, Rl, ((Root (Def a, S), s) as VS), occ) ->
+                      orderToString (g, RO))))
+      | (g, Q, Rl, ((Root (Def a, S), s) as VS), occ) ->
           raise
             (Error'
                (occ,
@@ -505,36 +505,36 @@ module Reduces(Reduces:sig
       select parameters according to termination order
 
       Invariant:
-      If   . |- c : V   G |- s : G'    G' |- S : V > type
+      If   . |- c : V   g |- s : g'    g' |- S : V > type
       and  V = {x1:V1} ... {xn:Vn} type.
-      then P = U1[s1] .. Un[sn] is parameter select of S[s] according to sel (c)
-      and  G |- si : Gi  Gi |- Ui : Vi
-      and  G |- Vi[s]  == V[si] : type   forall 1<=i<=n
+      then P = u1[s1] .. Un[sn] is parameter select of S[s] according to sel (c)
+      and  g |- si : Gi  Gi |- Ui : Vi
+      and  g |- Vi[s]  == V[si] : type   forall 1<=i<=n
     *)
       (* selectROrder (c, (S, s)) = P
 
        select parameters according to reduction order
 
        Invariant:
-       If   . |- c : V   G |- s : G'    G' |- S : V > type
+       If   . |- c : V   g |- s : g'    g' |- S : V > type
        and  V = {x1:V1} ... {xn:Vn} type.
-       then P = U1[s1] .. Un[sn] is parameter select of S[s] according to sel (c)
-       and  G |- si : Gi  Gi |- Ui : Vi
-       and  G |- Vi[s]  == V[si] : type   forall 1<=i<=n
+       then P = u1[s1] .. Un[sn] is parameter select of S[s] according to sel (c)
+       and  g |- si : Gi  Gi |- Ui : Vi
+       and  g |- Vi[s]  == V[si] : type   forall 1<=i<=n
     *)
       (*--------------------------------------------------------------*)
-      (* abstractRO (G, D, RO) = Pi D. RO
+      (* abstractRO (g, D, RO) = Pi D. RO
        Invariant:
 
-       If  G, D |- RO
-       then  G |- Pi D . RO
+       If  g, D |- RO
+       then  g |- Pi D . RO
 
     *)
-      (* getROrder (G, Q, (V, s)) = O
-       If G: Q
-       and  G |- s : G1    and   G1 |- V : L
+      (* getROrder (g, Q, (V, s)) = O
+       If g: Q
+       and  g |- s : G1    and   G1 |- V : L
        then O is the reduction order associated to V[s]
-       and  G |- O
+       and  g |- O
 
      *)
       (*--------------------------------------------------------------------*)
@@ -546,13 +546,13 @@ module Reduces(Reduces:sig
        and  V[s], V'[s'] does not contain Skolem constants
        and  G0 |- s' : G2    and   G2 |- V' : L'   (V', s') in whnf
        and  V' = a' @ S'
-       and  G |- L = L'
+       and  g |- L = L'
        and  V[s] < V'[s']  (< termination ordering)
          then ()
        else Error is raised.
     *)
       (* only if a terminates? *)(* always succeeds? -fp *)
-      (* always succeeds? -fp *)(* checkSubgoals (G0, Q0, Rl, Vs, n, (G, Q), Vs, occ)
+      (* always succeeds? -fp *)(* checkSubgoals (G0, Q0, Rl, Vs, n, (g, Q), Vs, occ)
 
       if    G0 |- Q0
        and  G0 |- s : G1    and   G1 |- V : L
@@ -560,64 +560,64 @@ module Reduces(Reduces:sig
        and  Rl is a list of reduction propositions
        and  G0 |- Rl
        and  G0 |- V[s]
-       and  G0 = G0', G' where G' <= G
-       and  n = |G'| - |G|
-       and  G0 |- G[^n]
-       and  G |- Q
+       and  G0 = G0', g' where g' <= g
+       and  n = |g'| - |g|
+       and  G0 |- g[^n]
+       and  g |- Q
      and
        V[s] satisfies the associated termination order
 
      *)
-      (* checkClause (GQR as (G0, Q0, Rl), G, Q, Vs, occ)
+      (* checkClause (GQR as (G0, Q0, Rl), g, Q, Vs, occ)
 
-      if   G0, G |- Q0, Q
-       and  G0, G |- s : G1    and   G1 |- V : L
+      if   G0, g |- Q0, Q
+       and  G0, g |- s : G1    and   G1 |- V : L
        and  V[s] does not contain any skolem constants
        and  Rl is a list of reduction propositions
-       and  G0, G |- Rl
-       and  G0, G |- V[s]
+       and  G0, g |- Rl
+       and  G0, g |- V[s]
      and
        V[s] satisfies the associated termination order
      *)
       (*-------------------------------------------------------------------*)
-      (* Reduction Checker *)(* checkRGoal (G, Q, Rl, (V1, s1), occ) = Rl''
+      (* Reduction Checker *)(* checkRGoal (g, Q, Rl, (V1, s1), occ) = Rl''
 
        Invariant
-       If   G : Q
-       and  G |- s1 : G1   and   G1 |- V1 : type
+       If   g : Q
+       and  g |- s1 : G1   and   G1 |- V1 : type
        and  V1[s1], V2[s2] does not contain Skolem constants
-       and  G |- s2 : G2   and   G2 |- V2 : type
+       and  g |- s2 : G2   and   G2 |- V2 : type
        and occ locates V1 in declaration
        and Rl is a context of reduction predicates
-       and  G |- Rl
+       and  g |- Rl
        and Rl implies that V1[s1] satisfies its associated reduction order
 
      *)
-      (* trivial *)(* checkRImp (G, Q, Rl, (V1, s1), (V2, s2), occ) = ()
+      (* trivial *)(* checkRImp (g, Q, Rl, (V1, s1), (V2, s2), occ) = ()
 
        Invariant
-       If   G : Q
-       and  G |- s1 : G1   and   G1 |- V1 : type
+       If   g : Q
+       and  g |- s1 : G1   and   G1 |- V1 : type
        and  V1[s1], V2[s2] does not contain Skolem constants
-       and  G |- s2 : G2   and   G2 |- V2 : type
+       and  g |- s2 : G2   and   G2 |- V2 : type
        and occ locates V1 in declaration
        and Rl is a context for derived reduction order assumptions
-       and G |- Rl
+       and g |- Rl
 
        then Rl implies that  V2[s2] satisfies its associated reduction order
             with respect to V1[s1]
     *)
-      (* checkRClause (G, Q, Rl, (V, s)) = ()
+      (* checkRClause (g, Q, Rl, (V, s)) = ()
 
        Invariant:
-       If G: Q
-       and  G |- s : G1    and   G1 |- V : L
+       If g: Q
+       and  g |- s : G1    and   G1 |- V : L
        and  V[s] does not contain any Skolem constants
        and  Rl is a context of reduction predicates
-       and  G |- Rl
+       and  g |- Rl
        then Rl implies that V[s] satifies the reduction order
     *)
-      (* N.decEName (G, I.decSub (D, s)) *)(* will not be used *)
+      (* N.decEName (g, I.decSub (D, s)) *)(* will not be used *)
       (* rename ctx ??? *)(* checkFamReduction a = ()
 
        Invariant:

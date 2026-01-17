@@ -529,7 +529,7 @@ module ModeCheck(ModeCheck:sig
        Mode context   D ::= . | D, S
 
        If D contains Status information for variables in
-       a context G, we write G ~ D
+       a context g, we write g ~ D
        We write D' >= D if for all i
          D(i) par iff D'(i) par
          D(i) bot implies D'(i) bot or D'(i) top
@@ -575,14 +575,14 @@ module ModeCheck(ModeCheck:sig
        if lam V1... lam Vn. U =eta*=> k
        otherwise raise exception Eta
 
-       Invariant: G, V1,..., Vn |- U : V for some G, Vi, V.
+       Invariant: g, V1,..., Vn |- U : V for some g, Vi, V.
                   U in NF
     *)
       (* etaSpine (S, n) = ()
        if S =eta*=> n ; n-1 ; ... ; 1 ; Nil
        otherwise raise exception Eta
 
-       Invariant: G |- S : V1 >> V2 for some G, V1, V2
+       Invariant: g |- S : V1 >> V2 for some g, V1, V2
                   S in NF
     *)
       (* S[s] should be impossible *)(* isPattern (D, k, mS) = B
@@ -623,8 +623,8 @@ module ModeCheck(ModeCheck:sig
       (* ------------------------------------------- freeness check *)
       (* freeExpN (D, mode, U, occ = ()
 
-       If G |- U : V  (U in nf)
-       and G ~ D
+       If g |- U : V  (U in nf)
+       and g ~ D
        then freeExpN terminates with () if D |- U free
        else exception ModeError is raised
 
@@ -632,8 +632,8 @@ module ModeCheck(ModeCheck:sig
     *)
       (* punting on the occ here  - ak *)(* freeSpineN (D, mode, S, occ, strictFun)  = ()
 
-       If   G |- S : V1  > V2   (S in nf)
-       and  G ~ D
+       If   g |- S : V1  > V2   (S in nf)
+       and  g ~ D
        then freeSpineN terminates with () if  D |- S free
        else exception ModeError is raised
 
@@ -641,8 +641,8 @@ module ModeCheck(ModeCheck:sig
     *)
       (* freeVar (D, mode, k, occ, strictFun)  = ()
 
-       If   G |- k : V1
-       and  G ~ D
+       If   g |- k : V1
+       and  g ~ D
        then freeVar terminates with () if  D |- S free
        else exception ModeError is raised
 
@@ -651,22 +651,22 @@ module ModeCheck(ModeCheck:sig
       (* -------------------------------- non-strict mode context update *)
       (* nonStrictExpN (D, U) = D'
 
-       If   G |- U : V     (U in nf)
-       and  D ~ G
+       If   g |- U : V     (U in nf)
+       and  D ~ g
        then D' >= D where D'(k) Unknown for all existential variables k
             in U that are free in D
     *)
       (* nonStrictSpineN (D, S) = D'
 
-       If   G |- S : V1 > V2      (S in nf)
-       and  D ~ G
+       If   g |- S : V1 > V2      (S in nf)
+       and  D ~ g
        then D' >= D' where D'(k) Unkown for all existential variables k
             in S that are Free in D
     *)
       (* nonStrictVarD (D, k) = D'
 
-       If   G |- k : V
-       and  D ~ G
+       If   g |- k : V
+       and  D ~ g
        and  k is an existential variable
        then D' >= D where k is nonStrictd as described in  nonStrictExpN
     *)
@@ -674,8 +674,8 @@ module ModeCheck(ModeCheck:sig
       (* ------------------------------------------- mode context update *)
       (* updateExpN (D, U, u) = D'
 
-       If   G |- U : V     (U in nf)
-       and  D ~ G
+       If   g |- U : V     (U in nf)
+       and  D ~ g
        then D' >= D where D'(k) Ground for all existential variables k
             with a strict occurrence in U
             and D'(k) Unkown for all existential variable k
@@ -686,23 +686,23 @@ module ModeCheck(ModeCheck:sig
     *)
       (* no occurrence inside a FgnExp is considered strict *)(* updateSpineN (D, S, u) = D'
 
-       If   G |- S : V1 > V2      (S in nf)
-       and  D ~ G
+       If   g |- S : V1 > V2      (S in nf)
+       and  D ~ g
        then D' >= D' where D'(k) Ground for all existential variables k
             with a strict occurrence in S
     *)
       (* updateVarD (D, k, u) = D'
 
-       If   G |- k : V
-       and  D ~ G
+       If   g |- k : V
+       and  D ~ g
        and  k is an existential variable
        then D' >= D where k is updated as described in  updateExpN
     *)
       (* ----------------------- mode context update by argument modes *)
       (* updateAtom (D, m, S, mS, (p,occ)) = D'
 
-       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
-       and  D ~ G
+       If   g |- S : V > V'   ( S = u1 ; .. ; Un)
+       and  D ~ g
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode
        then D' >= D where
@@ -720,8 +720,8 @@ module ModeCheck(ModeCheck:sig
       (* freeAtom (D, m, S, (V,s), mS, (p, occ)) = ()
 
        checks if all output arguments in S according to mS are free.
-       Invariant: G |- S : V[s] >> P for some G and P  (S in nf)
-                  G ~ D
+       Invariant: g |- S : V[s] >> P for some g and P  (S in nf)
+                  g ~ D
                   mode = (-) or (+); ( * ) or (-1) are excluded
     *)
       (* updateAtom (D, m, S, a, mS, (p, occ))
@@ -730,8 +730,8 @@ module ModeCheck(ModeCheck:sig
       (* ------------------------------------------- groundness check *)
       (* groundExpN (D, mode, U, occ)  = u
 
-       If   G |- U : V    (U in nf)
-       and  G ~ D
+       If   g |- U : V    (U in nf)
+       and  g ~ D
        then if mode = (+) or (-)
             then groundExpN terminates with u if  D |- U ground
                  else exception ModeError is raised
@@ -745,8 +745,8 @@ module ModeCheck(ModeCheck:sig
     *)
       (* punting on occ here  - ak *)(* groundSpineN (D, mode, S, occ)  = u
 
-       If   G |- S : V1  > V2   (S in nf)
-       and  G ~ D
+       If   g |- S : V1  > V2   (S in nf)
+       and  g ~ D
        then if mode = (+) or (-)
             then groundSpineN terminates with u if  D |- S ground
                  else exception ModeError is raised
@@ -760,8 +760,8 @@ module ModeCheck(ModeCheck:sig
     *)
       (* groundVar (D, mode, k, occ)  = u
 
-       If   G |- k : V1
-       and  G ~ D
+       If   g |- k : V1
+       and  g ~ D
        then if mode = (+) or (-)
             then groundVar terminates with u if  D |- k ground
                  else exception ModeError is raised
@@ -775,8 +775,8 @@ module ModeCheck(ModeCheck:sig
       (* Existential (Free, _) or Existential (Unknown, _) *)(* ------------------------------------------- groundness check by polarity *)
       (* groundAtom (D, m, S, mS, (p,occ))  = u
 
-       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
-       and  D ~ G
+       If   g |- S : V > V'   ( S = u1 ; .. ; Un)
+       and  D ~ g
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode = (+) or (-1)
        then groundAtom returns u if  D |- Ui ground
@@ -799,15 +799,15 @@ module ModeCheck(ModeCheck:sig
     *)(* checkD1 (D, V, occ, k) = ()
 
        Invariant:
-         if G |- V : L
+         if g |- V : L
          and  V does not contain Skolem constants
-         and  D ~ G
+         and  D ~ g
          then
             for each  mode mS of the head of V
               exists  some Di s.t. all (-) evars of mS are ground
-                where  D' ~ G, D' >= D is obtained by updating D
+                where  D' ~ g, D' >= D is obtained by updating D
                   and  k D' = [D1, ..., Di, ..., Dn]
-                  and  Di ~ G, Di >= D' is obtained by mode checking on the subgoals of V
+                  and  Di ~ g, Di >= D' is obtained by mode checking on the subgoals of V
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
@@ -823,11 +823,11 @@ module ModeCheck(ModeCheck:sig
       (* ignore return *)(* checkG1 (D, V, occ, k) = Ds
 
        Invariant:
-         if G |- V : L
+         if g |- V : L
          and  V does not contain Skolem constants
-         and  D ~ G
+         and  D ~ g
          then forall D' >= D that mode checks V, (k D') is a sublist of Ds
-         and for each Di in Ds, Di ~ G and Di >= D'
+         and for each Di in Ds, Di ~ g and Di >= D'
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
@@ -848,8 +848,8 @@ module ModeCheck(ModeCheck:sig
       (* compute all other mode contexts *)(* checkDlocal (D, V, occ) = ()
 
        Invariant:
-       If   G |- V : L
-       and  D ~ G
+       If   g |- V : L
+       and  D ~ g
        then checkD terminates with ()  iff V is mode correct.
 
        otherwise exception ModeError is raised (occ used in error messages)
