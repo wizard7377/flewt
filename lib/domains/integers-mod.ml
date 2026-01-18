@@ -1,9 +1,7 @@
 
-module IntegersMod(IntegersMod:sig
-                                 val p :
-                                   ((int)(* Author: Roberto Virga *)
-                                     (* Integers Modulo a Prime Number *))
-                               end) : FIELD =
+(* Integers Modulo a Prime Number *)
+(* Author: Roberto Virga *)
+module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
   struct
     let name = "integer" ^ (Int.toString p)
     type nonrec number = int
@@ -19,12 +17,11 @@ module IntegersMod(IntegersMod:sig
       function
       | 0 -> raise Div
       | n ->
-          let inverse'
-            ((i)(* alternative: compute n^(p-2) *)) =
+          let rec inverse' i =
             if (normalize (Int.( * ) (n, i))) = 1
             then i
             else inverse' (Int.(+) (i, 1)) in
-          inverse' 1
+          ((inverse' 1)(* alternative: compute n^(p-2) *))
     let rec fromInt n = normalize n
     let rec fromString str =
       let check = List.all Char.isDigit in

@@ -16,7 +16,8 @@ module HashTable(HashTable:sig
       let hashVal = hash key in
       let index = hashVal mod__ n in
       let bucket = Array.sub (a, index) in
-      let insertB (Cons ((ref (hash', ((key', datum') as e')) as r'), br')) =
+      let rec insertB (Cons
+        ((ref (hash', ((key', datum') as e')) as r'), br')) =
         if (hashVal = hash') && (eq (key, key'))
         then (r' := (hashVal, e); SOME e')
         else insertBR br'
@@ -25,7 +26,7 @@ module HashTable(HashTable:sig
         | ref (Nil) as br ->
             ((:=) br Cons ((ref (hashVal, e)), (ref Nil)); NONE)
         | br -> insertB (!br) in
-      let insertA =
+      let rec insertA =
         function
         | Nil ->
             (Array.update (a, index, (Cons ((ref (hashVal, e)), (ref Nil))));
@@ -35,7 +36,7 @@ module HashTable(HashTable:sig
     let rec insert h e = insertShadow h e; ()
     let rec lookup (a, n) key =
       let hashVal = hash key in
-      let lookup' =
+      let rec lookup' =
         function
         | Cons (ref (hash1, (key1, datum1)), br) ->
             if (hashVal = hash1) && (eq (key, key1))
@@ -50,15 +51,15 @@ module HashTable(HashTable:sig
       | (f, Cons (ref (_, e), br)) -> (f e; appBucket f (!br))
     let rec app f (a, n) = Array.app (appBucket f) a
   end  module type STRING_HASH  = sig val stringHash : string -> int end
+(* Hash Tables *)
+(* Author: Frank Pfenning *)
+(* A hashtable bucket is a linked list of mutable elements *)
+(* A hashtable is an array of buckets containing entries paired with hash values *)
+(* functor HashTable *)
 module StringHash : STRING_HASH =
   struct
-    let rec stringHash
-      ((s)(* Hash Tables *)(* Author: Frank Pfenning *)
-      (* A hashtable bucket is a linked list of mutable elements *)
-      (* A hashtable is an array of buckets containing entries paired with hash values *)
-      (* functor HashTable *)) =
-      let num ((i)(* sample 4 characters from string *)) =
-        Char.ord (String.sub (s, i)) mod__ 128 in
+    let rec stringHash s =
+      let rec num i = Char.ord (String.sub (s, i)) mod__ 128 in
       let n = String.size s in
       if n = 0
       then 0
@@ -68,11 +69,11 @@ module StringHash : STRING_HASH =
          let c = b div 2 in
          let d = b + c in
          ((num a) + 128) * (((num b) + 128) * (( * ) ((num c) + 128) num d)))
-  end 
+      (* sample 4 characters from string *)
+  end  (* structure StringHash *)
 module StringHashTable : TABLE =
   (Make_HashTable)(struct
-                     type nonrec key' =
-                       ((string)(* structure StringHash *))
+                     type nonrec key' = string
                      let hash = StringHash.stringHash
                      let eq = (=)
                    end) ;;

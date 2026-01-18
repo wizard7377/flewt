@@ -1,13 +1,10 @@
 
 module type TRANSLATE  =
   sig
-    val translate_condec :
-      (IntSyn.cid * IntSyn.__ConDec) ->
-        ((Syntax.dec)(** Translate a Twelf declaration to a Flewt declaration. *))
-    val translate_signat :
-      unit ->
-        (((Syntax.const)(** Translate the currently loaded Twelf signature to Flewt *))
-          * Syntax.dec) list
+    (** Translate a Twelf declaration to a Flewt declaration. *)
+    val translate_condec : (IntSyn.cid * IntSyn.__ConDec) -> Syntax.dec
+    (** Translate the currently loaded Twelf signature to Flewt *)
+    val translate_signat : unit -> (Syntax.const * Syntax.dec) list
   end;;
 
 
@@ -21,20 +18,16 @@ module Translate : TRANSLATE =
     module Sig = S.Signat
     module C = ClausePrint
     module D = Debug
-    exception Translate of
-      ((string)(* -------------------------------------------------------------------------- *)
-      (*  Exceptions                                                                *)
-      (* -------------------------------------------------------------------------- *))
-      
+    (* -------------------------------------------------------------------------- *)
+    (*  Exceptions                                                                *)
+    (* -------------------------------------------------------------------------- *)
+    exception Translate of string 
     exception Trans1 of (S.const * I.__ConDec) 
     exception Fail_exp of (string * I.__Exp) 
-    let rec translate_uni =
-      function
-      | ((I.Kind)(* -------------------------------------------------------------------------- *)
-          (*  Basic Translation                                                         *)
-          (* -------------------------------------------------------------------------- *))
-          -> S.Kind
-      | I.Type -> S.Type
+    (* -------------------------------------------------------------------------- *)
+    (*  Basic Translation                                                         *)
+    (* -------------------------------------------------------------------------- *)
+    let rec translate_uni = function | I.Kind -> S.Kind | I.Type -> S.Type
     let rec translate_head =
       function
       | BVar i -> S.BVar i
@@ -49,13 +42,13 @@ module Translate : TRANSLATE =
     let rec translate_exp =
       function
       | Uni uni -> S.Uni (translate_uni uni)
-      | Pi ((Dec (name, u1), depend), u2) ->
+      | Pi ((Dec (name, U1), depend), U2) ->
           S.Pi
             {
               var = name;
-              arg = (translate_exp u1);
+              arg = (translate_exp U1);
               depend = (translate_depend depend);
-              body = (translate_exp u2)
+              body = (translate_exp U2)
             }
       | Root (H, S) -> S.Root ((translate_head H), (translate_spine S))
       | Lam (Dec (name, _), U) ->
@@ -97,11 +90,10 @@ module Translate : TRANSLATE =
               uni = (translate_uni lev)
             }
       | cdec -> raise (Trans1 cdec)
+    (*     | translate_condec _ = raise Translate "translate_condec: bad case" *)
     let rec can_translate =
       function
-      | ConDec
-          ((_)(*     | translate_condec _ = raise Translate "translate_condec: bad case" *))
-          -> true__
+      | ConDec _ -> true__
       | ConDef _ -> true__
       | AbbrevDef _ -> true__
       | _ -> false__

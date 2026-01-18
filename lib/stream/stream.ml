@@ -33,7 +33,7 @@ module BasicMemoStream : BASIC_STREAM =
     let rec expose (Stream d) = d ()
     let rec delay d =
       let memo = ref (function | () -> raise Uninitialized) in
-      let memoFun () =
+      let rec memoFun () =
         try let r = d () in memo := ((function | () -> r)); r
         with | exn -> (memo := ((function | () -> raise exn)); raise exn) in
       memo := memoFun; Stream (function | () -> (!) memo ())
@@ -104,24 +104,21 @@ module Stream(Stream:sig module BasicStream : BASIC_STREAM end) : STREAM =
     let rec tabulate f = delay (function | () -> tabulate' f)
     let rec tabulate' f =
       Cons ((f 0), (tabulate (function | i -> f (i + 1))))
-  end 
+  end  (* Stream Library *)
+(* Author: Frank Pfenning *)
+(* BASIC_STREAM defines the visible "core" of streams *)
+(* Lazy stream construction and exposure *)
+(* Eager stream construction *)
+(* Note that this implementation is NOT semantically *)
+(* equivalent to the plain (non-memoizing) streams, since *)
+(* effects will be executed only once in this implementation *)
+(* STREAM extends BASIC_STREAMS by operations *)
+(* definable without reference to the implementation *)
+(* functions null, hd, tl, map, filter, exists, take, drop *)
+(* parallel the functions in the List structure *)
+(* structure Stream :> STREAM --- non-memoizing *)
 module Stream : STREAM =
-  (Make_Stream)(struct
-                  module BasicStream =
-                    ((BasicStream)(* Stream Library *)
-                    (* Author: Frank Pfenning *)(* BASIC_STREAM defines the visible "core" of streams *)
-                    (* Lazy stream construction and exposure *)(* Eager stream construction *)
-                    (* Note that this implementation is NOT semantically *)
-                    (* equivalent to the plain (non-memoizing) streams, since *)
-                    (* effects will be executed only once in this implementation *)
-                    (* STREAM extends BASIC_STREAMS by operations *)
-                    (* definable without reference to the implementation *)
-                    (* functions null, hd, tl, map, filter, exists, take, drop *)
-                    (* parallel the functions in the List structure *)
-                    (* structure Stream :> STREAM --- non-memoizing *))
-                end) 
+  (Make_Stream)(struct module BasicStream = BasicStream end) 
+(* structure MStream :> STREAM --- memoizing *)
 module MStream : STREAM =
-  (Make_Stream)(struct
-                  module BasicStream =
-                    ((BasicMemoStream)(* structure MStream :> STREAM --- memoizing *))
-                end) ;;
+  (Make_Stream)(struct module BasicStream = BasicMemoStream end) ;;

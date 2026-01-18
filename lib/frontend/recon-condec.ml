@@ -7,22 +7,25 @@ module type EXTCONDEC  =
     val blockdec : (string * ExtSyn.dec list * ExtSyn.dec list) -> condec
     val blockdef : (string * (string list * string) list) -> condec
     val condef : (string option * ExtSyn.term * ExtSyn.term option) -> condec
-  end
+  end (* External Syntax for signature entries *)
+(* Author: Frank Pfenning *)
+(*! structure Paths : PATHS !*)
+(* constant declaration *)
+(* id : tm *)
+(* id : tm = tm | _ : tm = tm *)
+(* signature EXTCONDEC *)
 module type RECON_CONDEC  =
   sig
-    include
-      ((EXTCONDEC)(* External Syntax for signature entries *)(* Author: Frank Pfenning *)
-      (*! structure Paths : PATHS !*)(* constant declaration *)
-      (* id : tm *)(* id : tm = tm | _ : tm = tm *)
-      (* signature EXTCONDEC *)(*! structure IntSyn : INTSYN !*))
+    (*! structure IntSyn : INTSYN !*)
+    include EXTCONDEC
     exception Error of string 
     val condecToConDec :
       (condec * Paths.location * bool) ->
         (IntSyn.__ConDec option * Paths.occConDec option)
+    (* optional ConDec is absent for anonymous definitions *)
+    (* bool = true means that condec is an abbreviation *)
     val internalInst :
-      (IntSyn.__ConDec * IntSyn.__ConDec * Paths.region) ->
-        ((IntSyn.__ConDec)(* bool = true means that condec is an abbreviation *)
-        (* optional ConDec is absent for anonymous definitions *))
+      (IntSyn.__ConDec * IntSyn.__ConDec * Paths.region) -> IntSyn.__ConDec
     val externalInst :
       (IntSyn.__ConDec * ExtSyn.term * Paths.region) -> IntSyn.__ConDec
   end;;
@@ -30,6 +33,9 @@ module type RECON_CONDEC  =
 
 
 
+(* Reconstruct signature entries *)
+(* Author: Frank Pfenning *)
+(* Modified: Roberto Virga, Jeff Polakow *)
 module ReconConDec(ReconConDec:sig
                                  module Global : GLOBAL
                                  module Names : NAMES
@@ -40,9 +46,6 @@ module ReconConDec(ReconConDec:sig
                                  module TypeCheck : TYPECHECK
                                  module Timers : TIMERS
                                  module Print : PRINT
-                                 module Msg :
-                                 ((MSG)(* Reconstruct signature entries *)
-                                 (* Author: Frank Pfenning *)(* Modified: Roberto Virga, Jeff Polakow *)
                                  (*! structure IntSyn' : INTSYN !*)
                                  (*! sharing Names.IntSyn = IntSyn' !*)
                                  (*! sharing Abstract.IntSyn = IntSyn' !*)
@@ -53,31 +56,28 @@ module ReconConDec(ReconConDec:sig
                                  (*! sharing Strict.IntSyn = IntSyn' !*)
                                  (*! sharing Strict.Paths = Paths' !*)
                                  (*! sharing TypeCheck.IntSyn = IntSyn' !*)
-                                 (*! sharing Print.IntSyn = IntSyn' !*))
+                                 (*! sharing Print.IntSyn = IntSyn' !*)
+                                 module Msg : MSG
                                end) : RECON_CONDEC =
   struct
-    module ExtSyn =
-      ((ReconTerm')(*! structure IntSyn = IntSyn' !*)
-      (*! structure Paths = Paths' !*))
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Paths = Paths' !*)
+    module ExtSyn = ReconTerm'
     exception Error of string 
-    let rec error
-      (((r)(* error (r, msg) raises a syntax error within region r with text msg *)),
-       msg)
-      = raise (Error (Paths.wrap (r, msg)))
+    (* error (r, msg) raises a syntax error within region r with text msg *)
+    let rec error (r, msg) = raise (Error (Paths.wrap (r, msg)))
     type nonrec name = string
+    (* Constant declarations *)
     type condec =
-      | condec of (((name)(* Constant declarations *)) *
-      ExtSyn.term) [@sml.renamed "condec"][@sml.renamed "condec"]
+      | condec of (name * ExtSyn.term)
+      [@sml.renamed "condec"][@sml.renamed "condec"]
       | condef of (name option * ExtSyn.term * ExtSyn.term option)
       [@sml.renamed "condef"][@sml.renamed "condef"]
       | blockdef of (string * (string list * string) list)
       [@sml.renamed "blockdef"][@sml.renamed "blockdef"]
       | blockdec of (name * ExtSyn.dec list * ExtSyn.dec list)
       [@sml.renamed "blockdec"][@sml.renamed "blockdec"]
-    let rec condecToConDec =
-      function
-      | (condec
-         (((name)(* condecToConDec (condec, r) = (SOME(cd), SOME(ocd))
+    (* condecToConDec (condec, r) = (SOME(cd), SOME(ocd))
      if condec is a named constant declaration with occurrence tree ocd,
      NONE if name or occurrence tree is missing
 
@@ -86,9 +86,11 @@ module ReconConDec(ReconConDec:sig
 
      Only works properly when the declaration contains no EVars.
   *)
-          (* should printing of result be moved to frontend? *)(* Wed May 20 08:08:50 1998 -fp *)),
-          tm),
-         Loc (fileName, r), abbFlag) ->
+    (* should printing of result be moved to frontend? *)
+    (* Wed May 20 08:08:50 1998 -fp *)
+    let rec condecToConDec =
+      function
+      | (condec (name, tm), Loc (fileName, r), abbFlag) ->
           let _ = Names.varReset IntSyn.Null in
           let _ = ExtSyn.resetErrors fileName in
           let JClass ((V, oc), L) =
@@ -138,13 +140,12 @@ module ReconConDec(ReconConDec:sig
               Names.nameConDec
                 (IntSyn.AbbrevDef (name, NONE, i, U'', V'', L))
             else
-              (Strict.check ((U'', V''), (SOME ocd));
-               Names.nameConDec
-                 (IntSyn.ConDef
-                    (((name)
-                      (* stricter checking of types according to Chris Richards Fri Jul  2 16:33:46 2004 -fp *)
-                      (* (case optName of NONE => () | _ => Strict.checkType ((i, V''), SOME(ocd))); *)),
-                      NONE, i, U'', V'', L, (IntSyn.ancestor U'')))) in
+              (((Strict.check ((U'', V''), (SOME ocd));
+                 Names.nameConDec
+                   (IntSyn.ConDef
+                      (name, NONE, i, U'', V'', L, (IntSyn.ancestor U'')))))
+              (* stricter checking of types according to Chris Richards Fri Jul  2 16:33:46 2004 -fp *)
+              (* (case optName of NONE => () | _ => Strict.checkType ((i, V''), SOME(ocd))); *)) in
           let _ =
             if (!Global.chatter) >= 3
             then
@@ -162,19 +163,19 @@ module ReconConDec(ReconConDec:sig
             match optName with | NONE -> NONE | SOME _ -> SOME cd in
           (optConDec, (SOME ocd))
       | (blockdec (name, Lsome, Lblock), Loc (fileName, r), abbFlag) ->
-          let makectx =
+          let rec makectx =
             function
             | nil -> IntSyn.Null
             | (D)::L -> IntSyn.Decl ((makectx L), D) in
-          let ctxToList =
+          let rec ctxToList =
             function
             | (IntSyn.Null, acc) -> acc
-            | (Decl (g, D), acc) -> ctxToList (g, (D :: acc)) in
-          let ctxAppend =
+            | (Decl (G, D), acc) -> ctxToList (G, (D :: acc)) in
+          let rec ctxAppend =
             function
-            | (g, IntSyn.Null) -> g
-            | (g, Decl (g', D)) -> IntSyn.Decl ((ctxAppend (g, g')), D) in
-          let ctxBlockToString (G0, (G1, G2)) =
+            | (G, IntSyn.Null) -> G
+            | (G, Decl (G', D)) -> IntSyn.Decl ((ctxAppend (G, G')), D) in
+          let rec ctxBlockToString (G0, (G1, G2)) =
             let _ = Names.varReset IntSyn.Null in
             let G0' = Names.ctxName G0 in
             let G1' = Names.ctxLUName G1 in
@@ -185,7 +186,7 @@ module ReconConDec(ReconConDec:sig
                      | _ -> ((^) "some " Print.ctxToString (G0', G1')) ^ "\n"))
                    ^ "pi ")
               Print.ctxToString ((ctxAppend (G0', G1')), G2') in
-          let checkFreevars =
+          let rec checkFreevars =
             function
             | (IntSyn.Null, (G1, G2), r) -> ()
             | (G0, (G1, G2), r) ->
@@ -216,7 +217,7 @@ module ReconConDec(ReconConDec:sig
             | Error (C) ->
                 raise
                   (error
-                     (((r')(* closed nf *)),
+                     (r',
                        ((^) (((^) "Constraints remain in context block after term reconstruction:\n"
                                 ctxBlockToString
                                 (IntSyn.Null, (Gsome, Gblock)))
@@ -231,7 +232,7 @@ module ReconConDec(ReconConDec:sig
               Msg.message
                 ((Timers.time Timers.printing Print.conDecToString bd) ^ "\n")
             else () in
-          ((SOME bd), NONE)
+          ((((SOME bd), NONE))(* closed nf *))
       | (blockdef (name, W), Loc (fileName, r), abbFlag) ->
           let W' = List.map Names.Qid W in
           let W'' =

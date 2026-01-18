@@ -1,8 +1,9 @@
 
+(* Delphin Frontend *)
+(* Author: Carsten Schuermann *)
 module type DELPHIN  =
   sig
-    val version :
-      ((string)(* Author: Carsten Schuermann *)(* Delphin Frontend *))
+    val version : string
     val loadFile : (string * string) -> unit
     val top : unit -> unit
     val runSimpleTest : string -> string list -> string list -> unit
@@ -12,15 +13,15 @@ module type DELPHIN  =
 
 
 
+(* Delphin Frontend *)
+(* Author: Carsten Schuermann *)
 module Delphin(Delphin:sig
+                         (* structure Tomega : TOMEGA *)
                          module Parser : PARSER
                          module DextSyn : DEXTSYN
                          module Parse : PARSE
                          module Twelf : TWELF
-                         module Trans :
-                         ((TRANS)(* Delphin Frontend *)
-                         (* Author: Carsten Schuermann *)
-                         (* structure Tomega : TOMEGA *))
+                         module Trans : TRANS
                        end) : DELPHIN =
   struct
     let version = "Delphin, Version 0.5, July 2003"
@@ -51,7 +52,7 @@ module Delphin(Delphin:sig
     let rec loop () =
       let _ = print prompt in let Ast (ED) = Parse.sparse () in loop ()
     let rec runSimpleTest sourcesFile funcList args =
-      let test =
+      let rec test =
         function
         | name::[] as names ->
             let La =
@@ -93,9 +94,9 @@ module Delphin(Delphin:sig
                          La), projs), P))
                    ^ "\n") in
             ((Tomega.lemmaDef (hd sels)), F) in
-      let checkDec (u, (UDec (Dec (_, V)) as D)) =
+      let rec checkDec (u, (UDec (Dec (_, V)) as D)) =
         print "$"; TypeCheck.typeCheck (I.Null, (u, V)) in
-      let makeSpine =
+      let rec makeSpine =
         function
         | ([], F) -> (T.Nil, F)
         | (x::L, (And (F1, F2) as F')) ->
@@ -131,34 +132,37 @@ module Delphin(Delphin:sig
       let _ = TextIO.print (TomegaPrint.prgToString (I.Null, result)) in
       let _ = TextIO.print "\n" in ()
     let rec eval (P) = let V = Opsem.evalPrg P in V
-    let ((version)(* Added by ABP - Temporary to run tests *)(*      val _ = print "* Type reconstruction done\n" *)
-      (*      val _ = raise What P'
+    (* Added by ABP - Temporary to run tests *)
+    (*      val _ = print "* Type reconstruction done\n" *)
+    (*      val _ = raise What P'
         val _ = print "* Externalization done\n" *)
-      (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (P', Tomega.True))
+    (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (P', Tomega.True))
         val _ = print "* Typechecking done\n"
 *)
-      (* was evalPrg --cs Mon Jun 30 12:09:21 2003*)
-      (*      val _ = print "* Operational semantics done\n" *)
-      (*         val res = Trans.transDecs ED    *)(* input:
+    (* was evalPrg --cs Mon Jun 30 12:09:21 2003*)
+    (*      val _ = print "* Operational semantics done\n" *)
+    (*         val res = Trans.transDecs ED    *)
+    (* input:
       sourcesFile = .elf file to load
       funcList = list of functions that need to be loaded
                  first element is the function that will be called
       arg = LF object which is the argument
    *)
-      (*           val P = Redundant.convert (Tomega.lemmaDef lemma) *)
-      (* val P = Tomega.lemmaDef lemma *)(*        | checkDec (u, D as PDec (_, T.All (D, F')))) = ???  *)
-      (*      val _ = TextIO.print ("\n" ^ TomegaPrint.funToString (([name], []), P) ^ "\n") *)
-      (*      val P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
+    (*           val P = Redundant.convert (Tomega.lemmaDef lemma) *)
+    (* val P = Tomega.lemmaDef lemma *)
+    (*        | checkDec (u, D as PDec (_, T.All (D, F')))) = ???  *)
+    (*      val _ = TextIO.print ("\n" ^ TomegaPrint.funToString (([name], []), P) ^ "\n") *)
+    (*      val P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
 Nil))) else (T.Redex(P, T.AppExp (I.Root (I.Const x, I.Nil), T.Nil)))
 *)
-      (*
+    (*
         val _ = TextIO.print "\n"
         val _ = TextIO.print (TomegaPrint.prgToString (I.Null, P'))
         val _ = TextIO.print "\n"
            *)
-      (*  T.AppExp (I.Root (I.Def x, I.Nil), T.Nil) *)
-      (* **************************************** *)) =
-      version
+    (*  T.AppExp (I.Root (I.Def x, I.Nil), T.Nil) *)
+    (* **************************************** *)
+    let version = version
     let loadFile = loadFile
     let top = top
     let runSimpleTest = runSimpleTest
@@ -168,10 +172,11 @@ Nil))) else (T.Redex(P, T.AppExp (I.Root (I.Const x, I.Nil), T.Nil)))
 
 
 
+(* Delphin Front End Interface *)
+(* Author: Carsten Schuermann *)
 module DextSyn : DEXTSYN =
   (Make_DextSyn)(struct
-                   module Stream' =
-                     ((Stream)(* Delphin Front End Interface *)(* Author: Carsten Schuermann *))
+                   module Stream' = Stream
                    module ParseTerm' = ParseTerm
                    module ExtSyn' = ParseTerm.ExtSyn
                    module Parsing' = Parsing
@@ -208,8 +213,8 @@ module Parse : PARSE =
 module Trans : TRANS = (Make_Trans)(struct module DextSyn' = DextSyn end) 
 module Delphin =
   (Make_Delphin)(struct
-                   module Twelf =
-                     ((Twelf)(* structure Tomega = Tomega *))
+                   (* structure Tomega = Tomega *)
+                   module Twelf = Twelf
                    module Parse = Parse
                    module DextSyn = DextSyn
                    module Trans = Trans

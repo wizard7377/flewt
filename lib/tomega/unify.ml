@@ -1,10 +1,11 @@
 
+(* Unification on Formulas *)
+(* Author: Carsten Schuermann *)
 module type TOMEGAUNIFY  =
   sig
-    exception Unify of
-      ((string)(*! structure Tomega : TOMEGA !*)(*! structure IntSyn : INTSYN !*)
-      (* Author: Carsten Schuermann *)(* Unification on Formulas *))
-      
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Tomega : TOMEGA !*)
+    exception Unify of string 
     val unifyFor :
       (Tomega.__Dec IntSyn.__Ctx * Tomega.__For * Tomega.__For) -> unit
   end;;
@@ -12,7 +13,12 @@ module type TOMEGAUNIFY  =
 
 
 
+(* Unification on Formulas *)
+(* Author: Carsten Schuermann *)
 module TomegaUnify(TomegaUnify:sig
+                                 (*! structure IntSyn' : INTSYN !*)
+                                 (*! structure Tomega' : TOMEGA !*)
+                                 (*! sharing Tomega'.IntSyn = IntSyn' !*)
                                  module Abstract : ABSTRACT
                                  module TypeCheck : TYPECHECK
                                  module Conv : CONV
@@ -21,12 +27,6 @@ module TomegaUnify(TomegaUnify:sig
                                  module Print : PRINT
                                  module TomegaPrint : TOMEGAPRINT
                                  module Subordinate : SUBORDINATE
-                                 module Weaken :
-                                 ((WEAKEN)(* Unification on Formulas *)
-                                 (* Author: Carsten Schuermann *)
-                                 (*! structure IntSyn' : INTSYN !*)
-                                 (*! structure Tomega' : TOMEGA !*)
-                                 (*! sharing Tomega'.IntSyn = IntSyn' !*)
                                  (*! sharing Abstract.IntSyn = IntSyn' !*)
                                  (*! sharing TypeCheck.IntSyn = IntSyn' !*)
                                  (*! sharing Conv.IntSyn = IntSyn' !*)
@@ -36,12 +36,14 @@ module TomegaUnify(TomegaUnify:sig
                                  (*! sharing Print.IntSyn = IntSyn' !*)
                                  (*! sharing TomegaPrint.IntSyn = IntSyn' !*)
                                  (*! sharing TomegaPrint.Tomega = Tomega' !*)
-                                 (*! sharing Subordinate.IntSyn = IntSyn' !*))
+                                 (*! sharing Subordinate.IntSyn = IntSyn' !*)
+                                 module Weaken : WEAKEN
                                end) : TOMEGAUNIFY =
   struct
-    exception Unify of
-      ((string)(*! structure Tomega = Tomega' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! sharing Weaken.IntSyn = IntSyn' !*)) 
+    (*! sharing Weaken.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    exception Unify of string 
     module I = IntSyn
     module T = Tomega
     let rec unifyFor (Psi, F1, F2) =
@@ -64,7 +66,7 @@ module TomegaUnify(TomegaUnify:sig
           then ()
           else raise (Unify "Declaration mismatch")
       | (Psi, PDec (_, F1), PDec (_, F2)) -> unifyFor (Psi, F1, F2)
-    let ((unifyFor)(* unifyFor (Psi, F1, F2) = R
+    (* unifyFor (Psi, F1, F2) = R
 
        Invariant:
        If   F1, F2 contain free variables X1 ... Xn
@@ -75,7 +77,7 @@ module TomegaUnify(TomegaUnify:sig
        then R = ()
        otherwise exception Unify is raised
     *)
-      (* unifyDec (Psi, D1, D2) = R
+    (* unifyDec (Psi, D1, D2) = R
 
        Invariant:
        If   D1, D2 contain free variables X1 ... Xn
@@ -85,6 +87,6 @@ module TomegaUnify(TomegaUnify:sig
        and  Psi[I] |- D1[I] = D2[I]
        then R = ()
        otherwise exception Unify is raised
-    *))
-      = unifyFor
+    *)
+    let unifyFor = unifyFor
   end ;;

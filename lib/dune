@@ -1,12 +1,12 @@
-(library 
- (wrapped (transition "Convert SML convention to OCaml convention"))
- 
+(library
+ (wrapped
+  (transition "Convert SML convention to OCaml convention"))
  (public_name flewt)
  (name flewt)
- (libraries 
+ (libraries
   base
   flewt.compat
-  flewt.compile 
+  flewt.compile
   flewt.compress
   flewt.cover
   flewt.delphin
@@ -46,7 +46,5 @@
   flewt.trail
   flewt.typecheck
   flewt.unique
-  flewt.worldcheck
- )
- (modules 
-  flewt))
+  flewt.worldcheck)
+ (modules flewt))

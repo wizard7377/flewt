@@ -1,9 +1,11 @@
 
+(* Global parameters *)
+(* Author: Carsten Schuermann *)
 module type MTPGLOBAL  =
   sig
     type __ProverType =
       | New 
-      | Old (* Author: Carsten Schuermann *)(* Global parameters *)
+      | Old 
     val prover : __ProverType ref
     val maxFill : int ref
     val maxSplit : int ref
@@ -13,11 +15,10 @@ module type MTPGLOBAL  =
 
 
 
-module MTPGlobal(MTPGlobal:sig
-                             module MetaGlobal :
-                             ((METAGLOBAL)(* Meta Global parameters *)
-                             (* Author: Carsten Schuermann *))
-                           end) : MTPGLOBAL =
+(* Meta Global parameters *)
+(* Author: Carsten Schuermann *)
+module MTPGlobal(MTPGlobal:sig module MetaGlobal : METAGLOBAL end) :
+  MTPGLOBAL =
   struct
     type __ProverType =
       | New 

@@ -1,15 +1,17 @@
 
+(* Skolem administration *)
+(* Author: Carsten Schuermann *)
 module type SKOLEM  =
   sig
-    val install :
-      IntSyn.cid list ->
-        ((unit)(*! structure IntSyn : INTSYN !*)(* Author: Carsten Schuermann *)
-        (* Skolem administration *))
+    (*! structure IntSyn : INTSYN !*)
+    val install : IntSyn.cid list -> unit
   end;;
 
 
 
 
+(* Skolem constant administration *)
+(* Author: Carsten Schuermann *)
 module Skolem(Skolem:sig
                        module Global : GLOBAL
                        module Whnf : WHNF
@@ -19,28 +21,27 @@ module Skolem(Skolem:sig
                        module Print : PRINT
                        module Compile : COMPILE
                        module Timers : TIMERS
-                       module Names :
-                       ((NAMES)(* Skolem constant administration *)
-                       (* Author: Carsten Schuermann *)
                        (*! structure IntSyn' : INTSYN !*)
                        (*! sharing Whnf.IntSyn = IntSyn' !*)
                        (*! sharing Abstract.IntSyn = IntSyn' !*)
                        (*! sharing IndexSkolem.IntSyn = IntSyn' !*)
-                       (*! sharing ModeSyn.IntSyn = IntSyn' !*)(*! sharing Print.IntSyn = IntSyn' !*)
-                       (*! sharing Compile.IntSyn = IntSyn' !*))
+                       (*! sharing ModeSyn.IntSyn = IntSyn' !*)
+                       (*! sharing Print.IntSyn = IntSyn' !*)
+                       (*! sharing Compile.IntSyn = IntSyn' !*)
+                       module Names : NAMES
                      end) : SKOLEM =
   struct
-    exception Error of
-      ((string)(*! structure IntSyn = IntSyn' !*)(*! sharing Names.IntSyn = IntSyn' !*))
-      
+    (*! sharing Names.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    exception Error of string 
     module I = IntSyn
     module M = ModeSyn
     let rec installSkolem (name, imp, (V, mS), L) =
-      let spine =
+      let rec spine =
         function
         | 0 -> I.Nil
         | n -> I.App ((I.Root ((I.BVar n), I.Nil)), (spine (n - 1))) in
-      let installSkolem' =
+      let rec installSkolem' =
         function
         | (d, (Pi ((D, DP), V), mS), s, k) ->
             (match mS with
@@ -79,7 +80,8 @@ module Skolem(Skolem:sig
           let ConDec (name, _, imp, _, V, L) = I.sgnLookup a in
           let SOME mS = ModeTable.modeLookup a in
           let _ = installSkolem (name, imp, (V, mS), I.Type) in install aL
-    let ((install)(*! structure CompSyn = Compile.CompSyn !*)(* installSkolem (name, k, (V, mS), L) =
+    (*! structure CompSyn = Compile.CompSyn !*)
+    (* installSkolem (name, k, (V, mS), L) =
 
        Invariant:
             name is the name of a theorem
@@ -89,31 +91,31 @@ module Skolem(Skolem:sig
 
        Effects: New Skolem constants are generated, named, and indexed
     *)
-      (* spine n = S'
+    (* spine n = S'
 
            Invariant:
            S' = n; n-1; ... 1; Nil
         *)
-      (* installSkolem' ((V, mS), s, k) = ()
+    (* installSkolem' ((V, mS), s, k) = ()
 
            Invariant:
-                g |- V : type
-           and  g' |- s : g
-           and  |g'| = d
-           and  k is a continuation, mapping a type g' |- V' type
-                to . |- {{g'}} V'
+                G |- V : type
+           and  G' |- s : G
+           and  |G'| = d
+           and  k is a continuation, mapping a type G' |- V' type
+                to . |- {{G'}} V'
 
            Effects: New Skolem constants are generated, named, and indexed
         *)
-      (*                                  fn V => k (I.Pi ((Whnf.normalizeDec (D, s), DP), V))) *)
-      (*                  val CompSyn.SClause r = CompSyn.sProgLookup sk *)
-      (* install L = ()
+    (*                                  fn V => k (I.Pi ((Whnf.normalizeDec (D, s), DP), V))) *)
+    (*                  val CompSyn.SClause r = CompSyn.sProgLookup sk *)
+    (* install L = ()
 
        Invariant:
            L is a list of a's (mututal inductive theorems)
            which have an associated mode declaration
 
        Effect: Skolem constants for all theorems are generated, named, and indexed
-    *))
-      = install
+    *)
+    let install = install
   end ;;

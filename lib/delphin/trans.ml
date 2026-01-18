@@ -1,13 +1,12 @@
 
+(* Translator from Delphin external syntax to Delphin internal syntax *)
+(* Author: Richard Fontana, Carsten Schuermann *)
 module type TRANS  =
   sig
-    module DextSyn :
-    ((DEXTSYN)(* Translator from Delphin external syntax to Delphin internal syntax *)
-    (* Author: Richard Fontana, Carsten Schuermann *))
+    module DextSyn : DEXTSYN
     exception Error of string 
     val internalizeSig : unit -> unit
-    val transFor :
-      DextSyn.__Form -> ((Tomega.__For)(* IntSyn.dctx * *))
+    val transFor : DextSyn.__Form -> Tomega.__For
     val transDecs : DextSyn.__Decs -> Tomega.__Prg
     val externalizePrg : Tomega.__Prg -> Tomega.__Prg
   end;;
@@ -15,13 +14,12 @@ module type TRANS  =
 
 
 
-module Trans(Trans:sig
-                     module DextSyn' :
-                     ((DEXTSYN)(* Translator from Delphin external syntax to Delphin internal syntax *)
-                     (* Author:  Carsten Schuermann *))
-                   end) =
+(* Translator from Delphin external syntax to Delphin internal syntax *)
+(* Author:  Carsten Schuermann *)
+module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
   struct
-    module DextSyn = ((DextSyn')(* : TRANS *))
+    (* : TRANS *)
+    module DextSyn = DextSyn'
     module D = DextSyn'
     module L = Lexer
     module I = IntSyn
@@ -59,16 +57,16 @@ module Trans(Trans:sig
     let rec closure =
       function
       | (I.Null, V) -> V
-      | (Decl (g, D), V) -> closure (g, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (G, D), V) -> closure (G, (I.Pi ((D, I.Maybe), V)))
     let rec internalizeBlock arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (_, (nil, _)) -> ()
-      | ((n, g, Vb, S), ((Dec (SOME name, V))::L2, s)) ->
+      | ((n, G, Vb, S), ((Dec (SOME name, V))::L2, s)) ->
           let name' = "o_" ^ name in
           let V1 = I.EClo (V, s) in
           let V2 = I.Pi (((I.Dec (NONE, Vb)), I.Maybe), V1) in
-          let V3 = closure (g, V2) in
-          let m = I.ctxLength g in
+          let V3 = closure (G, V2) in
+          let m = I.ctxLength G in
           let condec = I.ConDec (name', NONE, m, I.Normal, V3, I.Type) in
           let _ = TypeCheck.check (V3, (I.Uni I.Type)) in
           let _ =
@@ -78,14 +76,14 @@ module Trans(Trans:sig
           let cid = I.sgnAdd condec in
           let _ = Names.installConstName cid in
           let _ = Array.update (internal, cid, (Const (m, n))) in
-          internalizeBlock ((n + 1), g, Vb, S)
+          internalizeBlock ((n + 1), G, Vb, S)
             (L2, (I.Dot ((I.Exp (I.Root ((I.Const cid), S))), s)))
     let rec makeSpine =
       function
       | (_, I.Null, S) -> S
-      | (n, Decl (g, D), S) ->
+      | (n, Decl (G, D), S) ->
           makeSpine
-            ((n + 1), g, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
+            ((n + 1), G, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
     let rec internalizeCondec =
       function
       | (cid, ConDec _) -> ()
@@ -104,7 +102,7 @@ module Trans(Trans:sig
       | (cid, SkoDec _) -> ()
     let rec internalizeSig () =
       let (max, _) = I.sgnSize () in
-      let internalizeSig' n =
+      let rec internalizeSig' n =
         if n >= max
         then ()
         else
@@ -292,10 +290,10 @@ module Trans(Trans:sig
       | Concat (W1, W2) -> (@) (transWorld W1) transWorld W2
       | Times (W) -> transWorld W
     let rec transFor' (Psi, D) =
-      let g = I.Decl (I.Null, D) in
+      let G = I.Decl (I.Null, D) in
       let JWithCtx (Decl (I.Null, D'), ReconTerm.JNothing) =
         ReconTerm.reconWithCtx
-          (Psi, (ReconTerm.jwithctx (g, ReconTerm.jnothing))) in
+          (Psi, (ReconTerm.jwithctx (G, ReconTerm.jnothing))) in
       D'
     let rec transFor =
       function
@@ -389,12 +387,12 @@ module Trans(Trans:sig
     let rec lookup =
       function
       | (I.Null, n, s) -> raise (Error ("Undeclared constant " ^ s))
-      | (Decl (g, PDec (NONE, _)), n, s) -> lookup (g, (n + 1), s)
-      | (Decl (g, UDec _), n, s) -> lookup (g, (n + 1), s)
-      | (Decl (g, PDec (SOME s', F)), n, s) ->
+      | (Decl (G, PDec (NONE, _)), n, s) -> lookup (G, (n + 1), s)
+      | (Decl (G, UDec _), n, s) -> lookup (G, (n + 1), s)
+      | (Decl (G, PDec (SOME s', F)), n, s) ->
           if s = s'
           then (n, (T.forSub (F, (T.Shift n))))
-          else lookup (g, (n + 1), s)
+          else lookup (G, (n + 1), s)
     let rec transHead =
       function
       | (Psi, Head s, args) ->
@@ -486,8 +484,8 @@ module Trans(Trans:sig
         (Psi, (s, F), Ds, sc, (function | Cs -> k ((Psi'', t'', P) :: Cs)),
           W)
     let rec transForDec (Psi, Form (s, eF), Ds, sc, W) =
-      let g = Names.ctxName (T.coerceCtx Psi) in
-      let F = transFor (g, eF) in
+      let G = Names.ctxName (T.coerceCtx Psi) in
+      let F = transFor (G, eF) in
       let World (W, F') as F'' = T.forSub (F, T.id) in
       let _ = TomegaTypeCheck.checkFor (Psi, F'') in
       let (P, Ds') = transFun1 (Psi, (s, F'), Ds, sc, W) in
@@ -577,8 +575,8 @@ module Trans(Trans:sig
       | (Psi, (World (_, F), s), W, args) ->
           transProgS' (Psi, (F, s), W, args)
       | (Psi, (All ((UDec (Dec (_, V)), T.Implicit), F'), s), W, args) ->
-          let g = T.coerceCtx Psi in
-          let X = I.newEVar (g, (I.EClo (V, (T.coerceSub s)))) in
+          let G = T.coerceCtx Psi in
+          let X = I.newEVar (G, (I.EClo (V, (T.coerceSub s)))) in
           let (S, Fs') =
             transProgS' (Psi, (F', (T.Dot ((T.Exp X), s))), W, args) in
           ((T.AppExp ((Whnf.normalize (X, I.id)), S)), Fs')
@@ -590,13 +588,13 @@ module Trans(Trans:sig
       | (Psi, (F, s), _, nil) -> (T.Nil, (F, s))
     let rec transProgram (Ds) =
       transDecs (I.Null, Ds, (function | (Psi, W) -> T.Unit), (T.Worlds []))
-    let ((transFor)(* Invariant   for each cid which has been internalize out of a block,
+    (* Invariant   for each cid which has been internalize out of a block,
        internal(cid) = Const(n, i), where n is the number of some variables and
        i is the projection index
        for each type family
        internal(cid) = Type (cid'), where cid' is the orginial type family.
     *)
-      (* checkEOF f = r
+    (* checkEOF f = r
 
       Invariant:
       If   f is the end of stream
@@ -604,79 +602,83 @@ module Trans(Trans:sig
 
       Side effect: May raise Parsing.Error
     *)
-      (* region information useless
+    (* region information useless
                                                    since it only refers to string --cs *)
-      (* Note that this message is inapplicable when we use
+    (* Note that this message is inapplicable when we use
             checkEOF in stringToterm --rf *)
-      (* stringToDec s = dec
+    (* stringToDec s = dec
 
        Invariant:
        If   s is a string representing a declaration,
        then dec is the result of parsing it
        otherwise Parsing.error is raised.
     *)
-      (* below use region arithmetic --cs !!!  *)(* stringToWorlds s = W
+    (* below use region arithmetic --cs !!!  *)
+    (* stringToWorlds s = W
 
        Invariant:
        If   s is a string representing an expression,
        then W is the result of parsing it
        otherwise Parsing.error is raised.
     *)
-      (* closure (g, V) = V'
+    (* closure (G, V) = V'
 
        Invariant:
-       {g}V = V'
+       {G}V = V'
     *)
-      (* internalizeBlock  (n, g, Vb, S) (L2, s) = ()
+    (* internalizeBlock  (n, G, Vb, S) (L2, s) = ()
 
        Invariant:
-       If   |- g ctx                the context of some variables
-       and  g |- Vb :  type         the type of the block
-       and  g |- L1, L2 decs
+       If   |- G ctx                the context of some variables
+       and  G |- Vb :  type         the type of the block
+       and  G |- L1, L2 decs
        and  G1, L1 |- L2 decs       block declarations still to be traversed
-       and  g, b:Vb |- s : G1, L1
+       and  G, b:Vb |- s : G1, L1
        and  n is the current projection
        then internalizeBlock adds new declarations into the signature that
               correspond to the block declarations.
     *)
-      (* g, B |- V' : type *)(* g |- {B} V' : type *)
-      (* makeSpine (n, g, S) = S'
+    (* G, B |- V' : type *)
+    (* G |- {B} V' : type *)
+    (* makeSpine (n, G, S) = S'
 
        Invariant:
-       If  G0 = g, g'
-       and |g'| = n
+       If  G0 = G, G'
+       and |G'| = n
        and G0 |- S : V >> V'   for some V, V'
        then S' extends S
        and G0 |- S' : V >> type.
     *)
-      (* interalizeCondec condec = ()
+    (* interalizeCondec condec = ()
 
        Invariant:
        If   condec is a condec,
        then all pi declarations are internalized if condec was a blockdec
     *)
-      (* sigToCtx () = ()
+    (* sigToCtx () = ()
 
        Invariant:
-       g is the internal representation of the global signature
+       G is the internal representation of the global signature
        It converts every block declaration to a type family (stored in the global
        signature) and a list of declarations.
     *)
-      (* we might want to save max, here to restore the original
+    (* we might want to save max, here to restore the original
                  signature after parsing is over  --cs Thu Apr 17 09:46:29 2003 *)
-      (* Externalization *)(* Check : the translators hould only generate normal forms. Fix during the next pass --cs Thu Apr 17 17:06:24 2003 *)
-      (* PClo should not be possible, since by invariant, parser
+    (* Externalization *)
+    (* Check : the translators hould only generate normal forms. Fix during the next pass --cs Thu Apr 17 17:06:24 2003 *)
+    (* PClo should not be possible, since by invariant, parser
          always generates a program in normal form  --cs Thu Apr 17 16:56:07 2003
       *)
-      (* Translation starts here *)(*      | transTerm (D.Dot (D.Id s1, s2)) =
+    (* Translation starts here *)
+    (*      | transTerm (D.Dot (D.Id s1, s2)) =
         ("PROJ#" ^ s1 ^ "#" ^ s2, nil)
       | transTerm (D.Dot (D.Paren (D.Of (D.Id s1, t)), s2)) =
         ("PROJ#" ^ s1 ^ "#" ^ s2, [(s1, t)])
 *)
-      (* We should use the worlds we have defined in Tomega, but this
+    (* We should use the worlds we have defined in Tomega, but this
               is not good enough, because worlds are not defined
               by a regualar expression.  Therefore this is a patch *)
-      (* transFor (ExtDctx, ExtF) = (Psi, F)
+    (* transFor (ExtDctx, ExtF) = (Psi, F)
 
        Invariant:
        If   |- ExtDPsi extdecctx
@@ -684,19 +686,19 @@ module Trans(Trans:sig
        then |- Psi <= ExtDPsi
        and  Psi |- F <= ExtF
     *)
-      (* stringToTerm s = U
+    (* stringToTerm s = U
 
        Invariant:
        If   s is a string representing an expression,
        then U is the result of parsing it
        otherwise Parsing.error is raised.
     *)
-      (* head (dH) = n
+    (* head (dH) = n
 
        Invariant:
        n is the name of the function head dH
     *)
-      (* lamClosure (F, P) = P'
+    (* lamClosure (F, P) = P'
 
        Invariant:
        If   . |- F formula
@@ -705,21 +707,22 @@ module Trans(Trans:sig
        and . |- P :: F'
        then P' = lam D1 ... lam Dn P
     *)
-      (* check that W is at least as large as W' *)(* dotn (t, n) = t'
+    (* check that W is at least as large as W' *)
+    (* dotn (t, n) = t'
 
        Invariant:
        If   Psi0 |- t : Psi
-       and  |g| = n   for any g
-       then Psi0, g[t] |- t : Psi, g
+       and  |G| = n   for any G
+       then Psi0, G[t] |- t : Psi, G
     *)
-      (* append (Psi1, Psi2) = Psi3
+    (* append (Psi1, Psi2) = Psi3
 
        Invariant:
        If   |- Psi1 ctx
        and  |- Psi2 ctx
        then |- Psi3 = Psi1, Psi2 ctx
     *)
-      (* transDecs ((Psi, t), dDs, sc, W) = x
+    (* transDecs ((Psi, t), dDs, sc, W) = x
 
        Invariant:
        If   . |- t :: Psi
@@ -733,16 +736,16 @@ module Trans(Trans:sig
             as output: anything.
        then eventually x = ().     --cs
     *)
-      (*          T.Let (T.PDec (NONE, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
-      (* T.True is not right! -- cs Sat Jun 28 11:43:30 2003  *)
-      (* transHead (g, T, S) = (F', t')
+    (*          T.Let (T.PDec (NONE, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
+    (* T.True is not right! -- cs Sat Jun 28 11:43:30 2003  *)
+    (* transHead (G, T, S) = (F', t')
 
        Invariant:
-       If   g |- T : F
-       and  g |- S : world{W}all{g'}F' >> F'
-       then g |- t' : g'
+       If   G |- T : F
+       and  G |- S : world{W}all{G'}F' >> F'
+       then G |- t' : G'
     *)
-      (* spineToSub ((S, t), s) = s'
+    (* spineToSub ((S, t), s) = s'
 
        Invariant:
        If  Psi' |- S spine
@@ -750,10 +753,10 @@ module Trans(Trans:sig
        and Psi'' |- s : Psi'''
        then  Psi'' |- s' : Psi''', Psi''''
     *)
-      (* other cases should be impossible by invariant
+    (* other cases should be impossible by invariant
                                          F should be F.True
                                          --cs Sun Mar 23 10:38:57 2003 *)
-      (* transFun1 ((Psi, env), dDs, sc, W) = x
+    (* transFun1 ((Psi, env), dDs, sc, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -768,7 +771,7 @@ module Trans(Trans:sig
             as output: anything.
        then eventually x = ().     --cs
     *)
-      (* transFun2 ((Psi, env), s, dDs, sc, k, W) = x
+    (* transFun2 ((Psi, env), s, dDs, sc, k, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -788,7 +791,7 @@ module Trans(Trans:sig
             as ouput: A program P that corresponds to the case list Cs
        then eventually x = ().     --cs
     *)
-      (* transFun3 ((Psi, env), s, eH, eP, Ds, sc, k, W) = x
+    (* transFun3 ((Psi, env), s, eH, eP, Ds, sc, k, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -809,10 +812,13 @@ module Trans(Trans:sig
             as ouput: A program P that corresponds to the case list Cs
        then eventually x = ().     --cs
     *)
-      (*                val F' = T.forSub (F, t) *)(* |Psi''| = m0 + m' *)
-      (* Psi0, Psi'[^m0] |- t0 : Psi' *)(*        val t1 = T.Dot (T.Prg (T.Root (T.Var (m'+1), T.Nil)), T.Shift (m'))    BUG !!!! Wed Jun 25 11:23:13 2003 *)
-      (* Psi0, Psi'[^m0] |- t1 : F[^m0]  *)(*        val _ = print (TomegaPrint.forToString (Names.ctxName (T.coerceCtx Psi''), myF) ^ "\n") *)
-      (* transForDec ((Psi, env), eDf, dDs, sc, W) = x
+    (*                val F' = T.forSub (F, t) *)
+    (* |Psi''| = m0 + m' *)
+    (* Psi0, Psi'[^m0] |- t0 : Psi' *)
+    (*        val t1 = T.Dot (T.Prg (T.Root (T.Var (m'+1), T.Nil)), T.Shift (m'))    BUG !!!! Wed Jun 25 11:23:13 2003 *)
+    (* Psi0, Psi'[^m0] |- t1 : F[^m0]  *)
+    (*        val _ = print (TomegaPrint.forToString (Names.ctxName (T.coerceCtx Psi''), myF) ^ "\n") *)
+    (* transForDec ((Psi, env), eDf, dDs, sc, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -828,10 +834,10 @@ module Trans(Trans:sig
             as output: anything.
        then eventually x = ().     --cs
     *)
-      (*        val _ = print s
+    (*        val _ = print s
           val _ = print " :: "
-          val _ = print (TomegaPrint.forToString (T.embedCtx g, F'') ^ "\n") *)
-      (* transValDec ((Psi, env), dDv, dDs, sc, W) = x
+          val _ = print (TomegaPrint.forToString (T.embedCtx G, F'') ^ "\n") *)
+    (* transValDec ((Psi, env), dDv, dDs, sc, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -847,8 +853,8 @@ module Trans(Trans:sig
             as output: anything.
        then eventually x = ().     --cs
     *)
-      (*        val t = T.Dot (T.Prg Pat', T.id)  was --cs Tue Jun 24 13:04:55 2003 *)
-      (* transProgS ((Psi, env), ExtP, F, W) = P
+    (*        val t = T.Dot (T.Prg Pat', T.id)  was --cs Tue Jun 24 13:04:55 2003 *)
+    (* transProgS ((Psi, env), ExtP, F, W) = P
        transProgI ((Psi, env), ExtP, W) = (P, F)
        Invariant:
        If   ExtP contains free variables among (Psi, env)
@@ -857,7 +863,8 @@ module Trans(Trans:sig
        and  Exists Psi |- F : formula
        then Psi |- P :: F
     *)
-      (* check that F == F' *)(*      | transProgIN ((Psi, env), D.Pair (EP1, EP2), T.And (F1, F2), W) =
+    (* check that F == F' *)
+    (*      | transProgIN ((Psi, env), D.Pair (EP1, EP2), T.And (F1, F2), W) =
         let
           val P1 = transProgIN ((Psi, env), EP1, F1, W)
           val P2 = transProgIN ((Psi, env), EP2, F2, W)
@@ -868,8 +875,9 @@ module Trans(Trans:sig
         let
           val (P', (F', _)) = transProgS ((Psi, env), P, W)
           val ()  = ()    check that F == F' *)
-      (* check that F == F' *)(* check that F == F' *)
-      (*      | transProgIN (Psi, D.Lam (s, EP)) =
+    (* check that F == F' *)
+    (* check that F == F' *)
+    (*      | transProgIN (Psi, D.Lam (s, EP)) =
         let
           val dec = stringTodec s
           val (I.Decl (Psi, (D, _, _)), P, F') = transProgI (I.Decl (ePsi, dec), EP)
@@ -877,12 +885,13 @@ module Trans(Trans:sig
           (Psi, T.Lam (T.UDec D, P), T.All (D, F'))
         end
 *)
-      (* is this the right starting point --cs *)(*         val lemma = T.lemmaName name
+    (* is this the right starting point --cs *)
+    (*         val lemma = T.lemmaName name
            val F = T.lemmaFor lemma *)
-      (* bug: forgot to raise F[t] to F' --cs Tue Jul  1 10:49:52 2003 *)
-      (*        val X = I.EVar (ref NONE, I.Null, I.EClo (V, T.coerceSub s), ref nil) *)
-      (*        val (F'', s'', _) = checkForWorld (F', T.Dot (T.Exp U, s), W) *)
-      (*
+    (* bug: forgot to raise F[t] to F' --cs Tue Jul  1 10:49:52 2003 *)
+    (*        val X = I.EVar (ref NONE, I.Null, I.EClo (V, T.coerceSub s), ref nil) *)
+    (*        val (F'', s'', _) = checkForWorld (F', T.Dot (T.Exp U, s), W) *)
+    (*
      | transProgS ((Psi, env), D.Pair (EP1, EP2), W) =
         let
           val (P1, (F1, t1)) = transProgS ((Psi, env), EP1, W)
@@ -912,17 +921,18 @@ module Trans(Trans:sig
           (T.Lam (T.UDec D, P), (T.All (D, F'), t'))
         end
 *)
-      (*        val _ = print (Print.expToString (g, U) ^ "\n") *)
-      (* is this the right starting point --cs *)(* transProgram Ds = P
+    (*        val _ = print (Print.expToString (G, U) ^ "\n") *)
+    (* is this the right starting point --cs *)
+    (* transProgram Ds = P
 
        Invariant:
        If Ds is a list of declarations then P is
        the translated program, that does not do anything
-    *))
-      = function | F -> let F' = transFor (I.Null, F) in F'
-    let ((transDecs)(*    val makePattern = makePattern *)
-      (*    val transPro = fn P => let val (P', _) = transProgS ((I.Null, []), P, T.Worlds []) in P' end *))
-      = transProgram
+    *)
+    let transFor = function | F -> let F' = transFor (I.Null, F) in F'
+    (*    val makePattern = makePattern *)
+    (*    val transPro = fn P => let val (P', _) = transProgS ((I.Null, []), P, T.Worlds []) in P' end *)
+    let transDecs = transProgram
     let internalizeSig = internalizeSig
     let externalizePrg = function | P -> externalizePrg (0, P)
   end;;

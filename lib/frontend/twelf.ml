@@ -1,102 +1,103 @@
 
+(* Front End Interface *)
+(* Author: Frank Pfenning *)
 module type TWELF  =
   sig
     module Print :
     sig
-      val implicit :
-        ((bool)(* Author: Frank Pfenning *)(* Front End Interface *))
-          ref
-      val printInfix :
-        ((bool)(* false, print implicit args *)) ref
-      val depth :
-        ((int)(* false, print fully explicit form infix when possible *))
-          option ref
-      val length :
-        ((int)(* NONE, limit print depth *)) option ref
-      val indent :
-        ((int)(* NONE, limit argument length *)) ref
-      val width :
-        ((int)(* 3, indentation of subterms *)) ref
-      val noShadow : ((bool)(* 80, line width *)) ref
-      val sgn :
-        unit ->
-          ((unit)(* if true, don't print shadowed constants as "%const%" *))
-      val prog : unit -> ((unit)(* print signature *))
-      val subord :
-        unit -> ((unit)(* print signature as program *))
-      val def :
-        unit -> ((unit)(* print subordination relation *))
-      val domains :
-        unit ->
-          ((unit)(* print information about definitions *))
+      val implicit : bool ref
+      (* false, print implicit args *)
+      val printInfix : bool ref
+      (* false, print fully explicit form infix when possible *)
+      val depth : int option ref
+      (* NONE, limit print depth *)
+      val length : int option ref
+      (* NONE, limit argument length *)
+      val indent : int ref
+      (* 3, indentation of subterms *)
+      val width : int ref
+      (* 80, line width *)
+      val noShadow : bool ref
+      (* if true, don't print shadowed constants as "%const%" *)
+      val sgn : unit -> unit
+      (* print signature *)
+      val prog : unit -> unit
+      (* print signature as program *)
+      val subord : unit -> unit
+      (* print subordination relation *)
+      val def : unit -> unit
+      (* print information about definitions *)
+      val domains : unit -> unit
+      (* print available constraint domains *)
       module TeX :
       sig
-        val sgn :
-          unit ->
-            ((unit)(* print in TeX format *)(* print available constraint domains *))
-        val prog : unit -> ((unit)(* print signature *))
+        (* print in TeX format *)
+        val sgn : unit -> unit
+        (* print signature *)
+        val prog : unit -> unit
       end
     end
     module Trace :
     sig
+      (* print signature as program *)
       type 'a __Spec =
         | None 
-        | Some of
-        (('a)(* no tracing, default *)(* trace and breakpoint spec *)
-        (* print signature as program *)) list 
+        | Some of 'a list 
         | All 
-      val trace :
-        string __Spec ->
-          ((unit)(* trace all clauses and families *)
-          (* list of clauses and families *))
-      val break :
-        string __Spec ->
-          ((unit)(* trace clauses and families *))
-      val detail :
-        ((int)(* break at clauses and families *)) ref
-      val show :
-        unit ->
-          ((unit)(* 0 = none, 1 = default, 2 = unify *))
-      val reset :
-        unit -> ((unit)(* show trace, break, and detail *))
+      (* trace all clauses and families *)
+      val trace : string __Spec -> unit
+      (* trace clauses and families *)
+      val break : string __Spec -> unit
+      (* break at clauses and families *)
+      val detail : int ref
+      (* 0 = none, 1 = default, 2 = unify *)
+      val show : unit -> unit
+      (* show trace, break, and detail *)
+      val reset : unit -> unit
     end
     module Table :
     sig
+      (* trace and breakpoint spec *)
+      (* no tracing, default *)
+      (* list of clauses and families *)
+      (* reset trace, break, and detail *)
       type __Strategy =
         | Variant 
-        | Subsumption (* reset trace, break, and detail *)
-      val strategy :
-        ((__Strategy)(* Variant | Subsumption *)) ref
-      val strengthen :
-        ((bool)(* strategy used for %querytabled *)) ref
-      val resetGlobalTable :
-        unit -> ((unit)(* strengthenng used %querytabled *))
-      val top :
-        unit -> ((unit)(* reset global table           *))
+        | Subsumption 
+      (* Variant | Subsumption *)
+      val strategy : __Strategy ref
+      (* strategy used for %querytabled *)
+      val strengthen : bool ref
+      (* strengthenng used %querytabled *)
+      val resetGlobalTable : unit -> unit
+      (* reset global table           *)
+      val top : unit -> unit
     end
     module Timers :
     sig
-      val show :
-        unit ->
-          ((unit)(* top-level for interactive tabled queries *))
-      val reset :
-        unit -> ((unit)(* show and reset timers *))
-      val check : unit -> ((unit)(* reset timers *))
+      (* top-level for interactive tabled queries *)
+      val show : unit -> unit
+      (* show and reset timers *)
+      val reset : unit -> unit
+      (* reset timers *)
+      val check : unit -> unit
     end
     module OS :
     sig
-      val chDir :
-        string -> ((unit)(* display, but not no reset *))
-      val getDir :
-        unit -> ((string)(* change working directory *))
-      val exit : unit -> ((unit)(* get working directory *))
+      (* display, but not no reset *)
+      val chDir : string -> unit
+      (* change working directory *)
+      val getDir : unit -> string
+      (* get working directory *)
+      val exit : unit -> unit
     end
     module Compile :
     sig
+      (* exit Twelf and ML *)
       type __Opt =
         | No 
         | LinearHeads 
-        | Indexing (* exit Twelf and ML *)
+        | Indexing 
       val optimize : __Opt ref
     end
     module Recon :
@@ -112,65 +113,68 @@ module type TWELF  =
       type __Strategy =
         | RFS 
         | FRS 
-      val strategy :
-        ((__Strategy)(* F=Filling, R=Recursion, S=Splitting *))
-          ref
-      val maxSplit :
-        ((int)(* FRS, strategy used for %prove *)) ref
-      val maxRecurse :
-        ((int)(* 2, bound on splitting  *)) ref
+      (* F=Filling, R=Recursion, S=Splitting *)
+      val strategy : __Strategy ref
+      (* FRS, strategy used for %prove *)
+      val maxSplit : int ref
+      (* 2, bound on splitting  *)
+      val maxRecurse : int ref
     end
-    val chatter : ((int)(* 10, bound on recursion *)) ref
-    val doubleCheck : ((bool)(* 3, chatter level *)) ref
-    val unsafe :
-      ((bool)(* false, check after reconstruction *)) ref
-    val autoFreeze : ((bool)(* false, allows %assert *)) ref
-    val timeLimit :
-      ((Time.time)(* false, freezes families in meta-theorems *))
-        option ref
+    val chatter : int ref
+    (* 3, chatter level *)
+    val doubleCheck : bool ref
+    (* false, check after reconstruction *)
+    val unsafe : bool ref
+    (* false, allows %assert *)
+    val autoFreeze : bool ref
+    (* false, freezes families in meta-theorems *)
+    val timeLimit : Time.time option ref
+    (* NONEe, allows timeLimit in seconds *)
     type __Status =
       | OK 
-      | ABORT (* NONEe, allows timeLimit in seconds *)
-    val reset : unit -> ((unit)(* return status *))
-    val loadFile :
-      string -> ((__Status)(* reset global signature *))
-    val loadString : string -> ((__Status)(* load file *))
-    val readDecl : unit -> ((__Status)(* load string *))
-    val decl :
-      string ->
-        ((__Status)(* read declaration interactively *))
-    val top :
-      unit -> ((unit)(* print declaration of constant *))
+      | ABORT 
+    (* return status *)
+    val reset : unit -> unit
+    (* reset global signature *)
+    val loadFile : string -> __Status
+    (* load file *)
+    val loadString : string -> __Status
+    (* load string *)
+    val readDecl : unit -> __Status
+    (* read declaration interactively *)
+    val decl : string -> __Status
+    (* print declaration of constant *)
+    val top : unit -> unit
+    (* top-level for interactive queries *)
     module Config :
     sig
-      type nonrec config(* top-level for interactive queries *)
-      val suffix : ((string)(* configuration *)) ref
-      val read :
-        string ->
-          ((config)(* suffix of configuration files *))
-      val readWithout :
-        (string * config) ->
-          ((config)(* read config file *))
-      val load :
-        config ->
-          ((__Status)(* read config file, minus contents of another *))
-      val append :
-        config ->
-          ((__Status)(* reset and load configuration *))
-      val define :
-        string list ->
-          ((config)(* load configuration (w/o reset) *))
+      (* 10, bound on recursion *)
+      type nonrec config
+      (* configuration *)
+      val suffix : string ref
+      (* suffix of configuration files *)
+      val read : string -> config
+      (* read config file *)
+      val readWithout : (string * config) -> config
+      (* read config file, minus contents of another *)
+      val load : config -> __Status
+      (* reset and load configuration *)
+      val append : config -> __Status
+      (* load configuration (w/o reset) *)
+      val define : string list -> config
     end
-    val make :
-      string ->
-        ((__Status)(* explicitly define configuration *))
-    val version :
-      ((string)(* read and load configuration *))
+    val make : string -> __Status
+    (* read and load configuration *)
+    val version : string
   end;;
 
 
 
 
+(* Front End Interface *)
+(* Author: Frank Pfenning *)
+(* Modified: Carsten Schuermann, Jeff Polakow *)
+(* Modified: Brigitte Pientka, Roberto Virga *)
 module Twelf(Twelf:sig
                      module Global : GLOBAL
                      module Timers : TIMERS
@@ -230,10 +234,6 @@ module Twelf(Twelf:sig
                      module CSInstaller : CS_INSTALLER
                      module Compat : COMPAT
                      module UnknownExn : UNKNOWN_EXN
-                     module Msg :
-                     ((MSG)(* Front End Interface *)
-                     (* Author: Frank Pfenning *)(* Modified: Carsten Schuermann, Jeff Polakow *)
-                     (* Modified: Brigitte Pientka, Roberto Virga *)
                      (*! sharing Whnf.IntSyn = IntSyn' !*)
                      (*! sharing Print.IntSyn = IntSyn' !*)
                      (*! sharing Names.IntSyn = IntSyn' !*)
@@ -241,24 +241,31 @@ module Twelf(Twelf:sig
                      (*! sharing Origins.Paths = Paths !*)
                      (*! sharing Lexer.Paths = Paths !*)
                      (*! structure Parsing : PARSING !*)
-                     (*! sharing Lexer = Lexer !*)(*! sharing Parser.ExtSyn.Paths = Paths !*)
+                     (*! sharing Lexer = Lexer !*)
+                     (*! sharing Parser.ExtSyn.Paths = Paths !*)
                      (*! sharing Strict.IntSyn = IntSyn' !*)
                      (*! sharing Strict.Paths = Paths !*)
                      (*! sharing Constraints.IntSyn = IntSyn' !*)
-                     (*! sharing Abstract.IntSyn = IntSyn' !*)(*! sharing ReconTerm.IntSyn = IntSyn' !*)
+                     (*! sharing Abstract.IntSyn = IntSyn' !*)
+                     (*! sharing ReconTerm.IntSyn = IntSyn' !*)
                      (*! sharing ReconTerm.Paths = Paths !*)
                      (* sharing type ReconTerm.Paths.occConDec = Origins.Paths.occConDec *)
                      (*! sharing ReconConDec.IntSyn = IntSyn' !*)
-                     (*! sharing ReconConDec.Paths = Paths !*)(*! sharing ModeSyn.IntSyn = IntSyn' !*)
-                     (*! sharing ModeCheck.IntSyn = IntSyn' !*)(*! sharing ModeCheck.ModeSyn = ModeSyn !*)
+                     (*! sharing ReconConDec.Paths = Paths !*)
+                     (*! sharing ModeSyn.IntSyn = IntSyn' !*)
+                     (*! sharing ModeCheck.IntSyn = IntSyn' !*)
+                     (*! sharing ModeCheck.ModeSyn = ModeSyn !*)
                      (*! sharing ModeCheck.Paths = Paths !*)
                      (*! sharing ReconMode.ModeSyn = ModeSyn !*)
                      (*! sharing ReconMode.Paths = Paths !*)
                      (*! sharing ModePrint.ModeSyn = ModeSyn !*)
-                     (*! sharing ModeDec.ModeSyn = ModeSyn !*)(*! sharing ModeDec.Paths = Paths !*)
-                     (*! sharing Unique.ModeSyn = ModeSyn !*)(*! sharing Cover.IntSyn = IntSyn' !*)
+                     (*! sharing ModeDec.ModeSyn = ModeSyn !*)
+                     (*! sharing ModeDec.Paths = Paths !*)
+                     (*! sharing Unique.ModeSyn = ModeSyn !*)
+                     (*! sharing Cover.IntSyn = IntSyn' !*)
                      (*! sharing Cover.ModeSyn = ModeSyn !*)
-                     (*! sharing Converter.IntSyn = IntSyn' !*)(*! sharing Converter.Tomega = Tomega !*)
+                     (*! sharing Converter.IntSyn = IntSyn' !*)
+                     (*! sharing Converter.Tomega = Tomega !*)
                      (*! sharing TomegaPrint.IntSyn = IntSyn' !*)
                      (*! sharing TomegaPrint.Tomega = Tomega !*)
                      (*! sharing TomegaCoverage.IntSyn = IntSyn' !*)
@@ -266,35 +273,48 @@ module Twelf(Twelf:sig
                      (*! sharing TomegaTypeCheck.IntSyn = IntSyn' !*)
                      (*! sharing TomegaTypeCheck.Tomega = Tomega !*)
                      (*! sharing Total.IntSyn = IntSyn' !*)
-                     (*! sharing Reduces.IntSyn = IntSyn' !*)(*! sharing Index.IntSyn = IntSyn' !*)
+                     (*! sharing Reduces.IntSyn = IntSyn' !*)
+                     (*! sharing Index.IntSyn = IntSyn' !*)
                      (*! sharing IndexSkolem.IntSyn = IntSyn' !*)
                      (*! sharing Subordinate.IntSyn = IntSyn' !*)
                      (*! structure CompSyn' : COMPSYN !*)
-                     (*! sharing CompSyn'.IntSyn = IntSyn' !*)(*! sharing Compile.IntSyn = IntSyn' !*)
-                     (*! sharing Compile.CompSyn = CompSyn' !*)(*! sharing AbsMachine.IntSyn = IntSyn' !*)
+                     (*! sharing CompSyn'.IntSyn = IntSyn' !*)
+                     (*! sharing Compile.IntSyn = IntSyn' !*)
+                     (*! sharing Compile.CompSyn = CompSyn' !*)
+                     (*! sharing AbsMachine.IntSyn = IntSyn' !*)
                      (*! sharing AbsMachine.CompSyn = CompSyn' !*)
-                     (*! structure TableParam : TABLEPARAM !*)(*! sharing Tabled.IntSyn = IntSyn' !*)
-                     (*! sharing Tabled.CompSyn = CompSyn' !*)(*! sharing Solve.IntSyn = IntSyn' !*)
+                     (*! structure TableParam : TABLEPARAM !*)
+                     (*! sharing Tabled.IntSyn = IntSyn' !*)
+                     (*! sharing Tabled.CompSyn = CompSyn' !*)
+                     (*! sharing Solve.IntSyn = IntSyn' !*)
                      (*! sharing Fquery.IntSyn = IntSyn' !*)
                      (*! sharing Solve.Paths = Paths !*)
                      (*! sharing ThmSyn.Paths = Paths !*)
                      (*! sharing Thm.Paths = Paths !*)
                      (*! sharing ReconThm.Paths = Paths !*)
                      (*! sharing ReconThm.ThmSyn.ModeSyn = ModeSyn !*)
-                     (* -bp *)(* -bp *)
-                     (* -bp *)(*! sharing TabledSyn.IntSyn = IntSyn' !*)
-                     (*! sharing WorldSyn.IntSyn = IntSyn' !*)(*   structure WorldPrint : WORLDPRINT *)
-                     (*! sharing WorldPrint.Tomega = Tomega !*)(*! sharing ModSyn.IntSyn = IntSyn' !*)
+                     (* -bp *)
+                     (* -bp *)
+                     (* -bp *)
+                     (*! sharing TabledSyn.IntSyn = IntSyn' !*)
+                     (*! sharing WorldSyn.IntSyn = IntSyn' !*)
+                     (*   structure WorldPrint : WORLDPRINT *)
+                     (*! sharing WorldPrint.Tomega = Tomega !*)
+                     (*! sharing ModSyn.IntSyn = IntSyn' !*)
                      (*! sharing ModSyn.Paths = Paths !*)
                      (*! structure FunSyn : FUNSYN !*)
                      (*! sharing FunSyn.IntSyn = IntSyn' !*)
                      (*! sharing Skolem.IntSyn = IntSyn' !*)
                      (*! sharing Prover.IntSyn = IntSyn' !*)
                      (*! sharing ClausePrint.IntSyn = IntSyn' !*)
-                     (*! sharing PrintTeX.IntSyn = IntSyn' !*)(*! sharing ClausePrintTeX.IntSyn = IntSyn' !*)
-                     (*! sharing CSManager.IntSyn = IntSyn' !*)(*! sharing CSManager.ModeSyn = ModeSyn !*))
+                     (*! sharing PrintTeX.IntSyn = IntSyn' !*)
+                     (*! sharing ClausePrintTeX.IntSyn = IntSyn' !*)
+                     (*! sharing CSManager.IntSyn = IntSyn' !*)
+                     (*! sharing CSManager.ModeSyn = ModeSyn !*)
+                     module Msg : MSG
                    end) : TWELF =
   struct
+    (*! structure IntSyn = IntSyn' !*)
     module S = Parser.Stream
     let rec msg s = Msg.message s
     let rec chmsg n s = Global.chMessage n s msg
@@ -452,7 +472,7 @@ module Twelf(Twelf:sig
       let _ = Origins.installLinesInfo (fileName, (Paths.getLinesInfo ())) in
       cid
     let rec installStrDec (strdec, module__, r, isDef) =
-      let installAction ((cid, _) as data) =
+      let rec installAction ((cid, _) as data) =
         installConst IntSyn.Ordinary data;
         if (!Global.chatter) >= 4
         then msg ((Print.conDecToString (IntSyn.sgnLookup cid)) ^ "\n")
@@ -464,7 +484,7 @@ module Twelf(Twelf:sig
         with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
       ()
     let rec includeSig (module__, r, isDef) =
-      let installAction ((cid, _) as data) =
+      let rec installAction ((cid, _) as data) =
         installConst IntSyn.Ordinary data;
         if (!Global.chatter) >= 4
         then msg ((Print.conDecToString (IntSyn.sgnLookup cid)) ^ "\n")
@@ -495,7 +515,7 @@ module Twelf(Twelf:sig
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
                  (condec, (Paths.Loc (fileName, r)), false__) in
-             let icd =
+             let rec icd =
                function
                | SOME (BlockDec _ as conDec) ->
                    let cid =
@@ -523,7 +543,7 @@ module Twelf(Twelf:sig
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
                  (condec, (Paths.Loc (fileName, r)), true__) in
-             let icd =
+             let rec icd =
                function
                | SOME conDec ->
                    let cid =
@@ -541,7 +561,7 @@ module Twelf(Twelf:sig
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
                  (condec, (Paths.Loc (fileName, r)), false__) in
-             let icd =
+             let rec icd =
                function
                | SOME conDec ->
                    let cid =
@@ -561,7 +581,7 @@ module Twelf(Twelf:sig
                with
                | AbortQuery msg ->
                    raise (Solve.AbortQuery (Paths.wrap (r, msg))) in
-             let icd (conDec, ocOpt) =
+             let rec icd (conDec, ocOpt) =
                let cid =
                  installConDec IntSyn.Ordinary (conDec, (fileName, ocOpt), r) in
                () in
@@ -604,7 +624,7 @@ module Twelf(Twelf:sig
                   (function | () -> "trustme subject failed; continuing\n") in
           let _ = chmsg 3 (function | () -> "%]\n") in ()
       | (fileName, (SubordDec qidpairs, r)) ->
-          let toCid qid =
+          let rec toCid qid =
             match Names.constLookup qid with
             | NONE ->
                 raise
@@ -637,7 +657,7 @@ module Twelf(Twelf:sig
                  ".\n" cidpairs)
           else ()
       | (fileName, (FreezeDec qids, r)) ->
-          let toCid qid =
+          let rec toCid qid =
             match Names.constLookup qid with
             | NONE ->
                 raise
@@ -676,7 +696,7 @@ module Twelf(Twelf:sig
             if not (!Global.unsafe)
             then raise (ThmSyn.Error "%thaw not safe: Toggle `unsafe' flag")
             else () in
-          let toCid qid =
+          let rec toCid qid =
             match Names.constLookup qid with
             | NONE ->
                 raise
@@ -714,7 +734,7 @@ module Twelf(Twelf:sig
           let _ = invalidate UniqueTable.uninstallMode thawed "uniqueness" in
           let _ = invalidate Total.uninstall thawed "totality" in ()
       | (fileName, (DeterministicDec qids, r)) ->
-          let toCid qid =
+          let rec toCid qid =
             match Names.constLookup qid with
             | NONE ->
                 raise
@@ -723,7 +743,7 @@ module Twelf(Twelf:sig
                          (valOf (Names.constUndef qid)))
                         ^ " in deterministic declaration"))
             | SOME cid -> cid in
-          let insertCid cid = CompSyn.detTableInsert (cid, true__) in
+          let rec insertCid cid = CompSyn.detTableInsert (cid, true__) in
           let cids =
             try List.map toCid qids
             with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
@@ -740,7 +760,7 @@ module Twelf(Twelf:sig
                   ".\n" cids)
            else ())
       | (fileName, (Compile qids, r)) ->
-          let toCid qid =
+          let rec toCid qid =
             match Names.constLookup qid with
             | NONE ->
                 raise
@@ -752,7 +772,7 @@ module Twelf(Twelf:sig
           let cids =
             try List.map toCid qids
             with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
-          let checkFreeOut =
+          let rec checkFreeOut =
             function
             | nil -> ()
             | a::La ->
@@ -763,7 +783,7 @@ module Twelf(Twelf:sig
           let P = Tomega.lemmaDef lemma in
           let F = Converter.convertFor cids in
           let _ = TomegaTypeCheck.checkPrg (IntSyn.Null, (P, F)) in
-          let f cid = IntSyn.conDecName (IntSyn.sgnLookup cid) in
+          let rec f cid = IntSyn.conDecName (IntSyn.sgnLookup cid) in
           let _ =
             if (!Global.chatter) >= 2
             then
@@ -1108,7 +1128,7 @@ module Twelf(Twelf:sig
                                ((^) "Cannot declare worlds for frozen family "
                                   Names.qidToString (Names.constQid a)))))
                    else ()) (cpa, rs) in
-          let flatten arg__0 arg__1 =
+          let rec flatten arg__0 arg__1 =
             match (arg__0, arg__1) with
             | (nil, F) -> F
             | (cid::L, F) ->
@@ -1264,7 +1284,7 @@ module Twelf(Twelf:sig
       let _ = (:=) context SOME namespace in
       let _ =
         if (!Global.chatter) >= 4 then msg "\n% begin subsignature\n" else () in
-      let install s = install' (Timers.time Timers.parsing S.expose s)
+      let rec install s = install' (Timers.time Timers.parsing S.expose s)
       and install' =
         function
         | Cons ((Parser.BeginSubsig, _), s') ->
@@ -1296,7 +1316,8 @@ module Twelf(Twelf:sig
         (function
          | instream ->
              let _ = ReconTerm.resetErrors fileName in
-             let install s = install' (Timers.time Timers.parsing S.expose s)
+             let rec install s =
+               install' (Timers.time Timers.parsing S.expose s)
              and install' =
                function
                | S.Empty -> OK
@@ -1309,7 +1330,8 @@ module Twelf(Twelf:sig
         (function
          | () ->
              let _ = ReconTerm.resetErrors "string" in
-             let install s = install' (Timers.time Timers.parsing S.expose s)
+             let rec install s =
+               install' (Timers.time Timers.parsing S.expose s)
              and install' =
                function
                | S.Empty -> OK
@@ -1375,7 +1397,8 @@ module Twelf(Twelf:sig
         (function
          | () ->
              let _ = ReconTerm.resetErrors "stdIn" in
-             let install s = install' (Timers.time Timers.parsing S.expose s)
+             let rec install s =
+               install' (Timers.time Timers.parsing S.expose s)
              and install' =
                function
                | S.Empty -> ABORT
@@ -1434,8 +1457,8 @@ module Twelf(Twelf:sig
              then path
              else OS.Path.concat (prefix, path))
         let rec read config =
-          let appendUniq (l1, l2) =
-            let appendUniq' =
+          let rec appendUniq (l1, l2) =
+            let rec appendUniq' =
               function
               | x::l2 ->
                   if List.exists (function | y -> x = y) l1
@@ -1443,24 +1466,24 @@ module Twelf(Twelf:sig
                   else (::) x appendUniq' l2
               | nil -> List.rev l1 in
             List.rev (appendUniq' (List.rev l2)) in
-          let isConfig item =
+          let rec isConfig item =
             let suffix_size = (String.size (!suffix)) + 1 in
             let suffix_start = (String.size item) - suffix_size in
             (suffix_start >= 0) &&
               ((String.substring (item, suffix_start, suffix_size)) =
                  ((!) ((^) ".") suffix)) in
-          let fromUnixPath path =
+          let rec fromUnixPath path =
             let vol = OS.Path.getVolume config in
             let isAbs = String.isPrefix "/" path in
             let arcs = String.tokens (function | c -> c = '/') path in
             OS.Path.toString { isAbs; vol; arcs } in
-          let read' (sources, configs) config =
+          let rec read' (sources, configs) config =
             withOpenIn config
               (function
                | instream ->
                    let { dir = configDir; file = _; file = _ } =
                      OS.Path.splitDirFile config in
-                   let parseItem (sources, configs) item =
+                   let rec parseItem (sources, configs) item =
                      if isConfig item
                      then
                        (if
@@ -1474,7 +1497,7 @@ module Twelf(Twelf:sig
                            sources
                        then (sources, configs)
                        else ((sources @ [item]), configs) in
-                   let parseLine (sources, configs) line =
+                   let rec parseLine (sources, configs) line =
                      if Substring.isEmpty line
                      then (sources, configs)
                      else
@@ -1505,7 +1528,7 @@ module Twelf(Twelf:sig
           let (d', fs') = c in
           let fns' =
             map (function | m -> mkRel (d', (ModFile.fileName m))) fs' in
-          let redundant m =
+          let rec redundant m =
             let n = mkRel (d, (ModFile.fileName m)) in
             List.exists (function | n' -> n = n') fns' in
           (d, (List.filter (not o redundant) fs))
@@ -1521,12 +1544,12 @@ module Twelf(Twelf:sig
         let rec load ((_, sources) as config) =
           reset (); List.app ModFile.makeModified sources; append config
         let rec append (pwdir, sources) =
-          let fromFirstModified =
+          let rec fromFirstModified =
             function
             | nil -> nil
             | x::xs as sources ->
                 if ModFile.modified x then sources else fromFirstModified xs in
-          let mkAbsolute p =
+          let rec mkAbsolute p =
             Compat.OS.Path.mkAbsolute { path = p; relativeTo = pwdir } in
           let sources' =
             if (=) pwdir OS.FileSys.getDir ()
@@ -1538,6 +1561,286 @@ module Twelf(Twelf:sig
           ((OS.FileSys.getDir ()), (List.map ModFile.create sources))
       end
     let rec make fileName = Config.load (Config.read fileName)
+    (* result of a computation *)
+    (* val withOpenIn : string -> (TextIO.instream -> 'a) -> 'a *)
+    (* withOpenIn fileName (fn instream => body) = x
+       opens fileName for input to obtain instream and evaluates body.
+       The file is closed during normal and abnormal exit of body.
+    *)
+    (* evarInstToString Xs = msg
+       formats instantiated EVars as a substitution.
+       Abbreviate as empty string if chatter level is < 3.
+    *)
+    (* expToString (G, U) = msg
+       formats expression as a string.
+       Abbreviate as empty string if chatter level is < 3.
+    *)
+    (* status ::= OK | ABORT  is the return status of various operations *)
+    (* should move to paths, or into the prover module... but not here! -cs *)
+    (* val handleExceptions : int -> string -> ('a -> Status) -> 'a -> Status *)
+    (* handleExceptions chlev filename f x = f x
+       where standard exceptions are handled and an appropriate error message is
+       issued if chatter level is greater or equal to chlev.
+       Unrecognized exceptions are re-raised.
+    *)
+    (* | Constraints.Error (cnstrL) => abortFileMsg (fileName, constraintsMsg cnstrL) *)
+    (* Total includes filename *)
+    (* Reduces includes filename *)
+    (* ModeCheck includes filename *)
+    (* - Not supported in polyML ABP - 4/20/03
+              * | IO.Io (ioError) => abortIO (fileName, ioError)
+              *)
+    (* includes filename *)
+    (* includes filename *)
+    (* During elaboration of a signature expression, each constant
+       that that the user declares is added to this table.  At top level,
+       however, the reference holds NONE (in particular, shadowing is
+       allowed).
+    *)
+    (* installConDec fromCS (conDec, ocOpt)
+       installs the constant declaration conDec which originates at ocOpt
+       in various global tables, including the global signature.
+       Note: if fromCS = FromCS then the declaration comes from a Constraint
+       Solver and some limitations on the types are lifted.
+    *)
+    (* (Clause, _) should be impossible *)
+    (* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
+    (* (Clause, _) should be impossible *)
+    (* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
+    (* install1 (decl) = ()
+       Installs one declaration
+       Effects: global state
+                may raise standard exceptions
+    *)
+    (* Constant declarations c : V, c : V = U plus variations *)
+    (* allocate new cid. *)
+    (* allocate new cid. *)
+    (* names are assigned in ReconConDec *)
+    (* val conDec' = nameConDec (conDec) *)
+    (* should print here, not in ReconConDec *)
+    (* allocate new cid after checking modes! *)
+    (* anonymous definition for type-checking *)
+    (* Abbreviations %abbrev c = U and %abbrev c : V = U *)
+    (* names are assigned in ReconConDec *)
+    (* val conDec' = nameConDec (conDec) *)
+    (* should print here, not in ReconConDec *)
+    (* allocate new cid after checking modes! *)
+    (* anonymous definition for type-checking *)
+    (* Clauses %clause c = U or %clause c : V = U or %clause c : V *)
+    (* these are like definitions, but entered into the program table *)
+    (* val _ = print "%clause " *)
+    (* anonymous definition for type-checking: ignore %clause *)
+    (* Solve declarations %solve c : A *)
+    (* should print here, not in ReconQuery *)
+    (* allocate new cid after checking modes! *)
+    (* allocate cid after strictness has been checked! *)
+    (* %query <expected> <try> A or %query <expected> <try> X : A *)
+    (* Solve.query might raise Solve.AbortQuery (msg) *)
+    (* %fquery <expected> <try> A or %fquery <expected> <try> X : A *)
+    (* Solve.query might raise Fquery.AbortQuery (msg) *)
+    (* %queryTabled <expected> <try> A or %query <expected> <try> X : A *)
+    (* Solve.query might raise Solve.AbortQuery (msg) *)
+    (* %trustme <decl> *)
+    (* %subord (<qid> <qid>) ... *)
+    (* %freeze <qid> ... *)
+    (* Subordinate.installFrozen cids *)
+    (* %thaw <qid> ... *)
+    (* invalidate prior meta-theoretic properteis of signatures *)
+    (* exempt only %mode [incremental], %covers [not stored] *)
+    (* %deterministic <qid> ... *)
+    (* %compile <qids> *)
+    (* -ABP 4/4/03 *)
+    (* MOVED -- ABP 4/4/03 *)
+    (* ******************************************* *)
+    (* ******************************************* *)
+    (* Fixity declaration for operator precedence parsing *)
+    (* Name preference declaration for printing *)
+    (* Mode declaration *)
+    (* exception comes with location *)
+    (* Unique declaration *)
+    (* convert all UniqueTable.Error to Unique.Error *)
+    (* Timing added to coverage --- fix !!! -fp Sun Aug 17 12:17:51 2003 *)
+    (* %unique does not auto-freeze, since family must already be frozen *)
+    (* Coverage declaration *)
+    (* MERGE Fri Aug 22 13:43:12 2003 -cs *)
+    (* Total declaration *)
+    (* time activities separately in total.fun *)
+    (* Mon Dec  2 17:20:18 2002 -fp *)
+    (* coverage checker appears to be safe now *)
+    (*
+          val _ = if not (!Global.unsafe)
+                    then raise Total.Error (Paths.wrapLoc (Paths.Loc (fileName, r), "%total not safe: Toggle `unsafe' flag"))
+                  else ()
+          *)
+    (* ******************************************* *)
+    (*  Temporarily disabled -- cs Thu Oct 30 12:46:44 2003
+          fun checkFreeOut nil = ()
+            | checkFreeOut (a :: La) =
+              let
+                val SOME ms = ModeTable.modeLookup a
+                val _ = ModeCheck.checkFreeOut (a, ms)
+              in
+                checkFreeOut La
+              end
+          val _ = checkFreeOut La
+          val (lemma, projs, sels) = Converter.installPrg La
+
+
+           ABP 2/28/03 -- factoring *)
+    (*      val result1 = NONE *)
+    (* pre-install for recursive checking *)
+    (* include region and file *)
+    (*                     | Cover.Error (msg) => covererror (result1, msg)  disabled -cs Thu Jan 29 16:35:13 2004 *)
+    (* includes filename *)
+    (*        val _ = case (result1)
+                    of NONE => ()
+                     | SOME msg => raise Cover.Error (Paths.wrap (r, "Relational coverage succeeds, funcational fails:\n This indicates a bug in the functional checker.\n[Functional] " ^ msg))
+*)
+    (* %total does not auto-freeze, since the predicate must already be frozen *)
+    (* Termination declaration *)
+    (* allow re-declaration since safe? *)
+    (* Thu Mar 10 13:45:42 2005 -fp *)
+    (*
+          val _ = ListPair.app (fn ((a, _), r) =>
+                            if Subordinate.frozen [a]
+                              andalso ((Order.selLookup a; true) handle Order.Error _ => false)
+                            then raise Total.Error (fileName ^ ":"
+                                       ^ Paths.wrap (r, "Cannot redeclare termination order for frozen constant "
+                                                   ^ Names.qidToString (Names.constQid a)))
+                            else ())
+                  (callpats, rs)
+          *)
+    (* -bp *)
+    (* Reduces declaration *)
+    (* allow re-declaration since safe? *)
+    (* Thu Mar 10 14:06:13 2005 -fp *)
+    (*
+          val _ = ListPair.app (fn ((a, _), r) =>
+                            if Subordinate.frozen [a]
+                              andalso ((Order.selLookupROrder a; true) handle Order.Error _ => false)
+                            then raise Total.Error (fileName ^ ":"
+                                       ^ Paths.wrap (r, "Cannot redeclare reduction order for frozen constant "
+                                                   ^ Names.qidToString (Names.constQid a)))
+                            else ())
+                  (callpats, rs)
+          *)
+    (*  -bp6/12/99.   *)
+    (* Tabled declaration *)
+    (*  -bp6/12/99.   *)
+    (* %keepTable declaration *)
+    (* Theorem declaration *)
+    (* Prove declaration *)
+    (* La is the list of type constants *)
+    (* mode must be declared!*)
+    (* times itself *)
+    (* Establish declaration *)
+    (* La is the list of type constants *)
+    (* mode must be declared!*)
+    (* times itself *)
+    (* Assert declaration *)
+    (* La is the list of type constants *)
+    (* mode must be declared!*)
+    (* error location inaccurate here *)
+    (*if !Global.doubleCheck
+             then (map (fn (a,_) => Worldify.worldify a) cpa; ())
+           else  ()  --cs Sat Aug 27 22:04:29 2005 *)
+    (* Signature declaration *)
+    (* FIX: should probably time this -kw *)
+    (* anonymous *)
+    (* Structure declaration *)
+    (* anonymous *)
+    (* anonymous *)
+    (* Include declaration *)
+    (* Open declaration *)
+    (* val _ = ModeTable.resetFrom mark *)
+    (* val _ = Total.resetFrom mark *)
+    (* val _ = Subordinate.resetFrom mark  ouch! *)
+    (* val _ = Reduces.resetFrom mark *)
+    (* Origins, CompSyn, FunSyn harmless? -kw *)
+    (* val _ = IntSyn.resetFrom (mark, markStruct)
+             FIX: DON'T eliminate out-of-scope cids for now -kw *)
+    (* loadFile (fileName) = status
+       reads and processes declarations from fileName in order, issuing
+       error messages and finally returning the status (either OK or
+       ABORT).
+    *)
+    (* Origins.installLinesInfo (fileName, Paths.getLinesInfo ()) *)
+    (* now done in installConDec *)
+    (* loadString (str) = status
+       reads and processes declarations from str, issuing
+       error messages and finally returning the status (either OK or
+       ABORT).
+    *)
+    (* Interactive Query Top Level *)
+    (* "stdIn" as fake fileName *)
+    (* top () = () starts interactive query loop *)
+    (* put a more reasonable region here? -kw *)
+    (* reset () = () clears all global tables, including the signature *)
+    (* -fp Wed Mar  9 20:24:45 2005 *)
+    (* -fp *)
+    (* -fp *)
+    (* -bp *)
+    (* -bp *)
+    (* necessary? -fp; yes - bp*)
+    (*  -bp *)
+    (* resetting substitution trees *)
+    (* decl (id) = () prints declaration of constant id *)
+    (* val fixity = Names.getFixity (cid) *)
+    (* can't get name preference right now *)
+    (* val mode = ModeTable.modeLookup (cid) *)
+    (* can't get termination declaration *)
+    (* Support tracking file modification times for smart re-appending. *)
+    (* config = ["fileName1",...,"fileName<n>"] *)
+    (* Files will be read in the order given! *)
+    (* A configuration (pwdir, sources) consists of an absolute directory
+         pwdir and a list of source file names (which are interpreted
+         relative to pwdir) along with their modification times.
+         pwdir will be the current working directory
+         when a configuration is loaded, which may not be same as the
+         directory in which the configuration file is located.
+
+         This representation allows shorter file names in chatter and
+         error messages.
+      *)
+    (* suffix of configuration files: "cfg" by default *)
+    (* mkRel transforms a relative path into an absolute one
+               by adding the specified prefix. If the path is already
+               absolute, no prefix is added to it.
+            *)
+    (* more efficient recursive version  Sat 08/26/2002 -rv *)
+    (* appendUniq (list1, list2) appends list2 to list1, removing all
+               elements of list2 which are already in list1.
+            *)
+    (* isConfig (item) is true iff item has the suffix of a
+               configuration file.
+            *)
+    (* fromUnixPath path transforms path (assumed to be in Unix form)
+               to the local OS conventions.
+            *)
+    (* we have already read this one *)
+    (* we have already collected this one *)
+    (* end of file *)
+    (* empty line *)
+    (* comment *)
+    (*
+            handle IO.Io (ioError) => (abortIO (configFile, ioError); raise IO.io (ioError))
+          *)
+    (* Read a config file s but omit everything that is already in config c
+         XXX: naive and inefficient implementation *)
+    (* load (config) = Status
+         resets the global signature and then reads the files in config
+         in order, stopping at the first error.
+      *)
+    (* append (config) = Status
+         reads the files in config in order, beginning at the first
+         modified file, stopping at the first error.
+      *)
+    (* allow shorter messages if safe *)
+    (* structure Config *)
+    (* make (configFile)
+       read and then load configuration from configFile
+    *)
+    (* re-exporting environment parameters and utilities defined elsewhere *)
     module Print :
       sig
         val implicit : bool ref
@@ -1555,236 +1858,22 @@ module Twelf(Twelf:sig
         module TeX : sig val sgn : unit -> unit val prog : unit -> unit end
       end =
       struct
-        let ((implicit)(*! structure IntSyn = IntSyn' !*)
-          (* result of a computation *)(* val withOpenIn : string -> (TextIO.instream -> 'a) -> 'a *)
-          (* withOpenIn fileName (fn instream => body) = x
-       opens fileName for input to obtain instream and evaluates body.
-       The file is closed during normal and abnormal exit of body.
-    *)
-          (* evarInstToString Xs = msg
-       formats instantiated EVars as a substitution.
-       Abbreviate as empty string if chatter level is < 3.
-    *)
-          (* expToString (g, U) = msg
-       formats expression as a string.
-       Abbreviate as empty string if chatter level is < 3.
-    *)
-          (* status ::= OK | ABORT  is the return status of various operations *)
-          (* should move to paths, or into the prover module... but not here! -cs *)
-          (* val handleExceptions : int -> string -> ('a -> Status) -> 'a -> Status *)
-          (* handleExceptions chlev filename f x = f x
-       where standard exceptions are handled and an appropriate error message is
-       issued if chatter level is greater or equal to chlev.
-       Unrecognized exceptions are re-raised.
-    *)
-          (* | Constraints.Error (cnstrL) => abortFileMsg (fileName, constraintsMsg cnstrL) *)
-          (* Total includes filename *)(* Reduces includes filename *)
-          (* ModeCheck includes filename *)(* - Not supported in polyML ABP - 4/20/03
-              * | IO.Io (ioError) => abortIO (fileName, ioError)
-              *)
-          (* includes filename *)(* includes filename *)
-          (* During elaboration of a signature expression, each constant
-       that that the user declares is added to this table.  At top level,
-       however, the reference holds NONE (in particular, shadowing is
-       allowed).
-    *)
-          (* installConDec fromCS (conDec, ocOpt)
-       installs the constant declaration conDec which originates at ocOpt
-       in various global tables, including the global signature.
-       Note: if fromCS = FromCS then the declaration comes from a Constraint
-       Solver and some limitations on the types are lifted.
-    *)
-          (* (Clause, _) should be impossible *)(* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
-          (* (Clause, _) should be impossible *)(* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
-          (* install1 (decl) = ()
-       Installs one declaration
-       Effects: global state
-                may raise standard exceptions
-    *)
-          (* Constant declarations c : V, c : V = U plus variations *)
-          (* allocate new cid. *)(* allocate new cid. *)
-          (* names are assigned in ReconConDec *)(* val conDec' = nameConDec (conDec) *)
-          (* should print here, not in ReconConDec *)
-          (* allocate new cid after checking modes! *)
-          (* anonymous definition for type-checking *)
-          (* Abbreviations %abbrev c = U and %abbrev c : V = U *)
-          (* names are assigned in ReconConDec *)(* val conDec' = nameConDec (conDec) *)
-          (* should print here, not in ReconConDec *)
-          (* allocate new cid after checking modes! *)
-          (* anonymous definition for type-checking *)
-          (* Clauses %clause c = U or %clause c : V = U or %clause c : V *)
-          (* these are like definitions, but entered into the program table *)
-          (* val _ = print "%clause " *)(* anonymous definition for type-checking: ignore %clause *)
-          (* Solve declarations %solve c : A *)(* should print here, not in ReconQuery *)
-          (* allocate new cid after checking modes! *)
-          (* allocate cid after strictness has been checked! *)(* %query <expected> <try> A or %query <expected> <try> X : A *)
-          (* Solve.query might raise Solve.AbortQuery (msg) *)(* %fquery <expected> <try> A or %fquery <expected> <try> X : A *)
-          (* Solve.query might raise Fquery.AbortQuery (msg) *)(* %queryTabled <expected> <try> A or %query <expected> <try> X : A *)
-          (* Solve.query might raise Solve.AbortQuery (msg) *)(* %trustme <decl> *)
-          (* %subord (<qid> <qid>) ... *)(* %freeze <qid> ... *)
-          (* Subordinate.installFrozen cids *)(* %thaw <qid> ... *)
-          (* invalidate prior meta-theoretic properteis of signatures *)
-          (* exempt only %mode [incremental], %covers [not stored] *)
-          (* %deterministic <qid> ... *)(* %compile <qids> *)
-          (* -ABP 4/4/03 *)(* MOVED -- ABP 4/4/03 *)
-          (* ******************************************* *)
-          (* ******************************************* *)
-          (* Fixity declaration for operator precedence parsing *)
-          (* Name preference declaration for printing *)
-          (* Mode declaration *)(* exception comes with location *)
-          (* Unique declaration *)(* convert all UniqueTable.Error to Unique.Error *)
-          (* Timing added to coverage --- fix !!! -fp Sun Aug 17 12:17:51 2003 *)
-          (* %unique does not auto-freeze, since family must already be frozen *)
-          (* Coverage declaration *)(* MERGE Fri Aug 22 13:43:12 2003 -cs *)
-          (* Total declaration *)(* time activities separately in total.fun *)
-          (* Mon Dec  2 17:20:18 2002 -fp *)(* coverage checker appears to be safe now *)
-          (*
-          val _ = if not (!Global.unsafe)
-                    then raise Total.Error (Paths.wrapLoc (Paths.Loc (fileName, r), "%total not safe: Toggle `unsafe' flag"))
-                  else ()
-          *)
-          (* ******************************************* *)
-          (*  Temporarily disabled -- cs Thu Oct 30 12:46:44 2003
-          fun checkFreeOut nil = ()
-            | checkFreeOut (a :: La) =
-              let
-                val SOME ms = ModeTable.modeLookup a
-                val _ = ModeCheck.checkFreeOut (a, ms)
-              in
-                checkFreeOut La
-              end
-          val _ = checkFreeOut La
-          val (lemma, projs, sels) = Converter.installPrg La
-
-
-           ABP 2/28/03 -- factoring *)
-          (*      val result1 = NONE *)(* pre-install for recursive checking *)
-          (* include region and file *)(*                     | Cover.Error (msg) => covererror (result1, msg)  disabled -cs Thu Jan 29 16:35:13 2004 *)
-          (* includes filename *)(*        val _ = case (result1)
-                    of NONE => ()
-                     | SOME msg => raise Cover.Error (Paths.wrap (r, "Relational coverage succeeds, funcational fails:\n This indicates a bug in the functional checker.\n[Functional] " ^ msg))
-*)
-          (* %total does not auto-freeze, since the predicate must already be frozen *)
-          (* Termination declaration *)(* allow re-declaration since safe? *)
-          (* Thu Mar 10 13:45:42 2005 -fp *)(*
-          val _ = ListPair.app (fn ((a, _), r) =>
-                            if Subordinate.frozen [a]
-                              andalso ((Order.selLookup a; true) handle Order.Error _ => false)
-                            then raise Total.Error (fileName ^ ":"
-                                       ^ Paths.wrap (r, "Cannot redeclare termination order for frozen constant "
-                                                   ^ Names.qidToString (Names.constQid a)))
-                            else ())
-                  (callpats, rs)
-          *)
-          (* -bp *)(* Reduces declaration *)(* allow re-declaration since safe? *)
-          (* Thu Mar 10 14:06:13 2005 -fp *)(*
-          val _ = ListPair.app (fn ((a, _), r) =>
-                            if Subordinate.frozen [a]
-                              andalso ((Order.selLookupROrder a; true) handle Order.Error _ => false)
-                            then raise Total.Error (fileName ^ ":"
-                                       ^ Paths.wrap (r, "Cannot redeclare reduction order for frozen constant "
-                                                   ^ Names.qidToString (Names.constQid a)))
-                            else ())
-                  (callpats, rs)
-          *)
-          (*  -bp6/12/99.   *)(* Tabled declaration *)
-          (*  -bp6/12/99.   *)(* %keepTable declaration *)
-          (* Theorem declaration *)(* Prove declaration *)
-          (* La is the list of type constants *)(* mode must be declared!*)
-          (* times itself *)(* Establish declaration *)
-          (* La is the list of type constants *)(* mode must be declared!*)
-          (* times itself *)(* Assert declaration *)
-          (* La is the list of type constants *)(* mode must be declared!*)
-          (* error location inaccurate here *)(*if !Global.doubleCheck
-             then (map (fn (a,_) => Worldify.worldify a) cpa; ())
-           else  ()  --cs Sat Aug 27 22:04:29 2005 *)
-          (* Signature declaration *)(* FIX: should probably time this -kw *)
-          (* anonymous *)(* Structure declaration *)
-          (* anonymous *)(* anonymous *)
-          (* Include declaration *)(* Open declaration *)
-          (* val _ = ModeTable.resetFrom mark *)(* val _ = Total.resetFrom mark *)
-          (* val _ = Subordinate.resetFrom mark  ouch! *)
-          (* val _ = Reduces.resetFrom mark *)(* Origins, CompSyn, FunSyn harmless? -kw *)
-          (* val _ = IntSyn.resetFrom (mark, markStruct)
-             FIX: DON'T eliminate out-of-scope cids for now -kw *)
-          (* loadFile (fileName) = status
-       reads and processes declarations from fileName in order, issuing
-       error messages and finally returning the status (either OK or
-       ABORT).
-    *)
-          (* Origins.installLinesInfo (fileName, Paths.getLinesInfo ()) *)
-          (* now done in installConDec *)(* loadString (str) = status
-       reads and processes declarations from str, issuing
-       error messages and finally returning the status (either OK or
-       ABORT).
-    *)
-          (* Interactive Query Top Level *)(* "stdIn" as fake fileName *)
-          (* top () = () starts interactive query loop *)
-          (* put a more reasonable region here? -kw *)
-          (* reset () = () clears all global tables, including the signature *)
-          (* -fp Wed Mar  9 20:24:45 2005 *)(* -fp *)
-          (* -fp *)(* -bp *)(* -bp *)
-          (* necessary? -fp; yes - bp*)(*  -bp *)
-          (* resetting substitution trees *)(* decl (id) = () prints declaration of constant id *)
-          (* val fixity = Names.getFixity (cid) *)(* can't get name preference right now *)
-          (* val mode = ModeTable.modeLookup (cid) *)
-          (* can't get termination declaration *)(* Support tracking file modification times for smart re-appending. *)
-          (* config = ["fileName1",...,"fileName<n>"] *)
-          (* Files will be read in the order given! *)
-          (* A configuration (pwdir, sources) consists of an absolute directory
-         pwdir and a list of source file names (which are interpreted
-         relative to pwdir) along with their modification times.
-         pwdir will be the current working directory
-         when a configuration is loaded, which may not be same as the
-         directory in which the configuration file is located.
-
-         This representation allows shorter file names in chatter and
-         error messages.
-      *)
-          (* suffix of configuration files: "cfg" by default *)
-          (* mkRel transforms a relative path into an absolute one
-               by adding the specified prefix. If the path is already
-               absolute, no prefix is added to it.
-            *)
-          (* more efficient recursive version  Sat 08/26/2002 -rv *)
-          (* appendUniq (list1, list2) appends list2 to list1, removing all
-               elements of list2 which are already in list1.
-            *)
-          (* isConfig (item) is true iff item has the suffix of a
-               configuration file.
-            *)
-          (* fromUnixPath path transforms path (assumed to be in Unix form)
-               to the local OS conventions.
-            *)
-          (* we have already read this one *)(* we have already collected this one *)
-          (* end of file *)(* empty line *)
-          (* comment *)(*
-            handle IO.Io (ioError) => (abortIO (configFile, ioError); raise IO.io (ioError))
-          *)
-          (* Read a config file s but omit everything that is already in config c
-         XXX: naive and inefficient implementation *)
-          (* load (config) = Status
-         resets the global signature and then reads the files in config
-         in order, stopping at the first error.
-      *)
-          (* append (config) = Status
-         reads the files in config in order, beginning at the first
-         modified file, stopping at the first error.
-      *)
-          (* allow shorter messages if safe *)(* structure Config *)
-          (* make (configFile)
-       read and then load configuration from configFile
-    *)
-          (* re-exporting environment parameters and utilities defined elsewhere *)
-          (* false, print implicit args *)(* false, print fully explicit form infix when possible *)
-          (* NONE, limit print depth *)(* NONE, limit argument length *)
-          (* 3, indentation of subterms *)(* 80, line width *)
-          (* if true, don't print shadowed constants as "%const%" *)
-          (* print signature *)(* print signature as program *)
-          (* print subordination relation *)(* print information about definitions *)
-          (* print available constraint domains *)(* print in TeX format *)
-          (* print signature *)(* print signature as program *))
-          = Print.implicit
+        (* false, print implicit args *)
+        (* false, print fully explicit form infix when possible *)
+        (* NONE, limit print depth *)
+        (* NONE, limit argument length *)
+        (* 3, indentation of subterms *)
+        (* 80, line width *)
+        (* if true, don't print shadowed constants as "%const%" *)
+        (* print signature *)
+        (* print signature as program *)
+        (* print subordination relation *)
+        (* print information about definitions *)
+        (* print available constraint domains *)
+        (* print in TeX format *)
+        (* print signature *)
+        (* print signature as program *)
+        let implicit = Print.implicit
         let printInfix = Print.printInfix
         let depth = Print.printDepth
         let length = Print.printLength
@@ -1808,34 +1897,41 @@ module Twelf(Twelf:sig
           | None 
           | Some of 'a list 
           | All 
+        (* trace all clauses and families *)
         val trace : string __Spec -> unit
+        (* clauses and families *)
         val break : string __Spec -> unit
+        (* clauses and families *)
         val detail : int ref
+        (* 0 = none, 1 = default, 2 = unify *)
         val show : unit -> unit
+        (* show trace, break, and detail *)
         val reset : unit -> unit
-      end =
-      ((Trace)(* trace specification *)(* no tracing *)
-      (* list of clauses and families *)(* trace all clauses and families *)
-      (* clauses and families *)(* clauses and families *)
-      (* 0 = none, 1 = default, 2 = unify *)(* show trace, break, and detail *)
-      (* reset trace, break, and detail *)) 
+      end = Trace 
     module Timers :
       sig
+        (* trace specification *)
+        (* no tracing *)
+        (* list of clauses and families *)
+        (* reset trace, break, and detail *)
         val show : unit -> unit
+        (* show and reset timers *)
         val reset : unit -> unit
+        (* reset timers *)
         val check : unit -> unit
-      end =
-      ((Timers)(* show and reset timers *)(* reset timers *)
-      (* display, but not no reset *)) 
+      end = Timers 
     module OS :
       sig
+        (* display, but not no reset *)
         val chDir : string -> unit
         val getDir : unit -> string
         val exit : unit -> unit
       end =
       struct
-        let ((chDir)(* change working directory *)(* get working directory *)
-          (* exit Twelf and ML *)) = OS.FileSys.chDir
+        (* change working directory *)
+        (* get working directory *)
+        (* exit Twelf and ML *)
+        let chDir = OS.FileSys.chDir
         let getDir = OS.FileSys.getDir
         let rec exit () = OS.Process.exit OS.Process.success
       end 
@@ -1873,11 +1969,14 @@ module Twelf(Twelf:sig
         val maxRecurse : int ref
       end =
       struct
-        type __Strategy = MetaGlobal.__Strategy(* 10, bound on recursion *)
-        (* 2, bound on splitting  *)(* FRS, strategy used for %prove *)
-        (* FRS or RFS *)(* F=Filling, R=Recursion, S=Splitting *)
-        let ((strategy)(* FRS or RFS *)) =
-          MetaGlobal.strategy
+        (* F=Filling, R=Recursion, S=Splitting *)
+        (* FRS or RFS *)
+        (* FRS, strategy used for %prove *)
+        (* 2, bound on splitting  *)
+        (* 10, bound on recursion *)
+        type __Strategy = MetaGlobal.__Strategy
+        (* FRS or RFS *)
+        let strategy = MetaGlobal.strategy
         let maxSplit = MetaGlobal.maxSplit
         let maxRecurse = MetaGlobal.maxRecurse
       end 
@@ -1896,21 +1995,24 @@ module Twelf(Twelf:sig
     module Config :
       sig
         type nonrec config
+        (* configuration *)
         val suffix : string ref
+        (* suffix of configuration files *)
         val read : string -> config
+        (* read configuration from config file *)
         val readWithout : (string * config) -> config
+        (* read config file, minus contents of another *)
         val load : config -> __Status
+        (* reset and load configuration *)
         val append : config -> __Status
+        (* load configuration (w/o reset) *)
         val define : string list -> config
-      end =
-      ((Config)(* configuration *)(* suffix of configuration files *)
-      (* read configuration from config file *)(* read config file, minus contents of another *)
-      (* reset and load configuration *)(* load configuration (w/o reset) *)
-      (* explicitly define configuration *)) 
+      end = Config 
     let make = make
     let version = Version.version_string
     module Table :
       sig
+        (* explicitly define configuration *)
         type __Strategy = TableParam.__Strategy
         val strategy : __Strategy ref
         val strengthen : bool ref
@@ -1922,16 +2024,14 @@ module Twelf(Twelf:sig
         let strategy = TableParam.strategy
         let strengthen = TableParam.strengthen
         let resetGlobalTable = TableParam.resetGlobalTable
-        let rec top
-          ((())(* top () = () starts interactive query loop *))
-          =
-          let sLoopT () = if Solve.qLoopT () then OK else ABORT in
-          let topLoopT () =
-            match handleExceptions 0 "stdIn" sLoopT () with
-            | ABORT ->
-                topLoopT ((())
-                  (* "stdIn" as fake fileName *))
-            | OK -> () in
+        (* top () = () starts interactive query loop *)
+        let rec top () =
+          let rec sLoopT () = if Solve.qLoopT () then OK else ABORT in
+          let rec topLoopT () =
+            ((match handleExceptions 0 "stdIn" sLoopT () with
+              | ABORT -> topLoopT ()
+              | OK -> ())
+            (* "stdIn" as fake fileName *)) in
           topLoopT ()
       end 
   end ;;

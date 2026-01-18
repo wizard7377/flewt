@@ -1,169 +1,133 @@
 
-module type LIB  =
-  sig
-    exception Not_implemented (** Nice for postponing an implementation. *)
-    (**
+(**
  A library of useful functions for everyday programming.
 *)
-    val andalso' :
-      bool ->
-        bool ->
-          ((bool)(** Curried <code> andalso </code> *)
-          (* -------------------------------------------------------------------------- *)
-          (*  Booleans                                                                  *)
-          (* -------------------------------------------------------------------------- *))
-    val orelse' :
-      bool ->
-        bool -> ((bool)(** Curried <code> orelse </code> *))
-    val fst :
-      ('a * 'b) ->
-        (('a)(** First element of a pair. *)(* -------------------------------------------------------------------------- *)
-        (*  Pairs                                                                     *)
-        (* -------------------------------------------------------------------------- *))
-    val snd :
-      ('a * 'b) -> (('b)(** Second element of a pair. *))
-    val is_none :
-      'a option ->
-        ((bool)(* -------------------------------------------------------------------------- *)
-        (*  Options                                                                   *)
-        (* -------------------------------------------------------------------------- *))
+module type LIB  =
+  sig
+    (** Nice for postponing an implementation. *)
+    exception Not_implemented 
+    (* -------------------------------------------------------------------------- *)
+    (*  Booleans                                                                  *)
+    (* -------------------------------------------------------------------------- *)
+    (** Curried <code> andalso </code> *)
+    val andalso' : bool -> bool -> bool
+    (** Curried <code> orelse </code> *)
+    val orelse' : bool -> bool -> bool
+    (* -------------------------------------------------------------------------- *)
+    (*  Pairs                                                                     *)
+    (* -------------------------------------------------------------------------- *)
+    (** First element of a pair. *)
+    val fst : ('a * 'b) -> 'a
+    (** Second element of a pair. *)
+    val snd : ('a * 'b) -> 'b
+    (* -------------------------------------------------------------------------- *)
+    (*  Options                                                                   *)
+    (* -------------------------------------------------------------------------- *)
+    val is_none : 'a option -> bool
     val is_some : 'a option -> bool
-    val the :
-      'a option ->
-        (('a)(** Get the content of an option type. 
+    (** Get the content of an option type. 
       @exception Fail
-   *))
-    val incr :
-      int ref ->
-        ((unit)(** Increment an <code> int ref <\code> *)
-        (* ------------------------------------------------------------------------- *)
-        (*  Refs                                                                     *)
-        (* ------------------------------------------------------------------------- *))
-    val (+=) :
-      (int ref * int) ->
-        ((unit)(** Increment an <code> int ref <\code> *))
-    val (-=) :
-      (int ref * int) ->
-        ((unit)(** Decrement an <code> int ref <\code> *))
-    val decr :
-      int ref ->
-        ((unit)(** Decrement an <code> int ref <\code> *))
-    val ::= :
-      ('a list ref * 'a) ->
-        ((unit)(** Prepend an element to a <code> list </code> *))
-    val (@=) :
-      ('a list ref * 'a list) ->
-        ((unit)(** Append a list at the back of a <code> list </code> *))
-    type nonrec 'a stream(** Infinite streams. *)(* -------------------------------------------------------------------------- *)
+   *)
+    val the : 'a option -> 'a
+    (* ------------------------------------------------------------------------- *)
+    (*  Refs                                                                     *)
+    (* ------------------------------------------------------------------------- *)
+    (** Increment an <code> int ref <\code> *)
+    val incr : int ref -> unit
+    (** Increment an <code> int ref <\code> *)
+    val (+=) : (int ref * int) -> unit
+    (** Decrement an <code> int ref <\code> *)
+    val (-=) : (int ref * int) -> unit
+    (** Decrement an <code> int ref <\code> *)
+    val decr : int ref -> unit
+    (** Prepend an element to a <code> list </code> *)
+    val ::= : ('a list ref * 'a) -> unit
+    (** Append a list at the back of a <code> list </code> *)
+    val (@=) : ('a list ref * 'a list) -> unit
+    (* -------------------------------------------------------------------------- *)
     (*  Streams                                                                   *)
     (* -------------------------------------------------------------------------- *)
-    val listof_s :
-      int ->
-        'a stream ->
-          (('a)(** Prefix of a stream, as a list *)) list
-    val nth_s :
-      int ->
-        'a stream ->
-          (('a)(** 
+    (** Infinite streams. *)
+    type nonrec 'a stream
+    (** Prefix of a stream, as a list *)
+    val listof_s : int -> 'a stream -> 'a list
+    (** 
      Select an element from a stream
      @exception Fail if there are not enough elements in the stream.
-   *))
-    val curry :
-      (('a * 'b) -> 'c) ->
-        'a ->
-          'b ->
-            (('c)(** Curry a function. *)(* ---------------------------------------------------------------------- *)
-            (*  Functions                                                             *)
-            (* ---------------------------------------------------------------------- *))
-    val uncurry :
-      ('a -> 'b -> 'c) ->
-        ('a * 'b) -> (('c)(** Uncurry a function. *))
-    val curry3 :
-      (('a * 'b * 'c) -> 'd) ->
-        'a ->
-          'b ->
-            'c ->
-              (('d)(** Curry a 3 argument function.  Occasionally useful. *))
-    val id : 'a -> (('a)(** Identity combinator *))
-    val can :
-      ('a -> 'b) ->
-        'a ->
-          ((bool)(** Returns true iff a function application returns a value. *))
-    val cant :
-      ('a -> 'b) ->
-        'a ->
-          ((bool)(** Returns true iff a function application raises an exception. *))
-    val can2 :
-      ('a -> 'b -> 'c) ->
-        'a ->
-          'b ->
-            ((bool)(** Returns true iff a (2 argument) function application returns a value. *))
-    val ceq : 'a -> 'a -> ((bool)(** Curried equality *))
-    val swap :
-      ('a -> 'b -> 'c) ->
-        'b ->
-          'a ->
-            (('c)(** Swap the arguments of a function. *))
-    val apply :
-      (('a -> 'b) * 'a) ->
-        (('b)(** Explicit application. *))
-    val repeat :
-      ('a -> 'a) ->
-        int ->
-          'a ->
-            (('a)(** Apply a function a given number of times. *))
-    val sum :
-      int list ->
-        ((int)(** Add up a list of ints *)(* -------------------------------------------------------------------------- *)
-        (*  Ints                                                                      *)
-        (* -------------------------------------------------------------------------- *))
-    val max :
-      int list -> ((int)(** max of a list of ints *))
-    val upto :
-      (int * int) -> ((int)(** upto 3 5 ~~> [3,4,5] *)) list
-    val (--) : (int * int) -> ((int)(** @see upto *)) list
-    val (--<) :
-      (int * int) -> ((int)(** 3 --< 5 ~~> [3,4] *)) list
-    val real_max :
-      real list ->
-        ((real)(** max of a list of reals *)(* -------------------------------------------------------------------------- *)
-        (*  Reals                                                                     *)
-        (* -------------------------------------------------------------------------- *))
-    val real_sum :
-      real list -> ((real)(** sum of a list of reals *))
-    val string_ord :
-      (string * string) ->
-        ((order)(* ------------------------------------------------------------------------- *)
-        (*  Order                                                                    *)
-        (* ------------------------------------------------------------------------- *))
+   *)
+    val nth_s : int -> 'a stream -> 'a
+    (* ---------------------------------------------------------------------- *)
+    (*  Functions                                                             *)
+    (* ---------------------------------------------------------------------- *)
+    (** Curry a function. *)
+    val curry : (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+    (** Uncurry a function. *)
+    val uncurry : ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+    (** Curry a 3 argument function.  Occasionally useful. *)
+    val curry3 : (('a * 'b * 'c) -> 'd) -> 'a -> 'b -> 'c -> 'd
+    (** Identity combinator *)
+    val id : 'a -> 'a
+    (** Returns true iff a function application returns a value. *)
+    val can : ('a -> 'b) -> 'a -> bool
+    (** Returns true iff a function application raises an exception. *)
+    val cant : ('a -> 'b) -> 'a -> bool
+    (** Returns true iff a (2 argument) function application returns a value. *)
+    val can2 : ('a -> 'b -> 'c) -> 'a -> 'b -> bool
+    (** Curried equality *)
+    val ceq : 'a -> 'a -> bool
+    (** Swap the arguments of a function. *)
+    val swap : ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
+    (** Explicit application. *)
+    val apply : (('a -> 'b) * 'a) -> 'b
+    (** Apply a function a given number of times. *)
+    val repeat : ('a -> 'a) -> int -> 'a -> 'a
+    (* -------------------------------------------------------------------------- *)
+    (*  Ints                                                                      *)
+    (* -------------------------------------------------------------------------- *)
+    (** Add up a list of ints *)
+    val sum : int list -> int
+    (** max of a list of ints *)
+    val max : int list -> int
+    (** upto 3 5 ~~> [3,4,5] *)
+    val upto : (int * int) -> int list
+    (** @see upto *)
+    val (--) : (int * int) -> int list
+    (** 3 --< 5 ~~> [3,4] *)
+    val (--<) : (int * int) -> int list
+    (* -------------------------------------------------------------------------- *)
+    (*  Reals                                                                     *)
+    (* -------------------------------------------------------------------------- *)
+    (** max of a list of reals *)
+    val real_max : real list -> real
+    (** sum of a list of reals *)
+    val real_sum : real list -> real
+    (* ------------------------------------------------------------------------- *)
+    (*  Order                                                                    *)
+    (* ------------------------------------------------------------------------- *)
+    val string_ord : (string * string) -> order
     val int_ord : (int * int) -> order
     val lex_ord :
       (('a * 'b) -> order) ->
         (('c * 'd) -> order) -> (('a * 'c) * ('b * 'd)) -> order
     val eq_ord : ('a * 'a) -> order
-    val assert__ :
-      bool ->
-        string ->
-          ((unit)(* ---------------------------------------------------------------------- *)
-          (*  Debug                                                                 *)
-          (* ---------------------------------------------------------------------- *))
-    val warn :
-      ((bool)(** !warn = true iff <code> warning s</code> will print 
-      <code> s</code> to stdout. *))
-        ref
-    val warning :
-      string ->
-        ((unit)(** Print a warning message to stdout.  
+    (* ---------------------------------------------------------------------- *)
+    (*  Debug                                                                 *)
+    (* ---------------------------------------------------------------------- *)
+    val assert__ : bool -> string -> unit
+    (** !warn = true iff <code> warning s</code> will print 
+      <code> s</code> to stdout. *)
+    val warn : bool ref
+    (** Print a warning message to stdout.  
    @see warn
-   *))
-    val cons :
-      'a ->
-        'a list ->
-          (('a)(** Cons. *)(* ---------------------------------------------------------------------- *)
-            (*  Lists                                                                 *)
-            (* ---------------------------------------------------------------------- *))
-            list
-    val list : 'a -> (('a)(** Singleton list. *)) list
+   *)
+    val warning : string -> unit
+    (* ---------------------------------------------------------------------- *)
+    (*  Lists                                                                 *)
+    (* ---------------------------------------------------------------------- *)
+    (** Cons. *)
+    val cons : 'a -> 'a list -> 'a list
+    (** Singleton list. *)
+    val list : 'a -> 'a list
     val itlist : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
     val citlist : (('a * 'b) -> 'b) -> 'a list -> 'b -> 'b
     val ith : int -> 'a list -> 'a
@@ -214,13 +178,10 @@ module type LIB  =
     val remove : ('a -> bool) -> 'a list -> ('a * 'a list)
     val do_list : ('a -> 'b) -> 'a list -> unit
     val exn_index : ('a -> 'b) -> 'a list -> int option
-    val gen_setify :
-      (('a * 'a) -> order) ->
-        'a list ->
-          (('a)(* ------------------------------------------------------------------------- *)
-            (*  Lists as Sets                                                            *)
-            (* ------------------------------------------------------------------------- *))
-            list
+    (* ------------------------------------------------------------------------- *)
+    (*  Lists as Sets                                                            *)
+    (* ------------------------------------------------------------------------- *)
+    val gen_setify : (('a * 'a) -> order) -> 'a list -> 'a list
     val setify : 'a list -> 'a list
     val gen_mem : (('a * 'b) -> order) -> 'a -> 'b list -> bool
     val mem : 'a -> 'a list -> bool
@@ -237,20 +198,16 @@ module type LIB  =
     val subtract : 'a list -> 'a list -> 'a list
     val subset : 'a list -> 'a list -> bool
     val set_eq : 'a list -> 'a list -> bool
-    val find :
-      ('a -> bool) ->
-        'a list ->
-          (('a)(* ------------------------------------------------------------------------- *)
-            (*  Assoc lists                                                              *)
-            (* ------------------------------------------------------------------------- *))
-            option
+    (* ------------------------------------------------------------------------- *)
+    (*  Assoc lists                                                              *)
+    (* ------------------------------------------------------------------------- *)
+    val find : ('a -> bool) -> 'a list -> 'a option
     val assoc : 'a -> ('a * 'b) list -> 'b option
     val rev_assoc : 'a -> ('b * 'a) list -> 'b option
-    val printl :
-      string ->
-        ((unit)(* -------------------------------------------------------------------------- *)
-        (*  Printing                                                                  *)
-        (* -------------------------------------------------------------------------- *))
+    (* -------------------------------------------------------------------------- *)
+    (*  Printing                                                                  *)
+    (* -------------------------------------------------------------------------- *)
+    val printl : string -> unit
   end;;
 
 
@@ -259,47 +216,37 @@ module type LIB  =
 module Lib : LIB =
   struct
     exception Not_implemented 
-    let rec andalso'
-      ((x)(* ------------------------------------------------------------------------- *)
-      (*  Booleans                                                                 *)
-      (* ------------------------------------------------------------------------- *))
-      y = x && y
+    (* ------------------------------------------------------------------------- *)
+    (*  Booleans                                                                 *)
+    (* ------------------------------------------------------------------------- *)
+    let rec andalso' x y = x && y
     let rec orelse' x y = x || y
-    let rec fst
-      (((x)(* ---------------------------------------------------------------------- *)
-       (*  Pairs                                                                 *)
-       (* ---------------------------------------------------------------------- *)),
-       y)
-      = x
+    (* ---------------------------------------------------------------------- *)
+    (*  Pairs                                                                 *)
+    (* ---------------------------------------------------------------------- *)
+    let rec fst (x, y) = x
     let rec snd (x, y) = y
-    let rec is_none =
-      function
-      | ((NONE)(* -------------------------------------------------------------------------- *)
-          (*  Options                                                                   *)
-          (* -------------------------------------------------------------------------- *))
-          -> true__
-      | SOME _ -> false__
+    (* -------------------------------------------------------------------------- *)
+    (*  Options                                                                   *)
+    (* -------------------------------------------------------------------------- *)
+    let rec is_none = function | NONE -> true__ | SOME _ -> false__
     let rec is_some = function | NONE -> false__ | SOME _ -> true__
     let rec the = function | NONE -> raise (Fail "the") | SOME x -> x
-    let rec x
-      (((+=))(* ------------------------------------------------------------------------- *)
-      (*  Refs                                                                     *)
-      (* ------------------------------------------------------------------------- *))
-      n = (x := (!x)) + n
+    (* ------------------------------------------------------------------------- *)
+    (*  Refs                                                                     *)
+    (* ------------------------------------------------------------------------- *)
+    let rec x ((+=)) n = (x := (!x)) + n
     let rec x ((-=)) n = (x := (!x)) - n
     let rec incr x = x += 1
     let rec decr x = x -= 1
     let rec l (::=) v = (l := v) :: (!l)
     let rec l ((@=)) l' = (l := (!l)) @ l'
+    (* -------------------------------------------------------------------------- *)
+    (*  Streams                                                                   *)
+    (* -------------------------------------------------------------------------- *)
     type 'a stream =
       | SNil 
-      | SCons of
-      (unit ->
-         ((('a)(* -------------------------------------------------------------------------- *)
-           (*  Streams                                                                   *)
-           (* -------------------------------------------------------------------------- *))
-           * 'a stream))
-      
+      | SCons of (unit -> ('a * 'a stream)) 
     let rec constant_s x = SCons (function | () -> (x, (constant_s x)))
     let rec ones_f n = SCons (function | () -> (n, (ones_f (n + 1))))
     let nat_s = ones_f 0
@@ -313,11 +260,10 @@ module Lib : LIB =
       | (0, _) -> []
       | (n, SNil) -> raise (Fail "listof_s")
       | (n, SCons f) -> let (v, s) = f () in (::) v listof_s (n - 1) s
-    let rec curry
-      ((f)(* ---------------------------------------------------------------------- *)
-      (*  Functions                                                             *)
-      (* ---------------------------------------------------------------------- *))
-      x y = f (x, y)
+    (* ---------------------------------------------------------------------- *)
+    (*  Functions                                                             *)
+    (* ---------------------------------------------------------------------- *)
+    let rec curry f x y = f (x, y)
     let rec uncurry f (x, y) = f x y
     let rec curry3 f x y z = f (x, y, z)
     let rec id x = x
@@ -331,11 +277,10 @@ module Lib : LIB =
     let rec swap f x y = f y x
     let rec apply (f, x) = f x
     let rec repeat f n x = if n = 0 then x else repeat f (n - 1) (f x)
-    let rec max
-      ((xs)(* -------------------------------------------------------------------------- *)
-      (*  Ints                                                                      *)
-      (* -------------------------------------------------------------------------- *))
-      = foldr Int.max 0 xs
+    (* -------------------------------------------------------------------------- *)
+    (*  Ints                                                                      *)
+    (* -------------------------------------------------------------------------- *)
+    let rec max xs = foldr Int.max 0 xs
     let rec sum ns = foldr (+) 0 ns
     let rec uptoby k m n = if m > n then [] else m :: (uptoby k (m + k) n)
     let upto = uncurry (uptoby 1)
@@ -349,7 +294,7 @@ module Lib : LIB =
           then let n' = pow x (Int.div (n, 2)) in n' * n'
           else ( * ) x pow x (n - 1)
     let rec log n =
-      let log n even =
+      let rec log n even =
         match n with
         | 1 -> (0, even)
         | n ->
@@ -357,41 +302,38 @@ module Lib : LIB =
             let even'' = even' && ((Int.mod__ (n, 2)) = 0) in
             ((1 + ln), even'') in
       log n true__
-    let rec real_max
-      ((xs)(* -------------------------------------------------------------------------- *)
-      (*  Reals                                                                     *)
-      (* -------------------------------------------------------------------------- *))
-      = foldr Real.max 0.0 xs
+    (* -------------------------------------------------------------------------- *)
+    (*  Reals                                                                     *)
+    (* -------------------------------------------------------------------------- *)
+    let rec real_max xs = foldr Real.max 0.0 xs
     let rec real_sum rs = foldr (+) 0.0 rs
-    let rec string_ord
-      ((s1 :
-         ((string)(* ------------------------------------------------------------------------- *)
-         (*  Order                                                                    *)
-         (* ------------------------------------------------------------------------- *))),
-       s2)
-      = if s1 < s2 then LESS else if s1 = s2 then EQUAL else GREATER
+    (* ------------------------------------------------------------------------- *)
+    (*  Order                                                                    *)
+    (* ------------------------------------------------------------------------- *)
+    let rec string_ord ((s1 : string), s2) =
+      if s1 < s2 then LESS else if s1 = s2 then EQUAL else GREATER
     let rec int_ord ((s1 : int), s2) =
       if s1 < s2 then LESS else if s1 = s2 then EQUAL else GREATER
     let rec lex_ord o1 o2 ((x1, y1), (x2, y2)) =
       match o1 (x1, x2) with | EQUAL -> o2 (y1, y2) | x -> x
     let rec eq_ord (x, y) = if x = y then EQUAL else LESS
-    let rec assert__
-      ((b)(* ---------------------------------------------------------------------- *)
-      (*  Debug                                                                 *)
-      (* ---------------------------------------------------------------------- *))
-      s = if b then () else raise (Fail ("Assertion Failure: " ^ s))
+    (* ---------------------------------------------------------------------- *)
+    (*  Debug                                                                 *)
+    (* ---------------------------------------------------------------------- *)
+    let rec assert__ b s =
+      if b then () else raise (Fail ("Assertion Failure: " ^ s))
     let warn = ref true__
     let rec warning s =
       if !warn then TextIO.print (("Warning: " ^ s) ^ "\n") else ()
-    let rec list
-      ((x)(* ---------------------------------------------------------------------- *)
-      (*  Lists                                                                 *)
-      (* ---------------------------------------------------------------------- *))
-      = [x]
+    (* ---------------------------------------------------------------------- *)
+    (*  Lists                                                                 *)
+    (* ---------------------------------------------------------------------- *)
+    let rec list x = [x]
     let rec cons x xs = x :: xs
+    (* same as foldr *)
     let rec itlist arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((f)(* same as foldr *)), [], b) -> b
+      | (f, [], b) -> b
       | (f, h::t, b) -> f h (itlist f t b)
     let rec citlist f l b = itlist (curry f) l b
     let rec ith arg__0 arg__1 =
@@ -456,9 +398,10 @@ module Lib : LIB =
       | (f, [], [], b) -> b
       | (f, h1::t1, h2::t2, b) -> f h1 h2 (itlist2 f t1 t2 b)
       | (_, _, _, _) -> raise (Fail "itlist2")
+    (* same as foldl *)
     let rec rev_itlist arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((f)(* same as foldl *)), [], b) -> b
+      | (f, [], b) -> b
       | (f, h::t, b) -> rev_itlist f t (f h b)
     let rec rev_end_itlist arg__0 arg__1 =
       match (arg__0, arg__1) with
@@ -528,7 +471,7 @@ module Lib : LIB =
       | (l1, []) -> l1
       | (h1::t1, h2::t2) -> (::) (h1 :: h2) shuffle t1 t2
     let rec find_index p =
-      let ind arg__0 arg__1 =
+      let rec ind arg__0 arg__1 =
         match (arg__0, arg__1) with
         | (n, []) -> NONE
         | (n, h::t) -> if p h then SOME n else ind (n + 1) t in
@@ -563,16 +506,15 @@ module Lib : LIB =
       | (f, []) -> ()
       | (f, h::t) -> (f h; do_list f t)
     let rec exn_index f l =
-      let exn_index arg__0 arg__1 arg__2 =
+      let rec exn_index arg__0 arg__1 arg__2 =
         match (arg__0, arg__1, arg__2) with
         | (f, [], n) -> NONE
         | (f, h::t, n) -> if can f h then exn_index f t (n + 1) else SOME n in
       exn_index f l 0
-    let rec gen_setify
-      ((ord)(* ------------------------------------------------------------------------- *)
-      (*  Lists as Sets                                                            *)
-      (* ------------------------------------------------------------------------- *))
-      s = uniq ord (sort ord s)
+    (* ------------------------------------------------------------------------- *)
+    (*  Lists as Sets                                                            *)
+    (* ------------------------------------------------------------------------- *)
+    let rec gen_setify ord s = uniq ord (sort ord s)
     let rec setify s = gen_setify eq_ord s
     let rec gen_mem arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
@@ -602,12 +544,12 @@ module Lib : LIB =
     let rec subtract l1 l2 = filter (function | x -> not (mem x l2)) l1
     let rec subset l1 l2 = forall (function | t -> mem t l2) l1
     let rec set_eq l1 l2 = (subset l1 l2) && (subset l2 l1)
+    (* ------------------------------------------------------------------------- *)
+    (*  Assoc lists                                                              *)
+    (* ------------------------------------------------------------------------- *)
     let rec find arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((p)(* ------------------------------------------------------------------------- *)
-         (*  Assoc lists                                                              *)
-         (* ------------------------------------------------------------------------- *)),
-         []) -> NONE
+      | (p, []) -> NONE
       | (p, h::t) -> if p h then SOME h else find p t
     let rec assoc x l =
       match find (function | p -> (fst p) = x) l with
@@ -617,11 +559,10 @@ module Lib : LIB =
       match find (function | p -> (snd p) = x) l with
       | SOME (x, y) -> SOME x
       | NONE -> NONE
-    let rec char_max
-      ((c1)(* ------------------------------------------------------------------------- *)
-      (*  Strings                                                                  *)
-      (* ------------------------------------------------------------------------- *))
-      c2 = if (<) (Char.ord c1) Char.ord c2 then c1 else c2
+    (* ------------------------------------------------------------------------- *)
+    (*  Strings                                                                  *)
+    (* ------------------------------------------------------------------------- *)
+    let rec char_max c1 c2 = if (<) (Char.ord c1) Char.ord c2 then c1 else c2
     let rec string_lt (x : string) y = x < y
     let rec collect l = itlist (curry (^)) l ""
     let rec commas n = replicate "," n
@@ -658,29 +599,25 @@ module Lib : LIB =
       with | _ -> false__
     let rec starts_with s e =
       try (substring (s, 0, (size e))) = e with | _ -> false__
-    let rec strip_path
-      ((c)(* abc.def.ghi -> (abc,def.ghi) *)) s =
+    (* abc.def.ghi -> (abc,def.ghi) *)
+    let rec strip_path c s =
       let n =
         match index c (String.explode s) with
         | SOME x -> x
         | NONE -> raise (Fail "strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
-    let rec rev_strip_path
-      ((c)(* abc.def.ghi -> (abc.def,ghi) *)) s =
+    (* abc.def.ghi -> (abc.def,ghi) *)
+    let rec rev_strip_path c s =
       let no = last_index c (String.explode s) in
       let n =
         match no with | SOME x -> x | NONE -> raise (Fail "rev_strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
-    let rec the =
-      function
-      | SOME
-          ((x)(* ------------------------------------------------------------------------- *)
-          (*  Options                                                                  *)
-          (* ------------------------------------------------------------------------- *))
-          -> x
-      | _ -> raise (Fail "the")
+    (* ------------------------------------------------------------------------- *)
+    (*  Options                                                                  *)
+    (* ------------------------------------------------------------------------- *)
+    let rec the = function | SOME x -> x | _ -> raise (Fail "the")
     let rec is_some = function | SOME _ -> true__ | _ -> false__
     let rec is_none = function | NONE -> true__ | _ -> false__
     let rec list_of_opt_list =
@@ -697,11 +634,10 @@ module Lib : LIB =
       match (arg__0, arg__1) with
       | (f, SOME l) -> SOME (f l)
       | (f, NONE) -> NONE
-    let rec time
-      ((f)(* ------------------------------------------------------------------------- *)
-      (*  Timing                                                                   *)
-      (* ------------------------------------------------------------------------- *))
-      x =
+    (* ------------------------------------------------------------------------- *)
+    (*  Timing                                                                   *)
+    (* ------------------------------------------------------------------------- *)
+    let rec time f x =
       let timer = Timer.startCPUTimer () in
       try
         let res = f x in
@@ -717,11 +653,10 @@ module Lib : LIB =
              ((^) "Failed after (user) CUP time of " Time.toString
                 ((fun r -> r.usr) time));
            raise e)
-    let rec printl
-      ((s)(* ------------------------------------------------------------------------- *)
-      (*  IO                                                                       *)
-      (* ------------------------------------------------------------------------- *))
-      = print (s ^ "\n")
+    (* ------------------------------------------------------------------------- *)
+    (*  IO                                                                       *)
+    (* ------------------------------------------------------------------------- *)
+    let rec printl s = print (s ^ "\n")
     let rec read_file file =
       let f = TextIO.openIn file in
       let s = TextIO.inputAll f in let _ = TextIO.closeIn f in s

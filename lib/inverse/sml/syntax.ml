@@ -40,32 +40,33 @@ module type SYNTAX  =
     module Signat :
     sig
       type nonrec signat
-      val lookup : const -> ((dec)(** Lookup. *))
-      val insert : (const * dec) -> ((unit)(** Insert. *))
-      val size : unit -> ((int)(** number of constants *))
-      val app :
-        ((const * dec) -> unit) ->
-          ((unit)(** iterate a function over the signat *))
-      val reset : unit -> ((unit)(** clear the signature*))
+      (** Lookup. *)
+      val lookup : const -> dec
+      (** Insert. *)
+      val insert : (const * dec) -> unit
+      (** number of constants *)
+      val size : unit -> int
+      (** iterate a function over the signat *)
+      val app : ((const * dec) -> unit) -> unit
+      (** clear the signature*)
+      val reset : unit -> unit
     end
-    exception Fail_exp of
-      (((string)(* -------------------------------------------------------------------------- *)
-      (*  Exceptions                                                                *)
-      (* -------------------------------------------------------------------------- *))
-      * exp) 
+    (* -------------------------------------------------------------------------- *)
+    (*  Exceptions                                                                *)
+    (* -------------------------------------------------------------------------- *)
+    exception Fail_exp of (string * exp) 
     exception Fail_exp2 of (string * exp * exp) 
     exception Fail_exp_spine of (string * exp * spine) 
     exception Fail_spine_exp of (string * spine * exp) 
     exception Fail_hd_spine of (string * head * spine) 
     exception Fail_sub_exp of (string * sub * exp) 
-    val eta_expand :
-      (exp * exp) ->
-        ((exp)(** Eta expand an expression against a type.  
-      Assumes the expressions are already beta-normal. *))
-    val expType :
-      ((exp)(* -------------------------------------------------------------------------- *)
-        (*  Util                                                                      *)
-        (* -------------------------------------------------------------------------- *))
+    (** Eta expand an expression against a type.  
+      Assumes the expressions are already beta-normal. *)
+    val eta_expand : (exp * exp) -> exp
+    (* -------------------------------------------------------------------------- *)
+    (*  Util                                                                      *)
+    (* -------------------------------------------------------------------------- *)
+    val expType : exp
     val expKind : exp
     val bvar : int -> exp
     val one : exp
@@ -123,12 +124,12 @@ module Syntax : SYNTAX =
       | Decl of decl 
       | Def of def 
       | Abbrev of abbrev 
+    (* -------------------------------------------------------------------------- *)
+    (*  Signatures                                                                *)
+    (* -------------------------------------------------------------------------- *)
     module Signat =
       struct
-        module T =
-          ((Table)(* -------------------------------------------------------------------------- *)
-          (*  Signatures                                                                *)
-          (* -------------------------------------------------------------------------- *))
+        module T = Table
         type nonrec signat = dec T.table
         let (global_signat : dec T.table) = T.table 100000
         let rec lookup c = T.lookup global_signat c
@@ -138,10 +139,10 @@ module Syntax : SYNTAX =
         let rec reset () = T.clear global_signat
       end
     module Sig = Signat
-    let ((expType)(* -------------------------------------------------------------------------- *)
-      (*  Util                                                                      *)
-      (* -------------------------------------------------------------------------- *))
-      = Uni Type
+    (* -------------------------------------------------------------------------- *)
+    (*  Util                                                                      *)
+    (* -------------------------------------------------------------------------- *)
+    let expType = Uni Type
     let expKind = Uni Kind
     let rec bvar n = Root ((BVar n), Nil)
     let one = bvar 1
@@ -172,24 +173,22 @@ module Syntax : SYNTAX =
       | Def def -> ((fun r -> r.def)) def
       | Abbrev abb -> ((fun r -> r.def)) abb
       | Decl _ -> raise (Fail "def: not a def")
-    exception Fail_exp of
-      (((string)(* -------------------------------------------------------------------------- *)
-      (*  Exceptions                                                                *)
-      (* -------------------------------------------------------------------------- *))
-      * exp) 
+    (* -------------------------------------------------------------------------- *)
+    (*  Exceptions                                                                *)
+    (* -------------------------------------------------------------------------- *)
+    exception Fail_exp of (string * exp) 
     exception Fail_exp2 of (string * exp * exp) 
     exception Fail_exp_spine of (string * exp * spine) 
     exception Fail_spine_exp of (string * spine * exp) 
     exception Fail_hd_spine of (string * head * spine) 
     exception Fail_sub_exp of (string * sub * exp) 
     exception Fail_sub_exp of (string * sub * exp) 
+    (* -------------------------------------------------------------------------- *)
+    (*  Eta                                                                       *)
+    (* -------------------------------------------------------------------------- *)
     type skel =
       | Base 
-      | Arrow of
-      (((skel)(* -------------------------------------------------------------------------- *)
-      (*  Eta                                                                       *)
-      (* -------------------------------------------------------------------------- *))
-      * skel) 
+      | Arrow of (skel * skel) 
     let rec card =
       function
       | Nil -> 0
@@ -223,13 +222,13 @@ module Syntax : SYNTAX =
       | (_, exp) -> raise (Fail_exp ("skeleton: bad case", exp))
     exception Fail_exp_skel of (string * exp * skel) 
     let changed = ref false__
-    let rec shift_head =
-      function
-      | (((lev)(* A quick implementation of applying a shift substitution. 
+    (* A quick implementation of applying a shift substitution. 
        This is just for eta expansion, and we don't want this
        code to be tangled with the different typechecker versions.
-    *)),
-         (Const _ as con)) -> con
+    *)
+    let rec shift_head =
+      function
+      | (lev, (Const _ as con)) -> con
       | (lev, (BVar n as var)) -> if n >= lev then BVar (n + 1) else var
     let rec shift_spine =
       function
@@ -279,9 +278,8 @@ module Syntax : SYNTAX =
           Root (con, (long_spine (ctx, S, tau)))
       | (ctx, (Root ((BVar i as var), S) as exp), Base) ->
           let tau = L.ith (i - 1) ctx in
-          Root
-            (((var)(* indices start at 1 *)),
-              (long_spine (ctx, S, tau)))
+          ((Root (var, (long_spine (ctx, S, tau))))
+            (* indices start at 1 *))
       | (ctx, Root ((Const c as con), S), (Arrow (tau1, tau2) as tau)) ->
           let S' = concat ((shift_spine' S), one) in
           (changed := true__;

@@ -1,14 +1,17 @@
 
+(* Heuristics : Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module Heuristic : HEURISTIC =
   struct
     type nonrec index =
-      <
-        sd: ((int)(* Author: Carsten Schuermann *)(* Heuristics : Version 1.3 *))
-          (* 0 = non-recursive
+      < sd: int  ;ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
+    (* Splitting depth *)
+    (* Induction variable *)
+    (* Number of cases *)
+    (* maximal number of cases *)
+    (* 0 = non-recursive
                                            1 = recursive *)
-          (* maximal number of cases *)(* Number of cases *)
-          (* Induction variable *)(* Splitting depth *) ;
-        ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
+    (* Position (left to right) *)
     let rec recToString = function | 0 -> "non-rec = 2" | 1 -> "rec = 1"
     let rec realFmt r = Real.fmt (StringCvt.FIX (SOME 2)) r
     let rec ratio =
@@ -187,10 +190,11 @@ module Heuristic : HEURISTIC =
              (sum
                 { sd = s1; ind = (SOME idx); c = c1; m = m1; r = 1; p = p1 }))
             ^ ")"
-    let ((compare)(* Position (left to right) *)(* sum of the parameters k1 + m1/c1 + 1/ind + r1 *)
-      (* the higher the sum the more preferred it is;  *)
-      (* - bp Sep 21 1999 - weight splitting depth higher *)
-      (* associate a higher value to non-rec than to rec  *)
-      (* p                 *)) = compare
+    (* sum of the parameters k1 + m1/c1 + 1/ind + r1 *)
+    (* the higher the sum the more preferred it is;  *)
+    (* - bp Sep 21 1999 - weight splitting depth higher *)
+    (* associate a higher value to non-rec than to rec  *)
+    (* p                 *)
+    let compare = compare
     let indexToString = indexToString
   end ;;

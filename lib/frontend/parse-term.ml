@@ -1,9 +1,10 @@
 
+(* Parsing Terms and Declarations *)
+(* Author: Frank Pfenning *)
 module type PARSE_TERM  =
   sig
-    module ExtSyn :
-    ((EXTSYN)(* Parsing Terms and Declarations *)(* Author: Frank Pfenning *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module ExtSyn : EXTSYN
     val parseQualId' : (string list * Parsing.lexResult) Parsing.parser
     val parseQualIds' : (string list * string) list Parsing.parser
     val parseFreeze' : (string list * string) list Parsing.parser
@@ -12,8 +13,8 @@ module type PARSE_TERM  =
     val parseThaw' : (string list * string) list Parsing.parser
     val parseDeterministic' : (string list * string) list Parsing.parser
     val parseCompile' : (string list * string) list Parsing.parser
-    val parseTerm' :
-      ((ExtSyn.term)(* -ABP 4/4/03 *)) Parsing.parser
+    (* -ABP 4/4/03 *)
+    val parseTerm' : ExtSyn.term Parsing.parser
     val parseDec' : (string option * ExtSyn.term option) Parsing.parser
     val parseCtx' : ExtSyn.dec list Parsing.parser
   end;;
@@ -21,17 +22,18 @@ module type PARSE_TERM  =
 
 
 
+(* Parsing Terms and Variable Declarations *)
+(* Author: Frank Pfenning *)
 module ParseTerm(ParseTerm:sig
-                             module ExtSyn' : EXTSYN
-                             module Names :
-                             ((NAMES)(* Parsing Terms and Variable Declarations *)
-                             (* Author: Frank Pfenning *)
                              (*! structure Parsing' : PARSING !*)
-                             (*! sharing Parsing'.Lexer.Paths = ExtSyn'.Paths !*))
+                             module ExtSyn' : EXTSYN
+                             (*! sharing Parsing'.Lexer.Paths = ExtSyn'.Paths !*)
+                             module Names : NAMES
                            end) : PARSE_TERM =
   struct
-    module ExtSyn =
-      ((ExtSyn')(*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ExtSyn = ExtSyn'
+    (* some shorthands *)
     module L = Lexer
     module LS = Lexer.Stream
     module FX = Names.Fixity
@@ -372,14 +374,16 @@ module ParseTerm(ParseTerm:sig
           if b
           then Parsing.error (r, ((^) "Expected `{', found " L.toString t))
           else (ds, f)
-    let ((parseQualId')(* some shorthands *)(*! structure Paths = Lexer.Paths !*)
-      (* Operators and atoms for operator precedence parsing *)(* Predeclared infix operators *)
-      (* juxtaposition *)(* The next section deals generically with fixity parsing          *)
-      (* Because of juxtaposition, it is not clear how to turn this      *)
-      (* into a separate module without passing a juxtaposition operator *)
-      (* into the shift and resolve functions                            *)
-      (* Stack invariants, refinements of operator list *)
-      (*
+    (*! structure Paths = Lexer.Paths !*)
+    (* Operators and atoms for operator precedence parsing *)
+    (* Predeclared infix operators *)
+    (* juxtaposition *)
+    (* The next section deals generically with fixity parsing          *)
+    (* Because of juxtaposition, it is not clear how to turn this      *)
+    (* into a separate module without passing a juxtaposition operator *)
+    (* into the shift and resolve functions                            *)
+    (* Stack invariants, refinements of operator list *)
+    (*
          <p>       ::= <pStable> | <pRed>
          <pStable> ::= <pAtom> | <pOp?>
          <pAtom>   ::= Atom _ :: <pOp?>
@@ -389,54 +393,74 @@ module ParseTerm(ParseTerm:sig
          <pRed>    ::= Postfix _ :: Atom _ :: <pOp?>
                      | Atom _ :: <pOp>
       *)
-      (* val reduce : <pRed> -> <p> *)(* no other cases should be possible by stack invariant *)
-      (* val reduceRec : <pStable> -> ExtSyn.term *)
-      (* val reduceAll : <p> -> ExtSyn.term *)(* val shiftAtom : term * <pStable> -> <p> *)
-      (* does not raise Error exception *)(* insert juxOp operator and reduce *)
-      (* juxtaposition binds most strongly *)(* val shift : Paths.region * opr * <pStable> -> <p> *)
-      (* insert juxOp operator and reduce *)(* juxtaposition binds most strongly *)
-      (* Atom/Infix: shift *)(* Atom/Prefix: shift *)
-      (* Atom/Postfix cannot arise *)(* Atom/Empty: shift *)
-      (* Infix/Atom: shift *)(* Infix/Postfix cannot arise *)
-      (* insert juxtaposition operator *)(* will be reduced later *)
-      (* Prefix/{Infix,Prefix,Empty}: shift *)(* Prefix/Postfix cannot arise *)
-      (* Postfix/Atom: shift, reduced immediately *)
-      (* Postfix/Postfix cannot arise *)(* val resolve : Paths.region * opr * <pStable> -> <p> *)
-      (* Decides, based on precedence of opr compared to the top of the
+    (* val reduce : <pRed> -> <p> *)
+    (* no other cases should be possible by stack invariant *)
+    (* val reduceRec : <pStable> -> ExtSyn.term *)
+    (* val reduceAll : <p> -> ExtSyn.term *)
+    (* val shiftAtom : term * <pStable> -> <p> *)
+    (* does not raise Error exception *)
+    (* insert juxOp operator and reduce *)
+    (* juxtaposition binds most strongly *)
+    (* val shift : Paths.region * opr * <pStable> -> <p> *)
+    (* insert juxOp operator and reduce *)
+    (* juxtaposition binds most strongly *)
+    (* Atom/Infix: shift *)
+    (* Atom/Prefix: shift *)
+    (* Atom/Postfix cannot arise *)
+    (* Atom/Empty: shift *)
+    (* Infix/Atom: shift *)
+    (* Infix/Postfix cannot arise *)
+    (* insert juxtaposition operator *)
+    (* will be reduced later *)
+    (* Prefix/{Infix,Prefix,Empty}: shift *)
+    (* Prefix/Postfix cannot arise *)
+    (* Postfix/Atom: shift, reduced immediately *)
+    (* Postfix/Postfix cannot arise *)
+    (* val resolve : Paths.region * opr * <pStable> -> <p> *)
+    (* Decides, based on precedence of opr compared to the top of the
          stack whether to shift the new operator or reduce the stack
       *)
-      (* infix/atom/atom cannot arise *)(* infix/atom/postfix cannot arise *)
-      (* infix/atom/<empty>: shift *)(* always shift prefix *)
-      (* always reduce postfix, possibly after prior reduction *)
-      (* always reduce postfix *)(* default is shift *)
-      (* structure P *)(* parseQualifier' f = (ids, f')
+    (* infix/atom/atom cannot arise *)
+    (* infix/atom/postfix cannot arise *)
+    (* infix/atom/<empty>: shift *)
+    (* always shift prefix *)
+    (* always reduce postfix, possibly after prior reduction *)
+    (* always reduce postfix *)
+    (* default is shift *)
+    (* structure P *)
+    (* parseQualifier' f = (ids, f')
        pre: f begins with L.ID
 
        Note: precondition for recursive call is enforced by the lexer. *)
-      (* Copied from parse-mode, should probably try to abstract all
+    (* Copied from parse-mode, should probably try to abstract all
        of the strip* functions into a common location - gaw *)
-      (* t = `.' or ? *)(* same syntax as %freeze *)
-      (* ABP 4/4/03 *)(* val parseExp : (L.token * L.region) LS.stream * <p>
+    (* t = `.' or ? *)
+    (* same syntax as %freeze *)
+    (* ABP 4/4/03 *)
+    (* val parseExp : (L.token * L.region) LS.stream * <p>
                         -> ExtSyn.term * (L.token * L.region) LS.front *)
-      (* Currently, we cannot override fixity status of identifiers *)
-      (* Thus isQuoted always returns false *)(* for some reason, there's no dot after %define decls -kw *)
-      (* possible error recovery: insert DOT *)(* cannot happen at present *)
-      (* Parses contexts of the form  g ::= {id:term} | g, {id:term} *)
-      (* parseDec "{id:term} | {id}" *)(* parseCtx (b, ds, f) = ds'
+    (* Currently, we cannot override fixity status of identifiers *)
+    (* Thus isQuoted always returns false *)
+    (* for some reason, there's no dot after %define decls -kw *)
+    (* possible error recovery: insert DOT *)
+    (* cannot happen at present *)
+    (* Parses contexts of the form  G ::= {id:term} | G, {id:term} *)
+    (* parseDec "{id:term} | {id}" *)
+    (* parseCtx (b, ds, f) = ds'
        if   f is a stream "{x1:V1}...{xn:Vn} s"
        and  b is true if no declarations has been parsed yet
        and  ds is a context of declarations
        then ds' = ds, x1:V1, ..., xn:Vn
-    *))
-      = parseQualId'
+    *)
+    let parseQualId' = parseQualId'
     let parseQualIds' = parseQualIds'
     let parseSubord' = function | f -> parseSubord' (f, nil)
     let parseFreeze' = function | f -> parseFreeze' (f, nil)
     let parseThaw' = function | f -> parseThaw' (f, nil)
     let parseDeterministic' = function | f -> parseDeterministic' (f, nil)
     let parseCompile' = function | f -> parseCompile' (f, nil)
-    let ((parseTerm')(* -ABP 4/4/03 *)) =
-      function | f -> parseExp' (f, nil)
+    (* -ABP 4/4/03 *)
+    let parseTerm' = function | f -> parseExp' (f, nil)
     let parseDec' = parseDec'
     let parseCtx' = function | f -> parseCtx (true__, nil, f)
   end ;;

@@ -1,24 +1,25 @@
 
+(* Rational numbers *)
+(* Author: Roberto Virga *)
 module type RATIONALS  =
   sig
-    include
-      ((ORDERED_FIELD)(* Rational numbers *)(* Author: Roberto Virga *))
+    include ORDERED_FIELD
     module Integers : INTEGERS
-    val fromInteger :
-      Integers.int ->
-        ((number)(* Conversions between rationals and integers *))
+    (* Conversions between rationals and integers *)
+    val fromInteger : Integers.int -> number
     val floor : number -> Integers.int
     val ceiling : number -> Integers.int
-    val numerator :
-      number -> ((Integers.int)(* Basic projections *))
+    (* Basic projections *)
+    val numerator : number -> Integers.int
     val denominator : number -> Integers.int
   end;;
 
 
 
 
-module Rationals(Integers:((INTEGERS)(* Rationals *)
-  (* Author: Roberto Virga *))) : RATIONALS =
+(* Rationals *)
+(* Author: Roberto Virga *)
+module Rationals(Integers:INTEGERS) : RATIONALS =
   struct
     module Integers = Integers
     let name = "rational"
@@ -33,7 +34,7 @@ module Rationals(Integers:((INTEGERS)(* Rationals *)
       function
       | Fract (0, _, _) -> zero
       | Fract (s, n, d) ->
-          let gcd (m, n) =
+          let rec gcd (m, n) =
             if (=) m I.fromInt 0
             then n
             else
@@ -79,14 +80,14 @@ module Rationals(Integers:((INTEGERS)(* Rationals *)
     let rec fromInt n =
       Fract ((Int.sign n), (I.fromInt (Int.abs n)), (I.fromInt 1))
     let rec fromString str =
-      let check_numerator =
+      let rec check_numerator =
         function
         | c::chars' as chars ->
             if c = '~'
             then List.all Char.isDigit chars'
             else List.all Char.isDigit chars
         | nil -> false__ in
-      let check_denominator chars = List.all Char.isDigit chars in
+      let rec check_denominator chars = List.all Char.isDigit chars in
       let fields = String.fields (function | c -> c = '/') str in
       if (List.length fields) = 1
       then
@@ -124,8 +125,9 @@ module Rationals(Integers:((INTEGERS)(* Rationals *)
       if Int.(>=) (s, 0)
       then I.quot ((I.(+) (n, (I.(-) (d, (I.fromInt 1))))), d)
       else Integers.(~) (floor (~ q))
-    type nonrec number =
-      ((number)(* q := Fract (sign, num, denom) *)(* Rational number:              *))
+    (* Rational number:              *)
+    (* q := Fract (sign, num, denom) *)
+    type nonrec number = number
     let zero = zero
     let one = one
     let (~) = (~)

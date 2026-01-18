@@ -1,19 +1,20 @@
 
+(* Parsing Theorems *)
+(* Author: Carsten Schuermann *)
 module type PARSE_THM  =
   sig
-    module ThmExtSyn :
-    ((THMEXTSYN)(* Parsing Theorems *)(* Author: Carsten Schuermann *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module ThmExtSyn : THMEXTSYN
     val parseTotal' : ThmExtSyn.tdecl Parsing.parser
-    val parseTerminates' :
-      ((ThmExtSyn.tdecl)(* -fp *)) Parsing.parser
+    (* -fp *)
+    val parseTerminates' : ThmExtSyn.tdecl Parsing.parser
     val parseReduces' : ThmExtSyn.rdecl Parsing.parser
-    val parseTabled' :
-      ((ThmExtSyn.tableddecl)(* -bp *)) Parsing.parser
-    val parseKeepTable' :
-      ((ThmExtSyn.keepTabledecl)(* -bp *)) Parsing.parser
-    val parseTheorem' :
-      ((ThmExtSyn.theorem)(* -bp *)) Parsing.parser
+    (* -bp *)
+    val parseTabled' : ThmExtSyn.tableddecl Parsing.parser
+    (* -bp *)
+    val parseKeepTable' : ThmExtSyn.keepTabledecl Parsing.parser
+    (* -bp *)
+    val parseTheorem' : ThmExtSyn.theorem Parsing.parser
     val parseTheoremDec' : ThmExtSyn.theoremdec Parsing.parser
     val parseWorlds' : ThmExtSyn.wdecl Parsing.parser
     val parseProve' : ThmExtSyn.prove Parsing.parser
@@ -24,21 +25,21 @@ module type PARSE_THM  =
 
 
 
+(* Parsing Thm Declarations *)
+(* Author: Carsten Schuermann *)
+(* Modified: Brigitte Pientka *)
 module ParseThm(ParseThm:sig
-                           module ThmExtSyn' : THMEXTSYN
-                           module ParseTerm :
-                           ((PARSE_TERM)(* Parsing Thm Declarations *)
-                           (* Author: Carsten Schuermann *)
-                           (* Modified: Brigitte Pientka *)
                            (*! structure Paths : PATHS *)
-                           (*! structure Parsing' : PARSING !*)(*! sharing Parsing'.Lexer.Paths = Paths !*)
+                           (*! structure Parsing' : PARSING !*)
+                           (*! sharing Parsing'.Lexer.Paths = Paths !*)
+                           module ThmExtSyn' : THMEXTSYN
                            (*! sharing ThmExtSyn'.Paths = Paths !*)
-                           (*! sharing ThmExtSyn'.ExtSyn.Paths = Paths !*))
+                           (*! sharing ThmExtSyn'.ExtSyn.Paths = Paths !*)
+                           module ParseTerm : PARSE_TERM
                          end) : PARSE_THM =
   struct
-    module ThmExtSyn =
-      ((ThmExtSyn')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ThmExtSyn = ThmExtSyn'
     module L = Lexer
     module LS = Lexer.Stream
     module E = ThmExtSyn
@@ -338,50 +339,75 @@ module ParseThm(ParseThm:sig
       ((E.wdecl (qids, (E.callpats callpats))), f2)
     let rec parseWorlds' (Cons ((L.WORLDS, r), s')) =
       parseWDecl (LS.expose s')
-    let ((parseTotal')(*--------------------------*)
-      (* %terminates declarations *)(*--------------------------*)
-      (* idToNat (region, (idCase, name)) = n
+    (*--------------------------*)
+    (* %terminates declarations *)
+    (*--------------------------*)
+    (* idToNat (region, (idCase, name)) = n
        where n an natural number indicated by name, which should consist
        of all digits.  Raises error otherwise, or if integer it too large
     *)
-      (* parseIds "id ... id" = ["id",...,"id"] *)
-      (* terminated by non-identifier token *)(* parseArgPat "_id ... _id" = [idOpt,...,idOpt] *)
-      (* terminated by token different from underscore or id *)(* parseCallPat "id _id ... _id" = (id, region, [idOpt,...,idOpt]) *)
-      (* parseCallPats "(id _id ... _id)...(id _id ... _id)." *)
-      (* Parens around call patterns no longer optional *)
-      (* order ::= id | (id ... id)   virtual arguments = subterm ordering
+    (* parseIds "id ... id" = ["id",...,"id"] *)
+    (* terminated by non-identifier token *)
+    (* parseArgPat "_id ... _id" = [idOpt,...,idOpt] *)
+    (* terminated by token different from underscore or id *)
+    (* parseCallPat "id _id ... _id" = (id, region, [idOpt,...,idOpt]) *)
+    (* parseCallPats "(id _id ... _id)...(id _id ... _id)." *)
+    (* Parens around call patterns no longer optional *)
+    (* order ::= id | (id ... id)   virtual arguments = subterm ordering
                | {order ... order}  lexicgraphic order
                | [order ... order]  simultaneous order
     *)
-      (* parseOrderOpt (f) = (SOME(order), f') or (NONE, f) *)(* returns an optional order and front of remaining stream *)
-      (* parseOrders (f) = ([order1,...,ordern], f') *)
-      (* returns a sequence of orders and remaining front of stream *)
-      (* parseOrder (f) = (order, f') *)(* returns an order and front of remaining stream *)
-      (* parseTDecl "order callPats." *)(* parses Termination Declaration, followed by `.' *)
-      (* parseTerminates' "%terminates tdecl." *)(* ------------------- *)
-      (* %total declaration  *)(* ------------------- *)
-      (* parseTotal' "%total tdecl." *)(* ------------------- *)
-      (* %prove declarations *)(* ------------------- *)
-      (* parsePDecl "id nat order callpats." *)(* parseProve' "%prove pdecl." *)
-      (* ----------------------- *)(* %establish declarations *)
-      (* ----------------------- *)(* parseEDecl "id nat order callpats." *)
-      (* parseEstablish' "%establish pdecl." *)(* -------------------- *)
-      (* %assert declarations *)(* -------------------- *)
-      (* parseAssert' "%assert cp" *)(* --------------------- *)
-      (* %theorem declarations *)(* --------------------- *)
-      (* parseDec "{id:term} | {id}" *)(* parseDecs' "{id:term}...{id:term}", zero or more, ":term" optional *)
-      (* parseDecs "{id:term}...{id:term}", one ore more, ":term" optional *)
-      (* parseTrue "true" *)(* parseExists "exists decs mform | mform" *)
-      (* parseForall "forall decs mform | mform" *)
-      (* parseForallStar "forall* decs mform | mform" *)
-      (* parseColon ": mform" *)(* parseThDec "id : mform" *)
-      (* parseTheoremDec' "%theorem thdec." *)(* We enforce the quantifier alternation restriction syntactically *)
-      (*  -bp6/5/99. *)(* parsePredicate f = (pred, f')               *)
-      (* parses the reduction predicate, <, <=, =   *)
-      (* parseRDecl "order callPats." *)(* parses Reducer Declaration, followed by `.' *)
-      (* parseReduces' "%reduces thedec. " *)(* parseTabled' "%tabled thedec. " *)
-      (* parseKeepTable' "%keepTabled thedec. " *)
-      (*       val (GBs, f1) = parseGBs f *)) = parseTotal'
+    (* parseOrderOpt (f) = (SOME(order), f') or (NONE, f) *)
+    (* returns an optional order and front of remaining stream *)
+    (* parseOrders (f) = ([order1,...,ordern], f') *)
+    (* returns a sequence of orders and remaining front of stream *)
+    (* parseOrder (f) = (order, f') *)
+    (* returns an order and front of remaining stream *)
+    (* parseTDecl "order callPats." *)
+    (* parses Termination Declaration, followed by `.' *)
+    (* parseTerminates' "%terminates tdecl." *)
+    (* ------------------- *)
+    (* %total declaration  *)
+    (* ------------------- *)
+    (* parseTotal' "%total tdecl." *)
+    (* ------------------- *)
+    (* %prove declarations *)
+    (* ------------------- *)
+    (* parsePDecl "id nat order callpats." *)
+    (* parseProve' "%prove pdecl." *)
+    (* ----------------------- *)
+    (* %establish declarations *)
+    (* ----------------------- *)
+    (* parseEDecl "id nat order callpats." *)
+    (* parseEstablish' "%establish pdecl." *)
+    (* -------------------- *)
+    (* %assert declarations *)
+    (* -------------------- *)
+    (* parseAssert' "%assert cp" *)
+    (* --------------------- *)
+    (* %theorem declarations *)
+    (* --------------------- *)
+    (* parseDec "{id:term} | {id}" *)
+    (* parseDecs' "{id:term}...{id:term}", zero or more, ":term" optional *)
+    (* parseDecs "{id:term}...{id:term}", one ore more, ":term" optional *)
+    (* parseTrue "true" *)
+    (* parseExists "exists decs mform | mform" *)
+    (* parseForall "forall decs mform | mform" *)
+    (* parseForallStar "forall* decs mform | mform" *)
+    (* parseColon ": mform" *)
+    (* parseThDec "id : mform" *)
+    (* parseTheoremDec' "%theorem thdec." *)
+    (* We enforce the quantifier alternation restriction syntactically *)
+    (*  -bp6/5/99. *)
+    (* parsePredicate f = (pred, f')               *)
+    (* parses the reduction predicate, <, <=, =   *)
+    (* parseRDecl "order callPats." *)
+    (* parses Reducer Declaration, followed by `.' *)
+    (* parseReduces' "%reduces thedec. " *)
+    (* parseTabled' "%tabled thedec. " *)
+    (* parseKeepTable' "%keepTabled thedec. " *)
+    (*       val (GBs, f1) = parseGBs f *)
+    let parseTotal' = parseTotal'
     let parseTerminates' = parseTerminates'
     let parseTheorem' = parseForallStar
     let parseTheoremDec' = parseTheoremDec'
@@ -389,8 +415,10 @@ module ParseThm(ParseThm:sig
     let parseEstablish' = parseEstablish'
     let parseAssert' = parseAssert'
     let parseReduces' = parseReduces'
-    let ((parseTabled')(*  -bp  6/05/99.*)) = parseTabled'
-    let ((parseKeepTable')(*  -bp 20/11/01.*)) =
-      parseKeepTable'
-    let ((parseWorlds')(*  -bp 20/11/01.*)) = parseWorlds'
+    (*  -bp  6/05/99.*)
+    let parseTabled' = parseTabled'
+    (*  -bp 20/11/01.*)
+    let parseKeepTable' = parseKeepTable'
+    (*  -bp 20/11/01.*)
+    let parseWorlds' = parseWorlds'
   end ;;

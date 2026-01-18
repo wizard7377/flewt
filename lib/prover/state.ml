@@ -1,19 +1,18 @@
 
+(* State definition for Proof Search *)
+(* Author: Carsten Schuermann *)
 module type STATE  =
   sig
-    exception Error of
-      ((string)(* Author: Carsten Schuermann *)(* State definition for Proof Search *))
-      
+    exception Error of string 
     type __State =
       | State of (Tomega.__Worlds * Tomegas.__Dec IntSyn.__Ctx * Tomega.__Prg
       * Tomega.__For) 
       | StateLF of IntSyn.__Exp 
     type __Focus =
       | Focus of (Tomega.__Prg * Tomega.__Worlds) 
-      | FocusLF of ((IntSyn.__Exp)(* Focus (EVar, W) *)) 
-    val init :
-      (Tomega.__For * Tomega.__Worlds) ->
-        ((__State)(* focus EVar *))
+      | FocusLF of IntSyn.__Exp 
+    (* focus EVar *)
+    val init : (Tomega.__For * Tomega.__Worlds) -> __State
     val close : __State -> bool
     val collectT : Tomega.__Prg -> Tomega.__Prg list
     val collectLF : Tomega.__Prg -> IntSyn.__Exp list
@@ -23,30 +22,26 @@ module type STATE  =
 
 
 
-module State(State:sig
-                     module Formatter :
-                     ((FORMATTER)(* State definition for Proof Search *)
-                     (* Author: Carsten Schuermann *))
-                   end) : STATE =
+(* State definition for Proof Search *)
+(* Author: Carsten Schuermann *)
+module State(State:sig module Formatter : FORMATTER end) : STATE =
   struct
-    module Formatter =
-      ((Formatter)(*! structure IntSyn = IntSyn' !*)
-      (*! structure Tomega = Tomega' !*))
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    module Formatter = Formatter
     type __State =
       | State of (Tomega.__Worlds * Tomega.__Dec IntSyn.__Ctx * Tomega.__Prg
       * Tomega.__For) 
       | StateLF of IntSyn.__Exp 
+    (* StateLF X, X is always lowered *)
     type __Focus =
-      | Focus of
-      (((Tomega.__Prg)(* StateLF X, X is always lowered *))
-      * Tomega.__Worlds) 
+      | Focus of (Tomega.__Prg * Tomega.__Worlds) 
       | FocusLF of IntSyn.__Exp 
-    exception Error of
-      ((string)(*  datatype SideCondition   we need some work here *)
-      (* datatype State
+    (* datatype State
     = State of (Tomega.Dec IntSyn.Ctx * Tomega.For) * Tomega.Worlds
- *))
-      
+ *)
+    (*  datatype SideCondition   we need some work here *)
+    exception Error of string 
     module T = Tomega
     module I = IntSyn
     let rec findPrg =
@@ -144,29 +139,29 @@ module State(State:sig
       match ((findPrg P), (findExp (I.Null, P) [])) with
       | (nil, nil) -> true__
       | _ -> false__
-    let ((close)(* find P = [X1 .... Xn]
+    (* find P = [X1 .... Xn]
        Invariant:
        If   P is a well-typed program
        then [X1 .. Xn] are all the open subgoals that occur within P
     *)
-      (* by invariant: blocks don't contain free evars *)
-      (* find P = [X1 .... Xn]
+    (* by invariant: blocks don't contain free evars *)
+    (* find P = [X1 .... Xn]
        Invariant:
        If   P is a well-typed program
        then [X1 .. Xn] are all the open subgoals that occur within P
     *)
-      (* by invariant: Blocks don't contain free evars. *)
-      (* init F = S
+    (* by invariant: Blocks don't contain free evars. *)
+    (* init F = S
 
        Invariant:
        S = (. |> F) is the initial state
     *)
-      (* close S = B
+    (* close S = B
 
        Invariant:
        If  B holds iff S  doesn't contain any free subgoals
-    *))
-      = close
+    *)
+    let close = close
     let init = init
     let collectT = findPrg
     let collectLF = function | P -> findExp (I.Null, P) []

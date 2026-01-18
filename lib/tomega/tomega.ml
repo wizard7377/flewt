@@ -8,19 +8,19 @@ module TomegaAbstract =
                         end)
 module TomegaPrint =
   (Make_TomegaPrint)(struct
-                       module Formatter =
-                         ((Formatter)(*! structure IntSyn' = IntSyn !*)
-                         (*! structure Tomega' = Tomega !*))
+                       (*! structure IntSyn' = IntSyn !*)
+                       (*! structure Tomega' = Tomega !*)
+                       module Formatter = Formatter
                        module Names = Names
                        module Print = Print
                      end)
 module TomegaTypeCheck =
   (Make_TomegaTypeCheck)(struct
                            module Global = Global
-                           module Abstract =
-                             ((Abstract)(*! structure IntSyn' = IntSyn !*))
-                           module TypeCheck =
-                             ((TypeCheck)(*! structure Tomega' = Tomega !*))
+                           (*! structure IntSyn' = IntSyn !*)
+                           module Abstract = Abstract
+                           (*! structure Tomega' = Tomega !*)
+                           module TypeCheck = TypeCheck
                            module Conv = Conv
                            module Whnf = Whnf
                            module Subordinate = Subordinate
@@ -29,13 +29,13 @@ module TomegaTypeCheck =
                            module Weaken = Weaken
                            module TomegaAbstract = TomegaAbstract
                          end)
-module Opsem =
-  (Make_Opsem)(struct
-                 module Global =
-                   ((Global)(* structure TomegaUnify = TomegaUnify
+(* structure TomegaUnify = TomegaUnify
   (structure Global = Global
    ! structure IntSyn' = IntSyn !*)
-                   (*! structure Tomega' = Tomega !*))
+(*! structure Tomega' = Tomega !*)
+module Opsem =
+  (Make_Opsem)(struct
+                 module Global = Global
                  module IntSyn' = IntSyn
                  module Abstract = Abstract
                  module Tomega' = Tomega
@@ -49,10 +49,7 @@ module Opsem =
                  module TomegaTypeCheck = TomegaTypeCheck
                  module Weaken = Weaken
                end)
-module Redundant =
-  (Make_Redundant)(struct
-                     module Opsem =
-                       ((Opsem)(*
+(*
 structure Opsem = OpsemCont
   (structure Global = Global
    structure IntSyn' = IntSyn
@@ -68,8 +65,8 @@ structure Opsem = OpsemCont
    structure TomegaPrint = TomegaPrint
    structure TomegaTypeCheck = TomegaTypeCheck
    structure Weaken = Weaken);
-*))
-                   end)
+*)
+module Redundant = (Make_Redundant)(struct module Opsem = Opsem end)
 module Converter =
   (Make_Converter)(struct
                      module Global = Global

@@ -1,8 +1,9 @@
 
+(* Meta Prover Interface *)
+(* Author: Carsten Schuermann *)
 module type MPI  =
   sig
-    module MetaSyn :
-    ((METASYN)(* Meta Prover Interface *)(* Author: Carsten Schuermann *))
+    module MetaSyn : METASYN
     exception Error of string 
     val init : (int * string list) -> unit
     val select : int -> unit
@@ -20,6 +21,8 @@ module type MPI  =
 
 
 
+(* Meta Prover Interface *)
+(* Author: Carsten Schuermann *)
 module Mpi(Mpi:sig
                  module MetaGlobal : METAGLOBAL
                  module MetaSyn' : METASYN
@@ -33,9 +36,8 @@ module Mpi(Mpi:sig
                  module MetaPrint : METAPRINT
                  module Names : NAMES
                  module Timers : TIMERS
-                 module Ring :
-                 ((RING)(* Meta Prover Interface *)(* Author: Carsten Schuermann *)
-                 (*! sharing Names.IntSyn = MetaSyn'.IntSyn !*))
+                 (*! sharing Names.IntSyn = MetaSyn'.IntSyn !*)
+                 module Ring : RING
                end) : MPI =
   struct
     module MetaSyn = MetaSyn'
@@ -113,7 +115,7 @@ module Mpi(Mpi:sig
     let rec format k =
       if k < 10 then (Int.toString k) ^ ".  " else (Int.toString k) ^ ". "
     let rec menuToString () =
-      let menuToString' =
+      let rec menuToString' =
         function
         | (k, nil) -> ""
         | (k, (Splitting (O))::M) ->
@@ -128,13 +130,13 @@ module Mpi(Mpi:sig
       match !Menu with
       | NONE -> raise (Error "Menu is empty")
       | SOME (M) -> menuToString' (1, M)
-    let rec makeConDec (State (name, Prefix (g, M, B), V)) =
-      let makeConDec' =
+    let rec makeConDec (State (name, Prefix (G, M, B), V)) =
+      let rec makeConDec' =
         function
         | (I.Null, V, k) -> I.ConDec (name, NONE, k, I.Normal, V, I.Type)
-        | (Decl (g, D), V, k) ->
-            makeConDec' (g, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
-      makeConDec' (g, V, 0)
+        | (Decl (G, D), V, k) ->
+            makeConDec' (G, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
+      makeConDec' (G, V, 0)
     let rec makeSignature =
       function
       | nil -> M.SgnEmpty
@@ -173,7 +175,7 @@ module Mpi(Mpi:sig
                  "\n            expected: ")
                 ^ (cLToString cL')))
     let rec init (k, nL) =
-      let cids =
+      let rec cids =
         function
         | nil -> nil
         | name::nL ->
@@ -194,7 +196,7 @@ module Mpi(Mpi:sig
       | Error s -> abort ("Recursion Error: " ^ s)
       | Error s -> abort ("Mpi Error: " ^ s)
     let rec select k =
-      let select' =
+      let rec select' =
         function
         | (k, nil) -> abort "No such menu item"
         | (1, (Splitting (O))::_) ->
@@ -265,8 +267,8 @@ module Mpi(Mpi:sig
       let _ = map insertSolved Solved' in menu (); printMenu ()
     let rec next () = nextOpen (); menu (); printMenu ()
     let rec undo () = popHistory (); menu (); printMenu ()
-    let ((init)(* if no termination ordering given! *)) =
-      init
+    (* if no termination ordering given! *)
+    let init = init
     let select = select
     let print = printMenu
     let next = next

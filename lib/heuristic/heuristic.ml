@@ -1,33 +1,37 @@
 
+(* Heuristics : Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module type HEURISTIC  =
   sig
     type nonrec index =
-      <
-        sd: ((int)(* Author: Carsten Schuermann *)(* Heuristics : Version 1.3 *))
-          (* 0 = non-recursive
-					   1 = recursive *)(* maximal number of cases *)
-          (* Number of cases *)(* Induction variable *)
-          (* Splitting depth *) ;ind: int option  ;c: int  ;
-        m: int  ;r: int  ;p: int   > 
-    val compare :
-      (index * index) ->
-        ((order)(* Position (left to right) *))
+      < sd: int  ;ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
+    (* Splitting depth *)
+    (* Induction variable *)
+    (* Number of cases *)
+    (* maximal number of cases *)
+    (* 0 = non-recursive
+					   1 = recursive *)
+    (* Position (left to right) *)
+    val compare : (index * index) -> order
     val indexToString : index -> string
   end;;
 
 
 
 
+(* Heuristics : Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module Heuristic : HEURISTIC =
   struct
     type nonrec index =
-      <
-        sd: ((int)(* Author: Carsten Schuermann *)(* Heuristics : Version 1.3 *))
-          (* 0 = non-recursive
+      < sd: int  ;ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
+    (* Splitting depth *)
+    (* Induction variable *)
+    (* Number of cases *)
+    (* maximal number of cases *)
+    (* 0 = non-recursive
                                            1 = recursive *)
-          (* maximal number of cases *)(* Number of cases *)
-          (* Induction variable *)(* Splitting depth *) ;
-        ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
+    (* Position (left to right) *)
     let rec compare =
       function
       | ({ sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
@@ -137,6 +141,6 @@ module Heuristic : HEURISTIC =
              (sum
                 { sd = s1; ind = (SOME idx); c = c1; m = m1; r = r1; p = p1 }))
             ^ ")"
-    let ((compare)(* Position (left to right) *)) = compare
+    let compare = compare
     let indexToString = indexToString
   end ;;

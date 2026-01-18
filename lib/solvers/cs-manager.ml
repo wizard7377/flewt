@@ -1,42 +1,39 @@
 
+(* Constraint Solver Manager *)
+(* Author: Roberto Virga *)
 module type CS_MANAGER  =
   sig
-    module Fixity :
-    ((FIXITY)(* Constraint Solver Manager *)(* Author: Roberto Virga *)
-    (* structure IntSyn : INTSYN *))
+    (* structure IntSyn : INTSYN *)
+    module Fixity : FIXITY
+    (*! structure ModeSyn : MODESYN !*)
     type nonrec sigEntry =
-      (((IntSyn.__ConDec)(* constant declaration plus optional precedence and mode information *)
-        (* global signature entry *)(*! structure ModeSyn : MODESYN !*))
-        * Fixity.fixity option * ModeSyn.__ModeSpine list)
-    type nonrec fgnConDec =
-      <
-        parse: string ->
-                 ((IntSyn.__ConDec)(* foreign constant declaration *))
-                   option   > 
+      (IntSyn.__ConDec * Fixity.fixity option * ModeSyn.__ModeSpine list)
+    type nonrec fgnConDec = < parse: string -> IntSyn.__ConDec option   > 
     type nonrec solver =
       <
-        name: ((string)(* name is the name of the solver *)
-          (* constraint solver *))
-          (* trailing operations *)(* reset internal status *)
-          (* install constants *)(* foreign constants declared (if any) *)
-          (* names of other constraint solvers needed *)
-          (* NOTE: no two solvers with the same keywords may be active simultaneously *)
-          (* keywords identifying the type of solver *) ;
-        keywords: string  ;needs: string list  ;fgnConst: fgnConDec option  ;
+        name: string  ;keywords: string  ;needs: string list  ;fgnConst: 
+                                                                 fgnConDec
+                                                                   option  ;
         init: (int * (sigEntry -> IntSyn.cid)) -> unit  ;reset: unit -> unit  ;
         mark: unit -> unit  ;unwind: unit -> unit   > 
+    (* name is the name of the solver *)
+    (* keywords identifying the type of solver *)
+    (* NOTE: no two solvers with the same keywords may be active simultaneously *)
+    (* names of other constraint solvers needed *)
+    (* foreign constants declared (if any) *)
+    (* install constants *)
+    (* reset internal status *)
+    (* trailing operations *)
     exception Error of string 
-    val setInstallFN :
-      (sigEntry -> IntSyn.cid) ->
-        ((unit)(* solver handling functions *))
+    (* solver handling functions *)
+    val setInstallFN : (sigEntry -> IntSyn.cid) -> unit
     val installSolver : solver -> IntSyn.csid
     val resetSolvers : unit -> unit
     val useSolver : string -> unit
-    val parse :
-      string ->
-        (((IntSyn.csid)(* parsing foreign constatnts *)) *
-          IntSyn.__ConDec) option
-    val reset : unit -> ((unit)(* trailing operations *))
+    (* parsing foreign constatnts *)
+    val parse : string -> (IntSyn.csid * IntSyn.__ConDec) option
+    (* trailing operations *)
+    val reset : unit -> unit
     val trail : (unit -> 'a) -> 'a
   end;;
 
@@ -116,7 +113,7 @@ module CSManager(CSManager:sig
       useSolver "Unify"
     let rec useSolver name =
       let exception Found of IntSyn.csid  in
-        let findSolver name =
+        let rec findSolver name =
           try
             ArraySlice.appi
               (function
@@ -150,7 +147,7 @@ module CSManager(CSManager:sig
         | NONE -> raise (Error (("solver " ^ name) ^ " not found"))
     let rec parse string =
       let exception Parsed of (IntSyn.csid * IntSyn.__ConDec)  in
-        let parse' (cs, (solver : solver)) =
+        let rec parse' (cs, (solver : solver)) =
           match (fun r -> r.fgnConst) solver with
           | NONE -> ()
           | SOME fgnConDec ->
@@ -181,7 +178,7 @@ module CSManager(CSManager:sig
              if !active then ((fun r -> r.mark)) solver () else ())
         (ArraySlice.slice (csArray, 0, (SOME (!nextCS))))
     let rec unwind targetCount =
-      let unwind' =
+      let rec unwind' =
         function
         | 0 -> markCount := targetCount
         | k ->
@@ -202,37 +199,43 @@ module CSManager(CSManager:sig
     let parse = parse
     let reset = reset
     let trail = trail
-  end 
+  end  (* Constraint Solver Manager *)
+(* Author: Roberto Virga *)
+(*! structure IntSyn : INTSYN !*)
+(*! sharing Unify.IntSyn = IntSyn !*)
+(*! structure ModeSyn : MODESYN !*)
+(* structure ModeSyn = ModeSyn *)
+(* global signature entry *)
+(* constant declaration plus optional precedence and mode information *)
+(* foreign constant declaration *)
+(* constraint solver *)
+(* name is the name of the solver *)
+(* keywords identifying the type of solver *)
+(* NOTE: no two solvers with the same keywords may be active simultaneously *)
+(* names of other constraint solvers needed *)
+(* foreign constants declared (if any) *)
+(* install constants *)
+(* reset internal status *)
+(* trailing operations *)
+(* vacuous solver *)
+(* Twelf unification as a constraint solver *)
+(* List of installed solvers *)
+(* Installing function *)
+(* install the specified solver *)
+(* val _ = print ("Installing constraint domain " ^ #name solver ^ "\n") *)
+(* install the unification solver *)
+(* make all the solvers inactive *)
+(* make the specified solver active *)
+(* ask each active solver to try and parse the given string *)
+(* reset the internal status of all the active solvers *)
+(* mark all active solvers *)
+(* unwind all active solvers *)
+(* trail the give function *)
+(* functor CSManager *)
 module CSManager =
   (Make_CSManager)(struct
-                     module Global =
-                       ((Global)(* Constraint Solver Manager *)(* Author: Roberto Virga *)
-                       (*! structure IntSyn : INTSYN !*)
-                       (*! sharing Unify.IntSyn = IntSyn !*)
-                       (*! structure ModeSyn : MODESYN !*)
-                       (* structure ModeSyn = ModeSyn *)
-                       (* global signature entry *)(* constant declaration plus optional precedence and mode information *)
-                       (* foreign constant declaration *)
-                       (* constraint solver *)(* name is the name of the solver *)
-                       (* keywords identifying the type of solver *)
-                       (* NOTE: no two solvers with the same keywords may be active simultaneously *)
-                       (* names of other constraint solvers needed *)
-                       (* foreign constants declared (if any) *)
-                       (* install constants *)(* reset internal status *)
-                       (* trailing operations *)(* vacuous solver *)
-                       (* Twelf unification as a constraint solver *)
-                       (* List of installed solvers *)
-                       (* Installing function *)(* install the specified solver *)
-                       (* val _ = print ("Installing constraint domain " ^ #name solver ^ "\n") *)
-                       (* install the unification solver *)
-                       (* make all the solvers inactive *)
-                       (* make the specified solver active *)(* ask each active solver to try and parse the given string *)
-                       (* reset the internal status of all the active solvers *)
-                       (* mark all active solvers *)
-                       (* unwind all active solvers *)
-                       (* trail the give function *)
-                       (* functor CSManager *))
-                     module Unify =
-                       ((UnifyTrail)(*! structure IntSyn = IntSyn !*))
+                     module Global = Global
+                     (*! structure IntSyn = IntSyn !*)
+                     module Unify = UnifyTrail
                      module Fixity = Names.Fixity
                    end);;

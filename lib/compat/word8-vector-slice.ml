@@ -22,10 +22,11 @@ module Word8VectorSlice : MONO_VECTOR_SLICE =
   end 
 module type COMPAT_WORD8_VECTOR_SLICE  =
   sig val full : Word8Vector.vector -> Word8VectorSlice.slice end
+(* Compatibility shim from Basis-02 Word8VectorSlice to Basis-97 Word8Vector *)
+(* Author: Christopher Richards *)
 module Word8VectorSlice97 : COMPAT_WORD8_VECTOR_SLICE =
   struct
-    type nonrec vector =
-      ((Word8Vector.vector)(* Author: Christopher Richards *)(* Compatibility shim from Basis-02 Word8VectorSlice to Basis-97 Word8Vector *))
+    type nonrec vector = Word8Vector.vector
     type nonrec slice = Word8VectorSlice.slice
     let full = Word8VectorSlice.full
   end ;;

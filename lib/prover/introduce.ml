@@ -1,9 +1,11 @@
 
+(* Introduce: Version 1.4 *)
+(* Author: Carsten Schuermann *)
 module type INTRODUCE  =
   sig
-    module State :
-    ((STATE)(* Introduce: Version 1.4 *)(* Author: Carsten Schuermann *)
-    (*! structure IntSyn : INTSYN !*)(*! structure Tomega : TOMEGA !*))
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Tomega : TOMEGA !*)
+    module State : STATE
     exception Error of string 
     type nonrec operator
     val expand : State.__Focus -> operator option
@@ -14,18 +16,21 @@ module type INTRODUCE  =
 
 
 
+(* Introduce *)
+(* Author: Carsten Schuermann *)
 module Introduce(Introduce:sig
+                             (*! structure IntSyn' : INTSYN !*)
+                             (*! structure Tomega' : TOMEGA !*)
+                             (*! sharing Tomega'.IntSyn = IntSyn' !*)
                              module State' : STATE
-                             module TomegaNames :
-                             ((TOMEGANAMES)(* Introduce *)
-                             (* Author: Carsten Schuermann *)(*! structure IntSyn' : INTSYN !*)
-                             (*! structure Tomega' : TOMEGA !*)(*! sharing Tomega'.IntSyn = IntSyn' !*))
+                             module TomegaNames : TOMEGANAMES
                            end) : INTRODUCE =
   struct
-    module State =
-      ((State')(*! sharing State'.IntSyn = IntSyn' !*)
-      (*! sharing State'.Tomega = Tomega' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! structure Tomega = Tomega' !*))
+    (*! sharing State'.IntSyn = IntSyn' !*)
+    (*! sharing State'.Tomega = Tomega' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    module State = State'
     module S = State'
     module T = Tomega
     module I = IntSyn
@@ -62,16 +67,7 @@ module Introduce(Introduce:sig
       | Focus (EVar (Psi, r, _, _, _, _), W) -> NONE
     let rec apply (EVar (_, r, _, _, _, _), P) = (:=) r SOME P
     let rec menu (r, P) = (^) "Intro " TomegaPrint.nameEVar r
-    exception Error = Error(* menu O = s
-
-       Invariant:
-       s = "Apply universal introduction rules"
-    *)
-    (* need to trail for back *)(* apply O = S
-
-       Invariant:
-       O = S
-    *)
+    (*    fun stripTC (T.Abs (_, TC)) = TC *)
     (* expand S = S'
 
        Invariant:
@@ -79,7 +75,18 @@ module Introduce(Introduce:sig
        and  F does not start with an all quantifier
        then S' = (Psi, x1:A1, ... xn:An |> F)
     *)
-    (*    fun stripTC (T.Abs (_, TC)) = TC *)
+    (* apply O = S
+
+       Invariant:
+       O = S
+    *)
+    (* need to trail for back *)
+    (* menu O = s
+
+       Invariant:
+       s = "Apply universal introduction rules"
+    *)
+    exception Error = Error
     type nonrec operator = operator
     let expand = expand
     let apply = apply

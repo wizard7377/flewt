@@ -1,28 +1,28 @@
 
+(* Hash Table *)
+(* Author: Frank Pfenning *)
+(* Modified: Roberto Virga *)
 module HashTable(HashTable:sig
                              type nonrec key'
                              val hash : key' -> int
-                             val eq :
-                               (key' * key') ->
-                                 ((bool)(* Modified: Roberto Virga *)
-                                 (* Author: Frank Pfenning *)(* Hash Table *))
+                             val eq : (key' * key') -> bool
                            end) : TABLE =
   struct
     type nonrec key = key'
     type nonrec 'a entry = (key * 'a)
+    (* A hashtable bucket is a linked list of mutable elements *)
+    (* A hashtable is an array of buckets containing entries paired with hash values *)
     type 'a bucket =
       | Nil 
-      | Cons of
-      ((('a)(* A hashtable is an array of buckets containing entries paired with hash values *)
-      (* A hashtable bucket is a linked list of mutable elements *))
-      ref * 'a bucket ref) 
+      | Cons of ('a ref * 'a bucket ref) 
     type nonrec 'a __Table = ((int * 'a entry) bucket array * int)
     let rec new__ n = ((Array.array (n, Nil)), n)
     let rec insertShadow (a, n) ((key, datum) as e) =
       let hashVal = hash key in
       let index = hashVal mod__ n in
       let bucket = Array.sub (a, index) in
-      let insertB (Cons ((ref (hash', ((key', datum') as e')) as r'), br')) =
+      let rec insertB (Cons
+        ((ref (hash', ((key', datum') as e')) as r'), br')) =
         if (hashVal = hash') && (eq (key, key'))
         then (r' := (hashVal, e); SOME e')
         else insertBR br'
@@ -31,7 +31,7 @@ module HashTable(HashTable:sig
         | ref (Nil) as br ->
             ((:=) br Cons ((ref (hashVal, e)), (ref Nil)); NONE)
         | br -> insertB (!br) in
-      let insertA =
+      let rec insertA =
         function
         | Nil ->
             (Array.update (a, index, (Cons ((ref (hashVal, e)), (ref Nil))));
@@ -41,7 +41,7 @@ module HashTable(HashTable:sig
     let rec insert h e = insertShadow h e; ()
     let rec lookup (a, n) key =
       let hashVal = hash key in
-      let lookup' =
+      let rec lookup' =
         function
         | Cons (ref (hash1, (key1, datum1)), br) ->
             if (hashVal = hash1) && (eq (key, key1))
@@ -53,14 +53,14 @@ module HashTable(HashTable:sig
       let hashVal = hash key in
       let index = hashVal mod__ n in
       let bucket = Array.sub (a, index) in
-      let deleteBR =
+      let rec deleteBR =
         function
         | ref (Cons (ref (hash1, (key1, _)), br1)) as br ->
             if (hashVal = hash1) && (eq (key, key1))
             then (!) ((:=) br) br1
             else deleteBR br1
         | br -> () in
-      let deleteA =
+      let rec deleteA =
         function
         | Nil -> ()
         | Cons (ref (hash1, (key1, _)), br1) ->

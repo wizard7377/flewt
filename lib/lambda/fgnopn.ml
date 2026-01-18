@@ -1,8 +1,9 @@
 
+(* Extensible operation on foreign matter *)
+(* Author: Aleksey Kliger *)
 module type FGN_OPN  =
   sig
-    type nonrec csid =
-      ((int)(* Author: Aleksey Kliger *)(* Extensible operation on foreign matter *))
+    type nonrec csid = int
     type nonrec rep = exn
     type nonrec arg
     type nonrec result

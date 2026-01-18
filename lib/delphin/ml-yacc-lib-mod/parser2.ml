@@ -7,10 +7,7 @@ module type FIFO  =
     val get : 'a queue -> ('a * 'a queue)
     val put : ('a * 'a queue) -> 'a queue
   end
-module LrParser : LR_PARSER =
-  struct
-    module LrTable =
-      ((LrTable)(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
+(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.2.1  2003/01/14 22:46:39  carsten_lf
@@ -40,7 +37,7 @@ module LrParser : LR_PARSER =
  * Version 109
  * 
  *)
-      (* parser.sml:  This is a parser driver for LR tables with an error-recovery
+(* parser.sml:  This is a parser driver for LR tables with an error-recovery
    routine added to it.  The routine used is described in detail in this
    article:
 
@@ -118,12 +115,15 @@ module LrParser : LR_PARSER =
 	ACCEPT or ERROR occurs.  It returns a stack, lexer, the number of
 	tokens left unparsed, a queue, and an action option.
 *)
-      (* drt (12/15/89) -- the functor should be used in development work, but
+(* drt (12/15/89) -- the functor should be used in development work, but
    it wastes space in the release version.
 
 functor ParserGen(structure LrTable : LR_TABLE
 		  structure Streamm : STREAMM) : LR_PARSER =
-*))
+*)
+module LrParser : LR_PARSER =
+  struct
+    module LrTable = LrTable
     module Streamm = Streamm
     module Token : TOKEN =
       struct
@@ -197,20 +197,20 @@ functor ParserGen(structure LrTable : LR_TABLE
             | ERROR -> println "ERROR"
             | ACCEPT -> println "ACCEPT"))
       | (_, (_, _, action)) -> ()
-    let ((ssParse)(* ssParse: parser which maintains the queue of (state * lexvalues) in a
+    (* ssParse: parser which maintains the queue of (state * lexvalues) in a
 	steady-state.  It takes a table, showTerminal function, saction
 	function, and fixError function.  It parses until an ACCEPT is
 	encountered, or an exception is raised.  When an error is encountered,
 	fixError is called with the arguments of parseStep (lexv,stack,and
 	queue).  It returns the lexv, and a new stack and queue adjusted so
-	that the lexv can be parsed *))
-      =
+	that the lexv can be parsed *)
+    let ssParse =
       function
       | (table, showTerminal, saction, fixError, arg) ->
           let prAction = prAction showTerminal in
           let action = LrTable.action table in
           let goto = LrTable.goto table in
-          let parseStep =
+          let rec parseStep =
             function
             | (((TOKEN (terminal, ((_, leftPos, _) as value)), lexer) as
                   lexPair),
@@ -244,20 +244,20 @@ functor ParserGen(structure LrTable : LR_TABLE
                       | _ -> raise (ParseImpossible 202)))
             | _ -> raise (ParseImpossible 204) in
           parseStep
-    let ((distanceParse)(*  distanceParse: parse until n tokens are shifted, or accept or
+    (*  distanceParse: parse until n tokens are shifted, or accept or
 	error are encountered.  Takes a table, showTerminal function, and
 	semantic action function.  Returns a parser which takes a lexPair
 	(lex result * lexer), a state stack, a queue, and a distance
 	(must be > 0) to parse.  The parser returns a new lex-value, a stack
 	with the nth token shifted on top, a queue, a distance, and action
-	option. *))
-      =
+	option. *)
+    let distanceParse =
       function
       | (table, showTerminal, saction, arg) ->
           let prAction = prAction showTerminal in
           let action = LrTable.action table in
           let goto = LrTable.goto table in
-          let parseStep =
+          let rec parseStep =
             function
             | (lexPair, stack, queue, 0) -> (lexPair, stack, queue, 0, NONE)
             | (((TOKEN (terminal, ((_, leftPos, _) as value)), lexer) as
@@ -290,6 +290,8 @@ functor ParserGen(structure LrTable : LR_TABLE
                      (lexPair, stack, queue, distance, (SOME nextAction)))
             | _ -> raise (ParseImpossible 242) in
           (parseStep : ('_a, '_b) distanceParse)
+    (* mkFixError: function to create fixError function which adjusts parser state
+   so that parse may continue in the presence of an error *)
     let rec mkFixError
       (({ is_keyword; terms; errtermvalue; preferred_change; noShift;
           showTerminal; error; terms; errtermvalue; preferred_change;
@@ -297,10 +299,7 @@ functor ParserGen(structure LrTable : LR_TABLE
           noShift; showTerminal; error; preferred_change; noShift;
           showTerminal; error; noShift; showTerminal; error; showTerminal;
           error; error }
-         :
-         ((('_a)(* mkFixError: function to create fixError function which adjusts parser state
-   so that parse may continue in the presence of an error *)),
-           '_b) ecRecord),
+         : ('_a, '_b) ecRecord),
        (distanceParse : ('_a, '_b) distanceParse), minAdvance, maxAdvance)
       (((TOKEN (term, ((_, leftPos, _) as value)), _) as lexv), stack, queue)
       =
@@ -311,18 +310,14 @@ functor ParserGen(structure LrTable : LR_TABLE
             (("syntax error found at " ^ (showTerminal term)), leftPos,
               leftPos)
         else () in
-      let tokAt (t, p) = TOKEN (t, ((errtermvalue t), p, p)) in
+      let rec tokAt (t, p) = TOKEN (t, ((errtermvalue t), p, p)) in
       let minDelta = 3 in
-      let ((stateList)(* pull all the state * lexv elements from the queue *))
-        =
-        let f q =
+      let stateList =
+        let rec f q =
           try let (elem, newQueue) = Fifo.get q in elem :: (f newQueue)
           with | Fifo.Empty -> nil in
         f queue in
-      let (((_)(* now number elements of stateList, giving distance from
-	   error token *)),
-           numStateList)
-        =
+      let (_, numStateList) =
         List.foldr (function | (a, (num, r)) -> ((num + 1), ((a, num) :: r)))
           (0, []) stateList in
       let module _Types =
@@ -330,22 +325,8 @@ functor ParserGen(structure LrTable : LR_TABLE
           type ('a, 'b) change =
             | CHANGE of
             <
-              pos: ((int)(* Represent the set of potential changes as a linked list.
-
-	   Values of datatype Change hold information about a potential change.
-
-	   oper = oper to be applied
-	   pos = the # of the element in stateList that would be altered.
-	   distance = the number of tokens beyond the error token which the
-	     change allows us to parse.
-	   new = new terminal * value pair at that point
-	   orig = original terminal * value pair at the point being changed.
-	 *))
-                 ;distance: int  ;leftPos: 'b  ;rightPos: 'b  ;new__: 
-                                                                 ('a, 
-                                                                   'b) lexv
-                                                                   list  ;
-              orig: ('a, 'b) lexv list   > 
+              pos: int  ;distance: int  ;leftPos: 'b  ;rightPos: 'b  ;
+              new__: ('a, 'b) lexv list  ;orig: ('a, 'b) lexv list   > 
             
         end in
         let showTerms =
@@ -365,11 +346,7 @@ functor ParserGen(structure LrTable : LR_TABLE
                print (",pos= " ^ (Int.toString pos));
                print "}\n") in
         let printChangeList = app printChange in
-        let parse
-          (((lexPair)(* parse: given a lexPair, a stack, and the distance from the error
-   token, return the distance past the error token that we are able to parse.*)),
-           stack, (queuePos : int))
-          =
+        let rec parse (lexPair, stack, (queuePos : int)) =
           match distanceParse
                   (lexPair, stack, Fifo.empty, ((queuePos + maxAdvance) + 1))
           with
@@ -378,14 +355,13 @@ functor ParserGen(structure LrTable : LR_TABLE
               then maxAdvance
               else (maxAdvance - distance) - 1
           | (_, _, _, distance, _) -> (maxAdvance - distance) - 1 in
-        let catList
-          ((l)(* catList: concatenate results of scanning list *))
-          f = List.foldr (function | (a, r) -> (f a) @ r) [] l in
-        let keywordsDelta new__ =
+        let rec catList l f =
+          List.foldr (function | (a, r) -> (f a) @ r) [] l in
+        let rec keywordsDelta new__ =
           if List.exists (function | TOKEN (t, _) -> is_keyword t) new__
           then minDelta
           else 0 in
-        let tryChange
+        let rec tryChange
           { lex; stack; pos; leftPos; rightPos; orig; new__; stack; pos;
             leftPos; rightPos; orig; new__; pos; leftPos; rightPos; orig;
             new__; leftPos; rightPos; orig; new__; rightPos; orig; new__;
@@ -399,12 +375,9 @@ functor ParserGen(structure LrTable : LR_TABLE
           if (+) (distance >= minAdvance) keywordsDelta new__
           then [CHANGE { pos; leftPos; rightPos; distance; orig; new__ }]
           else [] in
-        let tryDelete
-          ((n)(* tryDelete: Try to delete n terminals.
-              Return single-element [success] or nil.
-	      Do not delete unshiftable terminals. *))
+        let rec tryDelete n
           ((stack, ((TOKEN (term, (_, l, r)), _) as lexPair)), qPos) =
-          let del =
+          let rec del =
             function
             | (0, accum, left, right, lexPair) ->
                 tryChange
@@ -424,12 +397,8 @@ functor ParserGen(structure LrTable : LR_TABLE
                 else
                   del ((n - 1), (tok :: accum), left, r, (Streamm.get lexer)) in
           del (n, [], l, r, lexPair) in
-        let tryInsert
-          ((((stack)(* tryInsert: try to insert tokens before the current terminal;
-       return a list of the successes  *)),
-            ((TOKEN (_, (_, l, _)), _) as lexPair)),
-           queuePos)
-          =
+        let rec tryInsert
+          ((stack, ((TOKEN (_, (_, l, _)), _) as lexPair)), queuePos) =
           catList terms
             (function
              | t ->
@@ -443,10 +412,8 @@ functor ParserGen(structure LrTable : LR_TABLE
                      leftPos = l;
                      rightPos = l
                    }) in
-        let trySubst
-          ((((stack)(* trySubst: try to substitute tokens for the current terminal;
-       return a list of the successes  *)),
-            (((TOKEN (term, (_, l, r)) as orig), lexer) as lexPair)),
+        let rec trySubst
+          ((stack, (((TOKEN (term, (_, l, r)) as orig), lexer) as lexPair)),
            queuePos)
           =
           if noShift term
@@ -465,15 +432,9 @@ functor ParserGen(structure LrTable : LR_TABLE
                        orig = [orig];
                        new__ = [tokAt (t, r)]
                      }) in
-        let do_delete =
+        let rec do_delete =
           function
-          | (((nil)(* do_delete(toks,lexPair) tries to delete tokens "toks" from "lexPair".
-         If it succeeds, returns SOME(toks',l,r,lp), where
-	     toks' is the actual tokens (with positions and values) deleted,
-	     (l,r) are the (leftmost,rightmost) position of toks', 
-	     lp is what remains of the stream after deletion 
-     *)),
-             ((TOKEN (_, (_, l, _)), _) as lp)) -> SOME (nil, l, l, lp)
+          | (nil, ((TOKEN (_, (_, l, _)), _) as lp)) -> SOME (nil, l, l, lp)
           | (t::[], ((TOKEN (t', (_, l, r)) as tok), lp')) ->
               if t = t' then SOME ([tok], l, r, (Streamm.get lp')) else NONE
           | (t::rest, ((TOKEN (t', (_, l, r)) as tok), lp')) ->
@@ -484,29 +445,29 @@ functor ParserGen(structure LrTable : LR_TABLE
                      SOME ((tok :: deleted), l, r', lp'')
                  | NONE -> NONE)
               else NONE in
-        let tryPreferred ((stack, lexPair), queuePos) =
+        let rec tryPreferred ((stack, lexPair), queuePos) =
           catList preferred_change
             (function
              | (delete, insert) ->
-                 if List.exists noShift delete
-                 then []
-                 else
-                   (match do_delete (delete, lexPair) with
-                    | SOME (deleted, l, r, lp) ->
-                        tryChange
-                          {
-                            lex = ((lp)
-                              (* should give warning at
-						 parser-generation time *));
-                            stack;
-                            pos = queuePos;
-                            leftPos = l;
-                            rightPos = r;
-                            orig = deleted;
-                            new__ =
-                              (map (function | t -> tokAt (t, r)) insert)
-                          }
-                    | NONE -> [])) in
+                 ((if List.exists noShift delete
+                   then []
+                   else
+                     (match do_delete (delete, lexPair) with
+                      | SOME (deleted, l, r, lp) ->
+                          tryChange
+                            {
+                              lex = lp;
+                              stack;
+                              pos = queuePos;
+                              leftPos = l;
+                              rightPos = r;
+                              orig = deleted;
+                              new__ =
+                                (map (function | t -> tokAt (t, r)) insert)
+                            }
+                      | NONE -> []))
+                 (* should give warning at
+						 parser-generation time *))) in
         let changes =
           (@) ((@) ((@) ((@) ((@) (catList numStateList tryPreferred) catList
                                 numStateList tryInsert)
@@ -521,37 +482,57 @@ functor ParserGen(structure LrTable : LR_TABLE
                 (function
                  | (CHANGE { distance }, high) -> Int.max (distance, high)) 0
                 l in
-        let ((maxDist)(* maxDist: max distance past error taken that we could parse *))
-          = findMaxDist changes in
-        let ((changes)(* remove changes which did not parse maxDist tokens past the error token *))
-          =
+        let maxDist = findMaxDist changes in
+        let changes =
           catList changes
             (function
              | CHANGE { distance } as c ->
                  if distance = maxDist then [c] else []) in
-        match changes with
-        | change::_ as l ->
-            let print_msg (CHANGE
-              { new__; orig; leftPos; rightPos; orig; leftPos; rightPos;
-                leftPos; rightPos; rightPos })
-              =
-              let s =
-                match (orig, new__) with
-                | (_::_, []) -> "deleting " ^ (showTerms orig)
-                | ([], _::_) -> "inserting " ^ (showTerms new__)
-                | _ ->
-                    (("replacing " ^ (showTerms orig)) ^ " with ") ^
-                      (showTerms new__) in
-              error (("syntax error: " ^ s), leftPos, rightPos) in
-            let _ =
-              if ((length l) > 1) && DEBUG2
-              then
-                (print "multiple fixes possible; could fix it by:\n";
-                 app print_msg l;
-                 print "chosen correction:\n")
-              else ();
-              print_msg change in
-            let ((findNth)(* findNth: find nth queue entry from the error
+        ((match changes with
+          | change::_ as l ->
+              let rec print_msg (CHANGE
+                { new__; orig; leftPos; rightPos; orig; leftPos; rightPos;
+                  leftPos; rightPos; rightPos })
+                =
+                let s =
+                  match (orig, new__) with
+                  | (_::_, []) -> "deleting " ^ (showTerms orig)
+                  | ([], _::_) -> "inserting " ^ (showTerms new__)
+                  | _ ->
+                      (("replacing " ^ (showTerms orig)) ^ " with ") ^
+                        (showTerms new__) in
+                error (("syntax error: " ^ s), leftPos, rightPos) in
+              let _ =
+                if ((length l) > 1) && DEBUG2
+                then
+                  (print "multiple fixes possible; could fix it by:\n";
+                   app print_msg l;
+                   print "chosen correction:\n")
+                else ();
+                print_msg change in
+              let findNth =
+                function
+                | n ->
+                    let rec f =
+                      function
+                      | (h::t, 0) -> (h, (rev t))
+                      | (h::t, n) -> f (t, (n - 1))
+                      | (nil, _) -> let exception FindNth  in raise FindNth in
+                    f ((rev stateList), n) in
+              let CHANGE { pos; orig; new__; orig; new__; new__ } = change in
+              let (last, queueFront) = findNth pos in
+              let (stack, lexPair) = last in
+              let lp1 =
+                foldl (function | (_, (_, r)) -> Streamm.get r) lexPair orig in
+              let lp2 =
+                foldr (function | (t, r) -> (t, (Streamm.cons r))) lp1 new__ in
+              let restQueue =
+                Fifo.put
+                  ((stack, lp2), (foldl Fifo.put Fifo.empty queueFront)) in
+              let (lexPair, stack, queue, _, _) =
+                distanceParse (lp2, stack, restQueue, pos) in
+              (((lexPair, stack, queue))
+                (* findNth: find nth queue entry from the error
 		   entry.  Returns the Nth queue entry and the  portion of
 		   the queue from the beginning to the nth-1 entry.  The
 		   error entry is at the end of the queue.
@@ -562,32 +543,42 @@ functor ParserGen(structure LrTable : LR_TABLE
 		   findNth 0 = (e,a b c d)
 		   findNth 1 =  (d,a b c)
 		   *))
-              =
-              function
-              | n ->
-                  let f =
-                    function
-                    | (h::t, 0) -> (h, (rev t))
-                    | (h::t, n) -> f (t, (n - 1))
-                    | (nil, _) -> let exception FindNth  in raise FindNth in
-                  f ((rev stateList), n) in
-            let CHANGE { pos; orig; new__; orig; new__; new__ } = change in
-            let (last, queueFront) = findNth pos in
-            let (stack, lexPair) = last in
-            let lp1 =
-              foldl (function | (_, (_, r)) -> Streamm.get r) lexPair orig in
-            let lp2 =
-              foldr (function | (t, r) -> (t, (Streamm.cons r))) lp1 new__ in
-            let restQueue =
-              Fifo.put ((stack, lp2), (foldl Fifo.put Fifo.empty queueFront)) in
-            let (lexPair, stack, queue, _, _) =
-              distanceParse (lp2, stack, restQueue, pos) in
-            (lexPair, stack, queue)
-        | nil ->
-            (error
-               (("syntax error found at " ^ (showTerminal term)), leftPos,
-                 leftPos);
-             raise ParseError)
+          | nil ->
+              (error
+                 (("syntax error found at " ^ (showTerminal term)), leftPos,
+                   leftPos);
+               raise ParseError))
+          (* pull all the state * lexv elements from the queue *)
+          (* now number elements of stateList, giving distance from
+	   error token *)
+          (* Represent the set of potential changes as a linked list.
+
+	   Values of datatype Change hold information about a potential change.
+
+	   oper = oper to be applied
+	   pos = the # of the element in stateList that would be altered.
+	   distance = the number of tokens beyond the error token which the
+	     change allows us to parse.
+	   new = new terminal * value pair at that point
+	   orig = original terminal * value pair at the point being changed.
+	 *)
+          (* parse: given a lexPair, a stack, and the distance from the error
+   token, return the distance past the error token that we are able to parse.*)
+          (* catList: concatenate results of scanning list *)(* tryDelete: Try to delete n terminals.
+              Return single-element [success] or nil.
+	      Do not delete unshiftable terminals. *)
+          (* tryInsert: try to insert tokens before the current terminal;
+       return a list of the successes  *)
+          (* trySubst: try to substitute tokens for the current terminal;
+       return a list of the successes  *)
+          (* do_delete(toks,lexPair) tries to delete tokens "toks" from "lexPair".
+         If it succeeds, returns SOME(toks',l,r,lp), where
+	     toks' is the actual tokens (with positions and values) deleted,
+	     (l,r) are the (leftmost,rightmost) position of toks', 
+	     lp is what remains of the stream after deletion 
+     *)
+          (* maxDist: max distance past error taken that we could parse *)
+          (* remove changes which did not parse maxDist tokens past the error token *))
     let parse =
       function
       | { arg; table; lexer; saction; void; lookahead;
@@ -602,11 +593,9 @@ functor ParserGen(structure LrTable : LR_TABLE
           lookahead; ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec);
           ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec) } ->
           let distance = 15 in
-          let ((minAdvance)(* defer distance tokens *)) = 1 in
-          let ((maxAdvance)(* must parse at least 1 token past error *))
-            = Int.max (lookahead, 0) in
-          let ((lexPair)(* max distance for parse check *))
-            = Streamm.get lexer in
+          let minAdvance = 1 in
+          let maxAdvance = Int.max (lookahead, 0) in
+          let lexPair = Streamm.get lexer in
           let (TOKEN (_, (_, leftPos, _)), _) = lexPair in
           let startStack = [((initialState table), (void, leftPos, leftPos))] in
           let startQueue = Fifo.put ((startStack, lexPair), Fifo.empty) in
@@ -615,7 +604,7 @@ functor ParserGen(structure LrTable : LR_TABLE
           let fixError =
             mkFixError (ec, distanceParse, minAdvance, maxAdvance) in
           let ssParse = ssParse (table, showTerminal, saction, fixError, arg) in
-          let loop =
+          let rec loop =
             function
             | (lexPair, stack, queue, _, SOME (ACCEPT)) ->
                 ssParse (lexPair, stack, queue)
@@ -626,5 +615,7 @@ functor ParserGen(structure LrTable : LR_TABLE
                   fixError (lexPair, stack, queue) in
                 loop (distanceParse (lexPair, stack, queue, distance))
             | _ -> let exception ParseInternal  in raise ParseInternal in
-          loop (distanceParse (lexPair, startStack, startQueue, distance))
+          ((loop (distanceParse (lexPair, startStack, startQueue, distance)))
+            (* defer distance tokens *)(* must parse at least 1 token past error *)
+            (* max distance for parse check *))
   end ;;

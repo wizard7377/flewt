@@ -1,20 +1,24 @@
 
-module type NORMALIZE  = sig  end(* Author: Carsten Schuermann *)
-(* Normalizer for Delphin meta level *);;
+(* Normalizer for Delphin meta level *)
+(* Author: Carsten Schuermann *)
+module type NORMALIZE  = sig  end;;
 
 
 
 
+(* Internal syntax for functional proof term calculus *)
+(* Author: Carsten Schuermann *)
 module Normalize(Normalize:sig
-                             module Whnf :
-                             ((WHNF)(* Internal syntax for functional proof term calculus *)
-                             (* Author: Carsten Schuermann *)(*! structure IntSyn' : INTSYN !*)
-                             (*! structure Tomega' : TOMEGA !*)(*! sharing Tomega'.IntSyn = IntSyn' !*))
+                             (*! structure IntSyn' : INTSYN !*)
+                             (*! structure Tomega' : TOMEGA !*)
+                             (*! sharing Tomega'.IntSyn = IntSyn' !*)
+                             module Whnf : WHNF
                            end) : NORMALIZE =
   struct
-    exception Error of
-      ((string)(*! structure Tomega = Tomega' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! sharing Whnf.IntSyn = IntSyn' !*)) 
+    (*! sharing Whnf.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    exception Error of string 
     module I = IntSyn
     module T = Tomega
     let rec normalizeFor =
@@ -80,8 +84,8 @@ module Normalize(Normalize:sig
           T.Dot ((T.Exp (Whnf.normalize (E, I.id))), (normalizeSub s))
       | Dot (Block k, s) -> T.Dot ((T.Block k), (normalizeSub s))
       | Dot (Idx k, s) -> T.Dot ((T.Idx k), (normalizeSub s))
-    let ((normalizeFor)(*      | normalizeFor (T.FVar (g, r))   think about it *)
-      (* normalizePrg (P, t) = (P', t')
+    (*      | normalizeFor (T.FVar (G, r))   think about it *)
+    (* normalizePrg (P, t) = (P', t')
 
        Invariant:
        If   Psi' |- P :: F
@@ -95,11 +99,12 @@ module Normalize(Normalize:sig
        and  Psi |- P [t] == P' [t'] : F [t]
        and  Psi |- P' [t'] :nf: F [t]
     *)
-      (* ABP -- 1/20/03 *)(* ABP *)
-      (*
+    (* ABP -- 1/20/03 *)
+    (* ABP *)
+    (*
     and normalizeDec (T.UDec D, t) = T.UDec (I.decSub (D, T.coerceSub t))
-      | normalizeDec (T.BDec (k, t1), t2) = *))
-      = normalizeFor
+      | normalizeDec (T.BDec (k, t1), t2) = *)
+    let normalizeFor = normalizeFor
     let normalizePrg = normalizePrg
     let normalizeSub = normalizeSub
     let whnfFor = whnfFor

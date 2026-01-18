@@ -38,14 +38,16 @@ module type THMEXTSYN  =
     val dec : (string * theorem) -> theoremdec
     type nonrec wdecl
     val wdecl : ((string list * string) list * callpats) -> wdecl
-  end
+  end (* External Syntax for meta theorems *)
+(* Author: Carsten Schuermann *)
+(*! structure Paths : PATHS  !*)
+(* -bp *) (* -bp *)
+(* world checker *)
+(*  val wdecl : (decs * decs) list * callpats -> wdecl *)
+(* signature THMEXTSYN *)
 module type RECON_THM  =
   sig
-    module ThmSyn :
-    ((THMSYN)(* External Syntax for meta theorems *)
-    (* Author: Carsten Schuermann *)(*! structure Paths : PATHS  !*)
-    (* -bp *)(* -bp *)(* world checker *)
-    (*  val wdecl : (decs * decs) list * callpats -> wdecl *)(* signature THMEXTSYN *))
+    module ThmSyn : THMSYN
     include THMEXTSYN
     exception Error of string 
     val tdeclTotDecl :
@@ -69,6 +71,9 @@ module type RECON_THM  =
 
 
 
+(* Reconstruct Termination Information *)
+(* Author: Carsten Schuermann *)
+(* Modified: Brigitte Pientka *)
 module ReconThm(ReconThm:sig
                            module Global : GLOBAL
                            module Abstract : ABSTRACT
@@ -76,22 +81,19 @@ module ReconThm(ReconThm:sig
                            module Names : NAMES
                            module ThmSyn' : THMSYN
                            module ReconTerm' : RECON_TERM
-                           module Print :
-                           ((PRINT)(* Reconstruct Termination Information *)
-                           (* Author: Carsten Schuermann *)
-                           (* Modified: Brigitte Pientka *)
                            (* structure IntSyn : INTSYN *)
                            (*! sharing Abstract.IntSyn = IntSyn !*)
                            (*! sharing Names.IntSyn = IntSyn !*)
                            (*! structure Paths' : PATHS !*)
                            (*! sharing ReconTerm'.IntSyn = IntSyn !*)
-                           (*! sharing ReconTerm'.Paths = Paths'  !*))
+                           (*! sharing ReconTerm'.Paths = Paths'  !*)
+                           module Print : PRINT
                          end) : RECON_THM =
   struct
-    module ThmSyn =
-      ((ThmSyn')(*! sharing Print.IntSyn = IntSyn !*))
-    module ExtSyn =
-      ((ReconTerm')(*! structure Paths = Paths' !*))
+    (*! sharing Print.IntSyn = IntSyn !*)
+    module ThmSyn = ThmSyn'
+    (*! structure Paths = Paths' !*)
+    module ExtSyn = ReconTerm'
     exception Error of string 
     module M = ModeSyn
     module I = IntSyn
@@ -102,14 +104,14 @@ module ReconThm(ReconThm:sig
     type nonrec order = (ThmSyn.__Order * Paths.region)
     let rec varg (r, L) = ((ThmSyn.Varg L), r)
     let rec lex (r0, L) =
-      let lex' =
+      let rec lex' =
         function
         | nil -> (nil, r0)
         | (O, r)::L ->
             let (Os, r') = lex' L in ((O :: Os), (Paths.join (r, r'))) in
       let (Os, r1) = lex' L in ((ThmSyn.Lex Os), r1)
     let rec simul (r0, L) =
-      let simul' =
+      let rec simul' =
         function
         | nil -> (nil, r0)
         | (O, r)::L ->
@@ -146,7 +148,7 @@ module ReconThm(ReconThm:sig
       | (SkoDec (a, _, _, _, _), P, r) ->
           error (r, (("Illegal Skolem constant " ^ a) ^ " in call pattern"))
     let rec callpats (L) =
-      let callpats' =
+      let rec callpats' =
         function
         | nil -> (nil, nil)
         | (name, P, r)::L ->
@@ -223,12 +225,12 @@ module ReconThm(ReconThm:sig
     let rec dec (name, t) = (name, t)
     let rec ctxAppend =
       function
-      | (g, I.Null) -> g
-      | (g, Decl (g', D)) -> I.Decl ((ctxAppend (g, g')), D)
+      | (G, I.Null) -> G
+      | (G, Decl (G', D)) -> I.Decl ((ctxAppend (G, G')), D)
     let rec ctxMap arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (f, I.Null) -> I.Null
-      | (f, Decl (g, D)) -> I.Decl ((ctxMap f g), (f D))
+      | (f, Decl (G, D)) -> I.Decl ((ctxMap f G), (f D))
     let rec ctxBlockToString (G0, (G1, G2)) =
       let _ = Names.varReset I.Null in
       let G0' = Names.ctxName G0 in
@@ -290,22 +292,29 @@ module ReconThm(ReconThm:sig
       let (gbs, g, M, k) = t (nil, I.Null, I.Null, 0) in
       let _ = Names.varReset IntSyn.Null in
       let GBs = List.map abstractCtxPair gbs in
-      let JWithCtx (g, _) = T.recon (T.jwithctx (g, T.jnothing)) in
-      L.ThDecl (GBs, g, M, k)
+      let JWithCtx (G, _) = T.recon (T.jwithctx (g, T.jnothing)) in
+      L.ThDecl (GBs, G, M, k)
     let rec theoremDecToTheoremDec (name, t) = (name, (theoremToTheorem t))
     let rec abstractWDecl (W) = let W' = List.map Names.Qid W in W'
     type nonrec wdecl = (ThmSyn.__WDecl * Paths.region list)
     let rec wdecl (W, (cp, rs)) =
       ((ThmSyn.WDecl ((abstractWDecl W), cp)), rs)
     let rec wdeclTowDecl (T) = T
-    type nonrec order =
-      ((order)(* avoid this re-copying? -fp *)(* World checker *)
-      (* closed nf *)(* each block reconstructed independent of others *)
-      (* Theorem and prove declarations *)(* check whether they are families here? *)
-      (* keepTable declaration *)(* check whether they are families here? *)
-      (* tabled declaration *)(* reduces declaration *)
-      (* predicate *)(* -bp *)(* check whether they are families here? *)
-      (* everything else should be impossible! *))
+    (* everything else should be impossible! *)
+    (* check whether they are families here? *)
+    (* -bp *)
+    (* predicate *)
+    (* reduces declaration *)
+    (* tabled declaration *)
+    (* check whether they are families here? *)
+    (* keepTable declaration *)
+    (* check whether they are families here? *)
+    (* Theorem and prove declarations *)
+    (* each block reconstructed independent of others *)
+    (* closed nf *)
+    (* World checker *)
+    (* avoid this re-copying? -fp *)
+    type nonrec order = order
     let varg = varg
     let lex = lex
     let simul = simul
@@ -313,9 +322,11 @@ module ReconThm(ReconThm:sig
     let callpats = callpats
     type nonrec tdecl = tdecl
     let tdecl = tdecl
-    type nonrec predicate = ((predicate)(* -bp *))
+    (* -bp *)
+    type nonrec predicate = predicate
     let predicate = predicate
-    type nonrec rdecl = ((rdecl)(* -bp *))
+    (* -bp *)
+    type nonrec rdecl = rdecl
     let rdecl = rdecl
     type nonrec tableddecl = tableddecl
     let tableddecl = tableddecl

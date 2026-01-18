@@ -1,19 +1,18 @@
 
+(* Meta Theorem Prover abstraction : Version 1.3 *)
+(* Author: Frank Pfenning, Carsten Schuermann *)
 module type MTPABSTRACT  =
   sig
-    module StateSyn :
-    ((STATESYN)(* Meta Theorem Prover abstraction : Version 1.3 *)
-    (* Author: Frank Pfenning, Carsten Schuermann *)
-    (*! structure IntSyn : INTSYN !*)(*! structure FunSyn : FUNSYN !*))
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure FunSyn : FUNSYN !*)
+    module StateSyn : STATESYN
     exception Error of string 
     type __ApproxFor =
-      | Head of (((IntSyn.dctx)(* Approximat formula *)) *
-      (FunSyn.__For * IntSyn.__Sub) * int) 
-      | Block of ((((IntSyn.dctx)(* AF ::= F [s] *)) *
-      IntSyn.__Sub * int * IntSyn.__Dec list) * __ApproxFor) 
-    val weaken :
-      (IntSyn.dctx * IntSyn.cid) ->
-        ((IntSyn.__Sub)(*  | (t, G2), AF *))
+      | Head of (IntSyn.dctx * (FunSyn.__For * IntSyn.__Sub) * int) 
+      | Block of ((IntSyn.dctx * IntSyn.__Sub * int * IntSyn.__Dec list) *
+      __ApproxFor) 
+    (*  | (t, G2), AF *)
+    val weaken : (IntSyn.dctx * IntSyn.cid) -> IntSyn.__Sub
     val raiseType : (IntSyn.dctx * IntSyn.__Exp) -> IntSyn.__Exp
     val abstractSub :
       (IntSyn.__Sub * StateSyn.__Tag IntSyn.__Ctx * (IntSyn.dctx *
@@ -30,7 +29,12 @@ module type MTPABSTRACT  =
 
 
 
+(* Meta Theorem Prover abstraction : Version 1.3 *)
+(* Author: Frank Pfenning, Carsten Schuermann *)
 module MTPAbstract(MTPAbstract:sig
+                                 (*! structure IntSyn' : INTSYN !*)
+                                 (*! structure FunSyn' : FUNSYN !*)
+                                 (*! sharing FunSyn'.IntSyn = IntSyn' !*)
                                  module StateSyn' : STATESYN
                                  module Whnf : WHNF
                                  module Constraints : CONSTRAINTS
@@ -38,30 +42,26 @@ module MTPAbstract(MTPAbstract:sig
                                  module Subordinate : SUBORDINATE
                                  module TypeCheck : TYPECHECK
                                  module FunTypeCheck : FUNTYPECHECK
-                                 module Abstract :
-                                 ((ABSTRACT)(* Meta Theorem Prover abstraction : Version 1.3 *)
-                                 (* Author: Frank Pfenning, Carsten Schuermann *)
-                                 (*! structure IntSyn' : INTSYN !*)
-                                 (*! structure FunSyn' : FUNSYN !*)
-                                 (*! sharing FunSyn'.IntSyn = IntSyn' !*)
                                  (*! sharing StateSyn'.FunSyn = FunSyn' !*)
                                  (*! sharing Whnf.IntSyn = IntSyn' !*)
                                  (*! sharing Constraints.IntSyn = IntSyn' !*)
                                  (*! sharing Unify.IntSyn = IntSyn' !*)
                                  (*! sharing Subordinate.IntSyn = IntSyn' !*)
                                  (*! sharing TypeCheck.IntSyn = IntSyn' !*)
-                                 (*! sharing FunTypeCheck.FunSyn = FunSyn' !*))
+                                 (*! sharing FunTypeCheck.FunSyn = FunSyn' !*)
+                                 module Abstract : ABSTRACT
                                end) : MTPABSTRACT =
   struct
-    module StateSyn =
-      ((StateSyn')(*! sharing Abstract.IntSyn = IntSyn' !*)
-      (*! structure IntSyn = IntSyn' !*)(*! structure FunSyn = FunSyn' !*))
+    (*! sharing Abstract.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure FunSyn = FunSyn' !*)
+    module StateSyn = StateSyn'
     exception Error of string 
     type __ApproxFor =
-      | Head of (((IntSyn.dctx)(* Approximat formula *)) *
-      (FunSyn.__For * IntSyn.__Sub) * int) 
-      | Block of ((((IntSyn.dctx)(* AF ::= F [s] *)) *
-      IntSyn.__Sub * int * IntSyn.__Dec list) * __ApproxFor) 
+      | Head of (IntSyn.dctx * (FunSyn.__For * IntSyn.__Sub) * int) 
+      | Block of ((IntSyn.dctx * IntSyn.__Sub * int * IntSyn.__Dec list) *
+      __ApproxFor) 
+    (*      | (t, G2), AF *)
     module I = IntSyn
     module F = FunSyn
     module S = StateSyn
@@ -81,7 +81,7 @@ module MTPAbstract(MTPAbstract:sig
       | (EVar (r1, _, _, _), EV (r2, _, _, _)) -> r1 = r2
       | (_, _) -> false__
     let rec exists (P) (K) =
-      let exists' =
+      let rec exists' =
         function | I.Null -> false__ | Decl (K', Y) -> (P Y) || (exists' K') in
       exists' K
     let rec or__ =
@@ -122,40 +122,40 @@ module MTPAbstract(MTPAbstract:sig
     let rec weaken =
       function
       | (I.Null, a) -> I.id
-      | (Decl (g', (Dec (name, V) as D)), a) ->
-          let w' = weaken (g', a) in
+      | (Decl (G', (Dec (name, V) as D)), a) ->
+          let w' = weaken (G', a) in
           if Subordinate.belowEq ((I.targetFam V), a)
           then I.dot1 w'
           else I.comp (w', I.shift)
     let rec raiseType =
       function
       | (I.Null, V) -> V
-      | (Decl (g, D), V) -> raiseType (g, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (G, D), V) -> raiseType (G, (I.Pi ((D, I.Maybe), V)))
     let rec restore =
       function
       | (0, Gp) -> (Gp, I.Null)
-      | (n, Decl (g, D)) ->
-          let (Gp', GX') = restore ((n - 1), g) in (Gp', (I.Decl (GX', D)))
+      | (n, Decl (G, D)) ->
+          let (Gp', GX') = restore ((n - 1), G) in (Gp', (I.Decl (GX', D)))
     let rec concat =
       function
       | (Gp, I.Null) -> Gp
-      | (Gp, Decl (g, D)) -> I.Decl ((concat (Gp, g)), D)
+      | (Gp, Decl (G, D)) -> I.Decl ((concat (Gp, G)), D)
     let rec collectExpW =
       function
-      | (T, d, g, (Uni (L), s), K) -> K
-      | (T, d, g, (Pi ((D, _), V), s), K) ->
+      | (T, d, G, (Uni (L), s), K) -> K
+      | (T, d, G, (Pi ((D, _), V), s), K) ->
           collectExp
-            (T, d, (I.Decl (g, (I.decSub (D, s)))), (V, (I.dot1 s)),
-              (collectDec (T, d, g, (D, s), K)))
-      | (T, d, g, (Root (_, S), s), K) ->
-          collectSpine ((S.decrease T), d, g, (S, s), K)
-      | (T, d, g, (Lam (D, U), s), K) ->
+            (T, d, (I.Decl (G, (I.decSub (D, s)))), (V, (I.dot1 s)),
+              (collectDec (T, d, G, (D, s), K)))
+      | (T, d, G, (Root (_, S), s), K) ->
+          collectSpine ((S.decrease T), d, G, (S, s), K)
+      | (T, d, G, (Lam (D, U), s), K) ->
           collectExp
-            (T, d, (I.Decl (g, (I.decSub (D, s)))), (U, (I.dot1 s)),
-              (collectDec (T, d, g, (D, s), K)))
-      | (T, d, g, ((EVar (r, GdX, V, cnstrs) as X), s), K) ->
+            (T, d, (I.Decl (G, (I.decSub (D, s)))), (U, (I.dot1 s)),
+              (collectDec (T, d, G, (D, s), K)))
+      | (T, d, G, ((EVar (r, GdX, V, cnstrs) as X), s), K) ->
           if exists (eqEVar X) K
-          then collectSub (T, d, g, s, K)
+          then collectSub (T, d, G, s, K)
           else
             (let (Gp, GX) = restore (((I.ctxLength GdX) - d), GdX) in
              let _ = checkEmpty (!cnstrs) in
@@ -167,30 +167,30 @@ module MTPAbstract(MTPAbstract:sig
              let _ = Unify.instantiateEVar (r, (I.EClo (X', w)), nil) in
              let V' = raiseType (GX', (I.EClo (V, iw))) in
              collectSub
-               (T, d, g, (I.comp (w, s)),
+               (T, d, G, (I.comp (w, s)),
                  (I.Decl
                     ((collectExp (T, d, Gp, (V', I.id), K)),
                       (EV (r', V', T, d))))))
-      | (T, d, g, (FgnExp csfe, s), K) ->
+      | (T, d, G, (FgnExp csfe, s), K) ->
           I.FgnExpStd.fold csfe
-            (function | (U, K') -> collectExp (T, d, g, (U, s), K')) K
-    let rec collectExp (T, d, g, Us, K) =
-      collectExpW (T, d, g, (Whnf.whnf Us), K)
+            (function | (U, K') -> collectExp (T, d, G, (U, s), K')) K
+    let rec collectExp (T, d, G, Us, K) =
+      collectExpW (T, d, G, (Whnf.whnf Us), K)
     let rec collectSpine =
       function
-      | (T, d, g, (I.Nil, _), K) -> K
-      | (T, d, g, (SClo (S, s'), s), K) ->
-          collectSpine (T, d, g, (S, (I.comp (s', s))), K)
-      | (T, d, g, (App (U, S), s), K) ->
-          collectSpine (T, d, g, (S, s), (collectExp (T, d, g, (U, s), K)))
-    let rec collectDec (T, d, g, (Dec (_, V), s), K) =
-      collectExp (T, d, g, (V, s), K)
+      | (T, d, G, (I.Nil, _), K) -> K
+      | (T, d, G, (SClo (S, s'), s), K) ->
+          collectSpine (T, d, G, (S, (I.comp (s', s))), K)
+      | (T, d, G, (App (U, S), s), K) ->
+          collectSpine (T, d, G, (S, s), (collectExp (T, d, G, (U, s), K)))
+    let rec collectDec (T, d, G, (Dec (_, V), s), K) =
+      collectExp (T, d, G, (V, s), K)
     let rec collectSub =
       function
-      | (T, d, g, Shift _, K) -> K
-      | (T, d, g, Dot (Idx _, s), K) -> collectSub (T, d, g, s, K)
-      | (T, d, g, Dot (Exp (U), s), K) ->
-          collectSub (T, d, g, s, (collectExp (T, d, g, (U, I.id), K)))
+      | (T, d, G, Shift _, K) -> K
+      | (T, d, G, Dot (Idx _, s), K) -> collectSub (T, d, G, s, K)
+      | (T, d, G, Dot (Exp (U), s), K) ->
+          collectSub (T, d, G, s, (collectExp (T, d, G, (U, I.id), K)))
     let rec abstractEVar =
       function
       | (Decl (K', EV (r', _, _, d)), depth, (EVar (r, _, _, _) as X)) ->
@@ -199,7 +199,7 @@ module MTPAbstract(MTPAbstract:sig
           else abstractEVar (K', (depth + 1), X)
       | (Decl (K', BV _), depth, X) -> abstractEVar (K', (depth + 1), X)
     let rec lookupBV (K, i) =
-      let lookupBV' =
+      let rec lookupBV' =
         function
         | (Decl (K, EV (r, V, _, _)), i, k) -> lookupBV' (K, i, (k + 1))
         | (Decl (K, BV _), 1, k) -> k
@@ -225,10 +225,10 @@ module MTPAbstract(MTPAbstract:sig
           I.Lam
             ((abstractDec (K, depth, (D, s))),
               (abstractExp (K, (depth + 1), (U, (I.dot1 s)))))
-      | (K, depth, ((EVar (_, g, _, _) as X), s)) ->
+      | (K, depth, ((EVar (_, G, _, _) as X), s)) ->
           let (H, d) = abstractEVar (K, depth, X) in
           I.Root
-            (H, (abstractSub (((I.ctxLength g) - d), K, depth, s, I.Nil)))
+            (H, (abstractSub (((I.ctxLength G) - d), K, depth, s, I.Nil)))
       | (K, depth, (FgnExp csfe, s)) ->
           I.FgnExpStd.Map.apply csfe
             (function | U -> abstractExp (K, depth, (U, s)))
@@ -282,18 +282,18 @@ module MTPAbstract(MTPAbstract:sig
       | Decl (K', EV (_, V', (Lemma b as T), _)) ->
           let V'' = abstractExp (K', 0, (V', I.id)) in
           let _ = checkType V'' in
-          let (g', B') = abstractCtx K' in
-          let D' = I.Dec (NONE, V'') in ((I.Decl (g', D')), (I.Decl (B', T)))
+          let (G', B') = abstractCtx K' in
+          let D' = I.Dec (NONE, V'') in ((I.Decl (G', D')), (I.Decl (B', T)))
       | Decl (K', EV (_, V', (S.None as T), _)) ->
           let V'' = abstractExp (K', 0, (V', I.id)) in
           let _ = checkType V'' in
-          let (g', B') = abstractCtx K' in
+          let (G', B') = abstractCtx K' in
           let D' = I.Dec (NONE, V'') in
-          ((I.Decl (g', D')), (I.Decl (B', S.None)))
+          ((I.Decl (G', D')), (I.Decl (B', S.None)))
       | Decl (K', BV (D, T)) ->
           let D' = abstractDec (K', 0, (D, I.id)) in
-          let (g', B') = abstractCtx K' in
-          ((I.Decl (g', D')), (I.Decl (B', T)))
+          let (G', B') = abstractCtx K' in
+          ((I.Decl (G', D')), (I.Decl (B', T)))
     let rec abstractGlobalSub =
       function
       | (K, Shift _, I.Null) -> I.Shift (I.ctxLength K)
@@ -330,7 +330,7 @@ module MTPAbstract(MTPAbstract:sig
       let K = cf (0, I.Null) in
       ((abstractCtx K), (abstractGlobalSub (K, s, B)))
     let rec abstractSubAll (t, B1, (G0, B0), s, B) =
-      let skip'' =
+      let rec skip'' =
         function
         | (K, (I.Null, I.Null)) -> K
         | (K, (Decl (G0, D), Decl (B0, T))) ->
@@ -365,29 +365,29 @@ module MTPAbstract(MTPAbstract:sig
     let rec convert =
       function
       | I.Null -> I.Null
-      | Decl (g, D) -> I.Decl ((convert g), (BV (D, (S.Parameter NONE))))
+      | Decl (G, D) -> I.Decl ((convert G), (BV (D, (S.Parameter NONE))))
     let rec createEmptyB =
       function | 0 -> I.Null | n -> I.Decl ((createEmptyB (n - 1)), S.None)
     let rec lower =
       function
       | (_, 0) -> I.Null
-      | (Decl (g, D), n) -> I.Decl ((lower (g, (n - 1))), D)
+      | (Decl (G, D), n) -> I.Decl ((lower (G, (n - 1))), D)
     let rec split =
       function
-      | (g, 0) -> (g, I.Null)
-      | (Decl (g, D), n) ->
-          let (G1, G2) = split (g, (n - 1)) in (G1, (I.Decl (G2, D)))
+      | (G, 0) -> (G, I.Null)
+      | (Decl (G, D), n) ->
+          let (G1, G2) = split (G, (n - 1)) in (G1, (I.Decl (G2, D)))
     let rec shift =
-      function | I.Null -> I.shift | Decl (g, _) -> I.dot1 (shift g)
+      function | I.Null -> I.shift | Decl (G, _) -> I.dot1 (shift G)
     let rec ctxSub =
       function
       | (nil, s) -> nil
-      | ((D)::g, s) -> (::) (I.decSub (D, s)) ctxSub (g, (I.dot1 s))
+      | ((D)::G, s) -> (::) (I.decSub (D, s)) ctxSub (G, (I.dot1 s))
     let rec weaken2 =
       function
       | (I.Null, a, i) -> (I.id, ((function | S -> S)))
-      | (Decl (g', (Dec (name, V) as D)), a, i) ->
-          let (w', S') = weaken2 (g', a, (i + 1)) in
+      | (Decl (G', (Dec (name, V) as D)), a, i) ->
+          let (w', S') = weaken2 (G', a, (i + 1)) in
           if Subordinate.belowEq ((I.targetFam V), a)
           then
             ((I.dot1 w'),
@@ -396,22 +396,22 @@ module MTPAbstract(MTPAbstract:sig
     let rec raiseType =
       function
       | (I.Null, V) -> V
-      | (Decl (g, D), V) ->
+      | (Decl (G, D), V) ->
           raiseType
-            (g,
+            (G,
               (Abstract.piDepend
                  (((Whnf.normalizeDec (D, I.id)), I.Maybe), V)))
     let rec raiseFor =
       function
       | (k, Gorig, (F.True as F), w, sc) -> F
       | (k, Gorig, Ex (Dec (name, V), F), w, sc) ->
-          let g = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
-          let g = I.ctxLength g in
+          let G = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
+          let g = I.ctxLength G in
           let s = sc (w, k) in
           let V' = I.EClo (V, s) in
-          let (nw, S) = weaken2 (g, (I.targetFam V), 1) in
+          let (nw, S) = weaken2 (G, (I.targetFam V), 1) in
           let iw = Whnf.invert nw in
-          let Gw = Whnf.strengthen (iw, g) in
+          let Gw = Whnf.strengthen (iw, G) in
           let V'' = Whnf.normalize (V', iw) in
           let V''' = Whnf.normalize ((raiseType (Gw, V'')), I.id) in
           let S''' = S I.Nil in
@@ -423,13 +423,13 @@ module MTPAbstract(MTPAbstract:sig
           let F' = raiseFor ((k + 1), Gorig, F, (I.comp (w, I.shift)), sc') in
           F.Ex ((I.Dec (name, V''')), F')
       | (k, Gorig, All (Prim (Dec (name, V)), F), w, sc) ->
-          let g = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
-          let g = I.ctxLength g in
+          let G = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
+          let g = I.ctxLength G in
           let s = sc (w, k) in
           let V' = I.EClo (V, s) in
-          let (nw, S) = weaken2 (g, (I.targetFam V), 1) in
+          let (nw, S) = weaken2 (G, (I.targetFam V), 1) in
           let iw = Whnf.invert nw in
-          let Gw = Whnf.strengthen (iw, g) in
+          let Gw = Whnf.strengthen (iw, G) in
           let V'' = Whnf.normalize (V', iw) in
           let V''' = Whnf.normalize ((raiseType (Gw, V'')), I.id) in
           let S''' = S I.Nil in
@@ -446,12 +446,12 @@ module MTPAbstract(MTPAbstract:sig
       | (K, (D)::L) -> extend ((I.Decl (K, (BV (D, S.None)))), L)
     let rec makeFor =
       function
-      | (K, w, Head (g, (F, s), d)) ->
+      | (K, w, Head (G, (F, s), d)) ->
           let cf =
             collectGlobalSub
-              (g, s, (createEmptyB d), (function | (_, K') -> K')) in
+              (G, s, (createEmptyB d), (function | (_, K') -> K')) in
           let k = I.ctxLength K in
-          let K' = cf ((I.ctxLength g), K) in
+          let K' = cf ((I.ctxLength G), K) in
           let k' = I.ctxLength K' in
           let (GK, BK) = abstractCtx K' in
           let _ =
@@ -461,12 +461,12 @@ module MTPAbstract(MTPAbstract:sig
           let _ =
             if !Global.doubleCheck then FunTypeCheck.isFor (GK, FK) else () in
           let (GK1, GK2) = split (GK, (k' - k)) in (GK1, (allClo (GK2, FK)))
-      | (K, w, Block ((g, t, d, G2), AF)) ->
+      | (K, w, Block ((G, t, d, G2), AF)) ->
           let k = I.ctxLength K in
           let collect =
             collectGlobalSub
-              (g, t, (createEmptyB d), (function | (_, K') -> K')) in
-          let K' = collect ((I.ctxLength g), K) in
+              (G, t, (createEmptyB d), (function | (_, K') -> K')) in
+          let K' = collect ((I.ctxLength G), K) in
           let k' = I.ctxLength K' in
           let K'' = extend (K', G2) in
           let w' =
@@ -489,20 +489,20 @@ module MTPAbstract(MTPAbstract:sig
           (GK11, F''')
     let rec abstractApproxFor =
       function
-      | Head (g, _, _) as AF ->
-          let (_, F) = makeFor ((convert g), I.id, AF) in F
-      | Block ((g, _, _, _), _) as AF ->
-          let (_, F) = makeFor ((convert g), I.id, AF) in F
-    let ((weaken)(*      | (t, G2), AF *)(* Intermediate Data Structure *)
-      (* y ::= (X , {G2} V)  if {G1, G2 |- X : V
+      | Head (G, _, _) as AF ->
+          let (_, F) = makeFor ((convert G), I.id, AF) in F
+      | Block ((G, _, _, _), _) as AF ->
+          let (_, F) = makeFor ((convert G), I.id, AF) in F
+    (* Intermediate Data Structure *)
+    (* y ::= (X , {G2} V)  if {G1, G2 |- X : V
                                           |G1| = d *)
-      (*
+    (*
        We write {{K}} for the context of K, where EVars and BVars have
        been translated to declarations and their occurrences to BVars.
        We write {{U}}_K, {{S}}_K for the corresponding translation of an
        expression or spine.
 
-       Just like contexts g, any K is implicitly assumed to be
+       Just like contexts G, any K is implicitly assumed to be
        well-formed and in dependency order.
 
        We write  K ||- U  if all EVars and BVars in U are collected in K.
@@ -512,17 +512,17 @@ module MTPAbstract(MTPAbstract:sig
        Collection and abstraction raise Error if there are unresolved
        constraints after simplification.
     *)
-      (* checkEmpty Cnstr = ()
+    (* checkEmpty Cnstr = ()
        raises Error exception if constraints Cnstr cannot be simplified
        to the empty constraint
     *)
-      (* eqEVar X Y = B
+    (* eqEVar X Y = B
        where B iff X and Y represent same variable
     *)
-      (* exists P K = B
+    (* exists P K = B
        where B iff K = K1, Y, K2  s.t. P Y  holds
     *)
-      (* occursInExp (k, U) = DP,
+    (* occursInExp (k, U) = DP,
 
        Invariant:
        If    U in nf
@@ -530,136 +530,143 @@ module MTPAbstract(MTPAbstract:sig
              DP = Maybe   iff k occurs in U some place not as an argument to a Skonst
              DP = Meta    iff k occurs in U and only as arguments to Skonsts
     *)
-      (* no case for Redex, EVar, EClo *)(* no case for FVar *)
-      (* no case for SClo *)(* piDepend ((D,P), V) = Pi ((D,P'), V)
+    (* no case for Redex, EVar, EClo *)
+    (* no case for FVar *)
+    (* no case for SClo *)
+    (* piDepend ((D,P), V) = Pi ((D,P'), V)
        where P' = Maybe if D occurs in V, P' = No otherwise
     *)
-      (* optimize to have fewer traversals? -cs *)(* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
-      (* weaken (depth,  g, a) = (w')
-    *)(* raiseType (g, V) = {{g}} V
+    (* optimize to have fewer traversals? -cs *)
+    (* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
+    (* weaken (depth,  G, a) = (w')
+    *)
+    (* raiseType (G, V) = {{G}} V
 
        Invariant:
-       If g |- V : L
-       then  . |- {{g}} V : L
+       If G |- V : L
+       then  . |- {{G}} V : L
 
        All abstractions are potentially dependent.
     *)
-      (* collectExpW (T, d, g, (U, s), K) = K'
+    (* collectExpW (T, d, G, (U, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- U : V      (U,s) in whnf
+       If    G |- s : G1     G1 |- U : V      (U,s) in whnf
        No circularities in U
              (enforced by extended occurs-check for BVars in Unify)
        and   K' = K, K''
              where K'' contains all EVars and BVars in (U,s)
     *)
-      (* Possible optimization: Calculate also the normal form of the term *)
-      (* optimization possible for d = 0 *)(* hack - should consult cs    -rv *)
-      (* No other cases can occur due to whnf invariant *)
-      (* collectExp (T, d, g, (U, s), K) = K'
+    (* Possible optimization: Calculate also the normal form of the term *)
+    (* optimization possible for d = 0 *)
+    (* hack - should consult cs    -rv *)
+    (* No other cases can occur due to whnf invariant *)
+    (* collectExp (T, d, G, (U, s), K) = K'
 
        same as collectExpW  but  (U,s) need not to be in whnf
     *)
-      (* collectSpine (T, d, g, (S, s), K) = K'
+    (* collectSpine (T, d, G, (S, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- S : V > P
+       If    G |- s : G1     G1 |- S : V > P
        then  K' = K, K''
        where K'' contains all EVars and BVars in (S, s)
      *)
-      (* collectDec (T, d, g, (x:V, s), K) = K'
+    (* collectDec (T, d, G, (x:V, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- V : L
+       If    G |- s : G1     G1 |- V : L
        then  K' = K, K''
        where K'' contains all EVars and BVars in (V, s)
     *)
-      (* collectSub (T, d, g, s, K) = K'
+    (* collectSub (T, d, G, s, K) = K'
 
        Invariant:
-       If    g |- s : G1
+       If    G |- s : G1
        then  K' = K, K''
        where K'' contains all EVars and BVars in s
     *)
-      (* abstractEVar (K, depth, X) = C'
+    (* abstractEVar (K, depth, X) = C'
 
        Invariant:
-       If   g |- X : V
-       and  |g| = depth
+       If   G |- X : V
+       and  |G| = depth
        and  X occurs in K  at kth position (starting at 1)
        then C' = BVar (depth + k)
-       and  {{K}}, g |- C' : V
+       and  {{K}}, G |- C' : V
     *)
-      (* lookupBV (A, i) = k'
+    (* lookupBV (A, i) = k'
 
        Invariant:
 
        If   A ||- V
-       and  g |- V type
-       and  g [x] A |- i : V'
-       then ex a substititution  g x A |- s : g [x] A
-       and  g x A |- k' : V''
-       and  g x A |- V' [s] = V'' : type
+       and  G |- V type
+       and  G [x] A |- i : V'
+       then ex a substititution  G x A |- s : G [x] A
+       and  G x A |- k' : V''
+       and  G x A |- V' [s] = V'' : type
     *)
-      (* lookupBV' I.Null cannot occur by invariant *)
-      (* abstractExpW (K, depth, (U, s)) = U'
+    (* lookupBV' I.Null cannot occur by invariant *)
+    (* abstractExpW (K, depth, (U, s)) = U'
        U' = {{U[s]}}_K
 
        Invariant:
-       If    g |- s : G1     G1 |- U : V    (U,s) is in whnf
+       If    G |- s : G1     G1 |- U : V    (U,s) is in whnf
        and   K is internal context in dependency order
-       and   |g| = depth
+       and   |G| = depth
        and   K ||- U and K ||- V
-       then  {{K}}, g |- U' : V'
+       then  {{K}}, G |- U' : V'
        and   . ||- U' and . ||- V'
        and   U' is in nf
     *)
-      (* s = id *)(* hack - should consult cs   -rv *)
-      (* abstractExp (K, depth, (U, s)) = U'
+    (* s = id *)
+    (* hack - should consult cs   -rv *)
+    (* abstractExp (K, depth, (U, s)) = U'
 
        same as abstractExpW, but (U,s) need not to be in whnf
     *)
-      (* abstractSub (K, depth, s, S) = S'      (implicit raising)
+    (* abstractSub (K, depth, s, S) = S'      (implicit raising)
        S' = {{s}}_K @@ S
 
        Invariant:
-       If   g |- s : G1
-       and  |g| = depth
+       If   G |- s : G1
+       and  |G| = depth
        and  K ||- s
-       then {{K}}, g |- S' : {G1}.W > W   (for some W)
+       then {{K}}, G |- S' : {G1}.W > W   (for some W)
        and  . ||- S'
     *)
-      (* n = 0 *)(* abstractSpine (K, depth, (S, s)) = S'
+    (* n = 0 *)
+    (* abstractSpine (K, depth, (S, s)) = S'
        where S' = {{S[s]}}_K
 
        Invariant:
-       If   g |- s : G1     G1 |- S : V > P
+       If   G |- s : G1     G1 |- S : V > P
        and  K ||- S
-       and  |g| = depth
+       and  |G| = depth
 
-       then {{K}}, g |- S' : V' > P'
+       then {{K}}, G |- S' : V' > P'
        and  . ||- S'
     *)
-      (* abstractDec (K, depth, (x:V, s)) = x:V'
+    (* abstractDec (K, depth, (x:V, s)) = x:V'
        where V = {{V[s]}}_K
 
        Invariant:
-       If   g |- s : G1     G1 |- V : L
+       If   G |- s : G1     G1 |- V : L
        and  K ||- V
-       and  |g| = depth
+       and  |G| = depth
 
-       then {{K}}, g |- V' : L
+       then {{K}}, G |- V' : L
        and  . ||- V'
     *)
-      (* getlevel (V) = L if g |- V : L
+    (* getlevel (V) = L if G |- V : L
 
-       Invariant: g |- V : L' for some L'
+       Invariant: G |- V : L' for some L'
     *)
-      (* checkType (V) = () if g |- V : type
+    (* checkType (V) = () if G |- V : type
 
-       Invariant: g |- V : L' for some L'
+       Invariant: G |- V : L' for some L'
     *)
-      (* abstractCtx (K, V) = V'
+    (* abstractCtx (K, V) = V'
        where V' = {{K}} V
 
        Invariant:
@@ -670,146 +677,159 @@ module MTPAbstract(MTPAbstract:sig
        and  . |- V' : L
        and  . ||- V'
     *)
-      (* abstractGlobalSub (K, s, B) = s'
+    (* abstractGlobalSub (K, s, B) = s'
 
        Invariant:
-       If   K > g   aux context
-       and  g |- s : g'
-       then K |- s' : g'
+       If   K > G   aux context
+       and  G |- s : G'
+       then K |- s' : G'
     *)
-      (* collectGlobalSub (G0, s, B, collect) = collect'
+    (* collectGlobalSub (G0, s, B, collect) = collect'
 
        Invariant:
        If   |- G0 ctx
-       and  |- g ctx
-       and  g |- B tags
-       and  G0 |- s : g
+       and  |- G ctx
+       and  G |- B tags
+       and  G0 |- s : G
        and  collect is a function which maps
                (d, K)  (d expresses the number of parameters in K, |- K aux ctx)
             to K'      (|- K' aux ctx, which collects all EVars in K)
     *)
-      (* no cases for (G0, s, B as I.Decl (_, S.Parameter NONE), collect) *)
-      (* abstractNew ((G0, B0), s, B) = ((g', B'), s')
+    (* no cases for (G0, s, B as I.Decl (_, S.Parameter NONE), collect) *)
+    (* abstractNew ((G0, B0), s, B) = ((G', B'), s')
 
        Invariant:
        If   . |- G0 ctx
        and  G0 |- B0 tags
-       and  G0 |- s : g
-       and  g |- B tags
-       then . |- g' = G1, Gp, G2
-       and  g' |- B' tags
-       and  g' |- s' : g
+       and  G0 |- s : G
+       and  G |- B tags
+       then . |- G' = G1, Gp, G2
+       and  G' |- B' tags
+       and  G' |- s' : G
     *)
-      (* abstractSub (t, B1, (G0, B0), s, B) = ((g', B'), s')
+    (* abstractSub (t, B1, (G0, B0), s, B) = ((G', B'), s')
 
        Invariant:
        If   . |- t : G1
        and  G1 |- B1 tags
 
        and  G0 |- B0 tags
-       and  G0 |- s : g
-       and  g |- B tags
-       then . |- g' = G1, G0, G2
-       and  B' |- g' tags
-       and  g' |- s' : g
+       and  G0 |- s : G
+       and  G |- B tags
+       then . |- G' = G1, G0, G2
+       and  B' |- G' tags
+       and  G' |- s' : G
     *)
-      (* skip'' (K, (g, B)) = K'
+    (* skip'' (K, (G, B)) = K'
 
              Invariant:
-             If   g = x1:V1 .. xn:Vn
-             and  g |- B = <param> ... <param> tags
+             If   G = x1:V1 .. xn:Vn
+             and  G |- B = <param> ... <param> tags
              then  K' = K, BV (x1) .. BV (xn)
           *)
-      (* abstractFor (K, depth, (F, s)) = F'
+    (* abstractFor (K, depth, (F, s)) = F'
        F' = {{F[s]}}_K
 
        Invariant:
-       If    g |- s : G1     G1 |- U : V    (U,s) is in whnf
+       If    G |- s : G1     G1 |- U : V    (U,s) is in whnf
        and   K is internal context in dependency order
-       and   |g| = depth
+       and   |G| = depth
        and   K ||- U and K ||- V
-       then  {{K}}, g |- U' : V'
+       then  {{K}}, G |- U' : V'
        and   . ||- U' and . ||- V'
        and   U' is in nf
     *)
-      (* abstract (Gx, F) = F'
+    (* abstract (Gx, F) = F'
 
        Invariant:
-       If   g, Gx |- F formula
-       then g |- F' = {{Gx}} F formula
+       If   G, Gx |- F formula
+       then G |- F' = {{Gx}} F formula
     *)
-      (* shift g = s'
+    (* shift G = s'
 
        Invariant:
        Forall contexts G0:
-       If   |- G0, g ctx
-       then G0, V, g |- s' : G0, g
+       If   |- G0, G ctx
+       then G0, V, G |- s' : G0, G
     *)
-      (* ctxSub (g, s) = g'
+    (* ctxSub (G, s) = G'
 
        Invariant:
        If   G2 |- s : G1
-       and  G1 |- g ctx
-       then G2 |- g' = g[s] ctx
+       and  G1 |- G ctx
+       then G2 |- G' = G[s] ctx
     *)
-      (* weaken2 (g, a, i, S) = w'
+    (* weaken2 (G, a, i, S) = w'
 
        Invariant:
-       g |- w' : Gw
-       Gw < g
-       g |- S : {Gw} V > V
+       G |- w' : Gw
+       Gw < G
+       G |- S : {Gw} V > V
     *)
-      (* raiseType (g, V) = {{g}} V
+    (* raiseType (G, V) = {{G}} V
 
        Invariant:
-       If g |- V : L
-       then  . |- {{g}} V : L
+       If G |- V : L
+       then  . |- {{G}} V : L
 
        All abstractions are potentially dependent.
     *)
-      (* raiseFor (g, F, w, sc) = F'
+    (* raiseFor (G, F, w, sc) = F'
 
        Invariant:
-       If   G0 |- g ctx
-       and  G0, g, GF |- F for
-       and  G0, {g} GF [...] |- w : G0
-       and  sc maps  (G0, GA |- w : G0, |GA|)  to   (G0, GA, g[..] |- s : G0, g, GF)
-       then G0, {g} GF |- F' for
+       If   G0 |- G ctx
+       and  G0, G, GF |- F for
+       and  G0, {G} GF [...] |- w : G0
+       and  sc maps  (G0, GA |- w : G0, |GA|)  to   (G0, GA, G[..] |- s : G0, G, GF)
+       then G0, {G} GF |- F' for
     *)
-      (* G0, {g}GF[..], g |- s : G0, g, GF *)(* G0, {g}GF[..], g |- V' : type *)
-      (* G0, {g}GF[..], g |- nw : G0, {g}GF[..], Gw
-                                         Gw < g *)
-      (* G0, {g}GF[..], Gw |- iw : G0, {g}GF[..], g *)
-      (* Generalize the invariant for Whnf.strengthen --cs *)(* G0, {g}GF[..], Gw |- V'' = V'[iw] : type*)
-      (* G0, {g}GF[..] |- V''' = {Gw} V'' : type*)(* G0, {g}GF[..], g[..] |- S''' : {Gw} V''[..] > V''[..] *)
-      (* G0, {g}GF[..], g |- s : G0, g, GF *)(* G0, GA |- w' : G0 *)
-      (* G0, GA, g[..] |- s' : G0, g, GF *)(* G0, GA, g[..] |- (g+k'-k). S', s' : G0, g, GF, V *)
-      (*                val g = F.listToCtx (ctxSub (F.ctxToList Gorig, w))
-                  val g = I.ctxLength g
+    (* G0, {G}GF[..], G |- s : G0, G, GF *)
+    (* G0, {G}GF[..], G |- V' : type *)
+    (* G0, {G}GF[..], G |- nw : G0, {G}GF[..], Gw
+                                         Gw < G *)
+    (* G0, {G}GF[..], Gw |- iw : G0, {G}GF[..], G *)
+    (* Generalize the invariant for Whnf.strengthen --cs *)
+    (* G0, {G}GF[..], Gw |- V'' = V'[iw] : type*)
+    (* G0, {G}GF[..] |- V''' = {Gw} V'' : type*)
+    (* G0, {G}GF[..], G[..] |- S''' : {Gw} V''[..] > V''[..] *)
+    (* G0, {G}GF[..], G |- s : G0, G, GF *)
+    (* G0, GA |- w' : G0 *)
+    (* G0, GA, G[..] |- s' : G0, G, GF *)
+    (* G0, GA, G[..] |- (g+k'-k). S', s' : G0, G, GF, V *)
+    (*                val G = F.listToCtx (ctxSub (F.ctxToList Gorig, w))
+                  val g = I.ctxLength G
                   val s = sc (w, k)
-                                         G0, {g}GF[..], g |- s : G0, g, GF *)
-      (* G0, {g}GF[..] |- V' = {g}(V[s]) : type *)(* G0, {g}GF[..] |- S' > {g}(V[s]) > V[s] *)
-      (* G0, GA |- w' : G0 *)(* G0, GA, g[..] |- s' : G0, g, GF *)
-      (* G0, GA, g[..] |- g+k'-k. S', s' : G0, g, GF, V *)
-      (* G0, {g}GF[..], g |- s : G0, g, GF *)(* G0, {g}GF[..], g |- V' : type *)
-      (* G0, {g}GF[..], g |- nw : G0, {g}GF[..], Gw
-                                         Gw < g *)
-      (* G0, {g}GF[..], Gw |- iw : G0, {g}GF[..], g *)
-      (* Generalize the invariant for Whnf.strengthen --cs *)(* G0, {g}GF[..], Gw |- V'' = V'[iw] : type*)
-      (* G0, {g}GF[..] |- V''' = {Gw} V'' : type*)(* G0, {g}GF[..], g[..] |- S''' : {Gw} V''[..] > V''[..] *)
-      (* G0, {g}GF[..], g |- s : G0, g, GF *)(* G0, GA |- w' : G0 *)
-      (* G0, GA, g[..] |- s' : G0, g, GF *)(* G0, GA, g[..] |- (g+k'-k). S', s' : G0, g, GF, V *)
-      (* the other case of F.All (F.Block _, _) is not yet covered *)
-      (* makeFor (g, w, AF) = F'
+                                         G0, {G}GF[..], G |- s : G0, G, GF *)
+    (* G0, {G}GF[..] |- V' = {G}(V[s]) : type *)
+    (* G0, {G}GF[..] |- S' > {G}(V[s]) > V[s] *)
+    (* G0, GA |- w' : G0 *)
+    (* G0, GA, G[..] |- s' : G0, G, GF *)
+    (* G0, GA, G[..] |- g+k'-k. S', s' : G0, G, GF, V *)
+    (* G0, {G}GF[..], G |- s : G0, G, GF *)
+    (* G0, {G}GF[..], G |- V' : type *)
+    (* G0, {G}GF[..], G |- nw : G0, {G}GF[..], Gw
+                                         Gw < G *)
+    (* G0, {G}GF[..], Gw |- iw : G0, {G}GF[..], G *)
+    (* Generalize the invariant for Whnf.strengthen --cs *)
+    (* G0, {G}GF[..], Gw |- V'' = V'[iw] : type*)
+    (* G0, {G}GF[..] |- V''' = {Gw} V'' : type*)
+    (* G0, {G}GF[..], G[..] |- S''' : {Gw} V''[..] > V''[..] *)
+    (* G0, {G}GF[..], G |- s : G0, G, GF *)
+    (* G0, GA |- w' : G0 *)
+    (* G0, GA, G[..] |- s' : G0, G, GF *)
+    (* G0, GA, G[..] |- (g+k'-k). S', s' : G0, G, GF, V *)
+    (* the other case of F.All (F.Block _, _) is not yet covered *)
+    (* makeFor (G, w, AF) = F'
 
        Invariant :
-       If   |- g ctx
-       and  g |- w : g'
-       and  g' |- AF approx for
-       then g'; . |- F' = {EVARS} AF  for
+       If   |- G ctx
+       and  G |- w : G'
+       and  G' |- AF approx for
+       then G'; . |- F' = {EVARS} AF  for
     *)
-      (*        val _ = if !Global.doubleCheck then checkTags (GK, BK) else () *)
-      (* BUG *)) = weaken
+    (*        val _ = if !Global.doubleCheck then checkTags (GK, BK) else () *)
+    (* BUG *)
+    let weaken = weaken
     let raiseType = raiseType
     let abstractSub = abstractSubAll
     let abstractSub' = abstractNew

@@ -1,9 +1,9 @@
-(library 
- (wrapped (transition "Convert SML convention to OCaml convention"))
- 
+(library
+ (wrapped
+  (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.meta)
  (name meta)
- (libraries 
+ (libraries
   base
   compat
   global
@@ -22,9 +22,8 @@
   heuristic
   timing
   solvers
-  m2
- )
- (modules 
+  m2)
+ (modules
   abstract
   data
   filling

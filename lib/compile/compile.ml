@@ -1,11 +1,14 @@
 
+(* Compiler *)
+(* Author: Iliano Cervesato *)
+(* Modified: Jeff Polakow *)
+(* Modified: Carsten Schuermann *)
+(* Modified: Frank Pfenning *)
 module type COMPILE  =
   sig
-    exception Error of
-      ((string)(*! structure CompSyn: COMPSYN !*)(*! structure IntSyn: INTSYN !*)
-      (* Modified: Frank Pfenning *)(* Modified: Carsten Schuermann *)
-      (* Modified: Jeff Polakow *)(* Author: Iliano Cervesato *)
-      (* Compiler *)) 
+    (*! structure IntSyn: INTSYN !*)
+    (*! structure CompSyn: COMPSYN !*)
+    exception Error of string 
     type __Opt = CompSyn.__Opt
     val optimize : __Opt ref
     val install : IntSyn.__ConDecForm -> IntSyn.cid -> unit
@@ -13,41 +16,41 @@ module type COMPILE  =
     val compileCtx : bool -> IntSyn.__Dec IntSyn.__Ctx -> CompSyn.__DProg
     val compileGoal :
       (IntSyn.__Dec IntSyn.__Ctx * IntSyn.__Exp) -> CompSyn.__Goal
-    val compilePsi :
-      bool ->
-        Tomega.__Dec IntSyn.__Ctx ->
-          ((CompSyn.__DProg)(* for the meta theorem prover  --cs *))
+    (* for the meta theorem prover  --cs *)
+    val compilePsi : bool -> Tomega.__Dec IntSyn.__Ctx -> CompSyn.__DProg
   end;;
 
 
 
 
+(* Compilation for indexing with substitution trees *)
+(* Author: Iliano Cervesato *)
+(* Modified: Jeff Polakow, Carsten Schuermann, Larry Greenfield,
+             Roberto Virga, Brigitte Pientka *)
 module Compile(Compile:sig
+                         (*! structure IntSyn' : INTSYN !*)
+                         (*! structure CompSyn' : COMPSYN !*)
+                         (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                          module Whnf : WHNF
                          module TypeCheck : TYPECHECK
                          module SubTree : SUBTREE
                          module CPrint : CPRINT
                          module Print : PRINT
-                         module Names :
-                         ((NAMES)(* Compilation for indexing with substitution trees *)
-                         (* Author: Iliano Cervesato *)
-                         (* Modified: Jeff Polakow, Carsten Schuermann, Larry Greenfield,
-             Roberto Virga, Brigitte Pientka *)
-                         (*! structure IntSyn' : INTSYN !*)
-                         (*! structure CompSyn' : COMPSYN !*)(*! sharing CompSyn'.IntSyn = IntSyn' !*)
-                         (*! sharing Whnf.IntSyn = IntSyn' !*)(* sharing TypeCheck.IntSyn = IntSyn' !*)
+                         (*! sharing Whnf.IntSyn = IntSyn' !*)
+                         (* sharing TypeCheck.IntSyn = IntSyn' !*)
                          (*! sharing SubTree.IntSyn = IntSyn' !*)
                          (*! sharing SubTree.CompSyn = CompSyn' !*)
                          (* CPrint currently unused *)
                          (*! sharing CPrint.IntSyn = IntSyn' !*)
                          (*! sharing CPrint.CompSyn = CompSyn' !*)
                          (* CPrint currently unused *)
-                         (*! sharing Print.IntSyn = IntSyn' !*))
+                         (*! sharing Print.IntSyn = IntSyn' !*)
+                         module Names : NAMES
                        end) : COMPILE =
   struct
-    exception Error of
-      ((string)(* FIX: need to associate errors with occurrences -kw *)
-      (*! sharing Names.IntSyn = IntSyn' !*)) 
+    (*! sharing Names.IntSyn = IntSyn' !*)
+    (* FIX: need to associate errors with occurrences -kw *)
+    exception Error of string 
     module I = IntSyn
     module T = Tomega
     module C = CompSyn
@@ -59,73 +62,61 @@ module Compile(Compile:sig
     type __Opt = CompSyn.__Opt
     let optimize = CompSyn.optimize
     let rec cidFromHead = function | Const c -> c | Def c -> c
+    (* isConstraint(H) = B
+       where B iff H is a constant with constraint status
+    *)
     let rec isConstraint =
       function
-      | Const
-          ((c)(* isConstraint(H) = B
-       where B iff H is a constant with constraint status
-    *))
-          ->
+      | Const c ->
           (match I.constStatus c with | Constraint _ -> true__ | _ -> false__)
       | H -> false__
-    let rec head =
-      function
-      | Root
-          (((h)(* head (A) = H, the head of V
+    (* head (A) = H, the head of V
 
        Invariants:
-       g |- A : type, A enf
+       G |- A : type, A enf
        A = H @ S
-    *)),
-           _)
-          -> h
-      | Pi (_, A) -> head A
+    *)
+    let rec head = function | Root (h, _) -> h | Pi (_, A) -> head A
     let rec seen (i, Vars) = List.exists (function | (d, x) -> x = i) Vars
-    let rec etaSpine =
-      function
-      | (((I.Nil)(* etaSpine (S, n) = true
+    (* etaSpine (S, n) = true
 
    iff S is a spine n;n-1;..;1;nil
 
    no permutations or eta-expansion of arguments are allowed
    *)
-         (*
+    (*
   fun etaSpine' (I.Nil, n) = (n=0)
     | etaSpine' (I.App(U, S), n) =
         if Whnf.etaContract U = n then etaSpine' (S, n-1)
         else false
 
   fun etaSpine (S, n) = etaSpine' (S, n) handle Eta => false
-*)),
-         n) -> n = 0
+*)
+    let rec etaSpine =
+      function
+      | (I.Nil, n) -> n = 0
       | (App (Root (BVar k, I.Nil), S), n) ->
           (k = n) && (etaSpine (S, (n - 1)))
       | (App (A, S), n) -> false__
+    (* collectHead (h, K, Vars, depth) = (K', Vars', replaced)
+     adds to K and Vars as in collectExp and collectSpine
+   *)
     let rec collectHead =
       function
-      | ((BVar
-            ((k)(* collectHead (h, K, Vars, depth) = (K', Vars', replaced)
-     adds to K and Vars as in collectExp and collectSpine
-   *))
-            as h),
-         S, K, Vars, depth) ->
-          if k > depth
-          then
-            (if etaSpine (S, depth)
-             then
-               (if seen ((k - depth), Vars)
-                then (((depth, (BVAR (k - depth))) :: K), Vars, true__)
-                else (K, ((depth, (k - depth)) :: Vars), false__))
-             else (((depth, (BVAR (k - depth))) :: K), Vars, true__))
-          else
-            (((K)
-              (* check if k is in Vars *)(* check if h is an eta-expanded variable *)
-              (* h is a locally bound variable and need not be collected *)),
-              Vars, false__)
-      | (_, _, K, Vars, depth) -> (K, Vars, false__)
-    let rec collectSpine =
-      function
-      | (((I.Nil)(* collectExp (U, K, Vars, depth) = (K', Vars')
+      | ((BVar k as h), S, K, Vars, depth) ->
+          ((if k > depth
+            then
+              (if etaSpine (S, depth)
+               then
+                 (if seen ((k - depth), Vars)
+                  then (((depth, (BVAR (k - depth))) :: K), Vars, true__)
+                  else (K, ((depth, (k - depth)) :: Vars), false__))
+               else (((depth, (BVAR (k - depth))) :: K), Vars, true__))
+            else (K, Vars, false__))
+          (* check if h is an eta-expanded variable *)
+          (* h is a locally bound variable and need not be collected *))
+      | (_, _, K, Vars, depth) -> (K, Vars, false__)(* check if k is in Vars *)
+    (* collectExp (U, K, Vars, depth) = (K', Vars')
       collectSpine (S, K, Vars, depth) = (K', Vars')
 
       Vars' - Vars = all variables seen in U or S
@@ -134,8 +125,10 @@ module Compile(Compile:sig
       U, S in NF
 
       for each new variable (d, k-d) for depth wrt locally bound variables
-   *)),
-         K, Vars, depth) -> (K, Vars)
+   *)
+    let rec collectSpine =
+      function
+      | (I.Nil, K, Vars, depth) -> (K, Vars)
       | (App (U, S), K, Vars, depth) ->
           let (K', Vars') = collectExp (U, K, Vars, depth) in
           collectSpine (S, K', Vars', depth)
@@ -148,32 +141,24 @@ module Compile(Compile:sig
           else collectSpine (S, K', Vars', depth)
       | ((Root (Def k, S) as U), K, Vars, depth) ->
           (((depth, (DEF k)) :: K), Vars)
-      | (Root
-         (((h)(* h is either const or skonst of def*)), S),
-         K, Vars, depth) -> collectSpine (S, K, Vars, depth)
-      | (Lam
-         (((D)(* should be impossible, Mon Apr 15 14:55:15 2002 -fp *)
-          (* | collectExp (I.Uni(L), K, Vars, depth) = (K, Vars) *)),
-          U),
-         K, Vars, depth) ->
-          collectExp
-            (((U)
-              (* don't collect D, since it is ignored in unification *)),
-              K, Vars, (depth + 1))
+      | (Root (h, S), K, Vars, depth) -> collectSpine (S, K, Vars, depth)
+      | (Lam (D, U), K, Vars, depth) -> collectExp (U, K, Vars, (depth + 1))
       | (FgnExp (cs, fe), K, Vars, depth) -> (((depth, FGN) :: K), Vars)
-    let rec shiftHead =
-      function
-      | ((BVar
-            ((k)(* no EVars, since U in NF *)(* shiftHead (H, depth, total) = H'
+      (* don't collect D, since it is ignored in unification *)(* | collectExp (I.Uni(L), K, Vars, depth) = (K, Vars) *)
+      (* should be impossible, Mon Apr 15 14:55:15 2002 -fp *)(* h is either const or skonst of def*)
+    (* no EVars, since U in NF *)
+    (* shiftHead (H, depth, total) = H'
      shiftExp (U, depth, total) = U'
      shiftSpine (S, depth, total) = S'
 
      where each variable k > depth is shifted by +total
 
      Invariants: U is NF, S is in NF
-  *))
-            as h),
-         depth, total) -> if k > depth then I.BVar (k + total) else I.BVar k
+  *)
+    let rec shiftHead =
+      function
+      | ((BVar k as h), depth, total) ->
+          if k > depth then I.BVar (k + total) else I.BVar k
       | ((Const k as h), depth, total) -> h
       | ((Def k as h), depth, total) -> h
       | ((NSDef k as h), depth, total) -> h
@@ -194,12 +179,11 @@ module Compile(Compile:sig
             (((shiftDec (D, depth, total)), P),
               (shiftExp (U, (depth + 1), total)))
       | (FgnExp csfe, depth, total) ->
-          I.FgnExpStd.Map.apply ((csfe)
-            (* calling normalize here because U may not be normal *)
-            (* this is overkill and could be very expensive for deeply nested foreign exps *)
-            (* Tue Apr  2 12:10:24 2002 -fp -bp *))
+          I.FgnExpStd.Map.apply csfe
             (function
              | U -> shiftExp ((Whnf.normalize (U, I.id)), depth, total))
+      (* Tue Apr  2 12:10:24 2002 -fp -bp *)(* this is overkill and could be very expensive for deeply nested foreign exps *)
+      (* calling normalize here because U may not be normal *)
     let rec shiftSpine =
       function
       | (I.Nil, _, _) -> I.Nil
@@ -208,9 +192,7 @@ module Compile(Compile:sig
             ((shiftExp (U, depth, total)), (shiftSpine (S, depth, total)))
     let rec shiftDec (Dec (x, V), depth, total) =
       I.Dec (x, (shiftExp (V, depth, total)))
-    let rec linearHead =
-      function
-      | (((g)(* linearHead (Gl, h, S, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
+    (* linearHead (Gl, h, S, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
 
    if G0, Gl |- h @ S and
       h is a duplicate (i.e. it is either not fully applied pattern
@@ -224,8 +206,10 @@ module Compile(Compile:sig
 
    and
       Eqn accumulates residual equation UnifyEq(Gl, M, N)
-  *)),
-         (BVar k as h), S, left, Vars, depth, total) ->
+  *)
+    let rec linearHead =
+      function
+      | (G, (BVar k as h), S, left, Vars, depth, total) ->
           if k > depth
           then
             (if etaSpine (S, depth)
@@ -237,19 +221,17 @@ module Compile(Compile:sig
                     (I.BVar (k + total)), false__))
              else ((left - 1), Vars, (I.BVar (left + depth)), true__))
           else (left, Vars, h, false__)
-      | (g, (Const k as h), S, left, Vars, depth, total) ->
+      | (G, (Const k as h), S, left, Vars, depth, total) ->
           (left, Vars, h, false__)
-      | (((g)(*
-     | linearHead(g, (h as I.NSDef k), s, S, left, Vars, depth, total) =
+      | (G, (FgnConst (k, ConDec) as h), S, left, Vars, depth, total) ->
+          (left, Vars, h, false__)
+      | (G, (Skonst k as h), S, left, Vars, depth, total) ->
+          (left, Vars, h, false__)(*
+     | linearHead(G, (h as I.NSDef k), s, S, left, Vars, depth, total) =
          (left, Vars, h, false)
-     *)),
-         (FgnConst (k, ConDec) as h), S, left, Vars, depth, total) ->
-          (left, Vars, h, false__)
-      | (g, (Skonst k as h), S, left, Vars, depth, total) ->
-          (left, Vars, h, false__)
-    let rec linearExp =
-      function
-      | (((Gl)(* Def cannot occur *)(* linearExp (Gl, U, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
+     *)
+    (* Def cannot occur *)
+    (* linearExp (Gl, U, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
 
      call linearHead on every embedded root
 
@@ -259,30 +241,28 @@ module Compile(Compile:sig
      Eqn = residual equations
 
      "For any U', U = U' iff (N = U' and Eqn)"
-  *)),
-         (Root ((Def k as h), S) as U), left, Vars, depth, total, eqns) ->
+  *)
+    let rec linearExp =
+      function
+      | (Gl, (Root ((Def k as h), S) as U), left, Vars, depth, total, eqns)
+          ->
           let N = I.Root ((I.BVar (left + depth)), I.Nil) in
           let U' = shiftExp (U, depth, total) in
           ((left - 1), Vars, N, (C.UnifyEq (Gl, U', N, eqns)))
       | (Gl, (Root (h, S) as U), left, Vars, depth, total, eqns) ->
           let (left', Vars', h', replaced) =
             linearHead (Gl, h, S, left, Vars, depth, total) in
-          if replaced
-          then
-            let N = I.Root (h', I.Nil) in
-            let U' = shiftExp (U, depth, total) in
-            (left', Vars, N, (C.UnifyEq (Gl, U', N, eqns)))
-          else
-            (let (((left'')(* h = h' not replaced *)),
-                  Vars'', S', eqns')
-               = linearSpine (Gl, S, left', Vars', depth, total, eqns) in
-             (left'', Vars'', (I.Root (h', S')), eqns'))
-      | (((Gl)(* should be impossible  Mon Apr 15 14:54:42 2002 -fp *)
-         (*
-     | linearExp (Gl, U as I.Uni(L), left, Vars, depth, total, eqns) =
-         (left, Vars, I.Uni(L), eqns)
-     *)),
-         Lam (D, U), left, Vars, depth, total, eqns) ->
+          ((if replaced
+            then
+              let N = I.Root (h', I.Nil) in
+              let U' = shiftExp (U, depth, total) in
+              (left', Vars, N, (C.UnifyEq (Gl, U', N, eqns)))
+            else
+              (let (left'', Vars'', S', eqns') =
+                 linearSpine (Gl, S, left', Vars', depth, total, eqns) in
+               (left'', Vars'', (I.Root (h', S')), eqns')))
+            (* h = h' not replaced *))
+      | (Gl, Lam (D, U), left, Vars, depth, total, eqns) ->
           let D' = shiftDec (D, depth, total) in
           let (left', Vars', U', eqns') =
             linearExp
@@ -291,7 +271,11 @@ module Compile(Compile:sig
       | (Gl, (FgnExp (cs, ops) as U), left, Vars, depth, total, eqns) ->
           let N = I.Root ((I.BVar (left + depth)), I.Nil) in
           let U' = shiftExp (U, depth, total) in
-          ((left - 1), Vars, N, (C.UnifyEq (Gl, U', N, eqns)))
+          ((left - 1), Vars, N, (C.UnifyEq (Gl, U', N, eqns)))(*
+     | linearExp (Gl, U as I.Uni(L), left, Vars, depth, total, eqns) =
+         (left, Vars, I.Uni(L), eqns)
+     *)
+      (* should be impossible  Mon Apr 15 14:54:42 2002 -fp *)
     let rec linearSpine =
       function
       | (Gl, I.Nil, left, Vars, depth, total, eqns) ->
@@ -302,25 +286,24 @@ module Compile(Compile:sig
           let (left'', Vars'', S', eqns'') =
             linearSpine (Gl, S, left', Vars', depth, total, eqns') in
           (left'', Vars'', (I.App (U', S')), eqns'')
-    let rec compileLinearHead
-      (((g)(* SClo(S, s') cannot occur *)(*  compileLinearHead (g, R as I.Root (h, S)) = r
+    (* SClo(S, s') cannot occur *)
+    (*  compileLinearHead (G, R as I.Root (h, S)) = r
 
        r is residual goal
-       if g |- R and R might not be linear
+       if G |- R and R might not be linear
 
        then
 
-           g |- H ResGoal  and H is linear
+           G |- H ResGoal  and H is linear
        and of the form
            (Axists(_ , Axists( _, ....., Axists( _, Assign (E, AuxG)))))
-  *)),
-       (Root (h, S) as R))
-      =
+  *)
+    let rec compileLinearHead (G, (Root (h, S) as R)) =
       let (K, _) = collectExp (R, nil, nil, 0) in
       let left = List.length K in
       let (left', _, R', Eqs) =
         linearExp (I.Null, R, left, nil, 0, left, C.Trivial) in
-      let convertKRes =
+      let rec convertKRes =
         function
         | (ResG, nil, 0) -> ResG
         | (ResG, (d, k)::K, i) ->
@@ -330,214 +313,189 @@ module Compile(Compile:sig
       let r = convertKRes ((C.Assign (R', Eqs)), (List.rev K), left) in
       if (!Global.chatter) >= 6
       then
-        (print "\nClause LH Eqn"; print (CPrint.clauseToString "\t" (g, r)))
+        (print "\nClause LH Eqn"; print (CPrint.clauseToString "\t" (G, r)))
       else ();
       r
-    let rec compileSbtHead
-      (((g)(*  compileSbtHead (g, R as I.Root (h, S)) = r
+    (*  compileSbtHead (G, R as I.Root (h, S)) = r
 
        r is residual goal
-       if g |- R and R might not be linear
+       if G |- R and R might not be linear
 
        then
 
-           g |- H ResGoal  and H is linear
+           G |- H ResGoal  and H is linear
 
-  *)),
-       (Root (h, S) as H))
-      =
+  *)
+    let rec compileSbtHead (G, (Root (h, S) as H)) =
       let (K, _) = collectExp (H, nil, nil, 0) in
       let left = List.length K in
       let (left', _, H', Eqs) =
         linearExp (I.Null, H, left, nil, 0, left, C.Trivial) in
-      let convertKRes =
+      let rec convertKRes =
         function
-        | (g, nil, 0) -> g
-        | (g, (d, k)::K, i) ->
+        | (G, nil, 0) -> G
+        | (G, (d, k)::K, i) ->
             convertKRes
-              ((I.Decl (g, (I.ADec ((SOME ((^) "AVar " Int.toString i)), d)))),
+              ((I.Decl (G, (I.ADec ((SOME ((^) "AVar " Int.toString i)), d)))),
                 K, (i - 1)) in
-      let g' = convertKRes (g, (List.rev K), left) in
-      if (!Global.chatter) >= 6
-      then
-        (print "\nClause Sbt Eqn";
-         print (CPrint.clauseToString "\t" (g', (C.Assign (H', Eqs)))))
-      else ();
-      (((g')
-        (* insert R' together with Eqs and g and sc C.True *)),
-        (SOME (H', Eqs)))
-    let rec compileGoalN arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (((fromCS)(* compileGoalN  fromCS A => g
+      let G' = convertKRes (G, (List.rev K), left) in
+      ((if (!Global.chatter) >= 6
+        then
+          (print "\nClause Sbt Eqn";
+           print (CPrint.clauseToString "\t" (G', (C.Assign (H', Eqs)))))
+        else ();
+        (G', (SOME (H', Eqs))))
+        (* insert R' together with Eqs and G and sc C.True *))
+    (* compileGoalN  fromCS A => g
      if A is a type interpreted as a subgoal in a clause and g is its
      compiled form.  No optimization is performed.
 
      Invariants:
-     If g |- A : type,  A enf
+     If G |- A : type,  A enf
         A has no existential type variables
-     then g |- A ~> g  (A compiles to goal g)
-     and  g |- g  goal
+     then G |- A ~> g  (A compiles to goal g)
+     and  G |- g  goal
 
      Note: we don't accept objects that may introduce assumptions of
      constraint types, unless fromCS = true (the object come from a
      Constraint Solver module.
-  *)),
-         (g, (Root _ as R))) -> C.Atom ((R)(* A = H @ S *))
-      | (fromCS, (g, Pi ((Dec (_, A1), I.No), A2))) ->
-          let ((Ha1)(* A = A1 -> A2 *)) = I.targetHead A1 in
-          let R = compileDClauseN fromCS false__ (g, A1) in
+  *)
+    let rec compileGoalN arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | (fromCS, (G, (Root _ as R))) -> C.Atom R
+      | (fromCS, (G, Pi ((Dec (_, A1), I.No), A2))) ->
+          let Ha1 = I.targetHead A1 in
+          let R = compileDClauseN fromCS false__ (G, A1) in
           let goal =
-            compileGoalN fromCS ((I.Decl (g, (I.Dec (NONE, A1)))), A2) in
-          C.Impl
-            (((R)
-              (* A1 is used to build the proof term, Ha1 for indexing *)
-              (* never optimize when compiling local assumptions *)),
-              A1, Ha1, goal)
-      | (fromCS, (g, Pi (((Dec (_, A1) as D), I.Maybe), A2))) ->
+            compileGoalN fromCS ((I.Decl (G, (I.Dec (NONE, A1)))), A2) in
+          ((C.Impl (R, A1, Ha1, goal))
+            (* A1 is used to build the proof term, Ha1 for indexing *)
+            (* never optimize when compiling local assumptions *))
+      | (fromCS, (G, Pi (((Dec (_, A1) as D), I.Maybe), A2))) ->
           if (notCS fromCS) && (isConstraint (head A1))
           then raise (Error "Constraint appears in dynamic clause position")
-          else
-            C.All
-              (((D)(* A = {x:A1} A2 *)),
-                (compileGoalN fromCS ((I.Decl (g, D)), A2)))
-    let rec compileGoal
-      ((fromCS)(*  compileGoalN _ should not arise by invariants *))
-      (g, (A, s)) = compileGoalN fromCS (g, (Whnf.normalize (A, s)))
+          else C.All (D, (compileGoalN fromCS ((I.Decl (G, D)), A2)))
+      (* A = {x:A1} A2 *)(* A = A1 -> A2 *)(* A = H @ S *)
+    let rec compileGoal fromCS (G, (A, s)) =
+      compileGoalN fromCS (G, (Whnf.normalize (A, s)))
     let rec compileDClauseN arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((fromCS)(* compileDClause A => g (top level)
-     if A is a type interpreted as a clause and g is its compiled form.
-
-     Some optimization is attempted if so flagged.
-
-     Invariants:
-     If g |- A : type, A enf
-        A has no existential type variables
-     then g |- A ~> r  (A compiles to residual goal r)
-     and  g |- r  resgoal
-  *)),
-         opt, (g, (Root (h, S) as R))) ->
+      | (fromCS, opt, (G, (Root (h, S) as R))) ->
           if opt && ((!optimize) = C.LinearHeads)
-          then compileLinearHead (g, R)
+          then compileLinearHead (G, R)
           else
             if (notCS fromCS) && (isConstraint h)
             then
               raise (Error "Constraint appears in dynamic clause position")
             else C.Eq R
-      | (fromCS, opt, (g, Pi (((Dec (_, A1) as D), I.No), A2))) ->
+      | (fromCS, opt, (G, Pi (((Dec (_, A1) as D), I.No), A2))) ->
           C.And
-            ((compileDClauseN ((fromCS)(* A = A1 -> A2 *))
-                opt ((I.Decl (g, D)), A2)), A1,
-              (compileGoalN fromCS (g, A1)))
-      | (fromCS, opt, (g, Pi (((Dec (_, A1) as D), I.Meta), A2))) ->
+            ((compileDClauseN fromCS opt ((I.Decl (G, D)), A2)), A1,
+              (compileGoalN fromCS (G, A1)))
+      | (fromCS, opt, (G, Pi (((Dec (_, A1) as D), I.Meta), A2))) ->
           C.In
-            ((compileDClauseN ((fromCS)
-                (* A = {x: A1} A2, x  meta variable occuring in A2 *))
-                opt ((I.Decl (g, D)), A2)), A1,
-              (compileGoalN fromCS (g, A1)))
-      | (fromCS, opt, (g, Pi ((D, I.Maybe), A2))) ->
-          C.Exists
-            (((D)(* A = {x:A1} A2 *)),
-              (compileDClauseN fromCS opt ((I.Decl (g, D)), A2)))
-    let rec compileSubgoals arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (((fromCS)(*  compileDClauseN _ should not arise by invariants *)
-         (* Compilation of (static) program clauses *)
-         (* compileSubgoals g' (n, Stack, g) = Subgoals  (top level)
+            ((compileDClauseN fromCS opt ((I.Decl (G, D)), A2)), A1,
+              (compileGoalN fromCS (G, A1)))
+      | (fromCS, opt, (G, Pi ((D, I.Maybe), A2))) ->
+          C.Exists (D, (compileDClauseN fromCS opt ((I.Decl (G, D)), A2)))
+      (* A = {x:A1} A2 *)(* A = {x: A1} A2, x  meta variable occuring in A2 *)
+      (* A = A1 -> A2 *)
+    (*  compileDClauseN _ should not arise by invariants *)
+    (* Compilation of (static) program clauses *)
+    (* compileSubgoals G' (n, Stack, G) = Subgoals  (top level)
 
      Invariants:
-     If g : Stack
-        g' ctx where g' = g, GAVar
+     If G : Stack
+        G' ctx where G' = G, GAVar
      then Stack ~> subgoals  (Stack compiles to subgoals)
-     and  g' |- subgoals
-  *)),
-         g', (n, Decl (Stack, I.No), Decl (g, Dec (_, A)))) ->
-          let ((sg)(* g |- A and g' |- A[^(n+1)] *)) =
-            compileSubgoals fromCS g' ((n + 1), Stack, g) in
-          C.Conjunct
-            ((compileGoal fromCS (g', (A, (I.Shift (n + 1))))),
-              (I.EClo (A, (I.Shift (n + 1)))), sg)
-      | (fromCS, g', (n, Decl (Stack, I.Maybe), Decl (g, Dec (_, A1)))) ->
-          compileSubgoals fromCS g' ((n + 1), Stack, g)
-      | (fromCS, g', (n, I.Null, I.Null)) -> C.True
-    let rec compileSClauseN arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (((fromCS)(* compileSClause (Stack, g, A) => (Head, SubGoals) (top-level)
+     and  G' |- subgoals
+  *)
+    let rec compileSubgoals arg__0 arg__1 arg__2 =
+      match (arg__0, arg__1, arg__2) with
+      | (fromCS, G', (n, Decl (Stack, I.No), Decl (G, Dec (_, A)))) ->
+          let sg = compileSubgoals fromCS G' ((n + 1), Stack, G) in
+          ((C.Conjunct
+              ((compileGoal fromCS (G', (A, (I.Shift (n + 1))))),
+                (I.EClo (A, (I.Shift (n + 1)))), sg))
+            (* G |- A and G' |- A[^(n+1)] *))
+      | (fromCS, G', (n, Decl (Stack, I.Maybe), Decl (G, Dec (_, A1)))) ->
+          compileSubgoals fromCS G' ((n + 1), Stack, G)
+      | (fromCS, G', (n, I.Null, I.Null)) -> C.True
+    (* compileSClause (Stack, G, A) => (Head, SubGoals) (top-level)
      if A is a type interpreted as a clause and (Head, SubGoals)
      is its compiled form.
 
      Invariants:
-     If g |- A : type, A enf
+     If G |- A : type, A enf
         A has no existential type variables
-     then g |- A ~> (Head, subgoals) ((A compiles to head and subgoals)
-          where GAVar, g |- Head and GAVar, g |- subgoals
-          and Head is linear and g' = GAVar, g
-  *)),
-         (Stack, g, (Root (h, S) as R))) ->
-          let (g', Head) = compileSbtHead (g, R) in
-          let d = (-) (I.ctxLength g') I.ctxLength g in
-          let Sgoals = compileSubgoals fromCS g' (d, Stack, g) in
-          ((((g')(* g' |- Sgoals  and g' |- ^d : g *)),
-             Head), Sgoals)
-      | (fromCS, (Stack, g, Pi (((Dec (_, A1) as D), I.No), A2))) ->
+     then G |- A ~> (Head, subgoals) ((A compiles to head and subgoals)
+          where GAVar, G |- Head and GAVar, G |- subgoals
+          and Head is linear and G' = GAVar, G
+  *)
+    let rec compileSClauseN arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | (fromCS, (Stack, G, (Root (h, S) as R))) ->
+          let (G', Head) = compileSbtHead (G, R) in
+          let d = (-) (I.ctxLength G') I.ctxLength G in
+          let Sgoals = compileSubgoals fromCS G' (d, Stack, G) in
+          ((((G', Head), Sgoals))
+            (* G' |- Sgoals  and G' |- ^d : G *))
+      | (fromCS, (Stack, G, Pi (((Dec (_, A1) as D), I.No), A2))) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.No)), (I.Decl (g, D)), A2)
-      | (fromCS, (Stack, g, Pi (((Dec (_, A1) as D), I.Meta), A2))) ->
+            ((I.Decl (Stack, I.No)), (I.Decl (G, D)), A2)
+      | (fromCS, (Stack, G, Pi (((Dec (_, A1) as D), I.Meta), A2))) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.Meta)), (I.Decl (g, D)), A2)
-      | (fromCS, (Stack, g, Pi (((Dec (_, A1) as D), I.Maybe), A2))) ->
+            ((I.Decl (Stack, I.Meta)), (I.Decl (G, D)), A2)
+      | (fromCS, (Stack, G, Pi (((Dec (_, A1) as D), I.Maybe), A2))) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.Maybe)), (I.Decl (g, D)), A2)
-    let rec compileDClause opt (g, A) =
-      compileDClauseN I.Ordinary opt (g, (Whnf.normalize (A, I.id)))
-    let rec compileGoal (g, A) =
-      compileGoalN I.Ordinary (g, (Whnf.normalize (A, I.id)))
-    let rec compileCtx
-      ((opt)(* compileCtx g = (g, dPool)
+            ((I.Decl (Stack, I.Maybe)), (I.Decl (G, D)), A2)
+    let rec compileDClause opt (G, A) =
+      compileDClauseN I.Ordinary opt (G, (Whnf.normalize (A, I.id)))
+    let rec compileGoal (G, A) =
+      compileGoalN I.Ordinary (G, (Whnf.normalize (A, I.id)))
+    (* compileCtx G = (G, dPool)
 
      Invariants:
-     If |- g ctx,
-     then |- g ~> dPool  (context g compile to clause pool dPool)
+     If |- G ctx,
+     then |- G ~> dPool  (context G compile to clause pool dPool)
      and  |- dPool  dpool
-  *))
-      (g) =
-      let compileBlock =
+  *)
+    let rec compileCtx opt (G) =
+      let rec compileBlock =
         function
         | (nil, s, (n, i)) -> nil
         | ((Dec (_, V))::Vs, t, (n, i)) ->
             let Vt = I.EClo (V, t) in
-            (::) ((compileDClause opt (g, Vt)), I.id, (I.targetHead Vt))
+            (::) ((compileDClause opt (G, Vt)), I.id, (I.targetHead Vt))
               compileBlock
               (Vs,
                 (I.Dot
                    ((I.Exp (I.Root ((I.Proj ((I.Bidx n), i)), I.Nil))), t)),
                 (n, (i + 1))) in
-      let compileCtx' =
+      let rec compileCtx' =
         function
         | I.Null -> I.Null
-        | Decl (g, Dec (_, A)) ->
+        | Decl (G, Dec (_, A)) ->
             let Ha = I.targetHead A in
             I.Decl
-              ((compileCtx' g),
-                (CompSyn.Dec ((compileDClause opt (g, A)), I.id, Ha)))
-        | Decl (g, BDec (_, (c, s))) ->
-            let (g, L) = I.constBlock c in
-            let dpool = compileCtx' g in
+              ((compileCtx' G),
+                (CompSyn.Dec ((compileDClause opt (G, A)), I.id, Ha)))
+        | Decl (G, BDec (_, (c, s))) ->
+            let (G, L) = I.constBlock c in
+            let dpool = compileCtx' G in
             let n = I.ctxLength dpool in
-            I.Decl
-              (((dpool)(* this is inefficient! -cs *)),
-                (CompSyn.BDec (compileBlock (L, s, (n, 1))))) in
-      C.DProg (g, (compileCtx' g))
-    let rec compilePsi
-      ((opt)(* compile g = (g, dPool)
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (L, s, (n, 1))))))
+              (* this is inefficient! -cs *)) in
+      C.DProg (G, (compileCtx' G))
+    (* compile G = (G, dPool)
 
      Invariants:
-     If |- g ctx,
-     then |- g ~> dPool  (context g compile to clause pool dPool)
+     If |- G ctx,
+     then |- G ~> dPool  (context G compile to clause pool dPool)
      and  |- dPool  dpool
-  *))
-      (Psi) =
-      let compileBlock =
+  *)
+    let rec compilePsi opt (Psi) =
+      let rec compileBlock =
         function
         | (nil, s, (n, i)) -> nil
         | ((Dec (_, V))::Vs, t, (n, i)) ->
@@ -549,22 +507,21 @@ module Compile(Compile:sig
                 (I.Dot
                    ((I.Exp (I.Root ((I.Proj ((I.Bidx n), i)), I.Nil))), t)),
                 (n, (i + 1))) in
-      let compileCtx' =
+      let rec compileCtx' =
         function
         | I.Null -> I.Null
-        | Decl (g, Dec (_, A)) ->
+        | Decl (G, Dec (_, A)) ->
             let Ha = I.targetHead A in
             I.Decl
-              ((compileCtx' g),
-                (CompSyn.Dec ((compileDClause opt (g, A)), I.id, Ha)))
-        | Decl (g, BDec (_, (c, s))) ->
-            let (g, L) = I.constBlock c in
-            let dpool = compileCtx' g in
+              ((compileCtx' G),
+                (CompSyn.Dec ((compileDClause opt (G, A)), I.id, Ha)))
+        | Decl (G, BDec (_, (c, s))) ->
+            let (G, L) = I.constBlock c in
+            let dpool = compileCtx' G in
             let n = I.ctxLength dpool in
-            I.Decl
-              (((dpool)(* this is inefficient! -cs *)),
-                (CompSyn.BDec (compileBlock (L, s, (n, 1))))) in
-      let compilePsi' =
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (L, s, (n, 1))))))
+              (* this is inefficient! -cs *)) in
+      let rec compilePsi' =
         function
         | I.Null -> I.Null
         | Decl (Psi, UDec (Dec (_, A))) ->
@@ -574,20 +531,18 @@ module Compile(Compile:sig
                 (CompSyn.Dec
                    ((compileDClause opt ((T.coerceCtx Psi), A)), I.id, Ha)))
         | Decl (Psi, UDec (BDec (_, (c, s)))) ->
-            let (g, L) = I.constBlock c in
-            let dpool = compileCtx' g in
+            let (G, L) = I.constBlock c in
+            let dpool = compileCtx' G in
             let n = I.ctxLength dpool in
-            I.Decl
-              (((dpool)(* this is inefficient! -cs *)),
-                (CompSyn.BDec (compileBlock (L, s, (n, 1)))))
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (L, s, (n, 1))))))
+              (* this is inefficient! -cs *))
         | Decl (Psi, PDec _) -> I.Decl ((compilePsi' Psi), CompSyn.PDec) in
       C.DProg ((T.coerceCtx Psi), (compilePsi' Psi))
-    let rec installClause
-      ((fromCS)(* installClause fromCS (a, A) = ()
+    (* installClause fromCS (a, A) = ()
      Effect: compiles and installs compiled form of A according to
              the specified compilation strategy
-  *))
-      (a, A) =
+  *)
+    let rec installClause fromCS (a, A) =
       match !C.optimize with
       | C.No ->
           C.sProgInstall
@@ -596,7 +551,7 @@ module Compile(Compile:sig
           C.sProgInstall
             (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
       | C.Indexing ->
-          let ((g, Head), R) =
+          let ((G, Head), R) =
             compileSClauseN fromCS
               (I.Null, I.Null, (Whnf.normalize (A, I.id))) in
           let _ =
@@ -606,22 +561,21 @@ module Compile(Compile:sig
            | NONE -> raise (Error "Install via normal index")
            | SOME (H, Eqs) ->
                SubTree.sProgInstall
-                 ((cidFromHead (I.targetHead A)), (C.Head (H, g, Eqs, a)), R))
-    let rec compileConDec arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (((fromCS)(* compileConDec (a, condec) = ()
+                 ((cidFromHead (I.targetHead A)), (C.Head (H, G, Eqs, a)), R))
+    (* compileConDec (a, condec) = ()
      Effect: install compiled form of condec in program table.
              No effect if condec has no operational meaning
   *)
-         (* Defined constants are currently not compiled *)),
-         (a, ConDec (_, _, _, _, A, I.Type))) -> installClause fromCS (a, A)
+    (* Defined constants are currently not compiled *)
+    let rec compileConDec arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | (fromCS, (a, ConDec (_, _, _, _, A, I.Type))) ->
+          installClause fromCS (a, A)
       | (fromCS, (a, SkoDec (_, _, _, A, I.Type))) ->
           (match !C.optimize with
            | C.No ->
                C.sProgInstall
-                 (((a)
-                   (* we don't use substitution tree indexing for skolem constants yet -bp*)),
-                   (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
+                 (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
            | _ ->
                C.sProgInstall
                  (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A)))))
@@ -631,7 +585,7 @@ module Compile(Compile:sig
               (C.SClause
                  (compileDClauseN I.Clause true__
                     (I.Null, (Whnf.normalize (A, I.id))))))
-      | (_, _) -> ()
+      | (_, _) -> ()(* we don't use substitution tree indexing for skolem constants yet -bp*)
     let rec install fromCS cid =
       compileConDec fromCS (cid, (I.sgnLookup cid))
     let rec sProgReset () = SubTree.sProgReset (); C.sProgReset ()
@@ -640,16 +594,16 @@ module Compile(Compile:sig
 
 
 
-module CPrint =
-  (Make_CPrint)(struct
-                  module Print =
-                    ((Print)(* Now in compsyn.fun *)
-                    (*
+(* Now in compsyn.fun *)
+(*
 structure CompSyn =
   CompSyn (structure Global = Global
            ! structure IntSyn' = IntSyn !*)
-                    (*! structure IntSyn' = IntSyn !*)
-                    (*! structure CompSyn' = CompSyn !*))
+module CPrint =
+  (Make_CPrint)(struct
+                  (*! structure IntSyn' = IntSyn !*)
+                  (*! structure CompSyn' = CompSyn !*)
+                  module Print = Print
                   module Formatter = Formatter
                   module Names = Names
                 end)
@@ -669,8 +623,9 @@ module SubTree =
                  end)
 module Compile =
   (Make_Compile)(struct
-                   module Whnf =
-                     ((Whnf)(*! structure IntSyn' = IntSyn !*)(*! structure CompSyn' = CompSyn !*))
+                   (*! structure IntSyn' = IntSyn !*)
+                   (*! structure CompSyn' = CompSyn !*)
+                   module Whnf = Whnf
                    module TypeCheck = TypeCheck
                    module SubTree = SubTree
                    module CPrint = CPrint
@@ -679,8 +634,8 @@ module Compile =
                  end)
 module Assign =
   (Make_Assign)(struct
-                  module Whnf =
-                    ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  module Whnf = Whnf
                   module Unify = UnifyTrail
                   module Print = Print
                 end);;

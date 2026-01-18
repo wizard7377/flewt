@@ -6,18 +6,29 @@ module type INTSET  =
     val insert : (int * intset) -> intset
     val member : (int * intset) -> bool
     val foldl : ((int * 'b) -> 'b) -> 'b -> intset -> 'b
-  end
+  end (* Persistent red/black trees *)
+(* Specialized for subordination *)
+(* Author: Frank Pfenning *)
+(* Copied from src/table/red-black-tree.fun *)
 module IntSet : INTSET =
   struct
     type rbt =
       | Empty 
-      | Red of
-      (((int)(* considered black *)(* Copied from src/table/red-black-tree.fun *)
-      (* Author: Frank Pfenning *)(* Specialized for subordination *)
-      (* Persistent red/black trees *)) * rbt * rbt) 
+      | Red of (int * rbt * rbt) 
       | Black of (int * rbt * rbt) 
+    (* Representation Invariants *)
+    (*
+     1. The tree is ordered: for every node Red((key1,datum1), left, right) or
+        Black ((key1,datum1), left, right), every key in left is less than
+        key1 and every key in right is greater than key1.
+
+     2. The children of a red node are black (color invariant).
+
+     3. Every path from the root to a leaf has the same number of
+        black nodes, called the black height of the tree.
+  *)
     let rec lookup dict x =
-      let lk =
+      let rec lk =
         function
         | Empty -> false__
         | Red tree -> lk' tree
@@ -51,7 +62,7 @@ module IntSet : INTSET =
           Black (lre, (Red (le, ll, lrl)), (Red (e, lrr, r)))
       | dict -> dict
     let rec insert (dict, x) =
-      let ins =
+      let rec ins =
         function
         | Empty -> Red (x, Empty, Empty)
         | Red (x1, left, right) ->
@@ -68,16 +79,8 @@ module IntSet : INTSET =
       | Red ((_, Red _, _) as t) -> Black t
       | Red ((_, _, Red _) as t) -> Black t
       | dict -> dict
-    type nonrec intset =
-      ((rbt)(* re-color *)(* re-color *)
-      (* ins preserves black height *)(* ins (Black _) or ins (Empty) will be red/black tree *)
-      (* ins (Red _) may violate color invariant at root *)
-      (* val ins : 'a dict -> 'a dict  inserts entry *)
-      (* r is black, deep rotate *)(* r is black, shallow rotate *)
-      (* re-color *)(* re-color *)(* the color invariant may be violated only at the root of left child *)
-      (* restore_left is like restore_right, except *)
-      (* l is black, shallow rotate *)(* l is black, deep rotate *)
-      (* re-color *)(* re-color *)(*
+    (* val restore_right : 'a dict -> 'a dict *)
+    (*
      restore_right (Black(e,l,r)) >=> dict
      where (1) Black(e,l,r) is ordered,
            (2) Black(e,l,r) has black height n,
@@ -86,22 +89,28 @@ module IntSet : INTSET =
      and dict is a re-balanced red/black tree (satisfying all invariants)
      and same black height n.
   *)
-      (* val restore_right : 'a dict -> 'a dict *)(*
-     1. The tree is ordered: for every node Red((key1,datum1), left, right) or
-        Black ((key1,datum1), left, right), every key in left is less than
-        key1 and every key in right is greater than key1.
-
-     2. The children of a red node are black (color invariant).
-
-     3. Every path from the root to a leaf has the same number of
-        black nodes, called the black height of the tree.
-  *)
-      (* Representation Invariants *))
+    (* re-color *)
+    (* re-color *)
+    (* l is black, deep rotate *)
+    (* l is black, shallow rotate *)
+    (* restore_left is like restore_right, except *)
+    (* the color invariant may be violated only at the root of left child *)
+    (* re-color *)
+    (* re-color *)
+    (* r is black, shallow rotate *)
+    (* r is black, deep rotate *)
+    (* val ins : 'a dict -> 'a dict  inserts entry *)
+    (* ins (Red _) may violate color invariant at root *)
+    (* ins (Black _) or ins (Empty) will be red/black tree *)
+    (* ins preserves black height *)
+    (* re-color *)
+    (* re-color *)
+    type nonrec intset = rbt
     let empty = Empty
     let insert = function | (x, t) -> insert (t, x)
     let member = function | (x, t) -> lookup t x
     let rec foldl f a t =
-      let fo =
+      let rec fo =
         function
         | (Empty, r) -> r
         | (Red (x, left, right), r) -> fo (right, (f (x, (fo (left, r)))))

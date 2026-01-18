@@ -1,62 +1,72 @@
 
+(* Timers collecting statistics about Twelf *)
+(* Author: Frank Pfenning *)
 module type TIMERS  =
   sig
-    module Timing :
-    ((TIMING)(* Timers collecting statistics about Twelf *)
-    (* Author: Frank Pfenning *))
-    val parsing :
-      ((Timing.center)(* Programming interface *))
-    val recon : ((Timing.center)(* lexing and parsing *))
-    val abstract :
-      ((Timing.center)(* term reconstruction *))
-    val checking :
-      ((Timing.center)(* abstraction after reconstruction *))
-    val modes :
-      ((Timing.center)(* redundant type-checking *))
-    val subordinate : ((Timing.center)(* mode checking *))
-    val printing :
-      ((Timing.center)(* construction subordination relation *))
-    val compiling : ((Timing.center)(* printing *))
-    val solving : ((Timing.center)(* compilation *))
-    val coverage : ((Timing.center)(* solving queries *))
-    val worlds : ((Timing.center)(* coverage checking *))
-    val ptrecon : ((Timing.center)(* world checking *))
-    val filling :
-      ((Timing.center)(* solving queries using ptskeleon *))
-    val filltabled : ((Timing.center)(* filling in m2 *))
-    val recursion : ((Timing.center)(* filling in m2 *))
-    val splitting : ((Timing.center)(* recursion in m2 *))
-    val inference : ((Timing.center)(* splitting in m2 *))
-    val terminate : ((Timing.center)(* inference in m2 *))
-    val delphin :
-      ((Timing.center)(* checking termination *))
-    val total :
-      ((Timing.sum)(* Warning: time for printing of the answer substitution to a
+    module Timing : TIMING
+    (* Programming interface *)
+    val parsing : Timing.center
+    (* lexing and parsing *)
+    val recon : Timing.center
+    (* term reconstruction *)
+    val abstract : Timing.center
+    (* abstraction after reconstruction *)
+    val checking : Timing.center
+    (* redundant type-checking *)
+    val modes : Timing.center
+    (* mode checking *)
+    val subordinate : Timing.center
+    (* construction subordination relation *)
+    val printing : Timing.center
+    (* printing *)
+    val compiling : Timing.center
+    (* compilation *)
+    val solving : Timing.center
+    (* solving queries *)
+    val coverage : Timing.center
+    (* coverage checking *)
+    val worlds : Timing.center
+    (* world checking *)
+    val ptrecon : Timing.center
+    (* solving queries using ptskeleon *)
+    val filling : Timing.center
+    (* filling in m2 *)
+    val filltabled : Timing.center
+    (* filling in m2 *)
+    val recursion : Timing.center
+    (* recursion in m2 *)
+    val splitting : Timing.center
+    (* splitting in m2 *)
+    val inference : Timing.center
+    (* inference in m2 *)
+    val terminate : Timing.center
+    (* checking termination *)
+    val delphin : Timing.center
+    (* Operational Semantics of Delphin *)
+    (* Warning: time for printing of the answer substitution to a
      query is counted twice here.
   *)
-        (* Operational Semantics of Delphin *))
-    val time :
-      Timing.center ->
-        ('a -> 'b) ->
-          'a ->
-            (('b)(* time center f x = y
+    val total : Timing.sum
+    (* total time *)
+    (* time center f x = y
      if f x = y and time of computing f x is added to center.
      If f x raises an exception, it is re-raised.
   *)
-            (* total time *))
-    val reset : unit -> ((unit)(* External interface *))
-    val check : unit -> ((unit)(* reset above centers *))
-    val show : unit -> ((unit)(* check timer values *))
+    val time : Timing.center -> ('a -> 'b) -> 'a -> 'b
+    (* External interface *)
+    val reset : unit -> unit
+    (* reset above centers *)
+    val check : unit -> unit
+    (* check timer values *)
+    val show : unit -> unit
   end;;
 
 
 
 
-module Timers(Timers:sig
-                       module Timing' :
-                       ((TIMING)(* Timers collecting statistics about Twelf *)
-                       (* Author: Frank Pfenning *))
-                     end) : TIMERS =
+(* Timers collecting statistics about Twelf *)
+(* Author: Frank Pfenning *)
+module Timers(Timers:sig module Timing' : TIMING end) : TIMERS =
   struct
     module Timing = Timing'
     let parsing = Timing.newCenter "Parsing       "
@@ -111,8 +121,6 @@ module Timers(Timers:sig
 
 
 
-module Timers =
-  (Make_Timers)(struct
-                  module Timing' =
-                    ((Timing)(* Timers *)(* Author: Frank Pfenning *))
-                end);;
+(* Timers *)
+(* Author: Frank Pfenning *)
+module Timers = (Make_Timers)(struct module Timing' = Timing end);;

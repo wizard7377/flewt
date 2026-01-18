@@ -1,9 +1,9 @@
 
+(* Normalizer for Delphin meta level *)
+(* Author: Carsten Schuermann *)
 module type NORMALIZE  =
   sig
-    module IntSyn :
-    ((INTSYN)(* Normalizer for Delphin meta level *)
-    (* Author: Carsten Schuermann *))
+    module IntSyn : INTSYN
     module Tomega : TOMEGA
     val normalizeFor : (Tomega.__For * Tomega.__Sub) -> Tomega.__For
     val normalizePrg : (Tomega.__Prg * Tomega.__Sub) -> Tomega.__Prg
@@ -14,12 +14,12 @@ module type NORMALIZE  =
 
 
 
+(* Internal syntax for functional proof term calculus *)
+(* Author: Carsten Schuermann *)
 module Normalize(Normalize:sig
                              module IntSyn' : INTSYN
                              module Tomega' : TOMEGA
-                             module Whnf :
-                             ((WHNF)(* Internal syntax for functional proof term calculus *)
-                             (* Author: Carsten Schuermann *))
+                             module Whnf : WHNF
                            end) : NORMALIZE =
   struct
     module IntSyn = IntSyn'
@@ -70,8 +70,8 @@ module Normalize(Normalize:sig
       | Dot (Prg (P), s) ->
           T.Dot ((T.Prg (normalizePrg (P, T.id))), (normalizeSub s))
       | Dot (F, s) -> T.Dot (F, (normalizeSub s))
-    let ((normalizeFor)(*      | normalizeFor (T.FVar (g, r))   think about it *)
-      (* normalizePrg (P, t) = (P', t')
+    (*      | normalizeFor (T.FVar (G, r))   think about it *)
+    (* normalizePrg (P, t) = (P', t')
 
        Invariant:
        If   Psi' |- P :: F
@@ -85,13 +85,13 @@ module Normalize(Normalize:sig
        and  Psi |- P [t] == P' [t'] : F [t]
        and  Psi |- P' [t'] :nf: F [t]
     *)
-      (*      | normalizePrg (T.PairBlock (B, P'), t) =
+    (*      | normalizePrg (T.PairBlock (B, P'), t) =
           T.PairBlock (B, normalizePrg P') *)
-      (* Clearly, the redex should be removed here *)
-      (*
+    (* Clearly, the redex should be removed here *)
+    (*
     and normalizeDec (T.UDec D, t) = T.UDec (I.decSub (D, T.coerceSub t))
-      | normalizeDec (T.BDec (k, t1), t2) = *))
-      = normalizeFor
+      | normalizeDec (T.BDec (k, t1), t2) = *)
+    let normalizeFor = normalizeFor
     let normalizePrg = normalizePrg
     let normalizeSpine = normalizeSpine
     let normalizeSub = normalizeSub

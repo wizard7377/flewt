@@ -14,29 +14,25 @@ module TypecheckEL =
          { var; arg = U; body = V; arg = U; body = V; body = V }) ->
           check_exp sgn (C.push ctx (var, U)) M V
       | (sgn, ctx, Root (Const con, S), V) ->
-          let foc
-            ((exp)(* pull some common code out of the following case *))
-            =
+          let rec foc exp =
             let U = focus sgn ctx S exp in
             if equiv_exp sgn U V
             then ()
             else raise (Check "check_exp: exps not equivalent") in
-          (match Sig.lookup sgn con with
-           | Decl decl -> foc ((fun r -> r.exp) decl)
-           | Def def -> foc ((fun r -> r.exp) def)
-           | Abbrev abbrev ->
-               raise
-                 (Fail (("check_exp: abbrev")
-                    (* why does this fail?*))))
+          (((match Sig.lookup sgn con with
+             | Decl decl -> foc ((fun r -> r.exp) decl)
+             | Def def -> foc ((fun r -> r.exp) def)
+             | Abbrev abbrev -> raise (Fail "check_exp: abbrev")))
+            (* why does this fail?*)(* pull some common code out of the following case *))
       | (sgn, ctx, Root (BVar i, S), V) ->
-          (match C.lookup ctx (i - 1) with
-           | SOME (_, A) ->
-               let ((U)(* DeBruijn indices start at 1 *)) =
-                 focus sgn ctx S (apply_exp (Shift i) A) in
-               if equiv_exp sgn U V
-               then ()
-               else raise (Fail_exp2 ("check_exp: Root,BVar", U, V))
-           | NONE -> raise (Check "focus: var out of bounds"))
+          (((match C.lookup ctx (i - 1) with
+             | SOME (_, A) ->
+                 let U = focus sgn ctx S (apply_exp (Shift i) A) in
+                 if equiv_exp sgn U V
+                 then ()
+                 else raise (Fail_exp2 ("check_exp: Root,BVar", U, V))
+             | NONE -> raise (Check "focus: var out of bounds")))
+          (* DeBruijn indices start at 1 *))
       | (sgn, ctx, Pi
          { var; arg = A1; body = A2; arg = A1; body = A2; body = A2 },
          (Uni _ as uni)) ->
@@ -54,10 +50,7 @@ module TypecheckEL =
     let rec check sgn (E1) (E2) = check_exp sgn C.empty E1 E2
     let rec apply_exp arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((_)(* -------------------------------------------------------------------------- *)
-         (*  Substitutions                                                             *)
-         (* -------------------------------------------------------------------------- *)),
-         (Uni _ as uni)) -> uni
+      | (_, (Uni _ as uni)) -> uni
       | (sub, Pi
          { var; arg = U; depend; body = V; arg = U; depend; body = V; 
            depend; body = V; body = V })
@@ -99,28 +92,19 @@ module TypecheckEL =
     let rec push_sub s = Dot (one, (compose s shift))
     let rec reduce arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | ((Root
-            (((_)(* -------------------------------------------------------------------------- *)
-             (*  Beta                                                                      *)
-             (* -------------------------------------------------------------------------- *)),
-             _)
-            as exp),
-         Nil) -> exp
+      | ((Root (_, _) as exp), Nil) -> exp
       | (Lam { body = M }, App (M', S)) ->
           reduce (apply_exp (Dot (M', id_sub)) M) S
       | (E, S) -> raise (Fail_exp_spine ("reduce: bad case: head: ", E, S))
     let rec equiv_exp arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (((sgn)(* -------------------------------------------------------------------------- *)
-         (*  Equivalence wrt Definitions                                               *)
-         (* -------------------------------------------------------------------------- *)),
-         Uni u1, Uni u2) -> u1 = u2
-      | (sgn, Pi { arg = u1; body = V1; body = V1 }, Pi
-         { arg = u2; body = V2; body = V2 }) ->
-          (equiv_exp sgn u1 u2) && (equiv_exp sgn V1 V2)
+      | (sgn, Uni u1, Uni u2) -> u1 = u2
+      | (sgn, Pi { arg = U1; body = V1; body = V1 }, Pi
+         { arg = U2; body = V2; body = V2 }) ->
+          (equiv_exp sgn U1 U2) && (equiv_exp sgn V1 V2)
       | (sgn, Lam { body = U }, Lam { body = U' }) -> equiv_exp sgn U U'
-      | (sgn, Root (BVar i, s1), Root (BVar i', s2)) ->
-          (i = i') && (equiv_spine sgn s1 s2)
+      | (sgn, Root (BVar i, S1), Root (BVar i', S2)) ->
+          (i = i') && (equiv_spine sgn S1 S2)
       | (sgn, (Root (Const c, S) as exp), (Root (Const c', S') as exp')) ->
           if c = c'
           then equiv_spine sgn S S'
@@ -160,12 +144,12 @@ module TypecheckEL =
       | (sgn, App (E, S), App (E', S')) ->
           (equiv_exp sgn E E') && (equiv_spine sgn S S')
       | (_, _, _) -> false__
+    (* -------------------------------------------------------------------------- *)
+    (*  Signatures                                                                *)
+    (* -------------------------------------------------------------------------- *)
     let rec check_dec =
       function
-      | (((c)(* -------------------------------------------------------------------------- *)
-         (*  Signatures                                                                *)
-         (* -------------------------------------------------------------------------- *)),
-         Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->
+      | (c, Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->
           let uni' = Uni uni in
           let exp' = eta_expand (exp, uni') in
           (check exp' uni';
@@ -188,20 +172,19 @@ module TypecheckEL =
            def; uni; uni })
           ->
           let uni' = Uni uni in
-          let ((exp')(*         val exp' = eta_expand(exp,uni') *)
-            (*         val def' = eta_expand(def,exp') *)) =
-            exp in
+          let exp' = exp in
           let def' = def in
-          (check exp' uni';
-           check def' exp';
-           Sig.insert
-             (id, (Abbrev { id; name; exp = exp'; def = def'; uni })))
+          (((check exp' uni';
+             check def' exp';
+             Sig.insert
+               (id, (Abbrev { id; name; exp = exp'; def = def'; uni }))))
+            (*         val exp' = eta_expand(exp,uni') *)
+            (*         val def' = eta_expand(def,exp') *))
     let rec check_signat' decs =
       List.app
         (function
-         | (c, dec) as decl ->
-             check_dec ((decl)
-               (* L.printl ("checking: " ^ name dec ); *)))
+         | (c, dec) as decl -> ((check_dec decl)
+             (* L.printl ("checking: " ^ name dec ); *)))
         decs
     let rec check_signat decs =
       Timers.time Timers.checking check_signat' decs

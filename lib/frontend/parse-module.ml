@@ -1,15 +1,14 @@
 
+(* Parsing modules *)
+(* Author: Kevin Watkins *)
 module type PARSE_MODULE  =
   sig
-    module ModExtSyn :
-    ((MODEXTSYN)(* Parsing modules *)(* Author: Kevin Watkins *)
-    (*! structure Parsing : PARSING !*))
-    val parseSigDef' :
-      ((ModExtSyn.sigdef)(* val parseSigExp' : ModExtSyn.sigexp Parsing.recparser *))
-        Parsing.recparser
-    val parseStructDec' :
-      ((ModExtSyn.structdec)(* val parseStructExp' : ModExtSyn.strexp Parsing.parser *))
-        Parsing.recparser
+    (*! structure Parsing : PARSING !*)
+    module ModExtSyn : MODEXTSYN
+    (* val parseSigExp' : ModExtSyn.sigexp Parsing.recparser *)
+    val parseSigDef' : ModExtSyn.sigdef Parsing.recparser
+    (* val parseStructExp' : ModExtSyn.strexp Parsing.parser *)
+    val parseStructDec' : ModExtSyn.structdec Parsing.recparser
     val parseInclude' : ModExtSyn.sigexp Parsing.recparser
     val parseOpen' : ModExtSyn.strexp Parsing.parser
   end;;
@@ -17,20 +16,19 @@ module type PARSE_MODULE  =
 
 
 
+(* Parsing modules *)
+(* Author: Kevin Watkins *)
 module ParseModule(ParseModule:sig
-                                 module ModExtSyn' : MODEXTSYN
-                                 module ParseTerm :
-                                 ((PARSE_TERM)(* Parsing modules *)
-                                 (* Author: Kevin Watkins *)
                                  (*! structure Paths : PATHS !*)
                                  (*! structure Parsing' : PARSING !*)
                                  (*! sharing Parsing'.Lexer.Paths = Paths !*)
-                                 (*! sharing ModExtSyn'.Paths = Paths !*))
+                                 module ModExtSyn' : MODEXTSYN
+                                 (*! sharing ModExtSyn'.Paths = Paths !*)
+                                 module ParseTerm : PARSE_TERM
                                end) : PARSE_MODULE =
   struct
-    module ModExtSyn =
-      ((ModExtSyn')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ModExtSyn = ModExtSyn'
     module L = Lexer
     module LS = Lexer.Stream
     module E = ModExtSyn

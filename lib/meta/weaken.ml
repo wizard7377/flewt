@@ -1,10 +1,10 @@
 
+(* Weakening substitutions *)
+(* Author: Carsten Schuermann *)
 module type WEAKEN  =
   sig
-    val strengthenExp :
-      (IntSyn.__Exp * IntSyn.__Sub) ->
-        ((IntSyn.__Exp)(*! structure IntSyn : INTSYN !*)
-        (* Author: Carsten Schuermann *)(* Weakening substitutions *))
+    (*! structure IntSyn : INTSYN !*)
+    val strengthenExp : (IntSyn.__Exp * IntSyn.__Sub) -> IntSyn.__Exp
     val strengthenSpine : (IntSyn.__Spine * IntSyn.__Sub) -> IntSyn.__Spine
     val strengthenCtx :
       (IntSyn.dctx * IntSyn.__Sub) -> (IntSyn.dctx * IntSyn.__Sub)
@@ -15,13 +15,15 @@ module type WEAKEN  =
 
 
 
+(* Weakening substitutions *)
+(* Author: Carsten Schuermann *)
 module Weaken(Weaken:sig
-                       module Whnf :
-                       ((WHNF)(* Weakening substitutions *)
-                       (* Author: Carsten Schuermann *)
-                       (*! structure IntSyn' : INTSYN !*))
+                       (*! structure IntSyn' : INTSYN !*)
+                       module Whnf : WHNF
                      end) : WEAKEN =
   struct
+    (*! sharing Whnf.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
     module I = IntSyn
     let rec strengthenExp (U, s) =
       Whnf.normalize ((Whnf.cloInv (U, s)), I.id)
@@ -30,38 +32,37 @@ module Weaken(Weaken:sig
     let rec strengthenCtx =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (g, D), s) ->
-          let (g', s') = strengthenCtx (g, s) in
-          ((I.Decl (g', (strengthenDec (D, s')))), (I.dot1 s'))
+      | (Decl (G, D), s) ->
+          let (G', s') = strengthenCtx (G, s) in
+          ((I.Decl (G', (strengthenDec (D, s')))), (I.dot1 s'))
     let rec strengthenSub (s, t) = Whnf.compInv (s, t)
     let rec strengthenSpine =
       function
       | (I.Nil, t) -> I.Nil
       | (App (U, S), t) ->
           I.App ((strengthenExp (U, t)), (strengthenSpine (S, t)))
-    let ((strengthenExp)(*! sharing Whnf.IntSyn = IntSyn' !*)(*! structure IntSyn = IntSyn' !*)
-      (* strengthenExp (U, s) = U'
+    (* strengthenExp (U, s) = U'
 
        Invariant:
-       If   g |- s : g'
-       and  g |- U : V
-       then g' |- U' = U[s^-1] : V [s^-1]
+       If   G |- s : G'
+       and  G |- U : V
+       then G' |- U' = U[s^-1] : V [s^-1]
     *)
-      (* strengthenDec (x:V, s) = x:V'
+    (* strengthenDec (x:V, s) = x:V'
 
        Invariant:
-       If   g |- s : g'
-       and  g |- V : L
-       then g' |- V' = V[s^-1] : L
+       If   G |- s : G'
+       and  G |- V : L
+       then G' |- V' = V[s^-1] : L
     *)
-      (* strengthenCtx (g, s) = (g', s')
+    (* strengthenCtx (G, s) = (G', s')
 
-       If   G0 |- g ctx
+       If   G0 |- G ctx
        and  G0 |- s G1
-       then G1 |- g' = g[s^-1] ctx
-       and  G0 |- s' : G1, g'
-    *))
-      = strengthenExp
+       then G1 |- G' = G[s^-1] ctx
+       and  G0 |- s' : G1, G'
+    *)
+    let strengthenExp = strengthenExp
     let strengthenSpine = strengthenSpine
     let strengthenDec = strengthenDec
     let strengthenCtx = strengthenCtx

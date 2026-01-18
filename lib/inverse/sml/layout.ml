@@ -1,73 +1,57 @@
 
-module type LAYOUT  =
-  sig
-    type nonrec layout(* Copyright (C) 1999-2002 Henry Cejtin, Matthew Fluet, Suresh
+(* Changes by Tom 7 in 2003- *)
+(* Copyright (C) 1999-2002 Henry Cejtin, Matthew Fluet, Suresh
  *    Jagannathan, and Stephen Weeks.
  *
  * MLton is released under the GNU General Public License (GPL).
  * Please see the file MLton-LICENSE for license information.
  *)
-    (* Changes by Tom 7 in 2003- *)
-    val align :
-      layout list ->
-        ((layout)(* layout the objects on separate lines*))
+module type LAYOUT  =
+  sig
+    type nonrec layout
+    (* layout the objects on separate lines*)
+    val align : layout list -> layout
     val alignPrefix : (layout list * string) -> layout
     val array : layout array -> layout
-    val detailed :
-      ((bool)(* Whether or not to print things in detail -
+    (* Whether or not to print things in detail -
        * routines that create layouts should use this flag to decide
        * how detailed to print.
-       *))
-        ref
+       *)
+    val detailed : bool ref
     val empty : layout
     val ignore : 'a -> layout
     val isEmpty : layout -> bool
-    val mayAlign :
-      layout list ->
-        ((layout)(* layout the objects on separate lines, if necessary *))
+    (* layout the objects on separate lines, if necessary *)
+    val mayAlign : layout list -> layout
     val namedRecord : (string * (string * layout) list) -> layout
-    val indent :
-      int ->
-        layout -> ((layout)(* indent the entire object *))
+    (* indent the entire object *)
+    val indent : int -> layout -> layout
     val list : layout list -> layout
-    val listex :
-      string ->
-        string ->
-          string ->
-            layout list ->
-              ((layout)(* give open, close, sep *))
-    val paren : layout -> ((layout)(*  what is this? *))
-    val print :
-      (layout * (string -> unit)) ->
-        ((unit)(* print the object *))
+    (* give open, close, sep *)
+    val listex : string -> string -> string -> layout list -> layout
+    (*  what is this? *)
+    val paren : layout -> layout
+    (* print the object *)
+    val print : (layout * (string -> unit)) -> unit
     val record : (string * layout) list -> layout
-    val recordex :
-      string ->
-        (string * layout) list ->
-          ((layout)(* give separator, ie "=" or ":" *))
+    (* give separator, ie "=" or ":" *)
+    val recordex : string -> (string * layout) list -> layout
     val schemeList : layout list -> layout
-    val separate :
-      (layout list * string) ->
-        ((layout)(* put string between elements *)) list
-    val separateLeft :
-      (layout list * string) ->
-        ((layout)(* adds string at beginning of all objects except first *))
-          list
-    val separateRight :
-      (layout list * string) ->
-        ((layout)(* adds string at the end of all objects except last *))
-          list
-    val seq :
-      layout list ->
-        ((layout)(* layout the objects on the same line *))
-    val str :
-      string ->
-        ((layout)(* convert a string to a layout object *))
+    (* put string between elements *)
+    val separate : (layout list * string) -> layout list
+    (* adds string at beginning of all objects except first *)
+    val separateLeft : (layout list * string) -> layout list
+    (* adds string at the end of all objects except last *)
+    val separateRight : (layout list * string) -> layout list
+    (* layout the objects on the same line *)
+    val seq : layout list -> layout
+    (* convert a string to a layout object *)
+    val str : string -> layout
     val switch :
       < detailed: 'a -> layout  ;normal: 'a -> layout   >  -> 'a -> layout
     val tostring : layout -> string
-    val tostringex :
-      int -> layout -> ((string)(* give maximum width *))
+    (* give maximum width *)
+    val tostringex : int -> layout -> string
     val tuple : layout list -> layout
     val tuple2 : (('a -> layout) * ('b -> layout)) -> ('a * 'b) -> layout
     val tuple3 :
@@ -85,15 +69,16 @@ module type LAYOUT  =
 
 
 
-module Layout : LAYOUT =
-  struct
-    let ((detailed)(* Copyright (C) 1999-2002 Henry Cejtin, Matthew Fluet, Suresh
+(* Copyright (C) 1999-2002 Henry Cejtin, Matthew Fluet, Suresh
  *    Jagannathan, and Stephen Weeks.
  *
  * MLton is released under the GNU General Public License (GPL).
  * Please see the file MLton-LICENSE for license information.
  *)
-      (*    structure Out = Outstream0   *)) = ref false__
+module Layout : LAYOUT =
+  struct
+    (*    structure Out = Outstream0   *)
+    let detailed = ref false__
     let rec switch { detailed = d; normal = n; normal = n } x =
       if !detailed then d x else n x
     type t =
@@ -118,20 +103,7 @@ module Layout : LAYOUT =
       match len with
       | 0 -> empty
       | _ -> T { length = len; tree = (Sequence ts) }
-    let rec make force ts =
-      let loop ts =
-        match ts with
-        | [] -> (ts, 0)
-        | t::ts ->
-            let (ts, n) = loop ts in
-            (match length t with
-             | 0 -> (ts, n)
-             | n' -> ((t :: ts), ((n + n') + 1))) in
-      let (ts, len) = loop ts in
-      match len with
-      | 0 -> empty
-      | _ -> T { length = (len - 1); tree = (Align { force; rows = ts }) }
-    let ((align)(* XXX mayalign should do 'partial spill', so that a long list of
+    (* XXX mayalign should do 'partial spill', so that a long list of
        short elements displays as
        [1, 2, 3
         4, 5, 6]
@@ -143,8 +115,21 @@ module Layout : LAYOUT =
         3,
         4,
         5,
-        6] *))
-      = make true__
+        6] *)
+    let rec make force ts =
+      let rec loop ts =
+        match ts with
+        | [] -> (ts, 0)
+        | t::ts ->
+            let (ts, n) = loop ts in
+            (match length t with
+             | 0 -> (ts, n)
+             | n' -> ((t :: ts), ((n + n') + 1))) in
+      let (ts, len) = loop ts in
+      match len with
+      | 0 -> empty
+      | _ -> T { length = (len - 1); tree = (Align { force; rows = ts }) }
+    let align = make true__
     let mayAlign = make false__
     let rec indent (t, n) = T { length = (length t); tree = (Indent (t, n)) }
     let (tabSize : int) = 8
@@ -153,31 +138,7 @@ module Layout : LAYOUT =
       (concat
          [CharVector.tabulate ((n div tabSize), (K '\t'));
          CharVector.tabulate ((n mod__ tabSize), (K ' '))] : string)
-    let rec layout_print
-      {
-        tree =
-          (tree :
-            ((t)(*
-    fun tostring t =
-        let
-            fun loop (T {tree, ...}, accum) =
-                case tree of
-                    Empty => accum
-                  | String s => s :: accum
-                  | Sequence ts => fold (ts, accum, loop)
-                  | Align {rows, ...} =>
-                        (case rows of
-                             [] => accum
-                           | t :: ts =>
-                                 fold (ts, loop (t, accum), fn (t, ac) =>
-                                       loop (t, " " :: ac)))
-                  | Indent (t, _) => loop (t, accum)
-        in
-            String.concat (rev (loop (t, [])))
-        end
-*)
-            (* doesn't include newlines. new version below - tom *)
-            (*
+    (*
     fun outputTree (t, out) =
         let val print = Out.outputc out
             fun loop (T {tree, length}) =
@@ -200,15 +161,35 @@ module Layout : LAYOUT =
                                  ; print ")")
         in loop t
         end
-*)));
-        print = (print : string -> unit); lineWidth = (lineWidth : int);
-        print = (print : string -> unit); lineWidth = (lineWidth : int);
-        lineWidth = (lineWidth : int) }
+*)
+    (* doesn't include newlines. new version below - tom *)
+    (*
+    fun tostring t =
+        let
+            fun loop (T {tree, ...}, accum) =
+                case tree of
+                    Empty => accum
+                  | String s => s :: accum
+                  | Sequence ts => fold (ts, accum, loop)
+                  | Align {rows, ...} =>
+                        (case rows of
+                             [] => accum
+                           | t :: ts =>
+                                 fold (ts, loop (t, accum), fn (t, ac) =>
+                                       loop (t, " " :: ac)))
+                  | Indent (t, _) => loop (t, accum)
+        in
+            String.concat (rev (loop (t, [])))
+        end
+*)
+    let rec layout_print
+      { tree = (tree : t); print = (print : string -> unit);
+        lineWidth = (lineWidth : int); print = (print : string -> unit);
+        lineWidth = (lineWidth : int); lineWidth = (lineWidth : int) }
       =
-      let newline ((())(*val _ = outputTree (t, out)*)) =
-        print "\n" in
-      let outputCompact (t, { at; printAt; printAt }) =
-        let loop (T { tree }) =
+      let rec newline () = print "\n" in
+      let rec outputCompact (t, { at; printAt; printAt }) =
+        let rec loop (T { tree }) =
           match tree with
           | Empty -> ()
           | String s -> print s
@@ -220,74 +201,72 @@ module Layout : LAYOUT =
                | t::ts ->
                    (loop t; app (function | t -> (print " "; loop t)) ts)) in
         let at = (+) at length t in loop t; { at; printAt = at } in
-      let loop
+      let rec loop
         ((T { length; tree; tree } as t),
          ({ at; printAt; printAt } as state))
         =
-        let prePrint () =
-          if at >= printAt
-          then ()
-          else
-            print
-              (blanks (printAt - ((at)(* can't back up *)))) in
-        match tree with
-        | Empty -> ((state)
-            (*Out.print (concat ["at ", Int.toString at,
+        let rec prePrint () =
+          ((if at >= printAt then () else print (blanks (printAt - at)))
+          (* can't back up *)) in
+        ((match tree with
+          | Empty -> state
+          | Indent (t, n) -> loop (t, { at; printAt = (printAt + n) })
+          | Sequence ts -> fold (ts, state, loop)
+          | String s ->
+              (prePrint ();
+               print s;
+               (let at = printAt + length in { at; printAt = at }))
+          | Align { force; rows; rows } ->
+              if (not force) && ((printAt + length) <= lineWidth)
+              then (prePrint (); outputCompact (t, state))
+              else
+                (match rows with
+                 | [] -> state
+                 | t::ts ->
+                     fold
+                       (ts, (loop (t, state)),
+                         (function
+                          | (t, _) ->
+                              (newline (); loop (t, { at = 0; printAt }))))))
+          (*Out.print (concat ["at ", Int.toString at,
                 * "  printAt ", Int.toString printAt,
                 * "\n"]);
                 *)
-            (*outputTree (t, Out.error)*))
-        | Indent (t, n) -> loop (t, { at; printAt = (printAt + n) })
-        | Sequence ts -> fold (ts, state, loop)
-        | String s ->
-            (prePrint ();
-             print s;
-             (let at = printAt + length in { at; printAt = at }))
-        | Align { force; rows; rows } ->
-            if (not force) && ((printAt + length) <= lineWidth)
-            then (prePrint (); outputCompact (t, state))
-            else
-              (match rows with
-               | [] -> state
-               | t::ts ->
-                   fold
-                     (ts, (loop (t, state)),
-                       (function
-                        | (t, _) ->
-                            (newline (); loop (t, { at = 0; printAt }))))) in
-      loop (tree, { at = 0; printAt = 0 }); ()
+          (*outputTree (t, Out.error)*)) in
+      ((loop (tree, { at = 0; printAt = 0 }); ())
+        (*val _ = outputTree (t, out)*))
     let (defaultWidth : int) = 80
     let rec tostringex wid l =
       let acc = (ref nil : string list ref) in
-      let pr s = (!) ((::) (acc := s)) acc in
+      let rec pr s = (!) ((::) (acc := s)) acc in
       layout_print { tree = l; lineWidth = wid; print = pr };
       String.concat (rev (!acc))
     let tostring = tostringex defaultWidth
-    let ((print)(*
+    (*
     fun outputWidth (t, width, out) =
     layout_print {tree = t,
                lineWidth = width,
                print = Out.outputc out}
 *)
-      (*        fun output (t, out) = outputWidth (t, defaultWidth, out) *))
-      =
+    (*        fun output (t, out) = outputWidth (t, defaultWidth, out) *)
+    let print =
       function
       | (t, p) ->
           layout_print { tree = t; lineWidth = defaultWidth; print = p }
-    let rec ignore
-      ((_)(*
+    (*
     fun outputl (t, out) = (output (t, out); Out.newline out)
 *)
-      (*     fun makeOutput layoutX (x, out) = output (layoutX x, out)
- *))
-      = empty
+    (*     fun makeOutput layoutX (x, out) = output (layoutX x, out)
+ *)
+    let rec ignore _ = empty
     let rec separate (ts, s) =
       match ts with
       | [] -> []
       | t::ts ->
           t ::
             (let s = str s in
-             let loop = function | [] -> [] | t::ts -> (s :: t) :: (loop ts) in
+             let rec loop =
+               function | [] -> [] | t::ts -> (s :: t) :: (loop ts) in
              loop ts)
     let rec separateLeft (ts, s) =
       match ts with

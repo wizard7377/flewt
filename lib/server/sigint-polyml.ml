@@ -10,7 +10,7 @@ module SigINT : SIGINT =
                 | n ->
                     (print "\ninterrupt\n";
                      Process.interruptConsoleProcesses ())))) in
-      loop ((())
+      ((loop ())
         (*
 	val _ = print
 "Upon interrupt at prompt => type\n\

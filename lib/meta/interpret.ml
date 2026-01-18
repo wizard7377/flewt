@@ -1,8 +1,8 @@
 
+(* Operational semantics *)
+(* Author: Carsten Schuermann *)
 module type Interpreter  =
   sig
-    val run :
-      FunSyn.__Pro ->
-        ((FunSyn.__Pro)(*! structure FunSyn : FUNSYN !*)
-        (* Author: Carsten Schuermann *)(* Operational semantics *))
+    (*! structure FunSyn : FUNSYN !*)
+    val run : FunSyn.__Pro -> FunSyn.__Pro
   end;;

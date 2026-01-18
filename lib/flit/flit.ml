@@ -1,29 +1,31 @@
 
+(* Flit DAG generator *)
+(* Author: Roberto Virga *)
 module type FLIT  =
   sig
-    val init :
-      string ->
-        ((unit)(* init (sym_table_file) *)(* Author: Roberto Virga *)
-        (* Flit DAG generator *))
-    val initForText : unit -> ((unit)(* initForText () *))
-    val dump :
-      (string * string) ->
-        ((int)(* dump (symbol, dag_file) *))
-    val dumpText :
-      (string * string) ->
-        ((unit)(* dumpText (outputSemant, outputChecker) *))
-    val setFlag : unit -> ((unit)(* setFlag () *))
-    val setEndTcb : unit -> ((unit)(* setEndTcb () *))
-    val dumpFlagged :
-      string -> ((unit)(* dumpFlagged (dag_file) *))
-    val dumpSymTable :
-      (string * string * string) ->
-        ((unit)(* dumpSynTable (start_sym, end_sym, sym_table_file) *))
+    (* init (sym_table_file) *)
+    val init : string -> unit
+    (* initForText () *)
+    val initForText : unit -> unit
+    (* dump (symbol, dag_file) *)
+    val dump : (string * string) -> int
+    (* dumpText (outputSemant, outputChecker) *)
+    val dumpText : (string * string) -> unit
+    (* setFlag () *)
+    val setFlag : unit -> unit
+    (* setEndTcb () *)
+    val setEndTcb : unit -> unit
+    (* dumpFlagged (dag_file) *)
+    val dumpFlagged : string -> unit
+    (* dumpSynTable (start_sym, end_sym, sym_table_file) *)
+    val dumpSymTable : (string * string * string) -> unit
   end;;
 
 
 
 
+(* Flit DAG generator *)
+(* Author: Roberto Virga *)
 module Flit(Flit:sig
                    module Global : GLOBAL
                    module Word : WORD
@@ -32,9 +34,8 @@ module Flit(Flit:sig
                    module Names : NAMES
                    module Table : TABLE
                    module Index : INDEX
-                   module Print :
-                   ((PRINT)(* Flit DAG generator *)(* Author: Roberto Virga *))
-                 end) : FLIT = 
+                   module Print : PRINT
+                 end) : FLIT =
   struct
     module W = Word
     module I = IntSyn
@@ -48,7 +49,7 @@ module Flit(Flit:sig
     let (tcb_table : (string * int) list option ref) = ref NONE
     let (tcb_size : int ref) = ref 0
     let rec print_table () =
-      let print_table' =
+      let rec print_table' =
         function
         | nil -> ()
         | (name, addr)::[] ->
@@ -65,20 +66,20 @@ module Flit(Flit:sig
     let rec init filename =
       let stream = TextIO.openIn filename in
       let linecount = (ref 0 : int ref) in
-      let get_line () =
+      let rec get_line () =
         ((!) ((:=) linecount) linecount) + 1; Compat.inputLine97 stream in
-      let error () =
+      let rec error () =
         raise
           (Error
              ((("Error reading file '" ^ filename) ^ "', line ") ^
                 (Int.toString (!linecount)))) in
-      let read_size () =
+      let rec read_size () =
         match Int.fromString (get_line ()) with
         | SOME tcb_size -> tcb_size
         | NONE -> error () in
       let () = (:=) tcb_size read_size () in
       let () = if (!Global.chatter) >= 3 then print_size () else () in
-      let read_table =
+      let rec read_table =
         function
         | "" -> nil
         | line ->
@@ -108,7 +109,7 @@ module Flit(Flit:sig
     let rec cname cid = I.conDecName (I.sgnLookup cid)
     let rec clookup name =
       let size = (fun r -> r.1) (I.sgnSize ()) in
-      let clookup' cid =
+      let rec clookup' cid =
         if cid = size
         then raise (Error (("symbol " ^ name) ^ " not found"))
         else if (cname cid) = name then cid else clookup' (cid + 1) in
@@ -191,7 +192,7 @@ module Flit(Flit:sig
       | (true__, (flags, arg, exp)) -> tuple (':', flags, arg, exp)
       | (false__, _) -> W.fromInt 0
     let rec scanNumber string =
-      let check =
+      let rec check =
         function
         | _::_ as chars -> List.all Char.isDigit chars
         | nil -> false__ in
@@ -258,50 +259,50 @@ module Flit(Flit:sig
     let rec compileUni = function | I.Kind -> kd () | I.Type -> ty ()
     let rec compileExpN arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (g, Uni (V), flags)) -> compileUni V
-      | (generate, (g, Pi ((Dec (_, u1), _), u2), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
+      | (generate, (G, Uni (V), flags)) -> compileUni V
+      | (generate, (G, Pi ((Dec (_, U1), _), U2), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (g, idxU1var)), u2, (false__, false__, false__)) in
+              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
           pi generate (flags, idxU1var, idxU2)
-      | (generate, (g, Lam ((Dec (_, u1) as D), u2), ((cld, _, _) as flags)))
+      | (generate, (G, Lam ((Dec (_, U1) as D), U2), ((cld, _, _) as flags)))
           ->
-          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
+          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (g, idxU1var)), u2, (false__, false__, false__)) in
+              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
           lam generate (flags, idxU1var, idxU2)
-      | (generate, (g, (Root (H, S) as U), flags)) ->
-          let idx = compileHead generate (g, H) in
-          compileSpine generate (g, idx, S, flags)
-      | (generate, (g, FgnExp csfe, flags)) ->
+      | (generate, (G, (Root (H, S) as U), flags)) ->
+          let idx = compileHead generate (G, H) in
+          compileSpine generate (G, idx, S, flags)
+      | (generate, (G, FgnExp csfe, flags)) ->
           compileExp generate
-            (g, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
+            (G, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
     let rec compileSpine arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (g, idx, I.Nil, flags)) -> idx
-      | (generate, (g, idx, App (u1, I.Nil), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
+      | (generate, (G, idx, I.Nil, flags)) -> idx
+      | (generate, (G, idx, App (U1, I.Nil), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
           app generate (flags, idx, idxU1)
-      | (generate, (g, idx, App (u1, S), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (g, u1, (cld, false__, false__)) in
+      | (generate, (G, idx, App (U1, S), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
           compileSpine generate
-            (g, (app generate ((cld, false__, false__), idx, idxU1)), S,
+            (G, (app generate ((cld, false__, false__), idx, idxU1)), S,
               flags)
     let rec compileHead arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (g, BVar k)) -> I.ctxLookup (g, k)
-      | (generate, (g, Const cid)) -> lookup cid
-      | (generate, (g, Def cid)) -> lookup cid
-      | (generate, (g, NSDef cid)) -> lookup cid
-      | (generate, (g, FgnConst (cs, conDec))) ->
-          compileFgnDec generate (g, conDec)
+      | (generate, (G, BVar k)) -> I.ctxLookup (G, k)
+      | (generate, (G, Const cid)) -> lookup cid
+      | (generate, (G, Def cid)) -> lookup cid
+      | (generate, (G, NSDef cid)) -> lookup cid
+      | (generate, (G, FgnConst (cs, conDec))) ->
+          compileFgnDec generate (G, conDec)
     let rec compileFgnDec arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (true__, (g, conDec)) ->
+      | (true__, (G, conDec)) ->
           let name = I.conDecName conDec in
           let flags = (true__, false__, false__) in
           (match scanNumber name with
@@ -319,8 +320,8 @@ module Flit(Flit:sig
                               raise
                                 (Error ("unknown foreign constant " ^ name))))))
       | (false__, _) -> W.fromInt 0
-    let rec compileExp generate (g, U, flags) =
-      compileExpN generate (g, (Whnf.normalize (U, I.id)), flags)
+    let rec compileExp generate (G, U, flags) =
+      compileExpN generate (G, (Whnf.normalize (U, I.id)), flags)
     let rec compileConDec =
       function
       | ((ConDec (_, _, _, _, V, _) as condec), (true__, cls)) ->
@@ -351,14 +352,14 @@ module Flit(Flit:sig
                  Table.insert symTable ((clookup name), (W.fromInt idx))) l
       | NONE -> raise (Error "dump(...) before init(...)")
     let rec dump (name, file) =
-      let dump' cid =
+      let rec dump' cid =
         let _ = (:=) out SOME (BinIO.openOut file) in
         let stream = valOf (!out) in
         let _ = initTuples () in
         let idx = W.toInt (lookup cid) in
         let _ = BinIO.closeOut stream in idx in
-      let error msg =
-        let closeOut () =
+      let rec error msg =
+        let rec closeOut () =
           match !out with | SOME stream -> BinIO.closeOut stream | NONE -> () in
         print (("Error: " ^ msg) ^ "\n"); closeOut (); (-1) in
       match N.constLookup (valOf (N.stringToQid name)) with
@@ -374,15 +375,15 @@ module Flit(Flit:sig
       | NONE -> (:=) startSemant SOME (((fun r -> r.1)) (I.sgnSize ()))
     let rec dumpFlagged file =
       let max = (fun r -> r.1) (I.sgnSize ()) in
-      let compileSeq cid =
+      let rec compileSeq cid =
         if cid < max then (lookup cid; compileSeq (cid + 1)) else () in
-      let dump' cid =
+      let rec dump' cid =
         (:=) out SOME (BinIO.openOut file);
         initTuples ();
         compileSeq cid;
         BinIO.closeOut (valOf (!out)) in
-      let error msg =
-        let closeOut () =
+      let rec error msg =
+        let rec closeOut () =
           match !out with | SOME stream -> BinIO.closeOut stream | NONE -> () in
         print (("Error: " ^ msg) ^ "\n"); closeOut () in
       match !startClause with
@@ -391,13 +392,13 @@ module Flit(Flit:sig
     let rec dumpSymTable (name1, name2, file) =
       let stream = TextIO.openOut file in
       let Strength nonfixLevel = F.minPrec in
-      let dumpFixity cid =
+      let rec dumpFixity cid =
         match N.getFixity cid with
         | Infix (Strength level, F.Left) -> (level, 1)
         | Infix (Strength level, F.Right) -> (level, 2)
         | Infix (Strength level, F.None) -> (level, 3)
         | F.Nonfix -> (nonfixLevel, 0) in
-      let dumpEntry cid =
+      let rec dumpEntry cid =
         match ((Table.lookup symTable cid), (dumpFixity cid)) with
         | (SOME idx, (level, assoc)) ->
             TextIO.output
@@ -410,11 +411,11 @@ module Flit(Flit:sig
                     Int.toString assoc)
                    ^ "\n"))
         | (NONE, _) -> () in
-      let dumpTable (cid1, cid2) =
+      let rec dumpTable (cid1, cid2) =
         if cid1 <= cid2
         then (dumpEntry cid1; dumpTable ((cid1 + 1), cid2))
         else () in
-      let error msg = print (("Error: " ^ msg) ^ "\n") in
+      let rec error msg = print (("Error: " ^ msg) ^ "\n") in
       (match ((N.constLookup (valOf (N.stringToQid name1))),
                (N.constLookup (valOf (N.stringToQid name2))))
        with
@@ -424,13 +425,13 @@ module Flit(Flit:sig
       TextIO.flushOut stream;
       TextIO.closeOut stream
     let rec sort cmp l =
-      let split l =
-        let s arg__0 arg__1 arg__2 =
+      let rec split l =
+        let rec s arg__0 arg__1 arg__2 =
           match (arg__0, arg__1, arg__2) with
           | (a1, a2, nil) -> (a1, a2)
           | (a1, a2, h::t) -> s a2 (h :: a1) t in
         s nil nil l in
-      let merge arg__0 arg__1 =
+      let rec merge arg__0 arg__1 =
         match (arg__0, arg__1) with
         | (a, nil) -> a
         | (nil, b) -> b
@@ -439,7 +440,7 @@ module Flit(Flit:sig
              | EQUAL -> (::) (a :: b) merge ta tb
              | LESS -> (::) a merge ta bb
              | GREATER -> (::) b merge aa tb) in
-      let ms =
+      let rec ms =
         function
         | nil -> nil
         | s::[] -> [s]
@@ -463,8 +464,8 @@ module Flit(Flit:sig
     let rec isShadowing () =
       let _ = SHT.clear shadowTable in
       let changes = ref false__ in
-      let processDep rcid cid =
-        let handleProblem (currentcid, name) =
+      let rec processDep rcid cid =
+        let rec handleProblem (currentcid, name) =
           match Table.lookup replaceTable cid with
           | SOME _ -> ()
           | _ ->
@@ -497,7 +498,7 @@ module Flit(Flit:sig
                ((!) ((:=) counter) counter) + 1;
                changes := true__)
         | NONE -> () in
-      let processCid cid =
+      let rec processCid cid =
         let name = I.conDecName (I.sgnLookup cid) in
         (try
            List.app (processDep cid)
@@ -596,8 +597,8 @@ module Flit(Flit:sig
       let streamSemant = TextIO.openOut outputSemant in
       let streamChecker = TextIO.openOut outputChecker in
       let streamTcb = TextIO.openOut "dumptcb" in
-      let waitUntilFalse f = if f () then waitUntilFalse f else () in
-      let outputCid cid =
+      let rec waitUntilFalse f = if f () then waitUntilFalse f else () in
+      let rec outputCid cid =
         let s = (Print.conDecToString (I.sgnLookup cid)) ^ "\n" in
         let s' =
           if ((>=) cid valOf (!startClause)) && (is_def cid)
@@ -623,7 +624,7 @@ module Flit(Flit:sig
       TextIO.closeOut streamTcb
     let rec dumpText (outputSemant, outputChecker) =
       let max = (fun r -> r.1) (I.sgnSize ()) in
-      let correctFixities cid =
+      let rec correctFixities cid =
         if cid < max
         then
           ((let fixity = N.getFixity cid in
@@ -642,32 +643,39 @@ module Flit(Flit:sig
            correctFixities (cid + 1))
         else () in
       let _ = correctFixities 0 in
-      let error msg = print (("Error: " ^ msg) ^ "\n") in
+      let rec error msg = print (("Error: " ^ msg) ^ "\n") in
       match !startClause with
       | SOME cid ->
           (try dumpAll (max, cid, outputSemant, outputChecker)
            with | Error msg -> error msg)
       | NONE -> error "setFlag() has not been called yet\n"
-    let ((init)(* currently unused *)(* returns a tuple of the name of the cid and SOME of the shadowing cid if any *)
-      (* returns true if it changed any names *)(* val _ = print "clearing table...\n" *)
-      (* Option.mapPartial
+    (* currently unused *)
+    (* returns a tuple of the name of the cid and SOME of the shadowing cid if any *)
+    (* returns true if it changed any names *)
+    (* val _ = print "clearing table...\n" *)
+    (* Option.mapPartial
                                                     (fn x => (case isShadowedBy x of
                                                     (_, SOME _) => NONE
                                                       | (x, NONE) => SOME x)) *)
-      (* XXX worrying - jcreed 7/05 *)(* print ("DX planning to subtly rename " ^ Int.toString cid ^ " to " ^ x ^ "\n");  *)
-      (* problematic shadowing *)(* nonproblematic shadowing - change its name *)
-      (* print ("DX renaming " ^ Int.toString cid ^ " to " ^ newname ^ "\n"); *)
-      (* val _ = print ("DX processing cid " ^ Int.toString cid ^ " which has name [" ^ name ^ "].\n") *)
-      (* print("DX Recording " ^ Int.toString cid ^ ".\n") ; *)
-      (*        val msg = "DX dep " ^ Int.toString x ^ " on " ^ Int.toString y ^ "\n" *)
-      (* val message = "DX Traversing cid = " ^ Int.toString cid ^ " name = " ^ name ^ "\n" *)
-      (* DX *)(* if cid < (valOf(!startSemant)) then () else *)
-      (* DX *)(* DX *)(* DX *)
-      (* val _ = print ("DX startSemant = " ^ Int.toString(valOf(!startSemant)) ^ "\n") *)
-      (* val _ = print ("DX startClause = " ^ Int.toString(valOf(!startClause)) ^ "\n") *)
-      (* val _ = case fixity of F.Infix _ => print ("DX Infix " ^ Int.toString cid ^ " " ^ name ^ " " ^ Int.toString imp ^ " \n") | _ => () *)
-      (*print ("DX setting nonfix " ^ Int.toString cid ^ "\n"); *))
-      = init
+    (* XXX worrying - jcreed 7/05 *)
+    (* print ("DX planning to subtly rename " ^ Int.toString cid ^ " to " ^ x ^ "\n");  *)
+    (* problematic shadowing *)
+    (* nonproblematic shadowing - change its name *)
+    (* print ("DX renaming " ^ Int.toString cid ^ " to " ^ newname ^ "\n"); *)
+    (* val _ = print ("DX processing cid " ^ Int.toString cid ^ " which has name [" ^ name ^ "].\n") *)
+    (* print("DX Recording " ^ Int.toString cid ^ ".\n") ; *)
+    (*        val msg = "DX dep " ^ Int.toString x ^ " on " ^ Int.toString y ^ "\n" *)
+    (* val message = "DX Traversing cid = " ^ Int.toString cid ^ " name = " ^ name ^ "\n" *)
+    (* DX *)
+    (* if cid < (valOf(!startSemant)) then () else *)
+    (* DX *)
+    (* DX *)
+    (* DX *)
+    (* val _ = print ("DX startSemant = " ^ Int.toString(valOf(!startSemant)) ^ "\n") *)
+    (* val _ = print ("DX startClause = " ^ Int.toString(valOf(!startClause)) ^ "\n") *)
+    (* val _ = case fixity of F.Infix _ => print ("DX Infix " ^ Int.toString cid ^ " " ^ name ^ " " ^ Int.toString imp ^ " \n") | _ => () *)
+    (*print ("DX setting nonfix " ^ Int.toString cid ^ "\n"); *)
+    let init = init
     let initForText = initForText
     let dump = dump
     let dumpText = dumpText

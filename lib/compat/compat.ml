@@ -1,9 +1,9 @@
 
+(* Compatibility shim to cope with Standard Basis version skew *)
+(* Author: Christopher Richards *)
 module type COMPAT  =
   sig
-    val inputLine97 :
-      TextIO.instream ->
-        ((string)(* Author: Christopher Richards *)(* Compatibility shim to cope with Standard Basis version skew *))
+    val inputLine97 : TextIO.instream -> string
     module Array : COMPAT_ARRAY
     module Vector : COMPAT_VECTOR
     module OS : sig module Path : COMPAT_PATH end
@@ -16,6 +16,8 @@ module type COMPAT  =
 
 
 
+(* Compatibility shim to cope with Standard Basis version skew *)
+(* Author: Christopher Richards *)
 module Compat(Compat:sig
                        module Array : COMPAT_ARRAY
                        module Vector : COMPAT_VECTOR
@@ -23,9 +25,7 @@ module Compat(Compat:sig
                        module Substring : COMPAT_SUBSTRING
                        module TextIO : COMPAT_TEXT_IO
                        module Timer : COMPAT_TIMER
-                       module SocketIO :
-                       ((COMPAT_SOCKET_IO)(* Compatibility shim to cope with Standard Basis version skew *)
-                       (* Author: Christopher Richards *))
+                       module SocketIO : COMPAT_SOCKET_IO
                      end) : COMPAT =
   struct
     module Array = Array
@@ -41,11 +41,11 @@ module Compat(Compat:sig
 
 
 
+(* Compatibility shim from Basis-current to itself *)
+(* Author: Christopher Richards *)
 module Compat : COMPAT =
   (Make_Compat)(struct
-                  module Array =
-                    ((Array)(* Compatibility shim from Basis-current to itself *)
-                    (* Author: Christopher Richards *))
+                  module Array = Array
                   module Vector = Vector
                   module Path = OS.Path
                   module Substring = Substring

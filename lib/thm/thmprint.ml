@@ -1,28 +1,29 @@
 
+(* Printer for Meta Theorems *)
+(* Author: Carsten Schuermann *)
 module type THMPRINT  =
   sig
-    module ThmSyn :
-    ((THMSYN)(* Printer for Meta Theorems *)(* Author: Carsten Schuermann *))
+    module ThmSyn : THMSYN
     val tDeclToString : ThmSyn.__TDecl -> string
     val callpatsToString : ThmSyn.__Callpats -> string
     val rDeclToString : ThmSyn.__RDecl -> string
-    val ROrderToString :
-      ThmSyn.__RedOrder -> ((string)(* -bp *))
-    val tabledDeclToString :
-      ThmSyn.__TabledDecl -> ((string)(* -bp *))
-    val keepTableDeclToString :
-      ThmSyn.__KeepTableDecl -> ((string)(* -bp *))
+    (* -bp *)
+    val ROrderToString : ThmSyn.__RedOrder -> string
+    (* -bp *)
+    val tabledDeclToString : ThmSyn.__TabledDecl -> string
+    (* -bp *)
+    val keepTableDeclToString : ThmSyn.__KeepTableDecl -> string
   end;;
 
 
 
 
+(* Printer for Meta Theorems *)
+(* Author: Carsten Schuermann *)
+(* Modified: Brigitte Pientka *)
 module ThmPrint(ThmPrint:sig
                            module ThmSyn' : THMSYN
-                           module Formatter :
-                           ((FORMATTER)(* Printer for Meta Theorems *)
-                           (* Author: Carsten Schuermann *)
-                           (* Modified: Brigitte Pientka *))
+                           module Formatter : FORMATTER
                          end) : THMPRINT =
   struct
     module ThmSyn = ThmSyn'
@@ -85,10 +86,13 @@ module ThmPrint(ThmPrint:sig
       F.makestring_fmt (F.HVbox [F.String (I.conDecName (I.sgnLookup cid))])
     let rec keepTableDeclToString (KeepTableDecl cid) =
       F.makestring_fmt (F.HVbox [F.String (I.conDecName (I.sgnLookup cid))])
-    let ((tDeclToString)(* -bp *)) = tDeclToString
+    (* -bp *)
+    let tDeclToString = tDeclToString
     let callpatsToString = callpatsToString
     let ROrderToString = ROrderToString
-    let ((rDeclToString)(* -bp *)) = rDeclToString
-    let ((tabledDeclToString)(* -bp *)) = tabledDeclToString
+    (* -bp *)
+    let rDeclToString = rDeclToString
+    (* -bp *)
+    let tabledDeclToString = tabledDeclToString
     let keepTableDeclToString = keepTableDeclToString
   end ;;

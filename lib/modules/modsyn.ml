@@ -1,39 +1,42 @@
 
+(* Syntax for elaborated modules *)
+(* Author: Kevin Watkins *)
 module type MODSYN  =
   sig
-    module Names :
-    ((NAMES)(* Syntax for elaborated modules *)(* Author: Kevin Watkins *)
-    (*! structure IntSyn : INTSYN !*))
-    exception Error of
-      ((string)(*! structure Paths : PATHS !*)) 
+    (*! structure IntSyn : INTSYN !*)
+    module Names : NAMES
+    (*! structure Paths : PATHS !*)
+    exception Error of string 
     val abbrevify : (IntSyn.cid * IntSyn.__ConDec) -> IntSyn.__ConDec
     val strictify : IntSyn.__ConDec -> IntSyn.__ConDec
     type nonrec module__
+    (*
+  type action = IntSyn.cid * (string * Paths.occConDec option) -> unit
+  type transform = IntSyn.cid * IntSyn.ConDec -> IntSyn.ConDec
+  *)
     val installStruct :
       (IntSyn.__StrDec * module__ * Names.namespace option *
         ((IntSyn.cid * (string * Paths.occConDec option)) -> unit) * bool) ->
-        ((unit)(* action *)(*
-  type action = IntSyn.cid * (string * Paths.occConDec option) -> unit
-  type transform = IntSyn.cid * IntSyn.ConDec -> IntSyn.ConDec
-  *))
+        unit
+    (* action *)
     val installSig :
       (module__ * Names.namespace option *
         ((IntSyn.cid * (string * Paths.occConDec option)) -> unit) * bool) ->
-        ((unit)(* action *))
+        unit
+    (* action *)
     val instantiateModule :
       (module__ *
         (Names.namespace -> (IntSyn.cid * IntSyn.__ConDec) -> IntSyn.__ConDec))
-        -> ((module__)(* Names.namespace -> transform *))
-    val abstractModule :
-      (Names.namespace * IntSyn.mid option) ->
-        ((module__)(* Extract some entries of the current global signature table in order
+        -> module__
+    (* Names.namespace -> transform *)
+    (* Extract some entries of the current global signature table in order
      to create a self-contained module.
-  *))
+  *)
+    val abstractModule : (Names.namespace * IntSyn.mid option) -> module__
     val reset : unit -> unit
     val installSigDef : (string * module__) -> unit
-    val lookupSigDef :
-      string ->
-        ((module__)(* Error if would shadow *)) option
+    (* Error if would shadow *)
+    val lookupSigDef : string -> module__ option
     val sigDefSize : unit -> int
     val resetFrom : int -> unit
   end;;
@@ -41,6 +44,8 @@ module type MODSYN  =
 
 
 
+(* Syntax for elaborated modules *)
+(* Author: Kevin Watkins *)
 module ModSyn(ModSyn:sig
                        module Global : GLOBAL
                        module Names' : NAMES
@@ -48,25 +53,26 @@ module ModSyn(ModSyn:sig
                        module Whnf : WHNF
                        module Strict : STRICT
                        module IntTree : TABLE
-                       module HashTable :
-                       ((TABLE)(* Syntax for elaborated modules *)
-                       (* Author: Kevin Watkins *)(*! structure IntSyn' : INTSYN !*)
-                       (*! sharing Names'.IntSyn = IntSyn' !*)(*! structure Paths' : PATHS !*)
-                       (*! sharing Origins.Paths = Paths' !*)(*! sharing Whnf.IntSyn = IntSyn' !*)
-                       (*! sharing Strict.IntSyn = IntSyn' !*))
+                       (*! structure IntSyn' : INTSYN !*)
+                       (*! sharing Names'.IntSyn = IntSyn' !*)
+                       (*! structure Paths' : PATHS !*)
+                       (*! sharing Origins.Paths = Paths' !*)
+                       (*! sharing Whnf.IntSyn = IntSyn' !*)
+                       (*! sharing Strict.IntSyn = IntSyn' !*)
+                       module HashTable : TABLE
                      end) : MODSYN =
   struct
-    module Names =
-      ((Names')(*! structure IntSyn = IntSyn' !*))
-    module I = ((IntSyn)(*! structure Paths = Paths' !*))
+    (*! structure IntSyn = IntSyn' !*)
+    module Names = Names'
+    (*! structure Paths = Paths' !*)
+    module I = IntSyn
     exception Error of string 
     type __ConstInfo =
       | ConstInfo of (IntSyn.__ConDec * Names.Fixity.fixity * (string list *
       string list) option * (string * Paths.occConDec option)) 
     type __StructInfo =
       | StructInfo of IntSyn.__StrDec 
-    type nonrec module__ =
-      (((__StructInfo)(* A module consists of:
+    (* A module consists of:
      1. a map from cids to constant entries containing
           a. a constant declaration entry (IntSyn.ConDec)
           b. the fixity of the constant
@@ -74,15 +80,17 @@ module ModSyn(ModSyn:sig
      2. a map from mids to structure entries containing
           a. a structure declaration entry (IntSyn.StrDec)
           b. the namespace of the structure
-     3. the top-level namespace of the module *))
-        IntTree.__Table * __ConstInfo IntTree.__Table * Names.namespace)
+     3. the top-level namespace of the module *)
+    type nonrec module__ =
+      (__StructInfo IntTree.__Table * __ConstInfo IntTree.__Table *
+        Names.namespace)
     type nonrec action =
       (IntSyn.cid * (string * Paths.occConDec option)) -> unit
     type nonrec transform = (IntSyn.cid * IntSyn.__ConDec) -> IntSyn.__ConDec
-    let rec mapExpConsts
-      ((f)(* invariant: U in nf, result in nf *)) (U) =
+    (* invariant: U in nf, result in nf *)
+    let rec mapExpConsts f (U) =
       let open IntSyn in
-        let trExp =
+        let rec trExp =
           function
           | Uni (L) -> Uni L
           | Pi ((D, P), V) -> Pi (((trDec D), P), (trExp V))
@@ -116,12 +124,11 @@ module ModSyn(ModSyn:sig
       | (f, ConDef (name, parent, i, U, V, L, Anc)) ->
           IntSyn.ConDef
             (name, parent, i, (mapExpConsts f U), (mapExpConsts f V), L, Anc)
-      | (((f)(* reconstruct Anc?? -fp *)), AbbrevDef
-         (name, parent, i, U, V, L)) ->
+      | (f, AbbrevDef (name, parent, i, U, V, L)) ->
           IntSyn.AbbrevDef
             (name, parent, i, (mapExpConsts f U), (mapExpConsts f V), L)
       | (f, SkoDec (name, parent, i, V, L)) ->
-          IntSyn.SkoDec (name, parent, i, (mapExpConsts f V), L)
+          IntSyn.SkoDec (name, parent, i, (mapExpConsts f V), L)(* reconstruct Anc?? -fp *)
     let rec mapStrDecParent f (StrDec (name, parent)) =
       IntSyn.StrDec (name, (f parent))
     let rec mapConDecParent arg__0 arg__1 =
@@ -130,11 +137,10 @@ module ModSyn(ModSyn:sig
           IntSyn.ConDec (name, (f parent), i, status, V, L)
       | (f, ConDef (name, parent, i, U, V, L, Anc)) ->
           IntSyn.ConDef (name, (f parent), i, U, V, L, Anc)
-      | (((f)(* reconstruct Anc?? -fp *)), AbbrevDef
-         (name, parent, i, U, V, L)) ->
+      | (f, AbbrevDef (name, parent, i, U, V, L)) ->
           IntSyn.AbbrevDef (name, (f parent), i, U, V, L)
       | (f, SkoDec (name, parent, i, V, L)) ->
-          IntSyn.SkoDec (name, (f parent), i, V, L)
+          IntSyn.SkoDec (name, (f parent), i, V, L)(* reconstruct Anc?? -fp *)
     let rec strictify =
       function
       | AbbrevDef (name, parent, i, U, V, IntSyn.Type) as condec ->
@@ -155,8 +161,7 @@ module ModSyn(ModSyn:sig
       | ConDef (name, parent, i, U, V, L, Anc) ->
           I.AbbrevDef (name, parent, i, U, V, L)
       | AbbrevDef data -> I.AbbrevDef data
-    let rec installModule
-      ((((structTable)(* In order to install a module, we walk through the mids in preorder,
+    (* In order to install a module, we walk through the mids in preorder,
      assigning global mids and building up a translation map from local
      mids to global mids.  Then we walk through the cids in dependency
      order, assigning global cids, building up a translation map from
@@ -166,20 +171,21 @@ module ModSyn(ModSyn:sig
      NOTE that a module might not be closed with respect to the local
      cids; that is, it might refer to global cids not defined by the
      module.  It is a global invariant that such cids will still be in
-     scope whenever a module that refers to them is installed. *)),
-        constTable, namespace),
-       topOpt, nsOpt, installAction, transformConDec)
+     scope whenever a module that refers to them is installed. *)
+    let rec installModule
+      ((structTable, constTable, namespace), topOpt, nsOpt, installAction,
+       transformConDec)
       =
       let (structMap : IntSyn.mid IntTree.__Table) = IntTree.new__ 0 in
       let (constMap : IntSyn.cid IntTree.__Table) = IntTree.new__ 0 in
-      let mapStruct mid = valOf (IntTree.lookup structMap mid) in
-      let mapParent =
+      let rec mapStruct mid = valOf (IntTree.lookup structMap mid) in
+      let rec mapParent =
         function | NONE -> topOpt | SOME parent -> SOME (mapStruct parent) in
-      let mapConst cid =
+      let rec mapConst cid =
         match IntTree.lookup constMap cid with
         | NONE -> cid
         | SOME cid' -> cid' in
-      let doStruct (mid, StructInfo strdec) =
+      let rec doStruct (mid, StructInfo strdec) =
         let strdec' = mapStrDecParent mapParent strdec in
         let mid' = IntSyn.sgnStructAdd strdec' in
         let parent = IntSyn.strDecParent strdec' in
@@ -196,7 +202,8 @@ module ModSyn(ModSyn:sig
         let ns = Names.newNamespace () in
         let _ = Names.installComponents (mid', ns) in
         IntTree.insert structMap (mid, mid') in
-      let doConst (cid, ConstInfo (condec, fixity, namePrefOpt, origin)) =
+      let rec doConst (cid, ConstInfo (condec, fixity, namePrefOpt, origin))
+        =
         let condec1 = mapConDecParent mapParent condec in
         let condec2 = mapConDecConsts mapConst condec1 in
         let condec3 = transformConDec (cid, condec2) in
@@ -249,7 +256,7 @@ module ModSyn(ModSyn:sig
         | NONE -> (function | parent -> parent)
         | SOME mid ->
             (function | SOME mid' -> if mid = mid' then NONE else SOME mid') in
-      let doStruct (_, mid) =
+      let rec doStruct (_, mid) =
         let strdec = IntSyn.sgnStructLookup mid in
         let strdec' = mapStrDecParent mapParent strdec in
         let ns = Names.getComponents mid in
@@ -282,7 +289,7 @@ module ModSyn(ModSyn:sig
     let defsDelete = HashTable.delete defs
     let rec reset () = defList := nil; defCount := 0; defsClear ()
     let rec resetFrom mark =
-      let ct (l, i) =
+      let rec ct (l, i) =
         if i <= mark
         then l
         else (let h::t = l in defsDelete h; ct (t, (i - 1))) in

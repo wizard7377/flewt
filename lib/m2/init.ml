@@ -1,8 +1,9 @@
 
+(* Initialization *)
+(* Author: Carsten Schuermann *)
 module type INIT  =
   sig
-    module MetaSyn :
-    ((METASYN)(* Initialization *)(* Author: Carsten Schuermann *))
+    module MetaSyn : METASYN
     exception Error of string 
     val init : IntSyn.cid list -> MetaSyn.__State list
   end;;
@@ -10,11 +11,11 @@ module type INIT  =
 
 
 
+(* Initialization *)
+(* Author: Carsten Schuermann *)
 module Init(Init:sig
                    module MetaSyn' : METASYN
-                   module MetaAbstract :
-                   ((METAABSTRACT)(* Initialization *)
-                   (* Author: Carsten Schuermann *))
+                   module MetaAbstract : METAABSTRACT
                  end) : INIT =
   struct
     module MetaSyn = MetaSyn'
@@ -28,17 +29,17 @@ module Init(Init:sig
            ((((^) "/" I.conDecName (I.sgnLookup cid)) ^ "/"),
              (M.Prefix (I.Null, I.Null, I.Null)), V))
     let rec init cidList = map init' cidList
-    let ((init)(* init c = S'
+    (* init c = S'
 
        Invariant:
        If   c is type constant identifier
        then S' is initial prover state.
     *)
-      (* init c1 .. cn = s1 .. Sn
+    (* init c1 .. cn = S1 .. Sn
 
        Invariant:
        If   c1 .. cn are mutually recursive
-       then s1 .. Sn is an initial prover state.
-    *))
-      = init
+       then S1 .. Sn is an initial prover state.
+    *)
+    let init = init
   end ;;

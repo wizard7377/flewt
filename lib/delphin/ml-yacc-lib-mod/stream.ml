@@ -1,11 +1,5 @@
 
-module Streamm : STREAMM =
-  struct
-    type 'a str =
-      | EVAL of
-      ((('a)(* Stream: a structure implementing a lazy stream.  The signature STREAM
-   is found in base.sig *)
-      (* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
+(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.2.1  2003/01/14 22:46:39  carsten_lf
@@ -26,8 +20,13 @@ module Streamm : STREAMM =
  * Revision 1.1.1.1  1996/01/31  16:01:43  george
  * Version 109
  * 
- *))
-      * 'a str ref) 
+ *)
+(* Stream: a structure implementing a lazy stream.  The signature STREAM
+   is found in base.sig *)
+module Streamm : STREAMM =
+  struct
+    type 'a str =
+      | EVAL of ('a * 'a str ref) 
       | UNEVAL of (unit -> 'a) 
     type nonrec 'a stream = 'a str ref
     let rec get =

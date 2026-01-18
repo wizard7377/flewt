@@ -1,23 +1,20 @@
 
+(* State definition for Proof Search *)
+(* Author: Carsten Schuermann *)
 module type STATESYN  =
   sig
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure FunSyn : FUNSYN !*)
     type __Order =
-      | Arg of
-      ((((IntSyn.__Exp)(* Orders                     *)
-      (*! structure FunSyn : FUNSYN !*)(*! structure IntSyn : INTSYN !*)
-      (* Author: Carsten Schuermann *)(* State definition for Proof Search *))
-      * IntSyn.__Sub) * (IntSyn.__Exp * IntSyn.__Sub)) 
-      | Lex of ((__Order)(* O ::= U[s] : V[s]          *))
-      list 
-      | Simul of ((__Order)(*     | (O1 .. On)           *))
-      list 
-      | All of
-      (((IntSyn.__Dec)(*     | {O1 .. On}           *)) *
-      __Order) 
-      | And of (((__Order)(*     | {{D}} O              *))
-      * __Order) 
+      | Arg of ((IntSyn.__Exp * IntSyn.__Sub) * (IntSyn.__Exp *
+      IntSyn.__Sub)) 
+      | Lex of __Order list 
+      | Simul of __Order list 
+      | All of (IntSyn.__Dec * __Order) 
+      | And of (__Order * __Order) 
+    (*     | O1 ^ O2              *)
     type __Info =
-      | Splits of ((int)(*     | O1 ^ O2              *)) 
+      | Splits of int 
       | RL 
       | RLdone 
     type __Tag =
@@ -25,19 +22,17 @@ module type STATESYN  =
       | Lemma of __Info 
       | None 
     type __State =
-      | State of
-      (((int)(* S = <n, (g, B), (IH, OH), d, O, H, F> *)) *
-      (((IntSyn.dctx)(* Part of theorem                   *))
-      *
-      ((__Tag)(* Context of Hypothesis, in general not named *))
-      IntSyn.__Ctx) *
-      (((FunSyn.__For)(* Status information *)) * __Order) *
-      ((int)(* Induction hypothesis, order       *)) *
-      ((__Order)(* length of meta context            *)) *
-      (((int)(* Current order *)) * FunSyn.__For) list *
-      ((FunSyn.__For)(* History of residual lemmas *))) 
-    val orderSub :
-      (__Order * IntSyn.__Sub) -> ((__Order)(* Formula *))
+      | State of (int * (IntSyn.dctx * __Tag IntSyn.__Ctx) * (FunSyn.__For *
+      __Order) * int * __Order * (int * FunSyn.__For) list * FunSyn.__For) 
+    (* Part of theorem                   *)
+    (* Status information *)
+    (* Induction hypothesis, order       *)
+    (* length of meta context            *)
+    (* Current order *)
+    (* History of residual lemmas *)
+    (* Context of Hypothesis, in general not named *)
+    (* Formula *)
+    val orderSub : (__Order * IntSyn.__Sub) -> __Order
     val decrease : __Tag -> __Tag
     val splitDepth : __Info -> int
     val normalizeOrder : __Order -> __Order
@@ -48,32 +43,30 @@ module type STATESYN  =
 
 
 
+(* State for Proof Search *)
+(* Author: Carsten Schuermann *)
 module StateSyn(StateSyn:sig
-                           module Whnf : WHNF
-                           module Conv :
-                           ((CONV)(* State for Proof Search *)(* Author: Carsten Schuermann *)
-                           (*! structure IntSyn' : INTSYN !*)(*! structure FunSyn' : FUNSYN !*)
+                           (*! structure IntSyn' : INTSYN !*)
+                           (*! structure FunSyn' : FUNSYN !*)
                            (*! sharing FunSyn'.IntSyn = IntSyn' !*)
-                           (*! sharing Whnf.IntSyn = IntSyn' !*))
+                           module Whnf : WHNF
+                           (*! sharing Whnf.IntSyn = IntSyn' !*)
+                           module Conv : CONV
                          end) : STATESYN =
   struct
+    (*! sharing Conv.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure FunSyn = FunSyn' !*)
     type __Order =
-      | Arg of
-      ((((IntSyn.__Exp)(* Orders                     *)
-      (*! structure FunSyn = FunSyn' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! sharing Conv.IntSyn = IntSyn' !*)) * IntSyn.__Sub)
-      * (IntSyn.__Exp * IntSyn.__Sub)) 
-      | Lex of ((__Order)(* O ::= U[s] : V[s]          *))
-      list 
-      | Simul of ((__Order)(*     | (O1 .. On)           *))
-      list 
-      | All of
-      (((IntSyn.__Dec)(*     | {O1 .. On}           *)) *
-      __Order) 
-      | And of (((__Order)(*     | {{D}} O              *))
-      * __Order) 
+      | Arg of ((IntSyn.__Exp * IntSyn.__Sub) * (IntSyn.__Exp *
+      IntSyn.__Sub)) 
+      | Lex of __Order list 
+      | Simul of __Order list 
+      | All of (IntSyn.__Dec * __Order) 
+      | And of (__Order * __Order) 
+    (*     | O1 ^ O2              *)
     type __Info =
-      | Splits of ((int)(*     | O1 ^ O2              *)) 
+      | Splits of int 
       | RL 
       | RLdone 
     type __Tag =
@@ -81,17 +74,16 @@ module StateSyn(StateSyn:sig
       | Lemma of __Info 
       | None 
     type __State =
-      | State of
-      (((int)(* S = <n, (g, B), (IH, OH), d, O, H, F> *)) *
-      (((IntSyn.dctx)(* Part of theorem                   *))
-      *
-      ((__Tag)(* Context of Hypothesis in general not named *))
-      IntSyn.__Ctx) *
-      (((FunSyn.__For)(* Status information *)) * __Order) *
-      ((int)(* Induction hypothesis, order       *)) *
-      ((__Order)(* length of meta context            *)) *
-      (((int)(* Current Order *)) * FunSyn.__For) list *
-      ((FunSyn.__For)(* History of residual lemmas *))) 
+      | State of (int * (IntSyn.dctx * __Tag IntSyn.__Ctx) * (FunSyn.__For *
+      __Order) * int * __Order * (int * FunSyn.__For) list * FunSyn.__For) 
+    (* Part of theorem                   *)
+    (* Status information *)
+    (* Induction hypothesis, order       *)
+    (* length of meta context            *)
+    (* Current Order *)
+    (* History of residual lemmas *)
+    (* Context of Hypothesis in general not named *)
+    (* Formula *)
     module F = FunSyn
     module I = IntSyn
     let rec orderSub =
@@ -108,7 +100,7 @@ module StateSyn(StateSyn:sig
       | Simul (Os) -> Simul (map normalizeOrder Os)
     let rec convOrder =
       function
-      | (Arg (us1, _), Arg (us2, _)) -> Conv.conv (us1, us2)
+      | (Arg (Us1, _), Arg (Us2, _)) -> Conv.conv (Us1, Us2)
       | (Lex (Os1), Lex (Os2)) -> convOrders (Os1, Os2)
       | (Simul (Os1), Simul (Os2)) -> convOrders (Os1, Os2)
     let rec convOrders =
@@ -122,43 +114,47 @@ module StateSyn(StateSyn:sig
     let rec splitDepth (Splits k) = k
     let rec normalizeTag =
       function | ((Parameter _ as T), _) -> T | (Lemma (K), s) -> Lemma K
-    let ((orderSub)(* Formula *)(* orderSub (O, s) = O'
+    (* orderSub (O, s) = O'
 
        Invariant:
-       If   g' |- O order    and    g |- s : g'
-       then g |- O' order
-       and  g |- O' == O[s] order
+       If   G' |- O order    and    G |- s : G'
+       then G |- O' order
+       and  G |- O' == O[s] order
     *)
-      (* by invariant: no case for All and And *)(* normalizeOrder (O) = O'
+    (* by invariant: no case for All and And *)
+    (* normalizeOrder (O) = O'
 
        Invariant:
-       If   g |- O order
-       then g |- O' order
-       and  g |- O = O' order
+       If   G |- O order
+       then G |- O' order
+       and  G |- O = O' order
        and  each sub term of O' is in normal form.
     *)
-      (* by invariant: no case for All and And *)(* convOrder (O1, O2) = B'
+    (* by invariant: no case for All and And *)
+    (* convOrder (O1, O2) = B'
 
        Invariant:
-       If   g |- O1 order
-       and  g |- O2 order
-       then B' holds iff g |- O1 == O2 order
+       If   G |- O1 order
+       and  G |- O2 order
+       then B' holds iff G |- O1 == O2 order
     *)
-      (* by invariant: no case for All and And *)(* decrease T = T'
+    (* by invariant: no case for All and And *)
+    (* decrease T = T'
 
        Invariant:
        T is either an Assumption or Induction tag
        T' = T - 1
     *)
-      (* decrease (Assumption k) = Assumption (k-1)
-      | *)(* normalizeTag (T, s) = T'
+    (* decrease (Assumption k) = Assumption (k-1)
+      | *)
+    (* normalizeTag (T, s) = T'
 
        Invariant:
-       If   g |- T : tag
-            g' |- s : g
-       then g' |- T' = T[s] tag
-    *))
-      = orderSub
+       If   G |- T : tag
+            G' |- s : G
+       then G' |- T' = T[s] tag
+    *)
+    let orderSub = orderSub
     let decrease = decrease
     let splitDepth = splitDepth
     let normalizeOrder = normalizeOrder

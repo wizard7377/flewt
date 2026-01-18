@@ -1,10 +1,11 @@
 
+(* Checking Definitions for Strictness *)
+(* Author: Carsten Schuermann *)
 module type STRICT  =
   sig
-    exception Error of
-      ((string)(*! structure Paths : PATHS !*)(*! structure IntSyn : INTSYN !*)
-      (* Author: Carsten Schuermann *)(* Checking Definitions for Strictness *))
-      
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Paths : PATHS !*)
+    exception Error of string 
     val check :
       ((IntSyn.__Exp * IntSyn.__Exp) * Paths.occConDec option) -> unit
     val checkType : ((int * IntSyn.__Exp) * Paths.occConDec option) -> unit
@@ -13,23 +14,24 @@ module type STRICT  =
 
 
 
+(* Checking Definitions for Strict *)
+(* Author: Carsten Schuermann *)
 module Strict(Strict:sig
-                       module Whnf :
-                       ((WHNF)(* Checking Definitions for Strict *)
-                       (* Author: Carsten Schuermann *)
-                       (*! structure IntSyn' : INTSYN !*))
+                       (*! structure IntSyn' : INTSYN !*)
+                       module Whnf : WHNF
                      end) : STRICT =
   struct
-    exception Error of
-      ((string)(*! structure Paths = Paths' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! structure Paths' : PATHS !*)(*! sharing Whnf.IntSyn = IntSyn' !*))
-      
+    (*! sharing Whnf.IntSyn = IntSyn' !*)
+    (*! structure Paths' : PATHS !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Paths = Paths' !*)
+    exception Error of string 
     module I = IntSyn
     let rec patSpine =
       function
       | (_, I.Nil) -> true__
       | (k, App (Root (BVar k', I.Nil), S)) ->
-          let indexDistinct =
+          let rec indexDistinct =
             function
             | I.Nil -> true__
             | App (Root (BVar k'', I.Nil), S) ->
@@ -75,7 +77,7 @@ module Strict(Strict:sig
       | Dec (NONE, _) -> "implicit variable"
       | Dec (SOME x, _) -> "variable " ^ x
     let rec strictTop ((U, V), ocdOpt) =
-      let strictArgParms =
+      let rec strictArgParms =
         function
         | (Root (BVar _, _), _, occ) ->
             raise
@@ -99,7 +101,7 @@ module Strict(Strict:sig
               (U, (Whnf.normalize (Whnf.expandDef (V, I.id))), occ) in
       strictArgParms (U, V, Paths.top)
     let rec occursInType ((i, V), ocdOpt) =
-      let oit =
+      let rec oit =
         function
         | ((0, V), occ) -> ()
         | ((i, Pi ((D, P), V)), occ) ->
@@ -114,44 +116,47 @@ module Strict(Strict:sig
                          ^ " in type, use %abbrev")))
         | _ -> () in
       oit ((i, V), Paths.top)
-    let ((check)(* Definition of normal form (nf) --- see lambda/whnf.fun *)
-      (* patSpine (k, S) = B
+    (* Definition of normal form (nf) --- see lambda/whnf.fun *)
+    (* patSpine (k, S) = B
 
        Invariant:
-       If  g, D |- S : V > V', S in nf
+       If  G, D |- S : V > V', S in nf
        and |D| = k
        then B iff S = (k1 ; k2 ;...; kn ; NIL), kn <= k, all ki pairwise distinct
     *)
-      (* possibly eta-contract? -fp *)(* strictExp (k, p, U) = B
+    (* possibly eta-contract? -fp *)
+    (* strictExp (k, p, U) = B
 
        Invariant:
-       If  g, D |- U : V
+       If  G, D |- U : V
        and U is in nf (normal form)
        and |D| = k
        then B iff U is strict in p
     *)
-      (* checking D in this case might be redundant -fp *)
-      (* no other cases possible *)(* this is a hack - until we investigate this further   -rv *)
-      (* no other cases possible *)(* strictSpine (k, S) = B
+    (* checking D in this case might be redundant -fp *)
+    (* no other cases possible *)
+    (* this is a hack - until we investigate this further   -rv *)
+    (* no other cases possible *)
+    (* strictSpine (k, S) = B
 
        Invariant:
-       If  g, D |- S : V > W
+       If  G, D |- S : V > W
        and S is in nf (normal form)
        and |D| = k
        then B iff S is strict in k
     *)
-      (* strictArgParm (p, U) = B
+    (* strictArgParm (p, U) = B
 
        Traverses the flexible abstractions in U.
 
        Invariant:
-       If   g |- U : V
-       and  g |- p : V'
+       If   G |- U : V
+       and  G |- p : V'
        and  U is in nf
        then B iff argument parameter p occurs in strict position in U
                   which starts with argument parameters
     *)
-      (* strictTop ((U, V), ocdOpt) = ()
+    (* strictTop ((U, V), ocdOpt) = ()
 
        Invariant:
        condec has form c = U : V where . |- U : V
@@ -162,7 +167,8 @@ module Strict(Strict:sig
 
        ocdOpt is an optional occurrence tree for condec for error messages
     *)
-      (* may not be sound in general *)(* Wed Aug 25 16:39:57 2004 -fp *))
-      = strictTop
+    (* may not be sound in general *)
+    (* Wed Aug 25 16:39:57 2004 -fp *)
+    let check = strictTop
     let checkType = occursInType
   end ;;

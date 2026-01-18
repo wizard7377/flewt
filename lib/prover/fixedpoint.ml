@@ -1,9 +1,11 @@
 
+(* Splitting: Version 1.4 *)
+(* Author: Carsten Schuermann *)
 module type FIXEDPOINT  =
   sig
-    module State :
-    ((STATE)(* Splitting: Version 1.4 *)(* Author: Carsten Schuermann *)
-    (*! structure IntSyn : INTSYN !*)(*! structure Tomega : TOMEGA !*))
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Tomega : TOMEGA !*)
+    module State : STATE
     exception Error of string 
     type nonrec operator
     val expand : (State.__Focus * Tomega.__TC) -> operator
@@ -14,18 +16,20 @@ module type FIXEDPOINT  =
 
 
 
+(* Fixed Point *)
+(* Author: Carsten Schuermann *)
 module FixedPoint(FixedPoint:sig
-                               module State' :
-                               ((STATE)(* Fixed Point *)
-                               (* Author: Carsten Schuermann *)(*! structure IntSyn' : INTSYN !*)
+                               (*! structure IntSyn' : INTSYN !*)
                                (*! structure Tomega' : TOMEGA !*)
-                               (*! sharing Tomega'.IntSyn = IntSyn' !*))
+                               (*! sharing Tomega'.IntSyn = IntSyn' !*)
+                               module State' : STATE
                              end) : FIXEDPOINT =
   struct
-    module State =
-      ((State')(*! sharing State'.IntSyn = IntSyn' !*)
-      (*! sharing State'.Tomega = Tomega' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! structure Tomega = Tomega' !*))
+    (*! sharing State'.IntSyn = IntSyn' !*)
+    (*! sharing State'.Tomega = Tomega' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    module State = State'
     module S = State'
     module T = Tomega
     module I = IntSyn
@@ -38,17 +42,6 @@ module FixedPoint(FixedPoint:sig
       (r, (T.Rec (D, X)))
     let rec apply (r, P) = (:=) r SOME P
     let rec menu _ = "Recursion introduction"
-    exception Error = Error(* menu O = s
-
-       Invariant:
-       s = "Apply universal introduction rules"
-    *)
-    (* should be trailed -cs Thu Apr 22 11:20:32 2004 *)
-    (* apply O = S
-
-       Invariant:
-       O = S
-    *)(*        val D = T.PDec (SOME "IH" , F, SOME O, SOME O) *)
     (* expand S = S'
 
        Invariant:
@@ -56,6 +49,19 @@ module FixedPoint(FixedPoint:sig
        and  F does not start with an all quantifier
        then S' = (Psi, xx :: F |> F)
     *)
+    (*        val D = T.PDec (SOME "IH" , F, SOME O, SOME O) *)
+    (* apply O = S
+
+       Invariant:
+       O = S
+    *)
+    (* should be trailed -cs Thu Apr 22 11:20:32 2004 *)
+    (* menu O = s
+
+       Invariant:
+       s = "Apply universal introduction rules"
+    *)
+    exception Error = Error
     type nonrec operator = operator
     let expand = expand
     let apply = apply

@@ -1,10 +1,13 @@
 
+(* Sets *)
+(* Author: Brigitte Pientka *)
+(* This provides a common interface to ordered sets *)
+(* based on red/black trees *)
 module type RBSET  =
   sig
-    type nonrec key =
-      ((int)(* based on red/black trees *)(* This provides a common interface to ordered sets *)
-      (* Author: Brigitte Pientka *)(* Sets *))
-    type nonrec 'a entry = (((key)(* parameter *)) * 'a)
+    type nonrec key = int
+    (* parameter *)
+    type nonrec 'a entry = (key * 'a)
     exception Error of string 
     type nonrec 'a ordSet
     val new__ : unit -> 'a ordSet
@@ -13,29 +16,20 @@ module type RBSET  =
     val insertList : 'a ordSet -> 'a entry list -> unit
     val insertShadow : 'a ordSet -> 'a entry -> unit
     val insertLast : 'a ordSet -> 'a -> unit
-    val lookup :
-      'a ordSet ->
-        key ->
-          (('a)(*  val delete : 'a ordSet -> key -> unit*))
-            option
+    (*  val delete : 'a ordSet -> key -> unit*)
+    val lookup : 'a ordSet -> key -> 'a option
     val isEmpty : 'a ordSet -> bool
     val last : 'a ordSet -> 'a entry
     val clear : 'a ordSet -> unit
-    val app :
-      'a ordSet ->
-        ('a -> unit) ->
-          ((unit)(* Applies f:'a -> unit to all entries in the set
-     pre-order traversal *))
+    (* Applies f:'a -> unit to all entries in the set
+     pre-order traversal *)
+    val app : 'a ordSet -> ('a -> unit) -> unit
     val update : 'a ordSet -> ('a -> 'a) -> 'a ordSet
-    val forall :
-      'a ordSet ->
-        ('a entry -> unit) ->
-          ((unit)(* Applies f:'a entry -> unit to all entries in the set
-     pre-order traversal *))
-    val exists :
-      'a ordSet ->
-        ('a entry -> bool) ->
-          ((bool)(*  val exists : 'a ordSet -> ('a entry -> 'b option) -> ('a entry  key * 'a *))
+    (* Applies f:'a entry -> unit to all entries in the set
+     pre-order traversal *)
+    val forall : 'a ordSet -> ('a entry -> unit) -> unit
+    (*  val exists : 'a ordSet -> ('a entry -> 'b option) -> ('a entry  key * 'a *)
+    val exists : 'a ordSet -> ('a entry -> bool) -> bool
     val existsOpt : 'a ordSet -> ('a -> bool) -> int option
     val size : 'a ordSet -> int
     val union : 'a ordSet -> 'a ordSet -> 'a ordSet
@@ -43,22 +37,18 @@ module type RBSET  =
     val difference2 : 'a ordSet -> 'a ordSet -> ('a ordSet * 'a ordSet)
     val differenceModulo :
       'a ordSet -> 'b ordSet -> ('a -> 'b -> unit) -> ('a ordSet * 'b ordSet)
+    (* splits two sets into S1, S2, S3 *)
     val splitSets :
       'a ordSet ->
         'a ordSet ->
-          ('a -> 'a -> 'a option) ->
-            ((('a)(* splits two sets into s1, s2, s3 *))
-              ordSet * 'a ordSet * 'a ordSet)
+          ('a -> 'a -> 'a option) -> ('a ordSet * 'a ordSet * 'a ordSet)
     val intersection : 'a ordSet -> 'a ordSet -> 'a ordSet
   end;;
 
 
 
 
-module RBSet : RBSET =
-  struct
-    type nonrec key =
-      ((int)(* redblack-set.sml
+(* redblack-set.sml
  *
  * This code is based on Chris Okasaki's implementation of
  * red-black trees.  The linear-time tree construction code is
@@ -76,12 +66,14 @@ module RBSet : RBSET =
  * The Red condition implies that the root is always black and the Black
  * condition implies that any node with only one child will be black and
  * its child will be a red leaf.
- *))
+ *)
+module RBSet : RBSET =
+  struct
+    type nonrec key = int
     type nonrec 'a entry = (key * 'a)
     type 'a dict =
       | Empty 
-      | Red of ((('a)(* considered black *)) entry * 'a dict
-      * 'a dict) 
+      | Red of ('a entry * 'a dict * 'a dict) 
       | Black of ('a entry * 'a dict * 'a dict) 
     type 'a set =
       | Set of (int * 'a dict) 
@@ -92,8 +84,19 @@ module RBSet : RBSET =
     let empty = Set (0, Empty)
     let rec singleton x = Set (1, (Red (x, Empty, Empty)))
     let compare = Int.compare
+    (* Representation Invariants *)
+    (*
+     1. The tree is ordered: for every node Red((key1,datum1), left, right) or
+        Black ((key1,datum1), left, right), every key in left is less than
+        key1 and every key in right is greater than key1.
+
+     2. The children of a red node are black (color invariant).
+
+     3. Every path from the root to a leaf has the same number of
+        black nodes, called the black height of the tree.
+  *)
     let rec lookup (Set (n, dict)) key =
-      let lk =
+      let rec lk =
         function
         | Empty -> NONE
         | Red tree -> lk' tree
@@ -129,7 +132,7 @@ module RBSet : RBSET =
       | dict -> dict
     let rec insert (Set (n, dict), ((key, datum) as entry)) =
       let nItems = ref n in
-      let ins =
+      let rec ins =
         function
         | Empty -> ((nItems := n) + 1; Red (entry, Empty, Empty))
         | Red (((key1, datum1) as entry1), left, right) ->
@@ -157,7 +160,7 @@ module RBSet : RBSET =
       Set (n', dic')
     let rec insertShadow (Set (n, dict), ((key, datum) as entry)) =
       let oldEntry = ref NONE in
-      let ins =
+      let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
         | Red (((key1, datum1) as entry1), left, right) ->
@@ -188,14 +191,14 @@ module RBSet : RBSET =
       | RightRed of ('a dict * 'a entry * 'a zipper) 
       | RightBlack of ('a dict * 'a entry * 'a zipper) 
     let rec delete (Set (nItems, t), k) =
-      let zip =
+      let rec zip =
         function
         | (Top, t) -> t
         | (LeftRed (x, b, z), a) -> zip (z, (Red (x, a, b)))
         | (LeftBlack (x, b, z), a) -> zip (z, (Black (x, a, b)))
         | (RightRed (a, x, z), b) -> zip (z, (Red (x, a, b)))
         | (RightBlack (a, x, z), b) -> zip (z, (Black (x, a, b))) in
-      let bbZip =
+      let rec bbZip =
         function
         | (Top, t) -> (true__, t)
         | (LeftBlack (x, Red (y, c, d), z), a) ->
@@ -235,13 +238,13 @@ module RBSet : RBSET =
         | (RightBlack (Black (y, c, d), x, z), b) ->
             bbZip (z, (Black (x, (Red (y, c, d)), b)))
         | (z, t) -> (false__, (zip (z, t))) in
-      let delMin =
+      let rec delMin =
         function
         | (Red (y, Empty, b), z) -> (y, (false__, (zip (z, b))))
         | (Black (y, Empty, b), z) -> (y, (bbZip (z, b)))
         | (Red (y, a, b), z) -> delMin (a, (LeftRed (y, b, z)))
         | (Black (y, a, b), z) -> delMin (a, (LeftBlack (y, b, z))) in
-      let joinBlack =
+      let rec joinBlack =
         function
         | (a, Empty, z) -> ((fun r -> r.2)) (bbZip (z, a))
         | (Empty, b, z) -> ((fun r -> r.2)) (bbZip (z, b))
@@ -250,7 +253,7 @@ module RBSet : RBSET =
             if needB
             then ((fun r -> r.2)) (bbZip (z, (Black (x, a, b'))))
             else zip (z, (Black (x, a, b'))) in
-      let joinRed =
+      let rec joinRed =
         function
         | (Empty, Empty, z) -> zip (z, Empty)
         | (a, b, z) ->
@@ -258,7 +261,7 @@ module RBSet : RBSET =
             if needB
             then ((fun r -> r.2)) (bbZip (z, (Red (x, a, b'))))
             else zip (z, (Red (x, a, b'))) in
-      let del =
+      let rec del =
         function
         | (Empty, z) -> raise (Error "not found\n")
         | (Red (((k', _) as y), a, b), z) ->
@@ -273,7 +276,7 @@ module RBSet : RBSET =
              | GREATER -> del (b, (RightBlack (a, y, z)))) in
       Set ((nItems - 1), (del (t, Top)))
     let rec app f (Set (n, dict)) =
-      let ap =
+      let rec ap =
         function
         | Empty -> ()
         | Red tree -> ap' tree
@@ -282,7 +285,7 @@ module RBSet : RBSET =
         ap left; f datum; ap right in
       ap dict
     let rec update f (Set (n, dict)) =
-      let upd =
+      let rec upd =
         function
         | Empty -> Empty
         | Red tree -> Red (upd' tree)
@@ -293,14 +296,14 @@ module RBSet : RBSET =
         let right' = upd right in ((k, datum'), left', right') in
       Set (n, (upd dict))
     let rec forall (Set (n, dict)) f =
-      let ap =
+      let rec ap =
         function
         | Empty -> ()
         | Red tree -> ap' tree
         | Black tree -> ap' tree
       and ap' (entry, left, right) = ap left; f entry; ap right in ap dict
     let rec existsOpt (Set (n, dict)) f =
-      let ap =
+      let rec ap =
         function
         | Empty -> NONE
         | Red tree -> ap' tree
@@ -313,7 +316,7 @@ module RBSet : RBSET =
            (match ap left with | NONE -> ap right | SOME res -> SOME res)) in
       ap dict
     let rec exists (Set (n, dict)) f =
-      let ap =
+      let rec ap =
         function
         | Empty -> false__
         | Red tree -> ap' tree
@@ -338,7 +341,7 @@ module RBSet : RBSET =
       | ONE of ('a entry * 'a dict * 'a digit) 
       | TWO of ('a entry * 'a dict * 'a entry * 'a dict * 'a digit) 
     let rec addItem (a, l) =
-      let incr =
+      let rec incr =
         function
         | (a, t, ZERO) -> ONE (a, t, ZERO)
         | (a1, t1, ONE (a2, t2, r)) -> TWO (a1, t1, a2, t2, r)
@@ -346,7 +349,7 @@ module RBSet : RBSET =
             ONE (a1, t1, (incr (a2, (Black (a3, t3, t2)), r))) in
       incr (a, Empty, l)
     let rec linkAll t =
-      let link =
+      let rec link =
         function
         | (t, ZERO) -> t
         | (t1, ONE (a, t2, r)) -> link ((Black (a, t2, t1)), r)
@@ -355,14 +358,14 @@ module RBSet : RBSET =
       link (Empty, t)
     let rec getEntry = function | Red (x, _, _) -> x | Black (x, _, _) -> x
     let rec union (Set (n1, s1), Set (n2, s2)) =
-      let ins =
+      let rec ins =
         function
         | ((Empty, _), n, result) -> (n, result)
         | ((Red (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result)))
         | ((Black (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result))) in
-      let union' (t1, t2, n, result) =
+      let rec union' (t1, t2, n, result) =
         match ((next t1), (next t2)) with
         | ((Empty, _), (Empty, _)) -> (n, result)
         | ((Empty, _), t2) -> ins (t2, n, result)
@@ -383,7 +386,7 @@ module RBSet : RBSET =
                let (n, result) = union' ((start s1), (start s2), 0, ZERO) in
                Set (n, (linkAll result)))
     let rec intersection (Set (_, s1), Set (_, s2)) =
-      let intersect (t1, t2, n, result) =
+      let rec intersect (t1, t2, n, result) =
         match ((next t1), (next t2)) with
         | ((Empty, r), (tree, r')) -> (n, result)
         | ((tree, r), (Empty, r')) -> (n, result)
@@ -397,14 +400,14 @@ module RBSet : RBSET =
       let (n, result) = intersect ((start s1), (start s2), 0, ZERO) in
       Set (n, (linkAll result))
     let rec difference (Set (_, s1), Set (_, s2)) =
-      let ins =
+      let rec ins =
         function
         | ((Empty, _), n, result) -> (n, result)
         | ((Red (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result)))
         | ((Black (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result))) in
-      let diff (t1, t2, n, result) =
+      let rec diff (t1, t2, n, result) =
         match ((next t1), (next t2)) with
         | ((Empty, _), _) -> (n, result)
         | (t1, (Empty, _)) -> ins (t1, n, result)
@@ -418,14 +421,14 @@ module RBSet : RBSET =
       let (n, result) = diff ((start s1), (start s2), 0, ZERO) in
       Set (n, (linkAll result))
     let rec difference2 (Set (_, s1), Set (_, s2)) =
-      let ins =
+      let rec ins =
         function
         | ((Empty, _), n, result) -> (n, result)
         | ((Red (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result)))
         | ((Black (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result))) in
-      let diff (t1, t2, (n1, result1), (n2, result2)) =
+      let rec diff (t1, t2, (n1, result1), (n2, result2)) =
         match ((next t1), (next t2)) with
         | ((Empty, _), t2) -> ((n1, result1), (ins (t2, n2, result2)))
         | (t1, (Empty, _)) -> ((ins (t1, n1, result1)), (n2, result2))
@@ -446,14 +449,14 @@ module RBSet : RBSET =
         diff ((start s1), (start s2), (0, ZERO), (0, ZERO)) in
       ((Set (n1, (linkAll result1))), (Set (n2, (linkAll result2))))
     let rec diffMod (F) (Set (_, s1), Set (_, s2)) =
-      let ins =
+      let rec ins =
         function
         | ((Empty, _), n, result) -> (n, result)
         | ((Red (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result)))
         | ((Black (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result))) in
-      let diff (t1, t2, (n1, result1), (n2, result2)) =
+      let rec diff (t1, t2, (n1, result1), (n2, result2)) =
         match ((next t1), (next t2)) with
         | ((Empty, _), t2) -> ((n1, result1), (ins (t2, n2, result2)))
         | (t1, (Empty, _)) -> ((ins (t1, n1, result1)), (n2, result2))
@@ -475,14 +478,14 @@ module RBSet : RBSET =
         diff ((start s1), (start s2), (0, ZERO), (0, ZERO)) in
       ((Set (n1, (linkAll result1))), (Set (n2, (linkAll result2))))
     let rec splitSets (F) (Set (_, s1), Set (_, s2)) =
-      let ins =
+      let rec ins =
         function
         | ((Empty, _), n, result) -> (n, result)
         | ((Red (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result)))
         | ((Black (x, _, _), r), n, result) ->
             ins ((next r), (n + 1), (addItem (x, result))) in
-      let split
+      let rec split
         (t1, t2, ((n, result) as nr), ((n1, result1) as nr1),
          ((n2, result2) as nr2))
         =
@@ -511,18 +514,8 @@ module RBSet : RBSET =
         split ((start s1), (start s2), (0, ZERO), (0, ZERO), (0, ZERO)) in
       ((Set (n, (linkAll r))), (Set (n1, (linkAll r1))),
         (Set (n2, (linkAll r2))))
-    let rec new__
-      ((())(* Representation Invariants *)(*
-     1. The tree is ordered: for every node Red((key1,datum1), left, right) or
-        Black ((key1,datum1), left, right), every key in left is less than
-        key1 and every key in right is greater than key1.
-
-     2. The children of a red node are black (color invariant).
-
-     3. Every path from the root to a leaf has the same number of
-        black nodes, called the black height of the tree.
-  *)
-      (* val restore_right : 'a dict -> 'a dict *)(*
+    (* val restore_right : 'a dict -> 'a dict *)
+    (*
      restore_right (Black(e,l,r)) >=> dict
      where (1) Black(e,l,r) is ordered,
            (2) Black(e,l,r) has black height n,
@@ -531,56 +524,82 @@ module RBSet : RBSET =
      and dict is a re-balanced red/black tree (satisfying all invariants)
      and same black height n.
   *)
-      (* re-color *)(* re-color *)(* l is black, deep rotate *)
-      (* l is black, shallow rotate *)(* restore_left is like restore_right, except *)
-      (* the color invariant may be violated only at the root of left child *)
-      (* re-color *)(* re-color *)(* r is black, shallow rotate *)
-      (* r is black, deep rotate *)(* val ins : 'a dict -> 'a dict  inserts entry *)
-      (* ins (Red _) may violate color invariant at root *)
-      (* ins (Black _) or ins (Empty) will be red/black tree *)(* ins preserves black height *)
-      (*print ("Found " ^ Int.toString key ^ " already in set -- keep entry--do not overwrite\n");*)
-      (* print ("Found " ^ Int.toString key ^ " already in set -- keep entry--do not overwrite\n"); *)
-      (* re-color *)(* re-color *)(* input: set sc
+    (* re-color *)
+    (* re-color *)
+    (* l is black, deep rotate *)
+    (* l is black, shallow rotate *)
+    (* restore_left is like restore_right, except *)
+    (* the color invariant may be violated only at the root of left child *)
+    (* re-color *)
+    (* re-color *)
+    (* r is black, shallow rotate *)
+    (* r is black, deep rotate *)
+    (* val ins : 'a dict -> 'a dict  inserts entry *)
+    (* ins (Red _) may violate color invariant at root *)
+    (* ins (Black _) or ins (Empty) will be red/black tree *)
+    (* ins preserves black height *)
+    (*print ("Found " ^ Int.toString key ^ " already in set -- keep entry--do not overwrite\n");*)
+    (* print ("Found " ^ Int.toString key ^ " already in set -- keep entry--do not overwrite\n"); *)
+    (* re-color *)
+    (* re-color *)
+    (* input: set sc
      output set s' *)
-      (* : 'a entry option ref *)(* re-color *)
-      (* re-color *)(* Remove an item.  Raises LibBase.NotFound if not found. *)
-      (* bbZip propagates a black deficit up the tree until either the top
+    (* : 'a entry option ref *)
+    (* re-color *)
+    (* re-color *)
+    (* Remove an item.  Raises LibBase.NotFound if not found. *)
+    (* bbZip propagates a black deficit up the tree until either the top
          * is reached, or the deficit can be covered.  It returns a boolean
          * that is true if there is still a deficit and the zipped tree.
          *)
-      (* case 1L *)(* case 1L *)(* case 3L *)
-      (* case 3L *)(* case 4L *)(* case 4L *)
-      (* case 2L *)(* case 2L *)(* case 1R *)
-      (* case 1R *)(* case 3R *)(* case 3R *)
-      (* case 4R *)(* case 4R *)(* case 2R *)
-      (* case 2R *)(* end case *)(* end case *)
-      (* local *)(* does not apply f to all elements of S in order! *)
-      (* support for constructing red-black trees in linear time from increasing
+    (* case 1L *)
+    (* case 1L *)
+    (* case 3L *)
+    (* case 3L *)
+    (* case 4L *)
+    (* case 4L *)
+    (* case 2L *)
+    (* case 2L *)
+    (* case 1R *)
+    (* case 1R *)
+    (* case 3R *)
+    (* case 3R *)
+    (* case 4R *)
+    (* case 4R *)
+    (* case 2R *)
+    (* case 2R *)
+    (* end case *)
+    (* end case *)
+    (* local *)
+    (* does not apply f to all elements of S in order! *)
+    (* support for constructing red-black trees in linear time from increasing
    * ordered sequences (based on a description by R. Hinze).  Note that the
    * elements in the digits are ordered with the largest on the left, whereas
    * the elements of the trees are ordered with the largest on the right.
    *)
-      (* functions for walking the tree while keeping a stack of parents
+    (* functions for walking the tree while keeping a stack of parents
    * to be visited.
    *)
-      (* add an item that is guaranteed to be larger than any in l *)
-      (* link the digits into a tree *)(* return the union of the two sets *)
-      (* return the intersection of the two sets *)(* return the set difference  s1 - s2 
-     if there are elements in s2 which do not appear in s1
+    (* add an item that is guaranteed to be larger than any in l *)
+    (* link the digits into a tree *)
+    (* return the union of the two sets *)
+    (* return the intersection of the two sets *)
+    (* return the set difference  S1 - S2 
+     if there are elements in S2 which do not appear in S1
      they are ignored !*)
-      (* returns difference (d1, d2) where d1 
-     contains all elements occurring in s1 but not in s2
-     and d2 contains all elements occurring in s2 but not in s1
+    (* returns difference (d1, d2) where d1 
+     contains all elements occurring in S1 but not in S2
+     and d2 contains all elements occurring in S2 but not in S1
        *)
-      (* s1 - s2 = R1 
-      s2 - s1 = R2
-      intersection (s1, s2) requires 
-      for all (x, d1) in s1 
-        and (x, d2) in s2, d1 ~ d2
-    *))
-      = ref empty
-    let rec copy ((S)(* ignore size hint *)) =
-      let S' = new__ () in S' := (!S); S'
+    (* S1 - S2 = R1 
+      S2 - S1 = R2
+      intersection (S1, S2) requires 
+      for all (x, d1) in S1 
+        and (x, d2) in S2, d1 ~ d2
+    *)
+    let rec new__ () = ref empty
+    (* ignore size hint *)
+    let rec copy (S) = let S' = new__ () in S' := (!S); S'
     let insert =
       function | set -> (function | entry -> (:=) set insert ((!set), entry))
     let insertLast =

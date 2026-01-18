@@ -1,9 +1,10 @@
 
+(* Parsing Signature Entries *)
+(* Author: Frank Pfenning *)
 module type PARSE_CONDEC  =
   sig
-    module ExtConDec :
-    ((EXTCONDEC)(* Parsing Signature Entries *)(* Author: Frank Pfenning *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module ExtConDec : EXTCONDEC
     val parseConDec' : ExtConDec.condec Parsing.parser
     val parseAbbrev' : ExtConDec.condec Parsing.parser
     val parseClause' : ExtConDec.condec Parsing.parser
@@ -12,16 +13,16 @@ module type PARSE_CONDEC  =
 
 
 
+(* Parsing Signature Entries *)
+(* Author: Frank Pfenning *)
 module ParseConDec(ParseConDec:sig
+                                 (*! structure Parsing' : PARSING !*)
                                  module ExtConDec' : EXTCONDEC
-                                 module ParseTerm :
-                                 ((PARSE_TERM)(* Parsing Signature Entries *)
-                                 (* Author: Frank Pfenning *)(*! structure Parsing' : PARSING !*))
+                                 module ParseTerm : PARSE_TERM
                                end) : PARSE_CONDEC =
   struct
-    module ExtConDec =
-      ((ExtConDec')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ExtConDec = ExtConDec'
     module L = Lexer
     module LS = Lexer.Stream
     let rec parseConDec3 (optName, optTm, s) =
@@ -88,14 +89,17 @@ module ParseConDec(ParseConDec:sig
     let rec parseConDec s = parseConDec' (LS.expose s)
     let rec parseAbbrev' (Cons ((L.ABBREV, r), s)) = parseConDec s
     let rec parseClause' (Cons ((L.CLAUSE, r), s)) = parseConDec s
-    let ((parseConDec')(* parseConDec3  "U" *)(* parseConDec2  "= U" | "" *)
-      (* parseConDec1  ": V = U" | "= U" *)(* BlockDec parser *)
-      (* added as a feature request by Carl  -- Wed Mar 16 16:11:44 2011  cs *)
-      (* parseConDec' : lexResult front -> ExtConDec.ConDec * lexResult front
+    (* parseConDec3  "U" *)
+    (* parseConDec2  "= U" | "" *)
+    (* parseConDec1  ": V = U" | "= U" *)
+    (* BlockDec parser *)
+    (* added as a feature request by Carl  -- Wed Mar 16 16:11:44 2011  cs *)
+    (* parseConDec' : lexResult front -> ExtConDec.ConDec * lexResult front
        Invariant: first token in exposed input stream is an identifier or underscore
     *)
-      (* parseConDec --- currently not exported *)(* -fp *))
-      = parseConDec'
+    (* parseConDec --- currently not exported *)
+    (* -fp *)
+    let parseConDec' = parseConDec'
     let parseAbbrev' = parseAbbrev'
     let parseClause' = parseClause'
   end ;;

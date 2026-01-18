@@ -1,9 +1,10 @@
 
+(* Meta Prover Interface *)
+(* Author: Carsten Schuermann *)
 module type MTPI  =
   sig
-    module StateSyn :
-    ((STATESYN)(* Meta Prover Interface *)(* Author: Carsten Schuermann *)
-    (*! structure FunSyn : FUNSYN !*))
+    (*! structure FunSyn : FUNSYN !*)
+    module StateSyn : STATESYN
     exception Error of string 
     val init : (int * string list) -> unit
     val select : int -> unit
@@ -13,14 +14,16 @@ module type MTPI  =
     val solve : unit -> unit
     val check : unit -> unit
     val reset : unit -> unit
-    val undo :
-      unit ->
-        ((unit)(*  val show   : unit -> unit *)(*  val extract: unit -> MetaSyn.Sgn *))
+    (*  val extract: unit -> MetaSyn.Sgn *)
+    (*  val show   : unit -> unit *)
+    val undo : unit -> unit
   end;;
 
 
 
 
+(* Meta Prover Interface *)
+(* Author: Carsten Schuermann *)
 module MTPi(MTPi:sig
                    module MTPGlobal : MTPGLOBAL
                    module StateSyn' : STATESYN
@@ -39,24 +42,25 @@ module MTPi(MTPi:sig
                    module Order : ORDER
                    module Names : NAMES
                    module Timers : TIMERS
-                   module Ring :
-                   ((RING)(* Meta Prover Interface *)
-                   (* Author: Carsten Schuermann *)(*! structure IntSyn : INTSYN !*)
+                   (*! structure IntSyn : INTSYN !*)
                    (*! structure FunSyn' : FUNSYN !*)
                    (*! sharing FunSyn'.IntSyn = IntSyn !*)
                    (*! sharing StateSyn'.IntSyn = IntSyn !*)
-                   (*! sharing StateSyn'.FunSyn = FunSyn' !*)(*! sharing RelFun.FunSyn = FunSyn' !*)
+                   (*! sharing StateSyn'.FunSyn = FunSyn' !*)
+                   (*! sharing RelFun.FunSyn = FunSyn' !*)
                    (*! sharing Print.IntSyn = IntSyn !*)
                    (*! sharing FunTypeCheck.FunSyn = FunSyn' !*)
                    (*! sharing MTPInit.FunSyn = FunSyn' !*)
-                   (*! sharing MTPFilling.FunSyn = FunSyn' !*)(*! sharing Inference.FunSyn = FunSyn' !*)
+                   (*! sharing MTPFilling.FunSyn = FunSyn' !*)
+                   (*! sharing Inference.FunSyn = FunSyn' !*)
                    (*! sharing Order.IntSyn = IntSyn !*)
-                   (*! sharing Names.IntSyn = IntSyn !*))
+                   (*! sharing Names.IntSyn = IntSyn !*)
+                   module Ring : RING
                  end) : MTPI =
   struct
     exception Error of string 
-    module StateSyn =
-      ((StateSyn')(*! structure FunSyn = FunSyn' !*))
+    (*! structure FunSyn = FunSyn' !*)
+    module StateSyn = StateSyn'
     module I = IntSyn
     module F = FunSyn
     module S = StateSyn
@@ -98,13 +102,13 @@ module MTPi(MTPi:sig
       | c::nil -> I.conDecName (I.sgnLookup c)
       | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
     let rec printFillResult (_, P) =
-      let formatTuple (g, P) =
-        let formatTuple' =
+      let rec formatTuple (G, P) =
+        let rec formatTuple' =
           function
           | F.Unit -> nil
-          | Inx (M, F.Unit) -> [Print.formatExp (g, M)]
+          | Inx (M, F.Unit) -> [Print.formatExp (G, M)]
           | Inx (M, P') ->
-              (::) (((::) (Print.formatExp (g, M)) Fmt.String ",") ::
+              (::) (((::) (Print.formatExp (G, M)) Fmt.String ",") ::
                       Fmt.Break)
                 formatTuple' P' in
         match P with
@@ -112,10 +116,10 @@ module MTPi(MTPi:sig
         | _ ->
             Fmt.HVbox0 1 1 1
               ((Fmt.String "(") :: ((formatTuple' P) @ [Fmt.String ")"])) in
-      let State (n, (g, B), (IH, OH), d, O, H, F) = current () in
+      let State (n, (G, B), (IH, OH), d, O, H, F) = current () in
       TextIO.print
         (("Filling successful with proof term:\n" ^
-            (Formatter.makestring_fmt (formatTuple (g, P))))
+            (Formatter.makestring_fmt (formatTuple (G, P))))
            ^ "\n")
     let rec SplittingToMenu =
       function
@@ -142,7 +146,7 @@ module MTPi(MTPi:sig
     let rec format k =
       if k < 10 then (Int.toString k) ^ ".  " else (Int.toString k) ^ ". "
     let rec menuToString () =
-      let menuToString' =
+      let rec menuToString' =
         function
         | (k, nil, (NONE, _)) -> ((SOME k), "")
         | (k, nil, ((SOME _ as kopt'), _)) -> (kopt', "")
@@ -205,21 +209,21 @@ module MTPi(MTPi:sig
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec transformOrder' =
       function
-      | (g, Arg k) ->
-          let k' = ((I.ctxLength g) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (g, k') in
+      | (G, Arg k) ->
+          let k' = ((I.ctxLength G) - k) + 1 in
+          let Dec (_, V) = I.ctxDec (G, k') in
           S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (g, Lex (Os)) ->
-          S.Lex (map (function | O -> transformOrder' (g, O)) Os)
-      | (g, Simul (Os)) ->
-          S.Simul (map (function | O -> transformOrder' (g, O)) Os)
+      | (G, Lex (Os)) ->
+          S.Lex (map (function | O -> transformOrder' (G, O)) Os)
+      | (G, Simul (Os)) ->
+          S.Simul (map (function | O -> transformOrder' (G, O)) Os)
     let rec transformOrder =
       function
-      | (g, All (Prim (D), F), Os) ->
-          S.All (D, (transformOrder ((I.Decl (g, D)), F, Os)))
-      | (g, And (F1, F2), (O)::Os) ->
-          S.And ((transformOrder (g, F1, [O])), (transformOrder (g, F2, Os)))
-      | (g, Ex _, (O)::[]) -> transformOrder' (g, O)
+      | (G, All (Prim (D), F), Os) ->
+          S.All (D, (transformOrder ((I.Decl (G, D)), F, Os)))
+      | (G, And (F1, F2), (O)::Os) ->
+          S.And ((transformOrder (G, F1, [O])), (transformOrder (G, F2, Os)))
+      | (G, Ex _, (O)::[]) -> transformOrder' (G, O)
     let rec select c = try Order.selLookup c with | _ -> Order.Lex []
     let rec init (k, names) =
       let cL =
@@ -243,7 +247,7 @@ module MTPi(MTPi:sig
       | Error s -> abort ("Inference Error: " ^ s)
       | Error s -> abort ("Mpi Error: " ^ s)
     let rec select k =
-      let select' =
+      let rec select' =
         function
         | (k, nil) -> abort "No such menu item"
         | (1, (Splitting (O))::_) ->

@@ -1,26 +1,28 @@
 
 module type TIMERS  =
   sig
-    val checking :
-      ((Timing.center)(* Programming interface *))
-    val eta_normal :
-      ((Timing.center)(* redundant type-checking *))
-    val printing :
-      ((Timing.center)(* redundant type-checking *))
-    val translation : ((Timing.center)(* printing *))
-    val total : ((Timing.sum)(* printing *))
-    val time :
-      Timing.center ->
-        ('a -> 'b) ->
-          'a ->
-            (('b)(* time center f x = y
+    (* Programming interface *)
+    val checking : Timing.center
+    (* redundant type-checking *)
+    val eta_normal : Timing.center
+    (* redundant type-checking *)
+    val printing : Timing.center
+    (* printing *)
+    val translation : Timing.center
+    (* printing *)
+    val total : Timing.sum
+    (* total time *)
+    (* time center f x = y
      if f x = y and time of computing f x is added to center.
      If f x raises an exception, it is re-raised.
   *)
-            (* total time *))
-    val reset : unit -> ((unit)(* External interface *))
-    val check : unit -> ((unit)(* reset above centers *))
-    val show : unit -> ((unit)(* check timer values *))
+    val time : Timing.center -> ('a -> 'b) -> 'a -> 'b
+    (* External interface *)
+    val reset : unit -> unit
+    (* reset above centers *)
+    val check : unit -> unit
+    (* check timer values *)
+    val show : unit -> unit
   end;;
 
 

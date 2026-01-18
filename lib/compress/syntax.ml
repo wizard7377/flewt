@@ -11,10 +11,10 @@ module Syntax =
       | Lam of term 
       | NRoot of (head * spine) 
     and aterm =
-      | ARoot of (((head)(* c^- *)) * spine) 
-      | ERoot of (((evar)(* c^+, x *)) * subst) 
+      | ARoot of (head * spine) 
+      | ERoot of (evar * subst) 
     and head =
-      | Var of ((int)(* X[s] lowered to base type *)) 
+      | Var of int 
       | Const of int 
     and tp =
       | TRoot of (int * spine) 
@@ -24,43 +24,37 @@ module Syntax =
       | KPi of (mode * tp * knd) 
     and spinelt =
       | Elt of term 
-      | AElt of ((aterm)(*   M    *)) 
-      | Ascribe of (((nterm)(*  (R:)  *)) * tp) 
+      | AElt of aterm 
+      | Ascribe of (nterm * tp) 
       | Omit 
     and term =
-      | NTerm of
-      ((nterm)(*   *    *)(*  (N:A) *)) 
+      | NTerm of nterm 
       | ATerm of aterm 
     and subst =
       | Id 
       | Shift of (int * int) 
-      | ZeroDotShift of
-      ((subst)(* Shift n m = 0.1.2. ... .n-1.n+m.n+m+1.n+m+2. ... *))
-      
+      | ZeroDotShift of subst 
       | TermDot of (term * tp * subst) 
       | EVarDot of (evar * subst list * subst) 
-      | VarOptDot of (((int)(* X[sl] . s *)) option * subst)
-      
+      | VarOptDot of (int option * subst) 
       | Compose of subst list 
     type spine = spinelt list
     and evar = (term option ref * tp)
+    (* special hack for type functions used only in tp_reduce *)
     type tpfn =
-      | tpfnType of
-      ((tp)(* special hack for type functions used only in tp_reduce *))
-      [@sml.renamed "tpfnType"][@sml.renamed "tpfnType"]
+      | tpfnType of tp [@sml.renamed "tpfnType"][@sml.renamed "tpfnType"]
       | tpfnLam of tpfn [@sml.renamed "tpfnLam"][@sml.renamed "tpfnLam"]
     let rec EVarDotId ev = EVarDot (ev, [], Id)
+    (*	type decl = string * Parse.term *)
+    (*	type ctx = decl list *)
     type class__ =
-      | kclass of
-      ((knd)(*	type ctx = decl list *)(*	type decl = string * Parse.term *))
-      [@sml.renamed "kclass"][@sml.renamed "kclass"]
+      | kclass of knd [@sml.renamed "kclass"][@sml.renamed "kclass"]
       | tclass of tp [@sml.renamed "tclass"][@sml.renamed "tclass"]
+    (* termof elm
+        returns the term part of the spine element elm *)
     let rec termof =
       function
-      | Elt
-          ((t)(* termof elm
-        returns the term part of the spine element elm *))
-          -> t
+      | Elt t -> t
       | AElt t -> ATerm t
       | Ascribe (t, a) -> NTerm t
       | Omit ->
@@ -74,32 +68,28 @@ module Syntax =
       [@sml.renamed "srEVar"][@sml.renamed "srEVar"]
     exception Debugs of (subst_result * spinelt list) 
     let rec curryfoldr sf sl x = foldr (function | (s, x') -> sf s x') x sl
-    let rec lower arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (((acc)(* lower (a, sp)
+    (* lower (a, sp)
            supposing we have an evar of (potentially higher-order)
            type a, applied to a spine sp, return the lowered type of
            that evar and a substitution to apply it to *)
-         (* XXX: so we're not carrying out substitutions over the type
-                as we recurse down: is this right? I think it is. *)),
-         ((TRoot _ as a), [])) -> (a, acc)
+    (* XXX: so we're not carrying out substitutions over the type
+                as we recurse down: is this right? I think it is. *)
+    let rec lower arg__0 arg__1 =
+      match (arg__0, arg__1) with
+      | (acc, ((TRoot _ as a), [])) -> (a, acc)
       | (acc, (TPi (m, a, b), elt::sp)) ->
           let newacc = TermDot ((termof elt), (subst_tp acc a), acc) in
           lower newacc (b, sp)
-      | (((_)(*
+      | (_, _) -> raise (Syntax "type mismatch in lowering")(*
 	  | lower base (TPi(m,a,b), elt::sp) = 
 	    let
 		val (aa,subst) = lower base (b, sp)
 	    in
 		(aa, TermDot(termof elt, a, subst))
-	    end *)),
-         _) -> raise (Syntax "type mismatch in lowering")
+	    end *)
     let rec substNth =
       function
-      | (((Id)(* substNth (subst, n)
-        returns the result of applying the substitution subst
-        to the index n *)),
-         n) -> srVar n
+      | (Id, n) -> srVar n
       | (ZeroDotShift s, n) ->
           if n = 0
           then srVar 0
@@ -126,9 +116,7 @@ module Syntax =
       | (s, srEVar (ev, sl)) -> srEVar (ev, (s :: sl))
     let rec subst_spinelt arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((Id)(* the type of the evar is understood to be
-							        affected by the subst as well *)),
-         x) -> x
+      | (Id, x) -> x
       | (s, Elt t) -> Elt (subst_term s t)
       | (s, AElt t) -> subst_aterm_plus s t
       | (s, Ascribe (t, a)) -> Ascribe ((subst_nterm s t), (subst_tp s a))
@@ -150,8 +138,7 @@ module Syntax =
           reduce ((substNth (s, n)), (subst_spine s sp))
       | (s, ERoot (((ref (NONE), _) as ev), sl)) ->
           ATerm (ERoot (ev, (subst_compose (s, sl))))
-      | (((s)(* XXX right??? *)), (ERoot _ as t)) ->
-          subst_term s (eroot_elim t)
+      | (s, (ERoot _ as t)) -> subst_term s (eroot_elim t)(* XXX right??? *)
     let rec subst_aterm_plus arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (s, ARoot (Const n, sp)) ->
@@ -163,8 +150,7 @@ module Syntax =
       | (s, (ERoot _ as t)) -> subst_spinelt s (eroot_elim_plus t)
     let rec subst_tp arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (((s)(* XXX right??? *)), TRoot (h, sp)) ->
-          TRoot (h, (subst_spine s sp))
+      | (s, TRoot (h, sp)) -> TRoot (h, (subst_spine s sp))
       | (s, TPi (m, b, b')) ->
           TPi (m, (subst_tp s b), (subst_tp (ZeroDotShift s) b'))
     let rec subst_knd arg__0 arg__1 =
@@ -206,21 +192,12 @@ module Syntax =
       | (x, y) ->
           (raise (Debugs (x, y));
            raise (Syntax "simplified-type mismatch in reduction"))
-    let rec tp_reduce
-      (((a)(* val tp_reduce : tp * knd * spine -> tp
-           tp_reduce (a, k, sp) computes the result
-           of reducing (.\ .\ ... .\ a) . sp
-           assuming (.\ .\ ... .\ a) : k
-           (where the number of lambdas is the number
-            of pis found in k) 
-        *)),
-       k, sp)
-      =
-      let subst_tpfn arg__0 arg__1 =
+    let rec tp_reduce (a, k, sp) =
+      let rec subst_tpfn arg__0 arg__1 =
         match (arg__0, arg__1) with
         | (s, tpfnLam a) -> tpfnLam (subst_tpfn (ZeroDotShift s) a)
         | (s, tpfnType a) -> tpfnType (subst_tp s a) in
-      let tp_reduce' =
+      let rec tp_reduce' =
         function
         | (tpfnLam a, KPi (_, b, k), h::sp) ->
             let s = TermDot ((termof h), b, Id) in
@@ -228,18 +205,12 @@ module Syntax =
             let k' = subst_knd s k in tp_reduce' (a', k', sp)
         | (tpfnType a, Type, []) -> a
         | _ -> raise (Syntax "simplified-kind mismatch in type reduction") in
-      let wrap =
+      let rec wrap =
         function
         | (a, KPi (_, b, k)) -> tpfnLam (wrap (a, k))
         | (a, Type) -> tpfnType a in
       let aw = wrap (a, k) in tp_reduce' (aw, k, sp)
-    let rec substs_term
-      ((x)(* elt_eroot_elim e
-        returns a spine element equal to e but makes sure that it's not
-        an instatiated ERoot. That is, it carries out the instantiation
-        and substitutions involved therein. *)
-      (* probably not the right way to do things considering I have Compose *))
-      = curryfoldr subst_term x
+    let rec substs_term x = curryfoldr subst_term x
     let rec substs_tp x = curryfoldr subst_tp x
     let rec eroot_elim =
       function
@@ -253,24 +224,7 @@ module Syntax =
            | ATerm t -> AElt t
            | NTerm t -> Ascribe (t, (subst_tp subst a)))
       | x -> AElt x
-    let rec composeNth
-      (((s)(* YYY: the following doesn't avoid incurring polyequal. why??? 
-
-	datatype foo =
-	        Foo of baralias
-	     and bar =
-	        Bar of foo 
-	withtype baralias = bar;
-
-        - fn (x : foo, y : foo) => x = y;
-        stdIn:376.28 Warning: calling polyEqual
-        val it = fn : foo * foo -> bool
-
-        doesn't really matter anymore to this code, (it used to)
-        but I'm still curious.
-        *)
-       (* compute [s]n . (s o s') *)), n, s')
-      =
+    let rec composeNth (s, n, s') =
       let s'' = subst_compose (s, s') in
       match substNth (s, n) with
       | srVar n' -> VarOptDot ((SOME n'), s'')
@@ -278,8 +232,7 @@ module Syntax =
       | srEVar (ev, sl) -> EVarDot (ev, sl, s'')
     let rec subst_compose =
       function
-      | (((Id)(* val subst_compose : subst * subst -> subst *)),
-         s) -> s
+      | (Id, s) -> s
       | (s, Id) -> s
       | (s, Shift (_, 0)) -> s
       | (Shift (_, 0), s) -> s
@@ -299,10 +252,7 @@ module Syntax =
       | (VarOptDot (_, s), Shift (0, m)) ->
           subst_compose (s, (Shift (0, (m - 1))))
       | (Shift (0, m), Shift (0, m')) -> Shift (0, (m + m'))
-      | (Shift
-         (((n)(* ZeroDotShift (Shift (n-1,m)) = Shift(n,m) but the former is 'smaller' *)),
-          m'),
-         (Shift (0, m) as t)) ->
+      | (Shift (n, m'), (Shift (0, m) as t)) ->
           subst_compose ((ZeroDotShift (Shift ((n - 1), m'))), t)
       | (s, Shift (n, m)) ->
           subst_compose (s, (ZeroDotShift (Shift ((n - 1), m))))
@@ -315,13 +265,8 @@ module Syntax =
       | (s, VarOptDot (no, s')) ->
           (match no with
            | NONE -> VarOptDot (NONE, (subst_compose (s, s')))
-           | SOME n -> composeNth (s, n, s'))
-    let rec shift
-      ((t)(* shift_[...] n t
-        shifts all deBruijn indices in the object t by one, as long
-        as they refer to positions in the current context 
-        greater than or equal to n. *))
-      = shift_term 0 t
+           | SOME n -> composeNth (s, n, s'))(* ZeroDotShift (Shift (n-1,m)) = Shift(n,m) but the former is 'smaller' *)
+    let rec shift t = shift_term 0 t
     let rec shift_nterm arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (n, Lam t) -> Lam (shift_term (n + 1) t)
@@ -360,8 +305,8 @@ module Syntax =
       | x -> x
     let rec ntm_eroot_elim =
       function | Lam (ATerm t) -> Lam (eroot_elim t) | x -> x
-    let rec ctxLookup (g, n) =
-      subst_tp (Shift (0, (n + 1))) (List.nth (g, n))
+    let rec ctxLookup (G, n) =
+      subst_tp (Shift (0, (n + 1))) (List.nth (G, n))
     let rec typeOf (tclass a) = a
     let rec kindOf (kclass k) = k
     let sum = foldl (+) 0
@@ -386,9 +331,7 @@ module Syntax =
       function
       | Type -> 1
       | KPi (_, a, b) -> (+) ((+) 1 size_tp a) size_knd b
+    (* convert a kind to a context of all the pi-bound variables in it *)
     let rec explodeKind =
-      function
-      | ((Type)(* convert a kind to a context of all the pi-bound variables in it *))
-          -> []
-      | KPi (_, a, k) -> (explodeKind k) @ [a]
+      function | Type -> [] | KPi (_, a, k) -> (explodeKind k) @ [a]
   end;;

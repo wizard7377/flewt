@@ -1,9 +1,10 @@
 
+(* Top-Level Parser *)
+(* Author: Frank Pfenning *)
 module type PARSER  =
   sig
-    module Stream :
-    ((STREAM)(* Top-Level Parser *)(* Author: Frank Pfenning *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module Stream : STREAM
     module ExtSyn : EXTSYN
     module Names : NAMES
     module ExtConDec : EXTCONDEC
@@ -18,51 +19,49 @@ module type PARSER  =
       list)) 
       | ModeDec of ExtModes.modedec list 
       | UniqueDec of ExtModes.modedec list 
-      | CoversDec of ((ExtModes.modedec)(* -fp 8/17/03 *))
-      list 
+      | CoversDec of ExtModes.modedec list 
       | TotalDec of ThmExtSyn.tdecl 
       | TerminatesDec of ThmExtSyn.tdecl 
       | WorldDec of ThmExtSyn.wdecl 
       | ReducesDec of ThmExtSyn.rdecl 
-      | TabledDec of ((ThmExtSyn.tableddecl)(* -bp *)) 
+      | TabledDec of ThmExtSyn.tableddecl 
       | KeepTableDec of ThmExtSyn.keepTabledecl 
       | TheoremDec of ThmExtSyn.theoremdec 
       | ProveDec of ThmExtSyn.prove 
       | EstablishDec of ThmExtSyn.establish 
       | AssertDec of ThmExtSyn.assert__ 
       | Query of (int option * int option * ExtQuery.query) 
-      | FQuery of ((ExtQuery.query)(* expected, try, A *)) 
-      | Compile of ((Names.__Qid)(* A *)) list 
-      | Querytabled of (((int)(* -ABP 4/4/03 *)) option *
-      int option * ExtQuery.query) 
-      | Solve of (((ExtQuery.define)(* expected, try, A *))
-      list * ExtQuery.solve) 
+      | FQuery of ExtQuery.query 
+      | Compile of Names.__Qid list 
+      | Querytabled of (int option * int option * ExtQuery.query) 
+      | Solve of (ExtQuery.define list * ExtQuery.solve) 
       | AbbrevDec of ExtConDec.condec 
       | TrustMe of (fileParseResult * Paths.region) 
-      | SubordDec of (((Names.__Qid)(* -fp *)) *
-      Names.__Qid) list 
-      | FreezeDec of ((Names.__Qid)(* -gaw *)) list 
+      | SubordDec of (Names.__Qid * Names.__Qid) list 
+      | FreezeDec of Names.__Qid list 
       | ThawDec of Names.__Qid list 
       | DeterministicDec of Names.__Qid list 
-      | ClauseDec of ((ExtConDec.condec)(* -rv *)) 
-      | SigDef of ((ModExtSyn.sigdef)(* -fp *)) 
+      | ClauseDec of ExtConDec.condec 
+      | SigDef of ModExtSyn.sigdef 
       | StructDec of ModExtSyn.structdec 
       | Include of ModExtSyn.sigexp 
       | Open of ModExtSyn.strexp 
       | BeginSubsig 
       | EndSubsig 
-      | Use of ((string)(* enter/leave a new context *)) 
+      | Use of string 
+    (* Further declarations to be added here *)
     val parseStream :
-      TextIO.instream ->
-        (((fileParseResult)(* Further declarations to be added here *))
-          * Paths.region) Stream.stream
+      TextIO.instream -> (fileParseResult * Paths.region) Stream.stream
     val parseTerminalQ : (string * string) -> ExtQuery.query Stream.stream
   end;;
 
 
 
 
+(* Top-Level Parser *)
+(* Author: Frank Pfenning *)
 module Parser(Parser:sig
+                       (*! structure Parsing' : PARSING !*)
                        module Stream' : STREAM
                        module ExtSyn' : EXTSYN
                        module Names' : NAMES
@@ -77,21 +76,19 @@ module Parser(Parser:sig
                        module ParseMode : PARSE_MODE
                        module ParseThm : PARSE_THM
                        module ParseModule : PARSE_MODULE
-                       module ParseTerm :
-                       ((PARSE_TERM)(* Top-Level Parser *)
-                       (* Author: Frank Pfenning *)(*! structure Parsing' : PARSING !*)
-                       (* result stream *)(*! sharing ExtSyn'.Paths = Parsing'.Lexer.Paths !*)
+                       (* result stream *)
+                       (*! sharing ExtSyn'.Paths = Parsing'.Lexer.Paths !*)
                        (*! sharing ParseConDec.Lexer = Parsing'.Lexer !*)
                        (*! sharing ParseQuery.Lexer = Parsing'.Lexer !*)
                        (*! sharing ParseFixity.Lexer = Parsing'.Lexer !*)
                        (*! sharing ParseMode.Lexer = Parsing'.Lexer !*)
                        (*! sharing ParseThm.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseModule.Parsing = Parsing' !*))
+                       (*! sharing ParseModule.Parsing = Parsing' !*)
+                       module ParseTerm : PARSE_TERM
                      end) : PARSER =
   struct
-    module Stream =
-      ((Stream')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module Stream = Stream'
     module ExtSyn = ExtSyn'
     module Names = Names'
     module ExtConDec = ExtConDec'
@@ -106,41 +103,37 @@ module Parser(Parser:sig
       list)) 
       | ModeDec of ExtModes.modedec list 
       | UniqueDec of ExtModes.modedec list 
-      | CoversDec of ((ExtModes.modedec)(* -fp 8/17/03 *))
-      list 
+      | CoversDec of ExtModes.modedec list 
       | TotalDec of ThmExtSyn.tdecl 
       | TerminatesDec of ThmExtSyn.tdecl 
       | WorldDec of ThmExtSyn.wdecl 
       | ReducesDec of ThmExtSyn.rdecl 
-      | TabledDec of ((ThmExtSyn.tableddecl)(* -bp *)) 
+      | TabledDec of ThmExtSyn.tableddecl 
       | KeepTableDec of ThmExtSyn.keepTabledecl 
       | TheoremDec of ThmExtSyn.theoremdec 
       | ProveDec of ThmExtSyn.prove 
       | EstablishDec of ThmExtSyn.establish 
       | AssertDec of ThmExtSyn.assert__ 
       | Query of (int option * int option * ExtQuery.query) 
-      | FQuery of ((ExtQuery.query)(* expected, try, A *)) 
-      | Compile of ((Names.__Qid)(* expected, try, A *))
-      list 
-      | Querytabled of (((int)(* -ABP 4/4/03 *)) option *
-      int option * ExtQuery.query) 
-      | Solve of (((ExtQuery.define)(* numSol, try, A *))
-      list * ExtQuery.solve) 
+      | FQuery of ExtQuery.query 
+      | Compile of Names.__Qid list 
+      | Querytabled of (int option * int option * ExtQuery.query) 
+      | Solve of (ExtQuery.define list * ExtQuery.solve) 
       | AbbrevDec of ExtConDec.condec 
       | TrustMe of (fileParseResult * Paths.region) 
-      | SubordDec of (((Names.__Qid)(* -fp *)) *
-      Names.__Qid) list 
-      | FreezeDec of ((Names.__Qid)(* -gaw *)) list 
+      | SubordDec of (Names.__Qid * Names.__Qid) list 
+      | FreezeDec of Names.__Qid list 
       | ThawDec of Names.__Qid list 
       | DeterministicDec of Names.__Qid list 
-      | ClauseDec of ((ExtConDec.condec)(* -rv *)) 
-      | SigDef of ((ModExtSyn.sigdef)(* -fp *)) 
+      | ClauseDec of ExtConDec.condec 
+      | SigDef of ModExtSyn.sigdef 
       | StructDec of ModExtSyn.structdec 
       | Include of ModExtSyn.sigexp 
       | Open of ModExtSyn.strexp 
       | BeginSubsig 
       | EndSubsig 
-      | Use of ((string)(* enter/leave a new context *)) 
+      | Use of string 
+    (* Further pragmas to be added later here *)
     module L = Lexer
     module LS = Lexer.Stream
     let rec stripDot =
@@ -179,7 +172,7 @@ module Parser(Parser:sig
       match recparser f with
       | (Done x, f') -> sc (x, f')
       | (Continuation k, Cons ((L.LBRACE, r1), s')) ->
-          let finish =
+          let rec finish =
             function
             | Cons ((L.RBRACE, r2), s'') ->
                 Stream.Cons
@@ -345,7 +338,7 @@ module Parser(Parser:sig
       let r = Paths.join (r0, r') in
       Stream.Cons (((AssertDec ldec), r), (parseStream ((stripDot f'), sc)))
     let rec parseTrustMe' ((Cons ((_, r0), s) as f), sc) =
-      let parseNextDec' =
+      let rec parseNextDec' =
         function
         | Cons ((dec, r), s') -> Stream.Cons (((TrustMe (dec, r)), r0), s')
         | Stream.Empty ->
@@ -386,19 +379,19 @@ module Parser(Parser:sig
       let qids = map Names.Qid qids in
       Stream.Cons (((Compile qids), r), (parseStream ((stripDot f'), sc)))
     let rec parseSigDef' ((Cons ((_, r1), _) as f), sc) =
-      let finish (sigdef, (Cons ((_, r2), _) as f')) =
+      let rec finish (sigdef, (Cons ((_, r2), _) as f')) =
         Stream.Cons
           (((SigDef sigdef), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
       recParse' (f, ParseModule.parseSigDef', parseStream, finish)
     let rec parseStructDec' ((Cons ((_, r1), _) as f), sc) =
-      let finish (structdec, (Cons ((_, r2), _) as f')) =
+      let rec finish (structdec, (Cons ((_, r2), _) as f')) =
         Stream.Cons
           (((StructDec structdec), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
       recParse' (f, ParseModule.parseStructDec', parseStream, finish)
     let rec parseInclude' ((Cons ((_, r1), _) as f), sc) =
-      let finish (sigexp, (Cons ((_, r2), _) as f')) =
+      let rec finish (sigexp, (Cons ((_, r2), _) as f')) =
         Stream.Cons
           (((Include sigexp), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
@@ -421,23 +414,29 @@ module Parser(Parser:sig
       let (query, f') = ParseQuery.parseQuery' f in
       Stream.Cons (query, (parseQ (stripDot f')))
     let rec parseTLStream instream =
-      let finish =
+      let rec finish =
         function
         | Cons ((L.EOF, r), s) -> Stream.Empty
         | Cons ((L.RBRACE, r), s) -> Parsing.error (r, "Unmatched `}'") in
       parseStream ((L.lexStream instream), finish)
-    let ((parseStream)(* Further pragmas to be added later here *)
-      (* Everything else should be impossible *)(*
+    (* Everything else should be impossible *)
+    (*
     fun stripOptionalDot (LS.Cons ((L.DOT,r), s)) = s
       | stripOptionalDot f = LS.delay (fn () => f)
     *)
-      (* pass parseStream as theSigParser in order to be able to use
+    (* pass parseStream as theSigParser in order to be able to use
        this function polymorphically in the definition of parseStream *)
-      (* parseStream' : lexResult front -> fileParseResult front *)
-      (* parseStream' switches between various specialized parsers *)
-      (* -fp *)(* -cs *)(* -bp *)
-      (* -bp *)(* -bp *)(* -rv *)
-      (* -ABP 4/4/03 *)(* -fp *)(* ABP 4/4/03 *))
-      = parseTLStream
+    (* parseStream' : lexResult front -> fileParseResult front *)
+    (* parseStream' switches between various specialized parsers *)
+    (* -fp *)
+    (* -cs *)
+    (* -bp *)
+    (* -bp *)
+    (* -bp *)
+    (* -rv *)
+    (* -ABP 4/4/03 *)
+    (* -fp *)
+    (* ABP 4/4/03 *)
+    let parseStream = parseTLStream
     let rec parseTerminalQ prompts = parseQ (L.lexTerminal prompts)
   end ;;

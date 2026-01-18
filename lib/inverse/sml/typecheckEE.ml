@@ -10,37 +10,33 @@ module TypecheckEE : TYPECHECK =
     type ret =
       | RetExp of exp 
       | RetVar of int 
+    (** check a term (type)  against a type (kind) *)
     let rec check_exp =
       function
-      | (((ctx)(** check a term (type)  against a type (kind) *)),
-         Uni (Type), Uni (Kind)) -> ()
+      | (ctx, Uni (Type), Uni (Kind)) -> ()
       | (ctx, Lam { body = M }, Pi
          { var; arg = U; body = V; arg = U; body = V; body = V }) ->
           check_exp ((C.push (ctx, (var, U))), M, V)
       | (ctx, Root (Const con, S), V) ->
-          let foc
-            ((exp)(* pull some common code out of the following case *))
-            =
+          let rec foc exp =
             let U = focus (ctx, S, exp) in
             if equiv_exp (U, V)
             then ()
             else raise (Fail "check_exp: exps not equivalent") in
-          (match Sig.lookup con with
-           | Decl decl -> foc ((fun r -> r.exp) decl)
-           | Def def -> foc ((fun r -> r.exp) def)
-           | Abbrev abbrev ->
-               raise
-                 (Fail (("check_exp: abbrev")
-                    (* why does this fail?*))))
+          (((match Sig.lookup con with
+             | Decl decl -> foc ((fun r -> r.exp) decl)
+             | Def def -> foc ((fun r -> r.exp) def)
+             | Abbrev abbrev -> raise (Fail "check_exp: abbrev")))
+            (* why does this fail?*)(* pull some common code out of the following case *))
       | (ctx, Root (BVar i, S), V) ->
-          (match C.lookup (ctx, (i - 1)) with
-           | SOME (_, A) ->
-               let ((U)(* DeBruijn indices start at 1 *)) =
-                 focus (ctx, S, (apply_exp ((Shift i), A))) in
-               if equiv_exp (U, V)
-               then ()
-               else raise (Fail_exp2 ("check_exp: Root,BVar", U, V))
-           | NONE -> raise (Fail "focus: var out of bounds"))
+          (((match C.lookup (ctx, (i - 1)) with
+             | SOME (_, A) ->
+                 let U = focus (ctx, S, (apply_exp ((Shift i), A))) in
+                 if equiv_exp (U, V)
+                 then ()
+                 else raise (Fail_exp2 ("check_exp: Root,BVar", U, V))
+             | NONE -> raise (Fail "focus: var out of bounds")))
+          (* DeBruijn indices start at 1 *))
       | (ctx, Pi
          { var; arg = A1; body = A2; arg = A1; body = A2; body = A2 },
          (Uni _ as uni)) ->
@@ -59,10 +55,7 @@ module TypecheckEE : TYPECHECK =
       Timers.time Timers.checking check_exp (C.empty, E1, E2)
     let rec apply_exp =
       function
-      | (((_)(* -------------------------------------------------------------------------- *)
-         (*  Substitutions                                                             *)
-         (* -------------------------------------------------------------------------- *)),
-         (Uni _ as uni)) -> uni
+      | (_, (Uni _ as uni)) -> uni
       | (sub, Pi
          { var; arg = U; depend; body = V; arg = U; depend; body = V; 
            depend; body = V; body = V })
@@ -107,29 +100,19 @@ module TypecheckEE : TYPECHECK =
     let rec push_sub s = Dot (one, (compose (s, shift)))
     let rec reduce =
       function
-      | ((Root
-            (((_)(* -------------------------------------------------------------------------- *)
-             (*  Beta                                                                      *)
-             (* -------------------------------------------------------------------------- *)),
-             _)
-            as exp),
-         Nil) -> exp
+      | ((Root (_, _) as exp), Nil) -> exp
       | (Lam { body = M }, App (M', S)) ->
           reduce ((apply_exp ((Dot (M', id_sub)), M)), S)
       | (E, S) -> raise (Fail_exp_spine ("reduce: bad case: head: ", E, S))
     let rec equiv_exp =
       function
-      | (Uni
-         ((u1)(* -------------------------------------------------------------------------- *)
-         (*  Equivalence wrt Definitions                                               *)
-         (* -------------------------------------------------------------------------- *)),
-         Uni u2) -> u1 = u2
-      | (Pi { arg = u1; body = V1; body = V1 }, Pi
-         { arg = u2; body = V2; body = V2 }) ->
-          (equiv_exp (u1, u2)) && (equiv_exp (V1, V2))
+      | (Uni u1, Uni u2) -> u1 = u2
+      | (Pi { arg = U1; body = V1; body = V1 }, Pi
+         { arg = U2; body = V2; body = V2 }) ->
+          (equiv_exp (U1, U2)) && (equiv_exp (V1, V2))
       | (Lam { body = U }, Lam { body = U' }) -> equiv_exp (U, U')
-      | (Root (BVar i, s1), Root (BVar i', s2)) ->
-          (i = i') && (equiv_spine (s1, s2))
+      | (Root (BVar i, S1), Root (BVar i', S2)) ->
+          (i = i') && (equiv_spine (S1, S2))
       | ((Root (Const c, S) as exp), (Root (Const c', S') as exp')) ->
           if c = c'
           then equiv_spine (S, S')
@@ -169,12 +152,12 @@ module TypecheckEE : TYPECHECK =
       | (App (E, S), App (E', S')) ->
           (equiv_exp (E, E')) && (equiv_spine (S, S'))
       | _ -> false__
+    (* -------------------------------------------------------------------------- *)
+    (*  Signatures                                                                *)
+    (* -------------------------------------------------------------------------- *)
     let rec check_dec =
       function
-      | (((c)(* -------------------------------------------------------------------------- *)
-         (*  Signatures                                                                *)
-         (* -------------------------------------------------------------------------- *)),
-         Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->
+      | (c, Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->
           let uni' = Uni uni in
           let exp' = eta_expand (exp, uni') in
           (check exp' uni';
@@ -197,20 +180,19 @@ module TypecheckEE : TYPECHECK =
            def; uni; uni })
           ->
           let uni' = Uni uni in
-          let ((exp')(*         val exp' = eta_expand(exp,uni') *)
-            (*         val def' = eta_expand(def,exp') *)) =
-            exp in
+          let exp' = exp in
           let def' = def in
-          (check exp' uni';
-           check def' exp';
-           Sig.insert
-             (id, (Abbrev { id; name; exp = exp'; def = def'; uni })))
+          (((check exp' uni';
+             check def' exp';
+             Sig.insert
+               (id, (Abbrev { id; name; exp = exp'; def = def'; uni }))))
+            (*         val exp' = eta_expand(exp,uni') *)
+            (*         val def' = eta_expand(def,exp') *))
     let rec check_signat' decs =
       List.app
         (function
-         | (c, dec) as decl ->
-             check_dec ((decl)
-               (* L.printl ("checking: " ^ name dec ); *)))
+         | (c, dec) as decl -> ((check_dec decl)
+             (* L.printl ("checking: " ^ name dec ); *)))
         decs
     let rec check_signat decs =
       Timers.time Timers.checking check_signat' decs

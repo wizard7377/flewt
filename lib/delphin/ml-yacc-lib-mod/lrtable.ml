@@ -1,12 +1,5 @@
 
-module LrTable : LR_TABLE =
-  struct
-    open Array
-    open List
-    type ('a, 'b) pairlist =
-      | EMPTY 
-      | PAIR of
-      ((('a)(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
+(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.2.1  2003/01/14 22:46:39  carsten_lf
@@ -24,8 +17,14 @@ module LrTable : LR_TABLE =
  * Revision 1.1.1.1  1996/01/31  16:01:42  george
  * Version 109
  * 
- *))
-      * 'b * ('a, 'b) pairlist) 
+ *)
+module LrTable : LR_TABLE =
+  struct
+    open Array
+    open List
+    type ('a, 'b) pairlist =
+      | EMPTY 
+      | PAIR of ('a * 'b * ('a, 'b) pairlist) 
     type term =
       | T of int 
     type nonterm =
@@ -37,8 +36,7 @@ module LrTable : LR_TABLE =
       | REDUCE of int 
       | ACCEPT 
       | ERROR 
-    exception Goto of (((state)(* rulenum from grammar *)) *
-      nonterm) 
+    exception Goto of (state * nonterm) 
     type nonrec table =
       <
         states: int  ;rules: int  ;initialState: state  ;action: ((term,
@@ -54,7 +52,7 @@ module LrTable : LR_TABLE =
     let describeGoto =
       function | ({ goto } : table) -> (function | STATE s -> goto sub s)
     let rec findTerm (T term, row, default) =
-      let find =
+      let rec find =
         function
         | PAIR (T key, data, r) ->
             if key < term
@@ -63,7 +61,7 @@ module LrTable : LR_TABLE =
         | EMPTY -> default in
       find row
     let rec findNonterm (NT nt, row) =
-      let find =
+      let rec find =
         function
         | PAIR (NT key, data, r) ->
             if key < nt then find r else if key = nt then SOME data else NONE

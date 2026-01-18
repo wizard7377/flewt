@@ -1,11 +1,12 @@
 
+(* Names of Constants and Variables *)
+(* Author: Carsten Schuermann *)
 module type FUNNAMES  =
   sig
-    exception Error of
-      ((string)(*! structure FunSyn : FUNSYN !*)(* Author: Carsten Schuermann *)
-      (* Names of Constants and Variables *)) 
-    val reset :
-      unit -> ((unit)(* Constant names and fixities *))
+    (*! structure FunSyn : FUNSYN !*)
+    exception Error of string 
+    (* Constant names and fixities *)
+    val reset : unit -> unit
     val installName : (string * FunSyn.lemma) -> unit
     val nameLookup : string -> FunSyn.lemma option
     val constName : FunSyn.lemma -> string
@@ -14,20 +15,20 @@ module type FUNNAMES  =
 
 
 
+(* Names of Constants and Variables *)
+(* Author: Carsten Schuermann *)
 module FunNames(FunNames:sig
                            module Global : GLOBAL
-                           module HashTable :
-                           ((TABLE)(* Names of Constants and Variables *)
-                           (* Author: Carsten Schuermann *)
-                           (*! structure FunSyn' : FUNSYN !*))
+                           (*! structure FunSyn' : FUNSYN !*)
+                           module HashTable : TABLE
                          end) : FUNNAMES =
   struct
-    exception Error of
-      ((string)(*! structure FunSyn = FunSyn' !*)) 
-    type nameInfo =
-      | NameInfo of
-      ((string)(* nameInfo carries the print name and fixity for a constant *)
-      (*
+    (*! structure FunSyn = FunSyn' !*)
+    exception Error of string 
+    (****************************************)
+    (* Constants Names and Name Preferences *)
+    (****************************************)
+    (*
      Names (strings) are associated with constants (cids) in two ways:
      (1) There is an array nameArray mapping constants to print names (string),
      (2) there is a hashtable sgnHashTable mapping identifiers (strings) to constants.
@@ -48,8 +49,9 @@ module FunNames(FunNames:sig
      There are global invariants which state the mappings must be
      consistent with each other.
   *)
-      (****************************************)(* Constants Names and Name Preferences *)
-      (****************************************)) 
+    (* nameInfo carries the print name and fixity for a constant *)
+    type nameInfo =
+      | NameInfo of string 
     let maxCid = Global.maxCid
     let nameArray =
       (Array.array ((maxCid + 1), (NameInfo "")) : nameInfo Array.array)
@@ -57,50 +59,41 @@ module FunNames(FunNames:sig
     let hashInsert = HashTable.insertShadow sgnHashTable
     let hashLookup = HashTable.lookup sgnHashTable
     let rec hashClear () = HashTable.clear sgnHashTable
-    let rec reset
-      ((())(* nameArray maps constants to print names and fixity *)
-      (* sgnHashTable maps identifiers (strings) to constants (cids) *)
-      (* returns optional shadowed entry *)(* returns optional cid *)
-      (* reset () = ()
+    (* nameArray maps constants to print names and fixity *)
+    (* sgnHashTable maps identifiers (strings) to constants (cids) *)
+    (* returns optional shadowed entry *)
+    (* returns optional cid *)
+    (* reset () = ()
        Effect: clear name tables related to constants
 
        nameArray does not need to be reset, since it is reset individually
        for every constant as it is declared
-    *))
-      = hashClear ()
-    let rec override
-      (((cid)(* override (cid, nameInfo) = ()
+    *)
+    let rec reset () = hashClear ()
+    (* override (cid, nameInfo) = ()
        Effect: mark cid as shadowed --- it will henceforth print as %name%
-    *)),
-       NameInfo name)
-      =
-      Array.update
-        (((nameArray)
-          (* should shadowed identifiers keep their fixity? *)), cid,
-          (NameInfo (("%" ^ name) ^ "%")))
+    *)
+    let rec override (cid, NameInfo name) =
+      Array.update (nameArray, cid, (NameInfo (("%" ^ name) ^ "%")))(* should shadowed identifiers keep their fixity? *)
     let rec shadow =
       function
       | NONE -> ()
       | SOME (_, cid) -> override (cid, (Array.sub (nameArray, cid)))
-    let rec installName
-      (((name)(* installName (name, cid) = ()
+    (* installName (name, cid) = ()
        Effect: update mappings from constants to print names and identifiers
                to constants, taking into account shadowing
-    *)),
-       lemma)
-      =
+    *)
+    let rec installName (name, lemma) =
       let shadowed = hashInsert (name, lemma) in
-      Array.update (nameArray, lemma, (NameInfo name));
-      shadow ((shadowed)
+      ((Array.update (nameArray, lemma, (NameInfo name)); shadow shadowed)
         (* returns optional shadowed entry *))
-    let rec nameLookup
-      ((name)(* nameLookup (name) = SOME(cid),  if cid has name and is not shadowed,
+    (* nameLookup (name) = SOME(cid),  if cid has name and is not shadowed,
                          = NONE,   if there is no such constant
-    *))
-      = hashLookup name
-    let rec constName
-      ((cid)(* constName (cid) = name,
+    *)
+    let rec nameLookup name = hashLookup name
+    (* constName (cid) = name,
        where `name' is the print name of cid
-    *))
-      = match Array.sub (nameArray, cid) with | NameInfo name -> name
+    *)
+    let rec constName cid =
+      match Array.sub (nameArray, cid) with | NameInfo name -> name
   end ;;

@@ -1,9 +1,10 @@
 
+(* Printing of functional proof terms *)
+(* Author: Carsten Schuermann *)
 module type FUNPRINT  =
   sig
-    module Formatter :
-    ((FORMATTER)(* Printing of functional proof terms *)
-    (* Author: Carsten Schuermann *)(*! structure FunSyn : FUNSYN !*))
+    (*! structure FunSyn : FUNSYN !*)
+    module Formatter : FORMATTER
     val formatForBare : (IntSyn.dctx * FunSyn.__For) -> Formatter.format
     val formatFor :
       (FunSyn.lfctx * FunSyn.__For) -> string list -> Formatter.format
@@ -18,77 +19,79 @@ module type FUNPRINT  =
 
 
 
+(* Printing of functional proof terms *)
+(* Author: Carsten Schuermann *)
 module FunPrint(FunPrint:sig
+                           (*! structure FunSyn' : FUNSYN !*)
                            module Formatter : FORMATTER
                            module Names : NAMES
-                           module Print :
-                           ((PRINT)(* Printing of functional proof terms *)
-                           (* Author: Carsten Schuermann *)
-                           (*! structure FunSyn' : FUNSYN !*)(*! sharing Names.IntSyn = FunSyn'.IntSyn !*))
+                           (*! sharing Names.IntSyn = FunSyn'.IntSyn !*)
+                           module Print : PRINT
                          end) : FUNPRINT =
   struct
-    module Formatter =
-      ((Formatter)(*! sharing Print.IntSyn = FunSyn'.IntSyn !*)(*! structure FunSyn = FunSyn' !*))
+    (*! sharing Print.IntSyn = FunSyn'.IntSyn !*)
+    (*! structure FunSyn = FunSyn' !*)
+    module Formatter = Formatter
     module F = FunSyn
     module I = IntSyn
     module Fmt = Formatter
     module P = Print
     let rec formatCtxBlock =
       function
-      | (g, (I.Null, s)) -> (g, s, nil)
-      | (g, (Decl (I.Null, D), s)) ->
+      | (G, (I.Null, s)) -> (G, s, nil)
+      | (G, (Decl (I.Null, D), s)) ->
           let D' = I.decSub (D, s) in
-          let fmt = P.formatDec (g, D') in
-          ((I.Decl (g, D')), (I.dot1 s), [fmt])
-      | (g, (Decl (g', D), s)) ->
-          let (g'', s'', fmts) = formatCtxBlock (g, (g', s)) in
+          let fmt = P.formatDec (G, D') in
+          ((I.Decl (G, D')), (I.dot1 s), [fmt])
+      | (G, (Decl (G', D), s)) ->
+          let (G'', s'', fmts) = formatCtxBlock (G, (G', s)) in
           let D'' = I.decSub (D, s'') in
-          let fmt = P.formatDec (g'', D'') in
-          ((I.Decl (g'', D'')), (I.dot1 s''),
+          let fmt = P.formatDec (G'', D'') in
+          ((I.Decl (G'', D'')), (I.dot1 s''),
             (fmts @ [Fmt.String ","; Fmt.Break; fmt]))
     let rec formatFor' =
       function
-      | (g, (All (LD, F), s)) ->
+      | (G, (All (LD, F), s)) ->
           (match LD with
            | Prim (D) ->
-               let D' = Names.decName (g, D) in
+               let D' = Names.decName (G, D) in
                (@) [Fmt.String "{{";
-                   P.formatDec (g, (I.decSub (D', s)));
+                   P.formatDec (G, (I.decSub (D', s)));
                    Fmt.String "}}";
                    Fmt.Break]
-                 formatFor' ((I.Decl (g, D')), (F, (I.dot1 s)))
-           | Block (CtxBlock (l, g')) ->
-               let (g'', s'', fmts) = formatCtxBlock (g, (g', s)) in
+                 formatFor' ((I.Decl (G, D')), (F, (I.dot1 s)))
+           | Block (CtxBlock (l, G')) ->
+               let (G'', s'', fmts) = formatCtxBlock (G, (G', s)) in
                (@) [Fmt.String "{"; Fmt.Hbox fmts; Fmt.String "}"; Fmt.Break]
-                 formatFor' (g'', (F, s'')))
-      | (g, (Ex (D, F), s)) ->
-          let D' = Names.decName (g, D) in
+                 formatFor' (G'', (F, s'')))
+      | (G, (Ex (D, F), s)) ->
+          let D' = Names.decName (G, D) in
           (@) [Fmt.String "[[";
-              P.formatDec (g, (I.decSub (D', s)));
+              P.formatDec (G, (I.decSub (D', s)));
               Fmt.String "]]";
               Fmt.Break]
-            formatFor' ((I.Decl (g, D')), (F, (I.dot1 s)))
-      | (g, (F.True, s)) -> [Fmt.String "True"]
+            formatFor' ((I.Decl (G, D')), (F, (I.dot1 s)))
+      | (G, (F.True, s)) -> [Fmt.String "True"]
     let rec formatFor (Psi, F) names =
-      let nameLookup index = List.nth (names, index) in
-      let formatFor1 =
+      let rec nameLookup index = List.nth (names, index) in
+      let rec formatFor1 =
         function
-        | (index, g, (And (F1, F2), s)) ->
-            (@) ((formatFor1 (index, g, (F1, s))) @ [Fmt.Break]) formatFor1
-              ((index + 1), g, (F2, s))
-        | (index, g, (F, s)) ->
+        | (index, G, (And (F1, F2), s)) ->
+            (@) ((formatFor1 (index, G, (F1, s))) @ [Fmt.Break]) formatFor1
+              ((index + 1), G, (F2, s))
+        | (index, G, (F, s)) ->
             [Fmt.String (nameLookup index);
             Fmt.Space;
             Fmt.String "::";
             Fmt.Space;
-            Fmt.HVbox (formatFor' (g, (F, s)))] in
-      let formatFor0 (Args) = Fmt.Vbox0 0 1 (formatFor1 Args) in
+            Fmt.HVbox (formatFor' (G, (F, s)))] in
+      let rec formatFor0 (Args) = Fmt.Vbox0 0 1 (formatFor1 Args) in
       Names.varReset I.Null; formatFor0 (0, (F.makectx Psi), (F, I.id))
-    let rec formatForBare (g, F) = Fmt.HVbox (formatFor' (g, (F, I.id)))
+    let rec formatForBare (G, F) = Fmt.HVbox (formatFor' (G, (F, I.id)))
     let rec formatPro (Args) names =
-      let nameLookup index = List.nth (names, index) in
-      let blockName (G1, G2) =
-        let blockName' =
+      let rec nameLookup index = List.nth (names, index) in
+      let rec blockName (G1, G2) =
+        let rec blockName' =
           function
           | (G1, I.Null) -> (G1, I.Null)
           | (G1, Decl (G2, D)) ->
@@ -96,14 +99,14 @@ module FunPrint(FunPrint:sig
               let D' = Names.decName (G1, D) in
               ((I.Decl (G1', D')), (I.Decl (G2', D'))) in
         let (G1', G2') = blockName' (G1, G2) in G2' in
-      let ctxBlockName (G1, CtxBlock (name, G2)) =
+      let rec ctxBlockName (G1, CtxBlock (name, G2)) =
         F.CtxBlock (name, (blockName (G1, G2))) in
-      let decName =
+      let rec decName =
         function
-        | (g, Prim (D)) -> F.Prim (Names.decName (g, D))
-        | (g, Block (CB)) -> F.Block (ctxBlockName (g, CB)) in
-      let numberOfSplits (Ds) =
-        let numberOfSplits' =
+        | (G, Prim (D)) -> F.Prim (Names.decName (G, D))
+        | (G, Block (CB)) -> F.Block (ctxBlockName (G, CB)) in
+      let rec numberOfSplits (Ds) =
+        let rec numberOfSplits' =
           function
           | (F.Empty, n) -> n
           | (New (_, Ds), n) -> numberOfSplits' (Ds, n)
@@ -113,76 +116,76 @@ module FunPrint(FunPrint:sig
           | (Left (_, Ds), n) -> numberOfSplits' (Ds, n)
           | (Right (_, Ds), n) -> numberOfSplits' (Ds, n) in
         numberOfSplits' (Ds, 0) in
-      let psiName (Psi1, s, Psi2, l) =
-        let nameDec =
+      let rec psiName (Psi1, s, Psi2, l) =
+        let rec nameDec =
           function
           | ((Dec (SOME _, _) as D), name) -> D
           | (Dec (NONE, V), name) -> I.Dec ((SOME name), V) in
-        let namePsi =
+        let rec namePsi =
           function
           | (Decl (Psi, Prim (D)), 1, name) ->
               I.Decl (Psi, (F.Prim (nameDec (D, name))))
           | (Decl (Psi, (Prim (D) as LD)), n, name) ->
               I.Decl ((namePsi (Psi, (n - 1), name)), LD)
-          | (Decl (Psi, Block (CtxBlock (label, g))), n, name) ->
-              let (Psi', g') =
+          | (Decl (Psi, Block (CtxBlock (label, G))), n, name) ->
+              let (Psi', G') =
                 nameG
-                  (Psi, g, n, name,
+                  (Psi, G, n, name,
                     (function | n' -> namePsi (Psi, n', name))) in
-              I.Decl (Psi', (F.Block (F.CtxBlock (label, g'))))
+              I.Decl (Psi', (F.Block (F.CtxBlock (label, G'))))
         and nameG =
           function
           | (Psi, I.Null, n, name, k) -> ((k n), I.Null)
-          | (Psi, Decl (g, D), 1, name, k) ->
-              (Psi, (I.Decl (g, (nameDec (D, name)))))
-          | (Psi, Decl (g, D), n, name, k) ->
-              let (Psi', g') = nameG (Psi, g, (n - 1), name, k) in
-              (Psi', (I.Decl (g', D))) in
-        let ignore =
+          | (Psi, Decl (G, D), 1, name, k) ->
+              (Psi, (I.Decl (G, (nameDec (D, name)))))
+          | (Psi, Decl (G, D), n, name, k) ->
+              let (Psi', G') = nameG (Psi, G, (n - 1), name, k) in
+              (Psi', (I.Decl (G', D))) in
+        let rec ignore =
           function
           | (s, 0) -> s
           | (Dot (_, s), k) -> ignore (s, (k - 1))
           | (Shift n, k) ->
               ignore ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), (k - 1)) in
-        let copyNames arg__0 arg__1 =
+        let rec copyNames arg__0 arg__1 =
           match (arg__0, arg__1) with
-          | ((Shift n, (Decl _ as g)), Psi1) ->
-              copyNames ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), g)
+          | ((Shift n, (Decl _ as G)), Psi1) ->
+              copyNames ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), G)
                 Psi1
-          | ((Dot (Exp _, s), Decl (g, _)), Psi1) -> copyNames (s, g) Psi1
-          | ((Dot (Idx k, s), Decl (g, Dec (NONE, _))), Psi1) ->
-              copyNames (s, g) Psi1
-          | ((Dot (Idx k, s), Decl (g, Dec (SOME name, _))), Psi1) ->
-              let Psi1' = namePsi (Psi1, k, name) in copyNames (s, g) Psi1'
+          | ((Dot (Exp _, s), Decl (G, _)), Psi1) -> copyNames (s, G) Psi1
+          | ((Dot (Idx k, s), Decl (G, Dec (NONE, _))), Psi1) ->
+              copyNames (s, G) Psi1
+          | ((Dot (Idx k, s), Decl (G, Dec (SOME name, _))), Psi1) ->
+              let Psi1' = namePsi (Psi1, k, name) in copyNames (s, G) Psi1'
           | ((Shift _, I.Null), Psi1) -> Psi1 in
-        let psiName' =
+        let rec psiName' =
           function
           | I.Null -> I.Null
           | Decl (Psi, D) ->
               let Psi' = psiName' Psi in
               I.Decl (Psi', (decName ((F.makectx Psi'), D))) in
         psiName' (copyNames ((ignore (s, l)), (F.makectx Psi2)) Psi1) in
-      let merge =
+      let rec merge =
         function
         | (G1, I.Null) -> G1
         | (G1, Decl (G2, D)) -> I.Decl ((merge (G1, G2)), D) in
-      let formatCtx (Psi, g) =
+      let rec formatCtx (Psi, G) =
         let G0 = F.makectx Psi in
-        let formatCtx' =
+        let rec formatCtx' =
           function
           | I.Null -> nil
           | Decl (I.Null, Dec (SOME name, V)) ->
               [Fmt.String name; Fmt.String ":"; Print.formatExp (G0, V)]
-          | Decl (g, Dec (SOME name, V)) ->
-              (formatCtx' g) @
+          | Decl (G, Dec (SOME name, V)) ->
+              (formatCtx' G) @
                 [Fmt.String ",";
                 Fmt.Break;
                 Fmt.String name;
                 Fmt.String ":";
-                Print.formatExp ((merge (G0, g)), V)] in
-        Fmt.Hbox ((Fmt.String "|") :: ((formatCtx' g) @ [Fmt.String "|"])) in
-      let formatTuple (Psi, P) =
-        let formatTuple' =
+                Print.formatExp ((merge (G0, G)), V)] in
+        Fmt.Hbox ((Fmt.String "|") :: ((formatCtx' G) @ [Fmt.String "|"])) in
+      let rec formatTuple (Psi, P) =
+        let rec formatTuple' =
           function
           | F.Unit -> nil
           | Inx (M, F.Unit) -> [Print.formatExp ((F.makectx Psi), M)]
@@ -196,8 +199,8 @@ module FunPrint(FunPrint:sig
         | _ ->
             Fmt.HVbox0 1 1 1
               ((Fmt.String "(") :: ((formatTuple' P) @ [Fmt.String ")"])) in
-      let formatSplitArgs (Psi, L) =
-        let formatSplitArgs' =
+      let rec formatSplitArgs (Psi, L) =
+        let rec formatSplitArgs' =
           function
           | nil -> nil
           | (M)::nil -> [Print.formatExp ((F.makectx Psi), M)]
@@ -211,9 +214,9 @@ module FunPrint(FunPrint:sig
         else
           Fmt.HVbox0 1 1 1
             ((Fmt.String "(") :: ((formatSplitArgs' L) @ [Fmt.String ")"])) in
-      let frontToExp =
+      let rec frontToExp =
         function | Idx k -> I.Root ((I.BVar k), I.Nil) | Exp (U) -> U in
-      let formatDecs1 =
+      let rec formatDecs1 =
         function
         | (Psi, Split (xx, Ds), Dot (Ft, s1), L) ->
             formatDecs1 (Psi, Ds, s1, ((frontToExp Ft) :: L))
@@ -221,12 +224,12 @@ module FunPrint(FunPrint:sig
         | (Psi, Ds, Shift n, L) ->
             formatDecs1
               (Psi, Ds, (I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), L) in
-      let formatDecs0 =
+      let rec formatDecs0 =
         function
         | (Psi, App ((xx, M), Ds)) ->
             let (Ds', S) = formatDecs0 (Psi, Ds) in (Ds', (I.App (M, S)))
         | (Psi, Ds) -> (Ds, I.Nil) in
-      let formatDecs =
+      let rec formatDecs =
         function
         | (index, Psi, (App ((xx, _), P) as Ds), (Psi1, s1)) ->
             let (Ds', S) = formatDecs0 (Psi, Ds) in
@@ -240,12 +243,12 @@ module FunPrint(FunPrint:sig
               Fmt.HVbox
                 ((::) ((Fmt.String name) :: Fmt.Break) Print.formatSpine
                    ((F.makectx Psi), S))]
-        | (index, Psi, New ((CtxBlock (_, g) as B), Ds), (Psi1, s1)) ->
+        | (index, Psi, New ((CtxBlock (_, G) as B), Ds), (Psi1, s1)) ->
             let B' = ctxBlockName ((F.makectx Psi), B) in
             let fmt =
               formatDecs
                 (index, (I.Decl (Psi, (F.Block B'))), Ds, (Psi1, s1)) in
-            Fmt.Vbox [formatCtx (Psi, g); Fmt.Break; fmt]
+            Fmt.Vbox [formatCtx (Psi, G); Fmt.Break; fmt]
         | (index, Psi, Lemma (lemma, Ds), (Psi1, s1)) ->
             let (Ds', S) = formatDecs0 (Psi, Ds) in
             let L' = formatDecs1 (Psi, Ds', s1, nil) in
@@ -262,7 +265,7 @@ module FunPrint(FunPrint:sig
             let fmt = formatDecs (index, Psi, Ds, (Psi1, s1)) in fmt
         | (index, Psi, Right (_, Ds), (Psi1, s1)) ->
             let fmt = formatDecs ((index + 1), Psi, Ds, (Psi1, s1)) in fmt in
-      let formatLet =
+      let rec formatLet =
         function
         | (Psi, Let (Ds, Case (Opts ((Psi1, s1, (Let _ as P1))::nil))), fmts)
             ->
@@ -289,7 +292,7 @@ module FunPrint(FunPrint:sig
         | (Psi, (F.Unit as P)) -> formatTuple (Psi, P)
         | (Psi, (Inx _ as P)) -> formatTuple (Psi, P)
         | (Psi, (Let _ as P)) -> formatLet (Psi, P, nil) in
-      let argsToSpine =
+      let rec argsToSpine =
         function
         | (s, I.Null, S) -> S
         | (Shift n, Psi, S) ->
@@ -297,14 +300,14 @@ module FunPrint(FunPrint:sig
               ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), Psi, S)
         | (Dot (Ft, s), Decl (Psi, D), S) ->
             argsToSpine (s, Psi, (I.App ((frontToExp Ft), S))) in
-      let formatHead (index, Psi', s, Psi) =
+      let rec formatHead (index, Psi', s, Psi) =
         Fmt.Hbox
           [Fmt.Space;
           Fmt.HVbox
             ((::) ((Fmt.String (nameLookup index)) :: Fmt.Break)
                Print.formatSpine
                ((F.makectx Psi'), (argsToSpine (s, Psi, I.Nil))))] in
-      let formatPro2 =
+      let rec formatPro2 =
         function
         | (index, Psi, nil) -> nil
         | (index, Psi, (Psi', s, P)::nil) ->
@@ -329,7 +332,7 @@ module FunPrint(FunPrint:sig
                  Fmt.Break;
                  formatPro3 (Psi'', P)];
               Fmt.Break] in
-      let formatPro1 =
+      let rec formatPro1 =
         function
         | (index, Psi, Lam (D, P)) ->
             formatPro1
@@ -338,7 +341,7 @@ module FunPrint(FunPrint:sig
         | (index, Psi, Pair (P1, P2)) ->
             (@) (formatPro1 (index, Psi, P1)) formatPro1
               ((index + 1), Psi, P2) in
-      let formatPro0 (Psi, Rec (DD, P)) =
+      let rec formatPro0 (Psi, Rec (DD, P)) =
         Fmt.Vbox0 0 1 (formatPro1 (0, Psi, P)) in
       Names.varReset I.Null; formatPro0 Args
     let rec formatLemmaDec (LemmaDec (names, P, F)) =
@@ -350,7 +353,7 @@ module FunPrint(FunPrint:sig
       Fmt.makestring_fmt (formatPro Args names)
     let rec lemmaDecToString (Args) =
       Fmt.makestring_fmt (formatLemmaDec Args)
-    let ((formatFor)(* Invariant:
+    (* Invariant:
 
        The proof term must satisfy the following conditions:
        * proof term must have the structure
@@ -365,25 +368,25 @@ module FunPrint(FunPrint:sig
          where Decs are always of the form
            New ... New App .. App Split .. Split Empty
      *)
-      (* formatCtxBlock (g, (G1, s1)) = (g', s', fmts')
+    (* formatCtxBlock (G, (G1, s1)) = (G', s', fmts')
 
        Invariant:
-       If   |- g ctx
-       and  g |- G1 ctx
-       and  G2 |- s1 : g
-       then g' = G2, G1 [s1]
-       and  g' |- s' : g, G1
+       If   |- G ctx
+       and  G |- G1 ctx
+       and  G2 |- s1 : G
+       then G' = G2, G1 [s1]
+       and  G' |- s' : G, G1
        and  fmts is a format list of G1[s1]
     *)
-      (* formatFor' (g, (F, s)) = fmts'
+    (* formatFor' (G, (F, s)) = fmts'
 
        Invariant:
-       If   |- g ctx
-       and  g |- s : Psi'
+       If   |- G ctx
+       and  G |- s : Psi'
        and  Psi' |- F formula
        then fmts' is a list of formats for F
     *)
-      (* formatFor (Psi, F) names = fmt'
+    (* formatFor (Psi, F) names = fmt'
        formatForBare (Psi, F) = fmt'
 
        Invariant:
@@ -392,15 +395,15 @@ module FunPrint(FunPrint:sig
        and  names is a list of n names,
        then fmt' is the pretty printed format
     *)
-      (* formatFor1 (index, g, (F, s)) = fmts'
+    (* formatFor1 (index, G, (F, s)) = fmts'
 
            Invariant:
-           If   |- g ctx
-           and  g |- s : Psi
+           If   |- G ctx
+           and  G |- s : Psi
            and  Psi |- F1 ^ .. ^ F(index-1) ^ F formula
            then fmts' is a list of pretty printed formats for F
         *)
-      (* formatPro (Psi, P) names = fmt'
+    (* formatPro (Psi, P) names = fmt'
 
        Invariant:
        If   |- Psi ctx
@@ -408,31 +411,31 @@ module FunPrint(FunPrint:sig
        and  names is a list of n names,
        then fmt' is the pretty printed format of P
     *)
-      (* blockName (G1, G2) = G2'
+    (* blockName (G1, G2) = G2'
 
            Invariant:
            If   G1 |- G2 ctx
            then G2' = G2 modulo new non-conficting variable names.
         *)
-      (* ctxBlockName (G1, CB) = CB'
+    (* ctxBlockName (G1, CB) = CB'
 
            Invariant:
            If   G1 |- CB ctxblock
            then CB' = CB modulo new non-conficting variable names.
         *)
-      (* decName (g, LD) = LD'
+    (* decName (G, LD) = LD'
 
            Invariant:
            If   G1 |- LD lfdec
            then LD' = LD modulo new non-conficting variable names.
         *)
-      (* numberOfSplits Ds = n'
+    (* numberOfSplits Ds = n'
 
            Invariant:
            If   Psi, Delta |- Ds :: Psi', Delta'
            then n'= |Psi'| - |Psi|
         *)
-      (* psiName (Psi1, s, Psi2, l) = Psi1'
+    (* psiName (Psi1, s, Psi2, l) = Psi1'
 
            Invariant:
            If   |- Psi1 ctx
@@ -444,26 +447,26 @@ module FunPrint(FunPrint:sig
            then Psi1' = Psi1 modulo variable naming
            and  for all x in Psi2 s.t. s(x) = x in Psi1'
         *)
-      (* merge (G1, G2) = g'
+    (* merge (G1, G2) = G'
 
            Invariant:
-           g' = G1, G2
+           G' = G1, G2
         *)
-      (* formatCtx (Psi, g) = fmt'
+    (* formatCtx (Psi, G) = fmt'
 
            Invariant:
            If   |- Psi ctx
-           and  Psi |- g ctx
-           then fmt' is a pretty print format of g
+           and  Psi |- G ctx
+           then fmt' is a pretty print format of G
         *)
-      (* formatTuple (Psi, P) = fmt'
+    (* formatTuple (Psi, P) = fmt'
 
            Invariant:
            If   |- Psi ctx
            and  Psi; Delta |- P = Inx (M1, Inx ... (Mn, Unit))
            then fmt' is a pretty print format of (M1, .., Mn)
         *)
-      (* formatSplitArgs (Psi, L) = fmt'
+    (* formatSplitArgs (Psi, L) = fmt'
 
            Invariant:
            If   |- Psi ctx
@@ -471,12 +474,12 @@ module FunPrint(FunPrint:sig
            and  Psi |- Mk:Ak for all 1<=k<=n
            then fmt' is a pretty print format of (M1, .., Mn)
         *)
-      (* frontToExp (Ft) = U'
+    (* frontToExp (Ft) = U'
 
            Invariant:
-           g |- Ft = U' : V   for a g, V
+           G |- Ft = U' : V   for a G, V
         *)
-      (* formatDecs1 (Psi, Ds, s, L) = L'
+    (* formatDecs1 (Psi, Ds, s, L) = L'
 
            Invariant:
            If   |- Psi ctx
@@ -492,7 +495,7 @@ module FunPrint(FunPrint:sig
                 Psi'' |- Mi : Ai
                 (and Mi is a splitting of a the result of an inductive call)
         *)
-      (* formatDecs0 (Psi, Ds) = (Ds', S')
+    (* formatDecs0 (Psi, Ds) = (Ds', S')
 
            Invariant:
            If   |- Psi ctx
@@ -502,7 +505,7 @@ module FunPrint(FunPrint:sig
            and  Psi1, Delta1 |- Ds' : Psi1', Delta1'
                 (for some Psi1, Delta1, Psi1', Delta1')
         *)
-      (* formatDecs (index, Psi, Ds, (Psi1, s1)) = fmt'
+    (* formatDecs (index, Psi, Ds, (Psi1, s1)) = fmt'
 
            Invariant:
            If   |- Psi ctx
@@ -510,7 +513,7 @@ module FunPrint(FunPrint:sig
            and  Psi1 |- s1 : Psi, Psi'
            then fmt' is a pretty print format of Ds
         *)
-      (* formatLet (Psi, P, fmts) = fmts'
+    (* formatLet (Psi, P, fmts) = fmts'
 
            Invariant:
            If   |- Psi ctx
@@ -519,7 +522,7 @@ module FunPrint(FunPrint:sig
            then fmts' extends fmts
            and  fmts also includes a pretty print format for P'
         *)
-      (* formatPro3 (Psi, P) = fmt
+    (* formatPro3 (Psi, P) = fmt
 
            Invariant:
            If   |- Psi ctx
@@ -527,7 +530,7 @@ module FunPrint(FunPrint:sig
            and  P = let .. in .. end | <..,..> | <>
            then fmt is a pretty print of P
         *)
-      (* argsToSpine (Psi1, s, S) = S'
+    (* argsToSpine (Psi1, s, S) = S'
 
            Invariant:
            If   Psi1 |- s = M1 . M2 .. Mn. ^|Psi1|: Psi2
@@ -537,7 +540,7 @@ module FunPrint(FunPrint:sig
            where
            then Fmts is a list of arguments
         *)
-      (* formatHead (index, Psi1, s, Psi2) = fmt'
+    (* formatHead (index, Psi1, s, Psi2) = fmt'
 
            Invariant:
            If    Psi1 |- s : Psi2
@@ -545,14 +548,14 @@ module FunPrint(FunPrint:sig
            where index represents the function name
            and   s the spine.
         *)
-      (* formatPro2 (index, Psi, L) = fmts'
+    (* formatPro2 (index, Psi, L) = fmts'
 
            Invariant:
            If   |- Psi ctx
            and  Psi |- L a list of cases
            then fmts' list of pretty print formats of L
         *)
-      (* formatPro1 (index, Psi, P) = fmts'
+    (* formatPro1 (index, Psi, P) = fmts'
 
            Invariant:
            If   |- Psi ctx
@@ -560,12 +563,12 @@ module FunPrint(FunPrint:sig
            and  P is either a Lam .. | Case ... | Pair ...
            then fmts' is alist of pretty print formats of P
         *)
-      (* formatPro0 (Psi, P) = fmt'
+    (* formatPro0 (Psi, P) = fmt'
            If   |- Psi ctx
            and  Psi; . |- P :: F
            then fmt' is a pretty print format of P
-        *))
-      = formatFor
+        *)
+    let formatFor = formatFor
     let formatForBare = formatForBare
     let formatPro = formatPro
     let formatLemmaDec = formatLemmaDec

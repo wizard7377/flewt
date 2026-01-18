@@ -1,8 +1,8 @@
 
 module TabledSyn =
   (Make_TabledSyn)(struct
-                     module Names =
-                       ((Names)(*! structure IntSyn' = IntSyn !*))
+                     (*! structure IntSyn' = IntSyn !*)
+                     module Names = Names
                      module Table = IntRedBlackTree
                      module Index = Index
                    end);;

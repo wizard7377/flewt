@@ -1,8 +1,9 @@
 
+(* Not Trailing Abstract Operations *)
+(* Author: Roberto Virga *)
 module NoTrail : TRAIL =
   struct
-    type nonrec 'a trail =
-      ((unit)(* Author: Roberto Virga *)(* Not Trailing Abstract Operations *))
+    type nonrec 'a trail = unit
     let rec trail () = ()
     let rec suspend ((), copy) = ()
     let rec resume ((), (), reset) = ()

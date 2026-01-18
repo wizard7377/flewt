@@ -24,42 +24,40 @@ module Rep =
       | AbbrevDef (_, _, _, _, _, _) -> defSize (Sgn.o_def cid)
       | _ -> 0
     open SMLofNJ.Cont
-    let (k :
-      ((Reductio.eq_c)(* val l : (Syntax.term * Syntax.tp) list ref = ref [] *))
-        option ref)
-      = ref NONE
+    (* val l : (Syntax.term * Syntax.tp) list ref = ref [] *)
+    let (k : Reductio.eq_c option ref) = ref NONE
     exception Crap 
     let rec sanityCheck cid =
       try
-        match I.sgnLookup cid with
-        | ConDec (_, _, _, _, _, I.Type) ->
-            Reductio.check_plusconst_type (Sgn.typeOf (Sgn.classifier cid))
-        | ConDec (_, _, _, _, _, I.Kind) ->
-            Reductio.check_kind ([], (Sgn.kindOf (Sgn.classifier cid)))
-        | ConDef (_, _, _, _, _, I.Type, _) ->
-            let DEF_TERM y = Sgn.def cid in
-            let tclass z = Sgn.classifier cid in Reductio.check ([], y, z)
-        | ConDef (_, _, _, _, _, I.Kind, _) ->
-            let DEF_TYPE y = Sgn.def cid in
-            let kclass z = Sgn.classifier cid in
-            Reductio.check_type Reductio.CON_LF ((Syntax.explodeKind z), y)
-        | AbbrevDef (_, _, _, _, _, I.Type) ->
-            let DEF_TERM y = Sgn.def cid in
-            let tclass z = Sgn.classifier cid in Reductio.check ([], y, z)
-        | AbbrevDef (_, _, _, _, _, I.Kind) ->
-            let DEF_TYPE y = Sgn.def cid in
-            let kclass z = Sgn.classifier cid in
-            Reductio.check_type Reductio.CON_LF ((Syntax.explodeKind z), y)
-        | _ -> true__
-      with
-      | Syntax _ ->
-          (print ((^) "--> " Int.toString cid);
-           raise ((Match)
-             (*				     l := (y,z):: !l; *)(*				     l := (y,z):: !l; *)
-             (* we're not checking block declarations or anything else like that *)))
+        ((match I.sgnLookup cid with
+          | ConDec (_, _, _, _, _, I.Type) ->
+              Reductio.check_plusconst_type (Sgn.typeOf (Sgn.classifier cid))
+          | ConDec (_, _, _, _, _, I.Kind) ->
+              Reductio.check_kind ([], (Sgn.kindOf (Sgn.classifier cid)))
+          | ConDef (_, _, _, _, _, I.Type, _) ->
+              let DEF_TERM y = Sgn.def cid in
+              let tclass z = Sgn.classifier cid in
+              ((Reductio.check ([], y, z))
+                (*				     l := (y,z):: !l; *))
+          | ConDef (_, _, _, _, _, I.Kind, _) ->
+              let DEF_TYPE y = Sgn.def cid in
+              let kclass z = Sgn.classifier cid in
+              Reductio.check_type Reductio.CON_LF ((Syntax.explodeKind z), y)
+          | AbbrevDef (_, _, _, _, _, I.Type) ->
+              let DEF_TERM y = Sgn.def cid in
+              let tclass z = Sgn.classifier cid in
+              ((Reductio.check ([], y, z))
+                (*				     l := (y,z):: !l; *))
+          | AbbrevDef (_, _, _, _, _, I.Kind) ->
+              let DEF_TYPE y = Sgn.def cid in
+              let kclass z = Sgn.classifier cid in
+              Reductio.check_type Reductio.CON_LF ((Syntax.explodeKind z), y)
+          | _ -> true__)
+        (* we're not checking block declarations or anything else like that *))
+      with | Syntax _ -> (print ((^) "--> " Int.toString cid); raise Match)
     let rec gen_graph n autoCompress =
       let _ = autoCompress n in
-      let sanity n =
+      let rec sanity n =
         if n < 0
         then true__
         else
@@ -80,5 +78,9 @@ module Rep =
                   ((^) ((Int.toString x) ^ " ") Int.toString y) ^ "\n") pairs) in
       let f = TextIO.openOut "/tmp/graph" in
       let _ = TextIO.output (f, s) in let _ = TextIO.closeOut f in ()
+    (* DEBUG  handle Reductio.Matching2 s => (print "doesn'tmatch"; k := SOME s); *)
+    (* fun gg n = (Compress.sgnReset(); gen_graph n
+	    (fn n => Compress.sgnAutoCompressUpTo n Compress.naiveModes)) *)
+    (* Syntax.size_term (Option.valOf(#o_def (Compress.sgnLookup n))) *)
     open Reductio
   end;;

@@ -1,18 +1,21 @@
 
+(* Basic search engine: Version 1.3*)
+(* Author: Carsten Schuermann *)
 module type SEARCH  =
   sig
-    module State :
-    ((STATE)(* Basic search engine: Version 1.3*)(* Author: Carsten Schuermann *)
-    (*! structure IntSyn   : INTSYN !*)(*! structure Tomega   : TOMEGA !*))
+    (*! structure IntSyn   : INTSYN !*)
+    (*! structure Tomega   : TOMEGA !*)
+    module State : STATE
     exception Error of string 
-    val searchEx :
-      (int * IntSyn.__Exp list * (int -> unit)) ->
-        ((unit)(*      * (StateSyn.FunSyn.IntSyn.Exp * StateSyn.FunSyn.IntSyn.Sub) *))
+    val searchEx : (int * IntSyn.__Exp list * (int -> unit)) -> unit
+    (*      * (StateSyn.FunSyn.IntSyn.Exp * StateSyn.FunSyn.IntSyn.Sub) *)
   end;;
 
 
 
 
+(* Search (based on abstract machine ) : Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module Search(Search:sig
                        module Global : GLOBAL
                        module State' : STATE
@@ -27,28 +30,33 @@ module Search(Search:sig
                        module CPrint : CPRINT
                        module Print : PRINT
                        module Names : NAMES
-                       module CSManager :
-                       ((CS_MANAGER)(* Search (based on abstract machine ) : Version 1.3 *)
-                       (* Author: Carsten Schuermann *)
                        (*! structure IntSyn' : INTSYN !*)
                        (*! structure Tomega' : TOMEGA !*)
-                       (*! sharing Tomega'.IntSyn = IntSyn' !*)(*! sharing State'.IntSyn = IntSyn' !*)
-                       (*! sharing State'.Tomega = Tomega' !*)(*! sharing Abstract.IntSyn = IntSyn' !*)
+                       (*! sharing Tomega'.IntSyn = IntSyn' !*)
+                       (*! sharing State'.IntSyn = IntSyn' !*)
+                       (*! sharing State'.Tomega = Tomega' !*)
+                       (*! sharing Abstract.IntSyn = IntSyn' !*)
                        (*! sharing Abstract.Tomega = Tomega' !*)
                        (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                        (*! sharing Whnf.IntSyn = IntSyn' !*)
-                       (*! sharing Unify.IntSyn = IntSyn' !*)(*! sharing Assign.IntSyn = IntSyn' !*)
-                       (*! sharing Index.IntSyn = IntSyn' !*)(*! sharing Compile.IntSyn = IntSyn' !*)
+                       (*! sharing Unify.IntSyn = IntSyn' !*)
+                       (*! sharing Assign.IntSyn = IntSyn' !*)
+                       (*! sharing Index.IntSyn = IntSyn' !*)
+                       (*! sharing Compile.IntSyn = IntSyn' !*)
                        (*! sharing Compile.CompSyn = CompSyn' !*)
-                       (*! sharing CPrint.IntSyn = IntSyn' !*)(*! sharing CPrint.CompSyn = CompSyn' !*)
-                       (*! sharing Print.IntSyn = IntSyn' !*)(*! sharing Names.IntSyn = IntSyn' !*))
+                       (*! sharing CPrint.IntSyn = IntSyn' !*)
+                       (*! sharing CPrint.CompSyn = CompSyn' !*)
+                       (*! sharing Print.IntSyn = IntSyn' !*)
+                       (*! sharing Names.IntSyn = IntSyn' !*)
+                       module CSManager : CS_MANAGER
                      end) : SEARCH =
   struct
-    module State =
-      ((State')(*! sharing CSManager.IntSyn = IntSyn' !*)
-      (*! structure IntSyn = IntSyn' !*)(*! structure Tomega = Tomega' !*))
-    exception Error of
-      ((string)(*! structure CompSyn = CompSyn' !*)) 
+    (*! sharing CSManager.IntSyn = IntSyn' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    module State = State'
+    (*! structure CompSyn = CompSyn' !*)
+    exception Error of string 
     module I = IntSyn
     module C = CompSyn
     let rec isInstantiated =
@@ -63,14 +71,14 @@ module Search(Search:sig
       | _ -> false__
     let rec compose' =
       function
-      | (IntSyn.Null, g) -> g
-      | (Decl (g, D), g') -> IntSyn.Decl ((compose' (g, g')), D)
+      | (IntSyn.Null, G) -> G
+      | (Decl (G, D), G') -> IntSyn.Decl ((compose' (G, G')), D)
     let rec shift =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (g, D), s) -> I.dot1 (shift (g, s))
+      | (Decl (G, D), s) -> I.dot1 (shift (G, s))
     let rec exists (P) (K) =
-      let exists' =
+      let rec exists' =
         function | I.Null -> false__ | Decl (K', Y) -> (P Y) || (exists' K') in
       exists' K
     let rec occursInExp (r, Vs) = occursInExpW (r, (Whnf.whnf Vs))
@@ -104,7 +112,7 @@ module Search(Search:sig
       | (EVar (r, _, _, cnstrs) as X)::GE ->
           let Xs = selectEVar GE in if nonIndex (r, Xs) then X :: Xs else Xs
     let rec pruneCtx =
-      function | (g, 0) -> g | (Decl (g, _), n) -> pruneCtx (g, (n - 1))
+      function | (G, 0) -> G | (Decl (G, _), n) -> pruneCtx (G, (n - 1))
     let rec cidFromHead =
       function | Const a -> a | Def a -> a | Skonst a -> a
     let rec eqHead =
@@ -116,32 +124,32 @@ module Search(Search:sig
       function
       | (max, depth, (Atom p, s), dp, sc) ->
           matchAtom (max, depth, (p, s), dp, sc)
-      | (max, depth, (Impl (r, A, Ha, g), s), DProg (g, dPool), sc) ->
+      | (max, depth, (Impl (r, A, Ha, g), s), DProg (G, dPool), sc) ->
           let D' = I.Dec (NONE, (I.EClo (A, s))) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
               (C.DProg
-                 ((I.Decl (g, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+                 ((I.Decl (G, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
               (function | M -> sc (I.Lam (D', M))))
-      | (max, depth, (All (D, g), s), DProg (g, dPool), sc) ->
+      | (max, depth, (All (D, g), s), DProg (G, dPool), sc) ->
           let D' = I.decSub (D, s) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
-              (C.DProg ((I.Decl (g, D')), (I.Decl (dPool, C.Parameter)))),
+              (C.DProg ((I.Decl (G, D')), (I.Decl (dPool, C.Parameter)))),
               (function | M -> sc (I.Lam (D', M))))
     let rec rSolve =
       function
-      | (max, depth, ps', (Eq (Q), s), DProg (g, dPool), sc) ->
-          if Unify.unifiable (g, ps', (Q, s)) then sc I.Nil else ()
-      | (max, depth, ps', (Assign (Q, eqns), s), (DProg (g, dPool) as dp),
+      | (max, depth, ps', (Eq (Q), s), DProg (G, dPool), sc) ->
+          if Unify.unifiable (G, ps', (Q, s)) then sc I.Nil else ()
+      | (max, depth, ps', (Assign (Q, eqns), s), (DProg (G, dPool) as dp),
          sc) ->
-          (match Assign.assignable (g, ps', (Q, s)) with
+          (match Assign.assignable (G, ps', (Q, s)) with
            | SOME cnstr ->
                aSolve ((eqns, s), dp, cnstr, (function | () -> sc I.Nil))
            | NONE -> ())
-      | (max, depth, ps', (And (r, A, g), s), (DProg (g, dPool) as dp), sc)
+      | (max, depth, ps', (And (r, A, g), s), (DProg (G, dPool) as dp), sc)
           ->
-          let X = I.newEVar (g, (I.EClo (A, s))) in
+          let X = I.newEVar (G, (I.EClo (A, s))) in
           rSolve
             (max, depth, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function
@@ -149,8 +157,8 @@ module Search(Search:sig
                    solve
                      (max, depth, (g, s), dp,
                        (function | M -> sc (I.App (M, S))))))
-      | (max, depth, ps', (In (r, A, g), s), (DProg (g, dPool) as dp), sc) ->
-          let G0 = pruneCtx (g, depth) in
+      | (max, depth, ps', (In (r, A, g), s), (DProg (G, dPool) as dp), sc) ->
+          let G0 = pruneCtx (G, depth) in
           let dPool0 = pruneCtx (dPool, depth) in
           let w = I.Shift depth in
           let iw = Whnf.invert w in
@@ -173,13 +181,13 @@ module Search(Search:sig
                                  sc (I.App ((I.EClo (M, w)), S))
                                with | Unify _ -> ())))))
       | (max, depth, ps', (Exists (Dec (_, A), r), s),
-         (DProg (g, dPool) as dp), sc) ->
-          let X = I.newEVar (g, (I.EClo (A, s))) in
+         (DProg (G, dPool) as dp), sc) ->
+          let X = I.newEVar (G, (I.EClo (A, s))) in
           rSolve
             (max, depth, ps', (r, (I.Dot ((I.Exp X), s))), dp,
               (function | S -> sc (I.App (X, S))))
       | (max, depth, ps', (Axists (ADec (SOME (X), d), r), s),
-         (DProg (g, dPool) as dp), sc) ->
+         (DProg (G, dPool) as dp), sc) ->
           let X' = I.newAVar () in
           rSolve
             (max, depth, ps',
@@ -189,19 +197,19 @@ module Search(Search:sig
       function
       | ((C.Trivial, s), dp, cnstr, sc) ->
           if Assign.solveCnstr cnstr then sc () else ()
-      | ((UnifyEq (g', e1, N, eqns), s), (DProg (g, dPool) as dp), cnstr, sc)
+      | ((UnifyEq (G', e1, N, eqns), s), (DProg (G, dPool) as dp), cnstr, sc)
           ->
-          let g'' = compose' (g', g) in
-          let s' = shift (g', s) in
-          if Assign.unifiable (g'', (N, s'), (e1, s'))
+          let G'' = compose' (G', G) in
+          let s' = shift (G', s) in
+          if Assign.unifiable (G'', (N, s'), (e1, s'))
           then aSolve ((eqns, s), dp, cnstr, sc)
           else ()
     let rec matchAtom =
       function
       | (0, _, _, _, _) -> ()
-      | (max, depth, ((Root (Ha, _), _) as ps'), (DProg (g, dPool) as dp),
+      | (max, depth, ((Root (Ha, _), _) as ps'), (DProg (G, dPool) as dp),
          sc) ->
-          let matchSig' =
+          let rec matchSig' =
             function
             | nil -> ()
             | (Hc)::sgn' ->
@@ -214,7 +222,7 @@ module Search(Search:sig
                            ((max - 1), depth, ps', (r, I.id), dp,
                              (function | S -> sc (I.Root (Hc, S))))) in
                 matchSig' sgn' in
-          let matchBlock =
+          let rec matchBlock =
             function
             | (nil, (n, i)) -> ()
             | ((r, s, H')::RGs', (n, i)) ->
@@ -232,7 +240,7 @@ module Search(Search:sig
                                     sc (I.Root ((I.Proj ((I.Bidx n), i)), S))))) in
                   matchBlock (RGs', (n, (i + 1)))
                 else matchBlock (RGs', (n, (i + 1))) in
-          let matchDProg =
+          let rec matchDProg =
             function
             | (I.Null, _) -> matchSig' (Index.lookup (cidFromHead Ha))
             | (Decl (dPool', Dec (r, s, Ha')), n) ->
@@ -256,18 +264,18 @@ module Search(Search:sig
     let rec searchEx' arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (max, (nil, sc)) -> sc max
-      | (max, ((EVar (r, g, V, _) as X)::GE, sc)) ->
+      | (max, ((EVar (r, G, V, _) as X)::GE, sc)) ->
           solve
-            (max, 0, ((Compile.compileGoal (g, V)), I.id),
-              (Compile.compileCtx false__ g),
+            (max, 0, ((Compile.compileGoal (G, V)), I.id),
+              (Compile.compileCtx false__ G),
               (function
                | U' ->
                    (try
-                      Unify.unify (g, (X, I.id), (U', I.id));
+                      Unify.unify (G, (X, I.id), (U', I.id));
                       searchEx' max (GE, sc)
                     with | Unify _ -> ())))
     let rec deepen depth f (P) =
-      let deepen' level =
+      let rec deepen' level =
         if level > depth
         then ()
         else
@@ -285,8 +293,8 @@ module Search(Search:sig
                 (let GE' =
                    foldr
                      (function
-                      | ((EVar (_, g, _, _) as X), L) ->
-                          Abstract.collectEVars (g, (X, I.id), L)) nil GE in
+                      | ((EVar (_, G, _, _) as X), L) ->
+                          Abstract.collectEVars (G, (X, I.id), L)) nil GE in
                  let gE' = List.length GE' in
                  if gE' > 0
                  then
@@ -295,91 +303,99 @@ module Search(Search:sig
       if (!Global.chatter) > 5 then print "FAIL]\n" else ();
       ()
     let rec search (maxFill, GE, sc) = searchEx (1, maxFill) (GE, sc)
-    let ((searchEx)(* isInstantiated (V) = SOME(cid) or NONE
+    (* isInstantiated (V) = SOME(cid) or NONE
        where cid is the type family of the atomic target type of V,
        NONE if V is a kind or object or have variable type.
     *)
-      (* exists P K = B
+    (* exists P K = B
        where B iff K = K1, Y, K2  s.t. P Y  holds
     *)
-      (* occursInExp (r, (U, s)) = B,
+    (* occursInExp (r, (U, s)) = B,
 
        Invariant:
-       If    g |- s : G1   G1 |- U : V
+       If    G |- s : G1   G1 |- U : V
        then  B holds iff r occurs in (the normal form of) U
     *)
-      (*      | occursInExpW (r, (I.FgnExp (cs, ops), s)) =
+    (*      | occursInExpW (r, (I.FgnExp (cs, ops), s)) =
           occursInExp (r, (#toInternal(ops)(), s)) *)
-      (* hack - should consult cs  -rv *)(* nonIndex (r, GE) = B
+    (* hack - should consult cs  -rv *)
+    (* nonIndex (r, GE) = B
 
        Invariant:
        B hold iff
         r does not occur in any type of EVars in GE
     *)
-      (* select (GE, (V, s), acc) = acc'
+    (* select (GE, (V, s), acc) = acc'
 
        Invariant:
     *)
-      (* Efficiency: repeated whnf for every subterm in Vs!!! *)
-      (* Constraint case *)(* pruneCtx (g, n) = g'
+    (* Efficiency: repeated whnf for every subterm in Vs!!! *)
+    (* Constraint case *)
+    (* pruneCtx (G, n) = G'
 
        Invariant:
-       If   |- g ctx
-       and  g = G0, G1
+       If   |- G ctx
+       and  G = G0, G1
        and  |G1| = n
-       then |- g' = G0 ctx
+       then |- G' = G0 ctx
     *)
-      (* only used for type families of compiled clauses *)
-      (* solve ((g,s), (g,dPool), sc, (acc, k)) => ()
+    (* only used for type families of compiled clauses *)
+    (* solve ((g,s), (G,dPool), sc, (acc, k)) => ()
      Invariants:
-       g |- s : g'
-       g' |- g :: goal
-       g ~ dPool  (context g matches dPool)
+       G |- s : G'
+       G' |- g :: goal
+       G ~ dPool  (context G matches dPool)
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if  g |- M :: g[s] then g |- sc :: g[s] => Answer, Answer closed
+       if  G |- M :: g[s] then G |- sc :: g[s] => Answer, Answer closed
   *)
-      (* rsolve (max, depth, (p,s'), (r,s), (g,dPool), sc, (acc, k)) = ()
+    (* rsolve (max, depth, (p,s'), (r,s), (G,dPool), sc, (acc, k)) = ()
      Invariants:
-       g |- s : g'
-       g' |- r :: resgoal
-       g |- s' : g''
-       g'' |- p :: atom
-       g ~ dPool
+       G |- s : G'
+       G' |- r :: resgoal
+       G |- s' : G''
+       G'' |- p :: atom
+       G ~ dPool
        acc is the accumulator of results
        and k is the max search depth limit
            (used in the existential case for iterative deepening,
             used in the universal case for max search depth)
-       if g |- S :: r[s] then g |- sc : (r >> p[s']) => Answer
+       if G |- S :: r[s] then G |- sc : (r >> p[s']) => Answer
   *)
-      (* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
+    (* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
         ((Unify.unify (ps', (Q, s)); sc (I.Nil, acck)) handle Unify.Unify _ => acc) *)
-      (* is this EVar redundant? -fp *)(* g |- g goal *)
-      (* g |- A : type *)(* g, A |- r resgoal *)
-      (* G0, Gl  |- s : g *)(* G0, Gl  |- w : G0 *)
-      (* G0 |- iw : G0, Gl *)(* G0 |- w : g *)(* G0 |- X : A[s'] *)
-      (* G0, Gl |- X' : A[s'][w] = A[s] *)(* we don't increase the proof term here! *)
-      (* aSolve ((ag, s), dp, sc) = res
+    (* is this EVar redundant? -fp *)
+    (* G |- g goal *)
+    (* G |- A : type *)
+    (* G, A |- r resgoal *)
+    (* G0, Gl  |- s : G *)
+    (* G0, Gl  |- w : G0 *)
+    (* G0 |- iw : G0, Gl *)
+    (* G0 |- w : G *)
+    (* G0 |- X : A[s'] *)
+    (* G0, Gl |- X' : A[s'][w] = A[s] *)
+    (* we don't increase the proof term here! *)
+    (* aSolve ((ag, s), dp, sc) = res
      Invariants:
-       dp = (g, dPool) where g ~ dPool
-       g |- s : g'
-       if g |- ag[s] auxgoal
+       dp = (G, dPool) where G ~ dPool
+       G |- s : G'
+       if G |- ag[s] auxgoal
        then sc () is evaluated with return value res
        else res = Fail
      Effects: instantiation of EVars in ag[s], dp and sc () *)
-      (* matchatom ((p, s), (g, dPool), sc, (acc, k)) => ()
-     g |- s : g'
-     g' |- p :: atom
-     g ~ dPool
+    (* matchatom ((p, s), (G, dPool), sc, (acc, k)) => ()
+     G |- s : G'
+     G' |- p :: atom
+     G ~ dPool
      acc is the accumulator of results
      and k is the max search depth limit
          (used in the existential case for iterative deepening,
           used in the universal case for max search depth)
-     if g |- M :: p[s] then g |- sc :: p[s] => Answer
+     if G |- M :: p[s] then G |- sc :: p[s] => Answer
   *)
-      (* searchEx' max (GE, sc) = acc'
+    (* searchEx' max (GE, sc) = acc'
 
        Invariant:
        If   GE is a list of EVars to be instantiated
@@ -387,11 +403,11 @@ module Search(Search:sig
        then if an instantiation of EVars in GE is found Success is raised
             otherwise searchEx' terminates with []
     *)
-      (* contexts of EVars are recompiled for each search depth *)
-      (* Possible optimization:
+    (* contexts of EVars are recompiled for each search depth *)
+    (* Possible optimization:
            Check if there are still variables left over
         *)
-      (* deepen (f, P) = R'
+    (* deepen (f, P) = R'
 
        Invariant:
        If   f function expecting parameters P
@@ -399,19 +415,19 @@ module Search(Search:sig
        then R' is the result of applying f to P and
          traversing all possible numbers up to MTPGlobal.maxLevel
     *)
-      (* searchEx (g, GE, (V, s), sc) = acc'
+    (* searchEx (G, GE, (V, s), sc) = acc'
        Invariant:
-       If   g |- s : g'   g' |- V : level
+       If   G |- s : G'   G' |- V : level
        and  GE is a list of EVars contained in V[s]
-         where g |- X : VX
+         where G |- X : VX
        and  sc is a function to be executed after all non-index variables have
          been instantiated
        then acc' is a list containing the one result from executing the success continuation
          All EVar's got instantiated with the smallest possible terms.
     *)
-      (* warning: iterative deepening depth is not propably updated.
+    (* warning: iterative deepening depth is not propably updated.
                                              possible that it runs into an endless loop ? *)
-      (* search (GE, sc) = ()
+    (* search (GE, sc) = ()
 
        Invariant:
        GE is a list of uninstantiated EVars
@@ -420,6 +436,6 @@ module Search(Search:sig
        Side effect:
        success continuation will raise exception
     *)
-      (* Shared contexts of EVars in GE may recompiled many times *))
-      = search
+    (* Shared contexts of EVars in GE may recompiled many times *)
+    let searchEx = search
   end ;;

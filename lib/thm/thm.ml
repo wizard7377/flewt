@@ -1,11 +1,12 @@
 
+(* Theorem Declarations *)
+(* Author: Carsten Schuermann *)
+(* Modified: Brigitte Pientka, Frank Pfenning *)
 module type THM  =
   sig
-    module ThmSyn :
-    ((THMSYN)(* Theorem Declarations *)(* Author: Carsten Schuermann *)
-    (* Modified: Brigitte Pientka, Frank Pfenning *))
-    exception Error of
-      ((string)(*! structure Paths : PATHS !*)) 
+    module ThmSyn : THMSYN
+    (*! structure Paths : PATHS !*)
+    exception Error of string 
     val installTotal :
       (ThmSyn.__TDecl * (Paths.region * Paths.region list)) ->
         IntSyn.cid list
@@ -14,10 +15,10 @@ module type THM  =
       (ThmSyn.__TDecl * (Paths.region * Paths.region list)) ->
         IntSyn.cid list
     val uninstallTerminates : IntSyn.cid -> bool
+    (* true: was declared, false not *)
     val installReduces :
       (ThmSyn.__RDecl * (Paths.region * Paths.region list)) ->
-        ((IntSyn.cid)(* true: was declared, false not *))
-          list
+        IntSyn.cid list
     val uninstallReduces : IntSyn.cid -> bool
     val installTabled : ThmSyn.__TabledDecl -> unit
     val installKeepTable : ThmSyn.__KeepTableDecl -> unit
@@ -26,25 +27,27 @@ module type THM  =
 
 
 
+(* Theorem and Related Declarations *)
+(* Author: Carsten Schuermann *)
+(* Modified: Brigitte Pientka *)
 module Thm(Thm:sig
                  module Global : GLOBAL
                  module ThmSyn' : THMSYN
                  module TabledSyn : TABLEDSYN
                  module ModeTable : MODETABLE
                  module Order : ORDER
-                 module ThmPrint :
-                 ((THMPRINT)(* Theorem and Related Declarations *)
-                 (* Author: Carsten Schuermann *)(* Modified: Brigitte Pientka *)
-                 (*! sharing Order.IntSyn = ThmSyn'.ModeSyn.IntSyn !*))
+                 (*! sharing Order.IntSyn = ThmSyn'.ModeSyn.IntSyn !*)
+                 module ThmPrint : THMPRINT
                end) : THM =
   struct
-    module ThmSyn =
-      ((ThmSyn')(*! structure Paths' : PATHS !*))
-    module TabledSyn =
-      ((TabledSyn)(*! structure Paths = Paths' !*))
+    (*! structure Paths' : PATHS !*)
+    module ThmSyn = ThmSyn'
+    (*! structure Paths = Paths' !*)
+    module TabledSyn = TabledSyn
+    (* -bp *)
     type __Order =
       | Varg 
-      | Lex of ((__Order)(* -bp *)) list 
+      | Lex of __Order list 
       | Simul of __Order list 
     exception Error of string 
     module L = ThmSyn
@@ -54,7 +57,7 @@ module Thm(Thm:sig
     module O = Order
     let rec error (r, msg) = raise (Error (Paths.wrap (r, msg)))
     let rec unique (((a, P), r), A) =
-      let unique' =
+      let rec unique' =
         function
         | (Uni _, nil, A) -> A
         | (Pi (_, V), (NONE)::P, A) -> unique' (V, P, A)
@@ -82,25 +85,25 @@ module Thm(Thm:sig
               (r,
                 (((^) "Constant " Names.qidToString (Names.constQid a)) ^
                    " is an object, not a type family")) in
-      let skip =
+      let rec skip =
         function
         | (0, V, P, A) -> unique' (V, P, A)
         | (k, Pi (_, V), P, A) -> skip ((k - 1), V, P, A) in
       skip ((I.constImp a), (I.constType a), P, A)
     let rec uniqueCallpats (L, rs) =
-      let uniqueCallpats' =
+      let rec uniqueCallpats' =
         function
         | ((nil, nil), A) -> ()
         | ((aP::L, r::rs), A) ->
             uniqueCallpats' ((L, rs), (unique ((aP, r), A))) in
       uniqueCallpats' ((L, rs), nil)
     let rec wfCallpats (L0, C0, r) =
-      let makestring =
+      let rec makestring =
         function
         | nil -> ""
         | s::nil -> s
         | s::L -> (s ^ " ") ^ (makestring L) in
-      let exists' =
+      let rec exists' =
         function
         | (x, nil, _) -> false__
         | (x, (NONE)::L, Mapp (_, mS)) -> exists' (x, L, mS)
@@ -116,11 +119,11 @@ module Thm(Thm:sig
                            M.Plus)
                           ^ " mode")))
             else exists' (x, L, mS) in
-      let skip =
+      let rec skip =
         function
         | (0, x, P, mS) -> exists' (x, P, mS)
         | (k, x, P, Mapp (_, mS)) -> skip ((k - 1), x, P, mS) in
-      let delete =
+      let rec delete =
         function
         | (x, ((a, P) as aP)::C) ->
             if skip ((I.constImp a), x, P, (valOf (ModeTable.modeLookup a)))
@@ -128,7 +131,7 @@ module Thm(Thm:sig
             else (::) aP delete (x, C)
         | (x, nil) ->
             error (r, (("Variable " ^ x) ^ " does not occur as argument")) in
-      let wfCallpats' =
+      let rec wfCallpats' =
         function
         | (nil, nil) -> ()
         | (x::L, C) -> wfCallpats' (L, (delete (x, C)))
@@ -139,13 +142,13 @@ module Thm(Thm:sig
                    ") does not cover all call patterns")) in
       wfCallpats' (L0, C0)
     let rec wf ((O, Callpats (C)), (r, rs)) =
-      let wfOrder =
+      let rec wfOrder =
         function
         | Varg (L) -> wfCallpats (L, C, r)
         | Lex (L) -> wfOrders L
         | Simul (L) -> wfOrders L
       and wfOrders = function | nil -> () | (O)::L -> (wfOrder O; wfOrders L) in
-      let allModed =
+      let rec allModed =
         function
         | nil -> ()
         | (a, P)::Cs ->
@@ -233,23 +236,23 @@ module Thm(Thm:sig
     let rec installRDecl (R, Callpats (L)) =
       installPredicate (R, L, nil); map (function | (a, _) -> a) L
     let rec wfRCallpats (L0, C0, r) =
-      let makestring =
+      let rec makestring =
         function
         | nil -> ""
         | s::nil -> s
         | s::L -> (s ^ " ") ^ (makestring L) in
-      let exists' =
+      let rec exists' =
         function
         | (x, nil) -> false__
         | (x, (NONE)::L) -> exists' (x, L)
         | (x, (SOME y)::L) -> if x = y then true__ else exists' (x, L) in
-      let delete =
+      let rec delete =
         function
         | (x, ((a, P) as aP)::C) ->
             if exists' (x, P) then C else (::) aP delete (x, C)
         | (x, nil) ->
             error (r, (("Variable " ^ x) ^ " does not occur as argument")) in
-      let wfCallpats' =
+      let rec wfCallpats' =
         function
         | (nil, nil) -> ()
         | (x::L, C) -> wfCallpats' (L, (delete (x, C)))
@@ -260,7 +263,7 @@ module Thm(Thm:sig
                    ") does not cover all call patterns")) in
       wfCallpats' (L0, C0)
     let rec wfred ((RedOrder (Pred, O, O'), Callpats (C)), (r, rs)) =
-      let wfOrder =
+      let rec wfOrder =
         function
         | Varg (L) -> (wfRCallpats (L, C, r); Varg)
         | Lex (L) -> Lex (wfOrders L)
@@ -282,14 +285,15 @@ module Thm(Thm:sig
     let rec installTabled (TabledDecl cid) = TabledSyn.installTabled cid
     let rec installKeepTable (KeepTableDecl cid) =
       TabledSyn.installKeepTable cid
-    let ((installTotal)(* L.ModeSyn *)(* To check validity of a termination declaration  O C
+    (* L.ModeSyn *)
+    (* To check validity of a termination declaration  O C
        we enforce that all variable names which occur in C must be distinct
        and if C = C1 .. Cm then we ensure that for all Varg (X1 .. Xn) in O,
 
            1) n = m
        and 2) each Ci contains an occurrence of Xi
     *)
-      (* unique (((a, P), r), A) = A'
+    (* unique (((a, P), r), A) = A'
 
        Invariant:
        If   A is a list of variables already collected in a call pattern
@@ -298,7 +302,7 @@ module Thm(Thm:sig
        else exception Error is raised.
        (r is region information for error message)
     *)
-      (* uniqueCallpats (L, rs) = ()
+    (* uniqueCallpats (L, rs) = ()
 
        Invariant:
        If   L is a callpattern
@@ -310,7 +314,7 @@ module Thm(Thm:sig
        each region corresponds to one type in the call pattern,
        in order)
     *)
-      (* wfCallpats (L, C, r) = ()
+    (* wfCallpats (L, C, r) = ()
 
        Invariant:
        If   L is a list of variable names of a virtual argument
@@ -321,11 +325,12 @@ module Thm(Thm:sig
        else exception Error is raised
        (r region information, needed for error messages)
     *)
-      (* skip (i, x, P, mS)  ignores first i argument in modeSpine mS,
+    (* skip (i, x, P, mS)  ignores first i argument in modeSpine mS,
              then returns true iff x occurs in argument list P
              Effect: raises Error if position of x is not input (+).
           *)
-      (* exists by invariant *)(* wf ((O, C), (r, rs)) = ()
+    (* exists by invariant *)
+    (* wf ((O, C), (r, rs)) = ()
 
        Invariant:
        If   O is an order
@@ -336,7 +341,7 @@ module Thm(Thm:sig
        else exception Error is raised
        (r, rs  region information, needed for error messages)
     *)
-      (* argPos (x, L, n) = nOpt
+    (* argPos (x, L, n) = nOpt
 
        Invariant:
        If   x is a variable name
@@ -345,7 +350,7 @@ module Thm(Thm:sig
             in the call pattern
        then nOpt describes the optional  position of the occurrence
     *)
-      (* locate (L, P, n) = n'
+    (* locate (L, P, n) = n'
 
        Invariant:
        If   L is a list of variable names (as part of a virtual argument)
@@ -354,7 +359,8 @@ module Thm(Thm:sig
             in the call pattern
        then n' describes the position of the virtual argument in P
     *)
-      (* locate nil cannot occur by invariant *)(* argOrder (O, P, n) = O'
+    (* locate nil cannot occur by invariant *)
+    (* argOrder (O, P, n) = O'
 
        Invariant:
        If   O is an order
@@ -365,7 +371,7 @@ module Thm(Thm:sig
                   replaced by positions
 
     *)
-      (*  argOrderMutual (C, k, A) = A'
+    (*  argOrderMutual (C, k, A) = A'
 
         Invariant:
 
@@ -375,7 +381,7 @@ module Thm(Thm:sig
         then A' is an accumulator extending A containing all
              images of C under k.
     *)
-      (* installorder (O, LE, LT) = ()
+    (* installorder (O, LE, LT) = ()
 
        Invariant:
        If   O is an order,
@@ -385,7 +391,7 @@ module Thm(Thm:sig
 
        Effect: updates table associating argument order with type families.
     *)
-      (* installDecl (O, C) = L'
+    (* installDecl (O, C) = L'
 
        Invariant:
        If   O is an order
@@ -394,7 +400,7 @@ module Thm(Thm:sig
 
        Effect: All orders are stored
     *)
-      (* installTerminates (T, (r,rs)) = L'
+    (* installTerminates (T, (r,rs)) = L'
 
        Invariant:
        If   T is a termination declaration of (O, C)
@@ -407,10 +413,11 @@ module Thm(Thm:sig
         rs is a list of regions of C
         used for error messages)
     *)
-      (* installTotal (T, (r, rs)) = L'
+    (* installTotal (T, (r, rs)) = L'
        Invariant as in installTerminates
     *)
-      (* -bp *)(* argROrder (O, P, n) = O'
+    (* -bp *)
+    (* argROrder (O, P, n) = O'
 
        Invariant:
        If   O is an order
@@ -421,7 +428,7 @@ module Thm(Thm:sig
                   replaced by positions
 
     *)
-      (* installPredicate (name, R, LE, LT) = ()
+    (* installPredicate (name, R, LE, LT) = ()
 
        Invariant:
        If   R is a reduction order,
@@ -433,9 +440,12 @@ module Thm(Thm:sig
                type families.
 
     *)
-      (* install termination order *)(* bug: %reduces should not entail %terminates *)
-      (* fixed: Sun Mar 13 09:41:18 2005 -fp *)(* val S'  = O.install (a, O.TDec (O2', M')) *)
-      (* install reduction order   *)(* installRDecl (R, C) = L'
+    (* install termination order *)
+    (* bug: %reduces should not entail %terminates *)
+    (* fixed: Sun Mar 13 09:41:18 2005 -fp *)
+    (* val S'  = O.install (a, O.TDec (O2', M')) *)
+    (* install reduction order   *)
+    (* installRDecl (R, C) = L'
 
        Invariant:
        If   R is a reduction order
@@ -444,12 +454,12 @@ module Thm(Thm:sig
 
        Effect: reduction order is stored
     *)
-      (* wfRCallpats
+    (* wfRCallpats
        well-formed call pattern in a reduction declaration
        pattern does not need to be moded
        Tue Apr 30 10:32:31 2002 -bp
      *)
-      (* wfred ((Red(Pred,O.O'), C), (r, rs)) = ()
+    (* wfred ((Red(Pred,O.O'), C), (r, rs)) = ()
 
        Invariant:
        If   O,O' is an order and Pred is some predicate
@@ -460,7 +470,7 @@ module Thm(Thm:sig
        else exception Error is raised
        (r, rs  region information, needed for error messages)
     *)
-      (* installRedOrder (R, (r,rs)) = L'
+    (* installRedOrder (R, (r,rs)) = L'
 
        Invariant:
        If   R is a reduction declaration of (pred(O,O'), C)
@@ -473,8 +483,8 @@ module Thm(Thm:sig
        (r is region information of O
         rs is a list of regions of C
         used for error messages)
-    *))
-      = installTotal
+    *)
+    let installTotal = installTotal
     let uninstallTotal = uninstallTotal
     let installTerminates = installTerminates
     let uninstallTerminates = uninstallTerminates
@@ -489,9 +499,9 @@ module Thm(Thm:sig
 
 module ThmSyn =
   (Make_ThmSyn)(struct
-                  module Abstract =
-                    ((Abstract)(*! structure IntSyn = IntSyn !*)
-                    (*! structure ModeSyn' = ModeSyn !*))
+                  (*! structure IntSyn = IntSyn !*)
+                  (*! structure ModeSyn' = ModeSyn !*)
+                  module Abstract = Abstract
                   module Whnf = Whnf
                   module Paths' = Paths
                   module Names' = Names
@@ -506,9 +516,9 @@ module Thm =
                module Global = Global
                module ThmSyn' = ThmSyn
                module TabledSyn = TabledSyn
-               module Order =
-                 ((Order)(*       structure RedOrder = RedOrder *)
-                 (* -bp *))
+               (*       structure RedOrder = RedOrder *)
+               (* -bp *)
+               module Order = Order
                module ModeTable = ModeTable
                module ThmPrint = ThmPrint
                module Paths' = Paths

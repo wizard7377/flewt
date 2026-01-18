@@ -12,6 +12,9 @@ module type PRINT  =
 
 
 
+(* -------------------------------------------------------------------------- *)
+(*  Printing                                                                  *)
+(* -------------------------------------------------------------------------- *)
 let rec ($) x = Layout.str x let rec (%) x = Layout.mayAlign x
 let rec (%%) x = Layout.align x let rec (&) x = Layout.seq x
 let rec paren x = (&) [($) "("; x; ($) ")"]
@@ -64,16 +67,12 @@ let rec sub_to_list =
   | Comp (s1, s2) -> (@) (sub_to_list s1) sub_to_list s2
 let rec sub_to_layout sgn sub =
   let sub' = sub_to_list sub in
-  let mapfn =
+  let rec mapfn =
     function
     | SubShift n -> ($) ((^) "^" Int.toString n)
     | SubExp exp -> exp_to_layout sgn exp in
   let sub'' = map mapfn sub' in Layout.list sub''
-let rec exp_to_string
-  ((sgn)(* -------------------------------------------------------------------------- *)
-  (*  Printing                                                                  *)
-  (* -------------------------------------------------------------------------- *))
-  exp = Layout.tostring (exp_to_layout sgn exp)
+let rec exp_to_string sgn exp = Layout.tostring (exp_to_layout sgn exp)
 let rec spine_to_string sgn sp = Layout.tostring (spine_to_layout sgn sp)
 let rec sub_to_string sgn sub = Layout.tostring (sub_to_layout sgn sub)
 let rec print_exp sgn exp = print (((^) "\n" exp_to_string sgn exp) ^ "\n")

@@ -1,8 +1,8 @@
 
 module MetaSyn =
   (Make_MetaSyn)(struct
-                   module Whnf =
-                     ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                   (*! structure IntSyn' = IntSyn !*)
+                   module Whnf = Whnf
                  end)
 module MetaAbstract =
   (Make_MetaAbstract)(struct
@@ -21,8 +21,7 @@ module MetaAbstract =
                       end)
 module MetaPrint =
   (Make_MetaPrint)(struct
-                     module Global =
-                       ((Global)(*! structure CSManager = CSManager !*))
+                     module Global = Global
                      module MetaSyn' = MetaSyn
                      module Formatter = Formatter
                      module Print = Print
@@ -38,20 +37,19 @@ module OLDSearch =
                      module MetaGlobal = MetaGlobal
                      module Conv = Conv
                      module MetaSyn' = MetaSyn
-                     module Compile =
-                       ((Compile)(*! structure CompSyn' = CompSyn !*))
+                     (*! structure CompSyn' = CompSyn !*)
+                     module Compile = Compile
                      module Whnf = Whnf
                      module Unify = UnifyTrail
                      module Index = IndexSkolem
-                     module CPrint =
-                       ((CPrint)(* structure Assign = Assign *))
+                     (* structure Assign = Assign *)
+                     module CPrint = CPrint
                      module Print = Print
                      module Names = Names
                    end)
 module Lemma =
   (Make_Lemma)(struct
-                 module MetaSyn' =
-                   ((MetaSyn)(*! structure CSManager = CSManager !*))
+                 module MetaSyn' = MetaSyn
                  module MetaAbstract = MetaAbstract
                end)
 module Splitting =
@@ -68,8 +66,7 @@ module Splitting =
                    end)
 module Filling =
   (Make_Filling)(struct
-                   module Global =
-                     ((Global)(*! structure CSManager = CSManager !*))
+                   module Global = Global
                    module MetaSyn' = MetaSyn
                    module MetaAbstract = MetaAbstract
                    module Print = Print
@@ -95,11 +92,8 @@ module Recursion =
                      module Formatter = Formatter
                    end)
 module Qed =
-  (Make_Qed)(struct
-               module Global =
-                 ((Global)(*! structure CSManager = CSManager !*))
-               module MetaSyn' = MetaSyn
-             end)
+  (Make_Qed)(struct module Global = Global
+                    module MetaSyn' = MetaSyn end)
 module StrategyFRS =
   (Make_StrategyFRS)(struct
                        module MetaGlobal = MetaGlobal
@@ -168,8 +162,8 @@ module Mpi =
 module Skolem =
   (Make_Skolem)(struct
                   module Global = Global
-                  module Whnf =
-                    ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  module Whnf = Whnf
                   module Abstract = Abstract
                   module IndexSkolem = IndexSkolem
                   module ModeTable = ModeTable

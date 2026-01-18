@@ -1,36 +1,37 @@
 
-module Constraints =
-  (Make_Constraints)(struct
-                       module Conv =
-                         ((Conv)(* Now in intsyn.fun *)
-                         (*
+(* Now in intsyn.fun *)
+(*
 structure IntSyn =
   IntSyn (structure Global = Global);
 *)
-                         (* Now in tomega.sml *)(*
+(* Now in tomega.sml *)
+(*
 structure Whnf =
   Whnf (! structure IntSyn' = IntSyn !*)
-                         (*! structure IntSyn' = IntSyn !*)
-                         (*! structure IntSyn' = IntSyn !*))
+(*! structure IntSyn' = IntSyn !*)
+module Constraints =
+  (Make_Constraints)(struct
+                       (*! structure IntSyn' = IntSyn !*)
+                       module Conv = Conv
                      end)
 module UnifyNoTrail =
   (Make_Unify)(struct
-                 module Whnf =
-                   ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                 (*! structure IntSyn' = IntSyn !*)
+                 module Whnf = Whnf
                  module Trail = NoTrail
                end)
 module UnifyTrail =
   (Make_Unify)(struct
-                 module Whnf =
-                   ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                 (*! structure IntSyn' = IntSyn !*)
+                 module Whnf = Whnf
                  module Trail = Trail
                end)
+(* structure Normalize : NORMALIZE =  
+  Normalize (! structure IntSyn' = IntSyn !*)
+(*! structure Tomega' = Tomega !*)
 module Match =
   (Make_Match)(struct
-                 module Whnf =
-                   ((Whnf)(* structure Normalize : NORMALIZE =  
-  Normalize (! structure IntSyn' = IntSyn !*)
-                   (*! structure Tomega' = Tomega !*))
+                 module Whnf = Whnf
                  module Unify = UnifyTrail
                  module Trail = Trail
                end)
@@ -42,6 +43,6 @@ module Abstract =
                   end)
 module Approx =
   (Make_Approx)(struct
-                  module Whnf =
-                    ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  module Whnf = Whnf
                 end);;

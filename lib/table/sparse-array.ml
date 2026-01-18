@@ -1,8 +1,9 @@
 
+(* Sparse 1-Dimensional Arrays *)
+(* Author: Roberto Virga *)
 module type SPARSE_ARRAY  =
   sig
-    type nonrec 'a array(* Author: Roberto Virga *)
-    (* Sparse 1-Dimensional Arrays *)
+    type nonrec 'a array
     val array : 'a -> 'a array
     val sub : ('a array * int) -> 'a
     val update : ('a array * int * 'a) -> unit
@@ -20,11 +21,10 @@ module type SPARSE_ARRAY  =
 
 
 
-module SparseArray(SparseArray:sig
-                                 module IntTable :
-                                 ((TABLE)(* Sparse 1-Dimensional Arrays *)
-                                 (* Author: Roberto Virga *))
-                               end) : SPARSE_ARRAY =
+(* Sparse 1-Dimensional Arrays *)
+(* Author: Roberto Virga *)
+module SparseArray(SparseArray:sig module IntTable : TABLE end) :
+  SPARSE_ARRAY =
   struct
     type nonrec 'a array = < default: 'a  ;table: 'a IntTable.__Table   > 
     let size = 29
@@ -55,7 +55,7 @@ module SparseArray(SparseArray:sig
       if (i >= 0) && (len >= 0)
       then
         let imax = i + len in
-        let app' i' =
+        let rec app' i' =
           if i' < imax
           then (f (i', (unsafeSub (array, i'))); app' (i' + 1))
           else () in
@@ -64,7 +64,7 @@ module SparseArray(SparseArray:sig
     let rec foldl f init (array, i, len) =
       if (i >= 0) && (len >= 0)
       then
-        let foldl' i' =
+        let rec foldl' i' =
           if i' >= i
           then f (i', (unsafeSub (array, i')), (foldl' (i' - 1)))
           else init in
@@ -74,7 +74,7 @@ module SparseArray(SparseArray:sig
       if (i >= 0) && (len >= 0)
       then
         let imax = i + len in
-        let foldr' i' =
+        let rec foldr' i' =
           if i' < imax
           then f (i', (unsafeSub (array, i')), (foldr' (i' + 1)))
           else init in
@@ -84,7 +84,7 @@ module SparseArray(SparseArray:sig
       if (i >= 0) && (len >= 0)
       then
         let imax = i + len in
-        let modify' i' =
+        let rec modify' i' =
           if i' < imax
           then
             (unsafeUpdate (array, i', (f (i', (unsafeSub (array, i')))));

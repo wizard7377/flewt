@@ -1,11 +1,11 @@
 
+(* Weakening substitutions for meta substitutions *)
+(* Author: Carsten Schuermann *)
 module type FUNWEAKEN  =
   sig
+    (*! structure FunSyn : FUNSYN !*)
     val strengthenPsi :
-      (FunSyn.lfctx * IntSyn.__Sub) ->
-        (((FunSyn.lfctx)(*! structure FunSyn : FUNSYN !*)
-          (* Author: Carsten Schuermann *)(* Weakening substitutions for meta substitutions *))
-          * IntSyn.__Sub)
+      (FunSyn.lfctx * IntSyn.__Sub) -> (FunSyn.lfctx * IntSyn.__Sub)
     val strengthenPsi' :
       (FunSyn.__LFDec list * IntSyn.__Sub) ->
         (FunSyn.__LFDec list * IntSyn.__Sub)
@@ -14,12 +14,15 @@ module type FUNWEAKEN  =
 
 
 
+(* Weakening substitutions for meta substitutions *)
+(* Author: Carsten Schuermann *)
 module FunWeaken(FunWeaken:sig
-                             module Weaken :
-                             ((WEAKEN)(* Weakening substitutions for meta substitutions *)
-                             (* Author: Carsten Schuermann *)(*! structure FunSyn' : FUNSYN !*))
+                             (*! structure FunSyn' : FUNSYN !*)
+                             module Weaken : WEAKEN
                            end) : FUNWEAKEN =
   struct
+    (*! sharing Weaken.IntSyn = FunSyn'.IntSyn !*)
+    (*! structure FunSyn = FunSyn' !*)
     module F = FunSyn
     module I = IntSyn
     let rec strengthenPsi =
@@ -29,10 +32,10 @@ module FunWeaken(FunWeaken:sig
           let (Psi', s') = strengthenPsi (Psi, s) in
           ((I.Decl (Psi', (F.Prim (Weaken.strengthenDec (D, s'))))),
             (I.dot1 s'))
-      | (Decl (Psi, Block (CtxBlock (l, g))), s) ->
+      | (Decl (Psi, Block (CtxBlock (l, G))), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
-          let (g'', s'') = Weaken.strengthenCtx (g, s') in
-          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, g''))))), s'')
+          let (G'', s'') = Weaken.strengthenCtx (G, s') in
+          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, G''))))), s'')
     let rec strengthenPsi' =
       function
       | (nil, s) -> (nil, s)
@@ -41,25 +44,24 @@ module FunWeaken(FunWeaken:sig
           let s' = I.dot1 s in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
           (((F.Prim D') :: Psi''), s'')
-      | ((Block (CtxBlock (l, g)))::Psi, s) ->
-          let (g', s') = Weaken.strengthenCtx (g, s) in
+      | ((Block (CtxBlock (l, G)))::Psi, s) ->
+          let (G', s') = Weaken.strengthenCtx (G, s) in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
-          (((F.Block (F.CtxBlock (l, g'))) :: Psi''), s'')
-    let ((strengthenPsi)(*! sharing Weaken.IntSyn = FunSyn'.IntSyn !*)
-      (*! structure FunSyn = FunSyn' !*)(* strengthenPsi (Psi, s) = (Psi', s')
+          (((F.Block (F.CtxBlock (l, G'))) :: Psi''), s'')
+    (* strengthenPsi (Psi, s) = (Psi', s')
 
        If   Psi0 |- Psi ctx
        and  Psi0 |- s Psi1
        then Psi1 |- Psi' = Psi[s^-1] ctx
        and  Psi0 |- s' : Psi1, Psi'
     *)
-      (* strengthenPsi' (Psi, s) = (Psi', s')
+    (* strengthenPsi' (Psi, s) = (Psi', s')
 
        If   Psi0 |- Psi ctx
        and  Psi0 |- s : Psi1
        then Psi1 |- Psi' = Psi[s^-1] ctx
        and  Psi0 |- s' : Psi1, Psi'  weakening substitution
-    *))
-      = strengthenPsi
+    *)
+    let strengthenPsi = strengthenPsi
     let strengthenPsi' = strengthenPsi'
   end ;;

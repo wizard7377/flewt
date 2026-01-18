@@ -1,4 +1,6 @@
 
+(* Solver for a linearly ordered field, based on the simplex method *)
+(* Author: Roberto Virga *)
 module CSIneqField(CSIneqField:sig
                                  module OrderedField : ORDERED_FIELD
                                  module Trail : TRAIL
@@ -6,17 +8,16 @@ module CSIneqField(CSIneqField:sig
                                  module SparseArray : SPARSE_ARRAY
                                  module SparseArray2 : SPARSE_ARRAY2
                                  module CSEqField : CS_EQ_FIELD
-                                 module Compat :
-                                 ((COMPAT)(* Solver for a linearly ordered field, based on the simplex method *)
-                                 (* Author: Roberto Virga *)
                                  (*! structure IntSyn : INTSYN !*)
                                  (*! sharing Unify.IntSyn = IntSyn !*)
                                  (*! structure CSManager : CS_MANAGER !*)
                                  (*! sharing CSManager.IntSyn = IntSyn !*)
                                  (*! sharing CSEqField.IntSyn = IntSyn !*)
-                                 (*! sharing CSEqField.CSManager = CSManager !*))
+                                 (*! sharing CSEqField.CSManager = CSManager !*)
+                                 module Compat : COMPAT
                                end) : CS =
   struct
+    (*! structure CSManager = CSManager !*)
     open IntSyn
     open OrderedField
     open CSEqField
@@ -35,14 +36,14 @@ module CSIneqField(CSIneqField:sig
     let geqAddID = (ref (-1) : cid ref)
     let gtGeqID = (ref (-1) : cid ref)
     let geq00ID = (ref (-1) : cid ref)
-    let rec gtAdd (u1, u2, V, W) =
+    let rec gtAdd (U1, U2, V, W) =
       Root
         ((Const (!gtAddID)),
-          (App (u1, (App (u2, (App (V, (App (W, Nil)))))))))
-    let rec geqAdd (u1, u2, V, W) =
+          (App (U1, (App (U2, (App (V, (App (W, Nil)))))))))
+    let rec geqAdd (U1, U2, V, W) =
       Root
         ((Const (!geqAddID)),
-          (App (u1, (App (u2, (App (V, (App (W, Nil)))))))))
+          (App (U1, (App (U2, (App (V, (App (W, Nil)))))))))
     let rec gtGeq (U, V, W) =
       Root ((Const (!gtGeqID)), (App (U, (App (V, (App (W, Nil)))))))
     let rec geq00 () = Root ((Const (!geq00ID)), Nil)
@@ -100,7 +101,7 @@ module CSIneqField(CSIneqField:sig
     let m = 2147483647.0
     let seed = ref 1999.0
     let rec rand (min, size) =
-      let nextrand () =
+      let rec nextrand () =
         let t = Real.( * ) (a, (!seed)) in
         (:=) seed Real.(-)
           (t, (Real.( * ) (m, (Real.fromInt (Real.floor (t / m))))));
@@ -179,9 +180,9 @@ module CSIneqField(CSIneqField:sig
       match pos with
       | Row i -> Array.update (((fun r -> r.rlabels) tableau), i, new__)
       | Col j -> Array.update (((fun r -> r.clabels) tableau), j, new__)
-    let rec ownerContext = function | Var (g, mon) -> g | Exp (g, sum) -> g
+    let rec ownerContext = function | Var (G, mon) -> G | Exp (G, sum) -> G
     let rec ownerSum =
-      function | Var (g, mon) -> Sum (zero, [mon]) | Exp (g, sum) -> sum
+      function | Var (G, mon) -> Sum (zero, [mon]) | Exp (G, sum) -> sum
     let rec displayPos =
       function
       | Row row -> print (((^) "row " Int.toString row) ^ "\n")
@@ -194,15 +195,15 @@ module CSIneqField(CSIneqField:sig
            displaySum (Sum (m, monL)))
       | Sum (m, nil) -> (print (OrderedField.toString m); print " >= 0\n")
     let rec display () =
-      let printLabel (col, (l : label)) =
+      let rec printLabel (col, (l : label)) =
         print "\t";
         (match (fun r -> r.owner) l with
          | Var _ -> print "V"
          | Exp _ -> print "E");
         if restricted l then print ">" else print "*";
         if dead l then print "#" else print "" in
-      let printRow (row, (l : label)) =
-        let printCol (col, (d : number)) = print "\t"; print (toString d) in
+      let rec printRow (row, (l : label)) =
+        let rec printCol (col, (d : number)) = print "\t"; print (toString d) in
         let vec =
           Array2.row (((fun r -> r.coeffs) tableau), row, (0, (nCols ()))) in
         (match (fun r -> r.owner) l with
@@ -231,9 +232,9 @@ module CSIneqField(CSIneqField:sig
         (((fun r -> r.rlabels) tableau), 0, (nRows ()))
     let rec findMon mon =
       let exception Found of int  in
-        let find (i, (l : label)) =
+        let rec find (i, (l : label)) =
           match (fun r -> r.owner) l with
-          | Var (g, mon') ->
+          | Var (G, mon') ->
               if compatibleMon (mon, mon') then raise (Found i) else ()
           | _ -> () in
         try
@@ -245,7 +246,7 @@ module CSIneqField(CSIneqField:sig
         with | Found j -> SOME (Col j)
     let rec findTag t =
       let exception Found of int  in
-        let find (i, (l : label)) =
+        let rec find (i, (l : label)) =
           if ((fun r -> r.tag) l) = t then raise (Found i) else () in
         try
           Array.app find (((fun r -> r.clabels) tableau), 0, (nCols ()));
@@ -261,7 +262,7 @@ module CSIneqField(CSIneqField:sig
         true__ (((fun r -> r.clabels) tableau), 0, (nCols ()))
     let rec isSubsumed row =
       let constRow = const row in
-      let isSubsumedByRow () =
+      let rec isSubsumedByRow () =
         let candidates =
           Array.foldl
             (function
@@ -270,7 +271,7 @@ module CSIneqField(CSIneqField:sig
                  then i :: rest
                  else rest) nil
             (((fun r -> r.rlabels) tableau), 0, (nRows ())) in
-        let filter =
+        let rec filter =
           function
           | (j, l, nil) -> nil
           | (j, (l : label), candidates) ->
@@ -285,7 +286,7 @@ module CSIneqField(CSIneqField:sig
         with
         | nil -> NONE
         | i::_ -> SOME i in
-      let isSubsumedByCol () =
+      let rec isSubsumedByCol () =
         if constRow = zero
         then
           let nonNull =
@@ -309,15 +310,16 @@ module CSIneqField(CSIneqField:sig
            | SOME j -> SOME (Col j)
            | NONE -> NONE)
     let rec findPivot row =
-      let compareScore =
+      let rec compareScore =
         function
         | (SOME d, SOME d') -> compare (d, d')
         | (SOME d, NONE) -> LESS
         | (NONE, SOME d') -> GREATER
         | (NONE, NONE) -> EQUAL in
-      let findPivotCol (j, (l : label), ((score, champs) as result)) =
+      let rec findPivotCol (j, (l : label), ((score, champs) as result)) =
         let value = coeff (row, j) in
-        let findPivotRow sgn (i, (l : label), ((score, champs) as result)) =
+        let rec findPivotRow sgn
+          (i, (l : label), ((score, champs) as result)) =
           let value = coeff (i, j) in
           if
             (not (dead l)) &&
@@ -352,10 +354,10 @@ module CSIneqField(CSIneqField:sig
       let pCoeffInverse = inverse (coeff (row, col)) in
       let pRowVector =
         Array2.row (((fun r -> r.coeffs) tableau), row, (0, (nCols ()))) in
-      let pRow j = Vector.sub (pRowVector, j) in
+      let rec pRow j = Vector.sub (pRowVector, j) in
       let pColVector =
         Array2.column (((fun r -> r.coeffs) tableau), col, (0, (nRows ()))) in
-      let pCol i = Vector.sub (pColVector, i) in
+      let rec pCol i = Vector.sub (pColVector, i) in
       let pConst = const row in
       let pRLabel = rlabel row in
       let pCLabel = clabel col in
@@ -404,26 +406,26 @@ module CSIneqField(CSIneqField:sig
       else Positive
     let rec delayMon (Mon (n, UsL), cnstr) =
       List.app (function | Us -> Unify.delay (Us, cnstr)) UsL
-    let rec unifyRestr (Restr (g, proof, strict), proof') =
-      if Unify.unifiable (g, (proof, id), (proof', id))
+    let rec unifyRestr (Restr (G, proof, strict), proof') =
+      if Unify.unifiable (G, (proof, id), (proof', id))
       then ()
       else raise Error
-    let rec unifySum (g, sum, d) =
-      if Unify.unifiable (g, ((toExp sum), id), ((constant d), id))
+    let rec unifySum (G, sum, d) =
+      if Unify.unifiable (G, ((toExp sum), id), ((constant d), id))
       then ()
       else raise Error
     type nonrec decomp = (number * (number * __Position) list)
     let rec unaryMinusDecomp (d, wposL) =
       ((~ d), (List.map (function | (d, pos) -> ((~ d), pos)) wposL))
-    let rec decomposeSum (g, Sum (m, monL)) =
-      let monToWPos (Mon (n, UsL) as mon) =
+    let rec decomposeSum (G, Sum (m, monL)) =
+      let rec monToWPos (Mon (n, UsL) as mon) =
         match findMon mon with
         | SOME pos -> (n, pos)
         | NONE ->
             let new__ = incrNCols () in
             let l =
               {
-                owner = (Var (g, (Mon (one, UsL))));
+                owner = (Var (G, (Mon (one, UsL))));
                 tag = (ref 0);
                 restr = (ref NONE);
                 dead = (ref false__)
@@ -435,7 +437,7 @@ module CSIneqField(CSIneqField:sig
       (m, (List.map monToWPos monL))
     let rec insertDecomp (((d, wposL) as decomp), owner) =
       let new__ = incrNRows () in
-      let insertWPos (d, pos) =
+      let rec insertWPos (d, pos) =
         match pos with
         | Row row ->
             (incrArray2Row
@@ -459,11 +461,11 @@ module CSIneqField(CSIneqField:sig
             (:=) (((fun r -> r.dead)) (label (Row new__))) isConstant new__;
             Trail.log (((fun r -> r.trail) tableau), (Insert (Row new__)));
             Row new__))
-    let rec insert (g, Us) =
+    let rec insert (G, Us) =
       let sum = fromExp Us in
-      insertDecomp ((decomposeSum (g, sum)), (Exp (g, sum)))
+      insertDecomp ((decomposeSum (G, sum)), (Exp (G, sum)))
     let rec minimize row =
-      let killColumn (j, (l : label)) =
+      let rec killColumn (j, (l : label)) =
         if (not (dead l)) && ((coeff (row, j)) <> zero)
         then
           (Trail.log (((fun r -> r.trail) tableau), (Kill (Col j)));
@@ -477,7 +479,7 @@ module CSIneqField(CSIneqField:sig
                 unifySum ((ownerContext owner), (ownerSum owner), zero)
             | _ -> ()))
         else () in
-      let killRow (i, (l : label)) =
+      let rec killRow (i, (l : label)) =
         if not (dead l)
         then
           (if isConstant i
@@ -587,35 +589,35 @@ module CSIneqField(CSIneqField:sig
                            SOME restr;
                          minimize row)
                       else raise Error))
-    let rec insertEqual (g, pos, sum) =
-      let (m, wposL) = decomposeSum (g, sum) in
+    let rec insertEqual (G, pos, sum) =
+      let (m, wposL) = decomposeSum (G, sum) in
       let decomp' = (m, (((~ one), pos) :: wposL)) in
-      let pos' = insertDecomp (decomp', (Exp (g, (Sum (zero, nil))))) in
+      let pos' = insertDecomp (decomp', (Exp (G, (Sum (zero, nil))))) in
       let decomp'' = unaryMinusDecomp decomp' in
       let tag'' =
         (fun r -> r.tag)
-          (label (insertDecomp (decomp'', (Exp (g, (Sum (zero, nil))))))) in
-      restrict (pos', (Restr (g, (geq00 ()), false__)));
+          (label (insertDecomp (decomp'', (Exp (G, (Sum (zero, nil))))))) in
+      restrict (pos', (Restr (G, (geq00 ()), false__)));
       (match findTag tag'' with
-       | SOME pos'' -> restrict (pos'', (Restr (g, (geq00 ()), false__))))
-    let rec update (g, pos, sum) =
+       | SOME pos'' -> restrict (pos'', (Restr (G, (geq00 ()), false__))))
+    let rec update (G, pos, sum) =
       let l = label pos in
       Trail.log
         (((fun r -> r.trail) tableau),
           (UpdateOwner (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-      setOwnership (pos, (Exp (g, sum)), (ref 0));
+      setOwnership (pos, (Exp (G, sum)), (ref 0));
       if dead l
       then
         (match pos with
          | Row row ->
              if isConstant row
-             then unifySum (g, sum, (const row))
+             then unifySum (G, sum, (const row))
              else
                (match isSubsumed row with
-                | SOME pos' -> update (g, pos', sum))
-         | Col col -> unifySum (g, sum, zero))
+                | SOME pos' -> update (G, pos', sum))
+         | Col col -> unifySum (G, sum, zero))
       else
-        (let isVar =
+        (let rec isVar =
            function
            | Sum (m, (Mon (n, _) as mon)::[]) ->
                if (m = zero) && (n = one) then SOME mon else NONE
@@ -623,20 +625,20 @@ module CSIneqField(CSIneqField:sig
          match isVar sum with
          | SOME mon ->
              (match findMon mon with
-              | SOME _ -> insertEqual (g, pos, sum)
+              | SOME _ -> insertEqual (G, pos, sum)
               | NONE ->
                   let tag = ref 0 in
                   (Trail.log
                      (((fun r -> r.trail) tableau),
                        (UpdateOwner
                           (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-                   setOwnership (pos, (Var (g, mon)), tag);
+                   setOwnership (pos, (Var (G, mon)), tag);
                    delayMon (mon, (ref (makeCnstr tag)))))
-         | NONE -> insertEqual (g, pos, sum))
+         | NONE -> insertEqual (G, pos, sum))
     let rec restrictions pos =
-      let member (x, l) = List.exists (function | y -> x = y) l in
-      let test l = (restricted l) && (not (dead l)) in
-      let reachable =
+      let rec member (x, l) = List.exists (function | y -> x = y) l in
+      let rec test l = (restricted l) && (not (dead l)) in
+      let rec reachable =
         function
         | ((Row row as pos)::candidates, tried, closure) ->
             if member (pos, tried)
@@ -671,14 +673,14 @@ module CSIneqField(CSIneqField:sig
                reachable
                  ((candidates' @ candidates), (pos :: tried), closure'))
         | (nil, _, closure) -> closure in
-      let restrExp pos =
+      let rec restrExp pos =
         let l = label pos in
         let owner = (fun r -> r.owner) l in
-        let g = ownerContext owner in
+        let G = ownerContext owner in
         let U = toExp (ownerSum owner) in
         match restriction (label pos) with
-        | SOME (Restr (_, _, true__)) -> (g, (gt0 U))
-        | _ -> (g, (geq0 U)) in
+        | SOME (Restr (_, _, true__)) -> (G, (gt0 U))
+        | _ -> (G, (geq0 U)) in
       List.map restrExp (reachable ([pos], nil, nil))
     let rec makeCnstr tag = FgnCnstr ((!myID), (MyFgnCnstrRep tag))
     let rec toInternal tag () =
@@ -688,9 +690,9 @@ module CSIneqField(CSIneqField:sig
         match findTag tag with
         | SOME pos ->
             let owner = (fun r -> r.owner) (label pos) in
-            let g = ownerContext owner in
+            let G = ownerContext owner in
             let sum = normalize (ownerSum owner) in
-            (update (g, pos, sum); true__)
+            (update (G, pos, sum); true__)
         | NONE -> true__
       with | Error -> false__
     let rec simplify tag () =
@@ -745,11 +747,11 @@ module CSIneqField(CSIneqField:sig
     let rec unwind () = Trail.unwind (((fun r -> r.trail) tableau), undo)
     let rec fst =
       function
-      | (App (u1, _), s) -> (u1, s)
+      | (App (U1, _), s) -> (U1, s)
       | (SClo (S, s'), s) -> fst (S, (comp (s', s)))
     let rec snd =
       function
-      | (App (u1, S), s) -> fst (S, s)
+      | (App (U1, S), s) -> fst (S, s)
       | (SClo (S, s'), s) -> snd (S, (comp (s', s)))
     let rec isConstantExp (U) =
       match fromExp (U, id) with | Sum (m, nil) -> SOME m | _ -> NONE
@@ -757,51 +759,51 @@ module CSIneqField(CSIneqField:sig
       match isConstantExp U with | SOME d -> d = zero | NONE -> false__
     let rec solveGt =
       function
-      | (g, S, 0) ->
-          let solveGt0 (W) =
+      | (G, S, 0) ->
+          let rec solveGt0 (W) =
             match isConstantExp W with
             | SOME d -> if d > zero then gtNExp d else raise Error
             | NONE ->
-                let proof = newEVar (g, (gt0 W)) in
+                let proof = newEVar (G, (gt0 W)) in
                 let _ =
                   restrict
-                    ((insert (g, (W, id))),
-                      (Restr (g, (gtGeq (W, (constant zero), proof)), true__))) in
+                    ((insert (G, (W, id))),
+                      (Restr (G, (gtGeq (W, (constant zero), proof)), true__))) in
                 proof in
-          let u1 = EClo (fst (S, id)) in
-          let u2 = EClo (snd (S, id)) in
+          let U1 = EClo (fst (S, id)) in
+          let U2 = EClo (snd (S, id)) in
           (try
-             if isZeroExp u2
-             then SOME (solveGt0 u1)
+             if isZeroExp U2
+             then SOME (solveGt0 U1)
              else
-               (let W = minus (u1, u2) in
+               (let W = minus (U1, U2) in
                 let proof = solveGt0 W in
-                SOME (gtAdd (W, (constant zero), u2, proof)))
+                SOME (gtAdd (W, (constant zero), U2, proof)))
            with | Error -> NONE)
-      | (g, S, n) -> NONE
+      | (G, S, n) -> NONE
     let rec solveGeq =
       function
-      | (g, S, 0) ->
-          let solveGeq0 (W) =
+      | (G, S, 0) ->
+          let rec solveGeq0 (W) =
             match isConstantExp W with
             | SOME d -> if d >= zero then geqN0 d else raise Error
             | NONE ->
-                let proof = newEVar (g, (geq0 W)) in
+                let proof = newEVar (G, (geq0 W)) in
                 let _ =
                   restrict
-                    ((insert (g, (W, id))), (Restr (g, proof, false__))) in
+                    ((insert (G, (W, id))), (Restr (G, proof, false__))) in
                 proof in
-          let u1 = EClo (fst (S, id)) in
-          let u2 = EClo (snd (S, id)) in
+          let U1 = EClo (fst (S, id)) in
+          let U2 = EClo (snd (S, id)) in
           (try
-             if isZeroExp u2
-             then SOME (solveGeq0 u1)
+             if isZeroExp U2
+             then SOME (solveGeq0 U1)
              else
-               (let W = minus (u1, u2) in
+               (let W = minus (U1, U2) in
                 let proof = solveGeq0 W in
-                SOME (geqAdd (W, (constant zero), u2, proof)))
+                SOME (geqAdd (W, (constant zero), U2, proof)))
            with | Error -> NONE)
-      | (g, S, n) -> NONE
+      | (G, S, n) -> NONE
     let rec pi (name, U, V) = Pi (((Dec ((SOME name), U)), Maybe), V)
     let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
     let rec installFgnCnstrOps () =
@@ -905,28 +907,44 @@ module CSIneqField(CSIneqField:sig
           NONE, nil);
       installFgnCnstrOps ();
       ()
-    let ((solver)(*! structure CSManager = CSManager !*)
-      (* CSManager.ModeSyn *)(* solver ID of this solver *)
-      (* constant IDs of the declared type constants *)
-      (* constructors for the declared types *)(* specialized constructors for the declared types *)
-      (* constant IDs of the declared object constants *)
-      (* constructors for the declared objects *)(* constant declaration for the proof object d>0 *)
-      (* foreign constant for the proof object d>0 *)
-      (* specialized constructors for the declared objects *)(* parsing proof objects d>0 *)
-      (* Position of a tableau entry       *)(* Owner of an entry:                *)
-      (*   - monomial                      *)(*   - sum                           *)
-      (* Restriction: (proof object)       *)(*   Restr (g, U, strict)            *)
-      (* owner of the row/column (if any)  *)(* tag: used to keep track of the    *)
-      (* position of a tableau entry       *)(* restriction (if any)              *)
-      (* has the row/column already been   *)(* solved?                           *)
-      (* Undoable operations:              *)(* insert a new row/column           *)
-      (* pivot on (i, j)                   *)(* mark the given position solved    *)
-      (* restrict the given position       *)(* change the owner                  *)
-      (* Tableau:                          *)(* row labels                        *)
-      (* column labels                     *)(* constant terms                    *)
-      (* variables coefficients            *)(* dimensions                        *)
-      (* undo mechanism                    *)(* FgnCnstr representation *)
-      (* Representational invariants:
+    (* CSManager.ModeSyn *)
+    (* solver ID of this solver *)
+    (* constant IDs of the declared type constants *)
+    (* constructors for the declared types *)
+    (* specialized constructors for the declared types *)
+    (* constant IDs of the declared object constants *)
+    (* constructors for the declared objects *)
+    (* constant declaration for the proof object d>0 *)
+    (* foreign constant for the proof object d>0 *)
+    (* specialized constructors for the declared objects *)
+    (* parsing proof objects d>0 *)
+    (* Position of a tableau entry       *)
+    (* Owner of an entry:                *)
+    (*   - monomial                      *)
+    (*   - sum                           *)
+    (* Restriction: (proof object)       *)
+    (*   Restr (G, U, strict)            *)
+    (* owner of the row/column (if any)  *)
+    (* tag: used to keep track of the    *)
+    (* position of a tableau entry       *)
+    (* restriction (if any)              *)
+    (* has the row/column already been   *)
+    (* solved?                           *)
+    (* Undoable operations:              *)
+    (* insert a new row/column           *)
+    (* pivot on (i, j)                   *)
+    (* mark the given position solved    *)
+    (* restrict the given position       *)
+    (* change the owner                  *)
+    (* Tableau:                          *)
+    (* row labels                        *)
+    (* column labels                     *)
+    (* constant terms                    *)
+    (* variables coefficients            *)
+    (* dimensions                        *)
+    (* undo mechanism                    *)
+    (* FgnCnstr representation *)
+    (* Representational invariants:
          rlabels[i] = vacuous
          clabels[j] = vacuous
          const[i] = zero
@@ -936,107 +954,139 @@ module CSIneqField(CSIneqField:sig
           #restr(vacuous) = ref NONE
           #dead(vacuous) = ref true
     *)
-      (* little random generation routine taken from Paulson '91 *)
-      (* create a new (empty) tableau *)(* i-th tableau row label *)
-      (* j-th tableau column label *)(* i-th tableau constant term *)
-      (* coefficient in row i, column j *)(* number of rows *)
-      (* number of columns *)(* increase the number of rows, and return the index of the last row *)
-      (* increase the number of columns, and return the index of the last column *)
-      (* decrease the number of rows *)(* decrease the number of columns *)
-      (* increase by the given amount the element i of the array *)
-      (* increase by the given amount the element (i, j) of the array *)
-      (* increase by f(j') all the elements (i, j'), with j <= j' < j+len *)
-      (* increase by f(i') all the elements (i', j), with i <= i' < i+len *)
-      (* set the given row to zero *)(* set the given column to zero *)
-      (* return the label at the given position (row or column) *)
-      (* return the restriction on the given label *)
-      (* is the given label is restricted? *)(* return true iff the given label has been solved *)
-      (* set the ownership of the given position *)(* return the context of a owner *)
-      (* return the owner as a sum *)(* debugging code - REMOVE *)
-      (* debugging code - REMOVE *)(* debugging code - REMOVE *)
-      (* find the given monomial in the tableau *)(* return the a position in the tableau of the tagged expression *)
-      (* return true iff the given row is null at all the active columns *)
-      (* return the position of the row/column of the tableau (if any) that makes the
+    (* little random generation routine taken from Paulson '91 *)
+    (* create a new (empty) tableau *)
+    (* i-th tableau row label *)
+    (* j-th tableau column label *)
+    (* i-th tableau constant term *)
+    (* coefficient in row i, column j *)
+    (* number of rows *)
+    (* number of columns *)
+    (* increase the number of rows, and return the index of the last row *)
+    (* increase the number of columns, and return the index of the last column *)
+    (* decrease the number of rows *)
+    (* decrease the number of columns *)
+    (* increase by the given amount the element i of the array *)
+    (* increase by the given amount the element (i, j) of the array *)
+    (* increase by f(j') all the elements (i, j'), with j <= j' < j+len *)
+    (* increase by f(i') all the elements (i', j), with i <= i' < i+len *)
+    (* set the given row to zero *)
+    (* set the given column to zero *)
+    (* return the label at the given position (row or column) *)
+    (* return the restriction on the given label *)
+    (* is the given label is restricted? *)
+    (* return true iff the given label has been solved *)
+    (* set the ownership of the given position *)
+    (* return the context of a owner *)
+    (* return the owner as a sum *)
+    (* debugging code - REMOVE *)
+    (* debugging code - REMOVE *)
+    (* debugging code - REMOVE *)
+    (* find the given monomial in the tableau *)
+    (* return the a position in the tableau of the tagged expression *)
+    (* return true iff the given row is null at all the active columns *)
+    (* return the position of the row/column of the tableau (if any) that makes the
        given row redundant *)
-      (* the candidates are those (active) rows with the same constant
+    (* the candidates are those (active) rows with the same constant
                        term *)
-      (* if j is active, trim the list of candidates to those that have
+    (* if j is active, trim the list of candidates to those that have
                        the same coefficient in column j
                     *)
-      (* compute the list of non-null coefficients in the row *)
-      (* find the coordinates of the pivot which gives the largest increase in const(row) *)
-      (* extend Field.compare to deal with NONE (= infinity) *)(* find the best pivot candidates for the given row *)
-      (* find the best pivot candidates for the given row and column *)
-      (* always choose the smallest *)(* always choose the largest *)
-      (* choose one randomly to ensure fairness *)(* pivot the element at the given coordinates *)
-      (* same row as the pivot *)(* any other row *)
-      (* pivot *)(* same row as the pivot *)(* same column as the pivot *)
-      (* any other row/column *)(* Result of maximization of a row:             *)
-      (* manifestly maximized at some value > 0       *)
-      (* manifestly maximized at c <= 0               *)
-      (* manifestly unbounded, pivoting on column col *)
-      (* maximize the given row by performing pivot operations.
+    (* compute the list of non-null coefficients in the row *)
+    (* find the coordinates of the pivot which gives the largest increase in const(row) *)
+    (* extend Field.compare to deal with NONE (= infinity) *)
+    (* find the best pivot candidates for the given row *)
+    (* find the best pivot candidates for the given row and column *)
+    (* always choose the smallest *)
+    (* always choose the largest *)
+    (* choose one randomly to ensure fairness *)
+    (* pivot the element at the given coordinates *)
+    (* same row as the pivot *)
+    (* any other row *)
+    (* pivot *)
+    (* same row as the pivot *)
+    (* same column as the pivot *)
+    (* any other row/column *)
+    (* Result of maximization of a row:             *)
+    (* manifestly maximized at some value > 0       *)
+    (* manifestly maximized at c <= 0               *)
+    (* manifestly unbounded, pivoting on column col *)
+    (* maximize the given row by performing pivot operations.
        Return a term of type MaximizeResult.
     *)
-      (* delay all terms of a monomial on the given constraint *)
-      (* unify two restrictions *)(* unify a sum with a number *)
-      (* decomposition of an expression as the weighted sum of tableau positions *)
-      (* change sign to the given decomposition *)(* decompose a sum in whnf into a weighted sum of tableau positions *)
-      (* insert the given expression in the tableau, labelling it with owner *)
-      (* add the decomposition to the newly created row *)
-      (* is this row trivial? *)(* log the creation of this row *)
-      (* return its position *)(* insert the given (unrestricted) expression in the tableau *)
-      (* minimize a tableau that has been determined non-minimal (but consistent) as a
+    (* delay all terms of a monomial on the given constraint *)
+    (* unify two restrictions *)
+    (* unify a sum with a number *)
+    (* decomposition of an expression as the weighted sum of tableau positions *)
+    (* change sign to the given decomposition *)
+    (* decompose a sum in whnf into a weighted sum of tableau positions *)
+    (* insert the given expression in the tableau, labelling it with owner *)
+    (* add the decomposition to the newly created row *)
+    (* is this row trivial? *)
+    (* log the creation of this row *)
+    (* return its position *)
+    (* insert the given (unrestricted) expression in the tableau *)
+    (* minimize a tableau that has been determined non-minimal (but consistent) as a
        consequence of adding the given row.
     *)
-      (* equate the given column to zero if coeff(row, j) <> zero *)
-      (* mark the column dead *)(* if restricted, instantiate the proof object to 0>=0 *)
-      (* if owned by a monomial, unify it with zero *)
-      (* find out if the given row has been made trivial by killing some
+    (* equate the given column to zero if coeff(row, j) <> zero *)
+    (* mark the column dead *)
+    (* if restricted, instantiate the proof object to 0>=0 *)
+    (* if owned by a monomial, unify it with zero *)
+    (* find out if the given row has been made trivial by killing some
                columns
             *)
-      (* row is now constant and equal to n = const(i) *)
-      (* mark the row dead *)(* if restricted, instantiate the proof object to n>=0 *)
-      (* if owned by a monomial, unify it with n *)(* it is safe to restrict without doing all
+    (* row is now constant and equal to n = const(i) *)
+    (* mark the row dead *)
+    (* if restricted, instantiate the proof object to n>=0 *)
+    (* if owned by a monomial, unify it with n *)
+    (* it is safe to restrict without doing all
                                               the checks in this case, since the two rows
                                               are identical *)
-      (* restrict the given row/column to be nonnegative *)
-      (* compute the list of non-null row entries *)
-      (* pivot to a row position; this is sound since
+    (* restrict the given row/column to be nonnegative *)
+    (* compute the list of non-null row entries *)
+    (* pivot to a row position; this is sound since
                                    the column is unrestricted (see Nelson '81)
                                 *)
-      (* the column is zero at all the active row
+    (* the column is zero at all the active row
                                    positions, so we can restrict it right away
                                 *)
-      (* the tableau is satisfiable and minimal *)(* the tableau is satisfiable but not minimal*)
-      (* insert the equality Var(pos) = Us as two inequalities:
+    (* the tableau is satisfiable and minimal *)
+    (* the tableau is satisfiable but not minimal*)
+    (* insert the equality Var(pos) = Us as two inequalities:
          Var(pos) - Us >= zero
          Us - Var(pos) >= zero
     *)
-      (* the second expression may change position when we
+    (* the second expression may change position when we
                   restrict the first. We use tags to keep track of it *)
-      (* update the tableau upon discovery that Var(pos) = sum *)
-      (* if the given position has a owner, delete it, since not doing so
+    (* update the tableau upon discovery that Var(pos) = sum *)
+    (* if the given position has a owner, delete it, since not doing so
                  may violate the invariant *)
-      (* analyze the given position to see exactly how to represent this
+    (* analyze the given position to see exactly how to represent this
                  equality *)
-      (* find out why it died *)(* row is dead because constant and equal to n *)
-      (* row is dead because is subsumed by another *)
-      (* column is dead because = 0 *)(* the nf is another variable *)
-      (* recycle the current label *)(* returns the list of unsolved constraints associated with the given position *)
-      (* create a foreingn constraint for the given tag *)
-      (* returns the list of unsolved constraints associated with the given tag *)
-      (* awake function for tableau constraints *)(* simplify function for tableau constraints *)
-      (* undo function for trailing tableau operations *)
-      (* reset the internal status of the tableau *)
-      (* trailing functions *)(* fst (S, s) = u1, the first argument in S[s] *)
-      (* snd (S, s) = u2, the second argument in S[s] *)
-      (* checks if the given foreign term can be simplified to a constant *)
-      (* checks if the given foreign term can be simplified to zero *)
-      (* solveGt (g, S, n) tries to find the n-th solution to g |- '>' @ S : type *)
-      (* solveGeq (g, S, n) tries to find the n-th solution to g |- '>=' @ S : type *)
-      (* constructors for higher-order types *)(* install the signature *))
-      =
+    (* find out why it died *)
+    (* row is dead because constant and equal to n *)
+    (* row is dead because is subsumed by another *)
+    (* column is dead because = 0 *)
+    (* the nf is another variable *)
+    (* recycle the current label *)
+    (* returns the list of unsolved constraints associated with the given position *)
+    (* create a foreingn constraint for the given tag *)
+    (* returns the list of unsolved constraints associated with the given tag *)
+    (* awake function for tableau constraints *)
+    (* simplify function for tableau constraints *)
+    (* undo function for trailing tableau operations *)
+    (* reset the internal status of the tableau *)
+    (* trailing functions *)
+    (* fst (S, s) = U1, the first argument in S[s] *)
+    (* snd (S, s) = U2, the second argument in S[s] *)
+    (* checks if the given foreign term can be simplified to a constant *)
+    (* checks if the given foreign term can be simplified to zero *)
+    (* solveGt (G, S, n) tries to find the n-th solution to G |- '>' @ S : type *)
+    (* solveGeq (G, S, n) tries to find the n-th solution to G |- '>=' @ S : type *)
+    (* constructors for higher-order types *)
+    (* install the signature *)
+    let solver =
       ({
          name = (("inequality/" ^ OrderedField.name) ^ "s");
          keywords = "arithmetic,inequality";

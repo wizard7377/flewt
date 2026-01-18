@@ -38,11 +38,7 @@ module Join(Join:sig
                })
     let sameToken = Token.sameToken
   end 
-module JoinWithArg(JoinWithArg:sig
-                                 module Lex : ARG_LEXER
-                                 module ParserData : PARSER_DATA
-                                 module LrParser :
-                                 ((LR_PARSER)(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
+(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.2.1  2003/01/14 22:46:39  carsten_lf
@@ -61,16 +57,20 @@ module JoinWithArg(JoinWithArg:sig
  * Version 109
  * 
  *)
-                                 (* functor Join creates a user parser by putting together a Lexer structure,
+(* functor Join creates a user parser by putting together a Lexer structure,
    an LrValues structure, and a polymorphic parser structure.  Note that
    the Lexer and LrValues structure must share the type pos (i.e. the type
    of line numbers), the type svalues for semantic values, and the type
    of tokens.
 *)
-                                 (* functor JoinWithArg creates a variant of the parser structure produced 
+(* functor JoinWithArg creates a variant of the parser structure produced 
    above.  In this case, the makeLexer take an additional argument before
    yielding a value of type unit -> (svalue,pos) token
- *))
+ *)
+module JoinWithArg(JoinWithArg:sig
+                                 module Lex : ARG_LEXER
+                                 module ParserData : PARSER_DATA
+                                 module LrParser : LR_PARSER
                                end) : ARG_PARSER =
   struct
     module Token = ParserData.Token

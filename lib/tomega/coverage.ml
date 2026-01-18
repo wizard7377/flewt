@@ -1,10 +1,11 @@
 
+(* Unification on Formulas *)
+(* Author: Carsten Schuermann *)
 module type TOMEGACOVERAGE  =
   sig
-    exception Error of
-      ((string)(*! structure Tomega : TOMEGA !*)(*! structure IntSyn : INTSYN !*)
-      (* Author: Carsten Schuermann *)(* Unification on Formulas *))
-      
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Tomega : TOMEGA !*)
+    exception Error of string 
     val coverageCheckPrg :
       (Tomega.__Worlds * Tomega.__Dec IntSyn.__Ctx * Tomega.__Prg) -> unit
   end;;
@@ -12,26 +13,27 @@ module type TOMEGACOVERAGE  =
 
 
 
+(* Coverage checker for programs *)
+(* Author: Carsten Schuermann *)
 module TomegaCoverage(TomegaCoverage:sig
-                                       module TomegaPrint : TOMEGAPRINT
-                                       module TomegaTypeCheck :
-                                       TOMEGATYPECHECK
-                                       module Cover :
-                                       ((COVER)(* Coverage checker for programs *)
-                                       (* Author: Carsten Schuermann *)
                                        (*! structure IntSyn' : INTSYN !*)
                                        (*! structure Tomega' : TOMEGA !*)
                                        (*! sharing Tomega'.IntSyn = IntSyn' !*)
+                                       module TomegaPrint : TOMEGAPRINT
+                                       module TomegaTypeCheck :
+                                       TOMEGATYPECHECK
                                        (*! sharing TomegaPrint.IntSyn = IntSyn' !*)
                                        (*! sharing TomegaPrint.Tomega = Tomega' !*)
                                        (*! sharing TomegaTypeCheck.IntSyn = IntSyn' !*)
-                                       (*! sharing TomegaTypeCheck.Tomega = Tomega' !*))
+                                       (*! sharing TomegaTypeCheck.Tomega = Tomega' !*)
+                                       module Cover : COVER
                                      end) : TOMEGACOVERAGE =
   struct
-    exception Error of
-      ((string)(*! structure Tomega = Tomega' !*)(*! structure IntSyn = IntSyn' !*)
-      (*! sharing Cover.Tomega = Tomega' !*)(*! sharing Cover.IntSyn = IntSyn' !*))
-      
+    (*! sharing Cover.IntSyn = IntSyn' !*)
+    (*! sharing Cover.Tomega = Tomega' !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Tomega = Tomega' !*)
+    exception Error of string 
     module I = IntSyn
     module T = Tomega
     let rec chatter chlev f =
@@ -116,13 +118,13 @@ module TomegaCoverage(TomegaCoverage:sig
       | (W, Psi, (Psi', t, P)::Omega, Cs) ->
           (coverageCheckPrg (W, Psi', P);
            coverageCheckCases (W, Psi, Omega, ((Psi', t, Psi) :: Cs)))
-    let ((coverageCheckPrg)(* chatter chlev f = ()
+    (* chatter chlev f = ()
 
        Invariant:
        f () returns the string to be printed
          if current chatter level exceeds chlev
     *)
-      (* purifyFor ((P, t), (Psi, F), s) = (t', Psi', s')
+    (* purifyFor ((P, t), (Psi, F), s) = (t', Psi', s')
 
        Invariant:
        If    Psi0 |- t : Psi
@@ -135,7 +137,7 @@ module TomegaCoverage(TomegaCoverage:sig
        then  Psi0 |- t' : Psi'
        and   Psi' |- s' : Psi1
     *)
-      (*      | purifyFor ((T.Lam _, _), (_, _), _) = raise Domain
+    (*      | purifyFor ((T.Lam _, _), (_, _), _) = raise Domain
       | purifyFor ((T.New _, _), (_,  _), _) = raise Domain
       | purifyFor ((T.PairBlock _, _), (_,  _), _) = raise Domain
       | purifyFor ((T.PairPrg _, _), (_,  _), _) = raise Domain
@@ -148,20 +150,21 @@ module TomegaCoverage(TomegaCoverage:sig
       | purifyFor ((T.Let _, _), (_,  _), _) = raise Domain
       | purifyFor ((T.EVar _, _), (_,  _), _) = raise Domain
 *)
-      (*  | purifyFor (Psi, T.All (_, F), s) = (Psi, s)
+    (*  | purifyFor (Psi, T.All (_, F), s) = (Psi, s)
         cannot occur by invariant Mon Dec  2 18:03:20 2002 -cs *)
-      (* purifyCtx (t, Psi) = (t', Psi', s')
+    (* purifyCtx (t, Psi) = (t', Psi', s')
        If    Psi0 |- t : Psi
        then  Psi0 |- t' : Psi'
        and   Psi' |- s' : Psi
     *)
-      (* Mutual recursive predicates
+    (* Mutual recursive predicates
                                            don't have to be checked.
                                          --cs Fri Jan  3 11:35:09 2003 *)
-      (* subToSpine (Psi', t, Psi) *)(* chatter 5 ("fn () => TomegaPrint.prgToString (Psi, P)); *)
-      (*    | coverageCheckPrg (Psi, T.EVar) =
+    (* subToSpine (Psi', t, Psi) *)
+    (* chatter 5 ("fn () => TomegaPrint.prgToString (Psi, P)); *)
+    (*    | coverageCheckPrg (Psi, T.EVar) =
           should not occur by invariant  *)
-      (*    | coverageCheckSpine (Psi, T.SClo _) =
-          should not occur by invariant  *))
-      = coverageCheckPrg
+    (*    | coverageCheckSpine (Psi, T.SClo _) =
+          should not occur by invariant  *)
+    let coverageCheckPrg = coverageCheckPrg
   end ;;

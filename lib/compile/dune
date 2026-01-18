@@ -1,9 +1,9 @@
-(library 
- (wrapped (transition "Convert SML convention to OCaml convention"))
- 
+(library
+ (wrapped
+  (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.compile)
  (name compile)
- (libraries 
+ (libraries
   base
   global
   table
@@ -14,11 +14,5 @@
   index
   typecheck
   solvers
-  subordinate
- )
- (modules 
-  assign 
-  compile 
-  compsyn 
-  cprint 
-  subtree))
+  subordinate)
+ (modules assign compile compsyn cprint subtree))

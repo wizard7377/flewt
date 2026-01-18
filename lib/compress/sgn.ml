@@ -38,14 +38,14 @@ module Sgn =
       | DEF_NONE 
       | DEF_TERM of term 
       | DEF_TYPE of tp 
+    (* o_ means "original", i.e. before compression *)
     type nonrec sigent =
       <
-        name: ((string)(* o_ means "original", i.e. before compression *))
-           ;classifier: class__  ;o_classifier: class__  ;def: def  ;
-        o_def: def  ;abbreviation: bool   > 
+        name: string  ;classifier: class__  ;o_classifier: class__  ;
+        def: def  ;o_def: def  ;abbreviation: bool   > 
     let sgn_size = 14000
-    let (sigma : ((sigent)(* XXX *)) option Array.array) =
-      Array.array (sgn_size, NONE)
+    (* XXX *)
+    let (sigma : sigent option Array.array) = Array.array (sgn_size, NONE)
     let (all_modes : mode list option Array.array) =
       Array.array (sgn_size, NONE)
     let (all_ps : bool option Array.array) = Array.array (sgn_size, NONE)

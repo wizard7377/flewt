@@ -1,19 +1,20 @@
 
+(* Initialization *)
+(* Author: Carsten Schuermann *)
 module type MTPINIT  =
   sig
-    module StateSyn :
-    ((STATESYN)(* Initialization *)(* Author: Carsten Schuermann *)
-    (*! structure FunSyn : FUNSYN !*))
+    (*! structure FunSyn : FUNSYN !*)
+    module StateSyn : STATESYN
     exception Error of string 
-    val init :
-      (FunSyn.__For * StateSyn.__Order) ->
-        ((StateSyn.__State)(* Current restriction to non-mutual inductive theorems ! *))
-          list
+    (* Current restriction to non-mutual inductive theorems ! *)
+    val init : (FunSyn.__For * StateSyn.__Order) -> StateSyn.__State list
   end;;
 
 
 
 
+(* Initialization *)
+(* Author: Carsten Schuermann *)
 module MTPInit(MTPInit:sig
                          module MTPGlobal : MTPGLOBAL
                          module MTPData : MTPDATA
@@ -22,31 +23,30 @@ module MTPInit(MTPInit:sig
                          module Formatter : FORMATTER
                          module Whnf : WHNF
                          module Print : PRINT
-                         module FunPrint :
-                         ((FUNPRINT)(* Initialization *)
-                         (* Author: Carsten Schuermann *)
                          (*! structure IntSyn : INTSYN !*)
-                         (*! sharing Names.IntSyn = IntSyn !*)(*! structure FunSyn' : FUNSYN !*)
+                         (*! sharing Names.IntSyn = IntSyn !*)
+                         (*! structure FunSyn' : FUNSYN !*)
                          (*! sharing FunSyn'.IntSyn = IntSyn !*)
                          (*! sharing StateSyn'.FunSyn = FunSyn' !*)
-                         (*! sharing Whnf.IntSyn = IntSyn !*)(*! sharing Print.IntSyn = IntSyn !*))
+                         (*! sharing Whnf.IntSyn = IntSyn !*)
+                         (*! sharing Print.IntSyn = IntSyn !*)
+                         module FunPrint : FUNPRINT
                        end) : MTPINIT =
   struct
-    module StateSyn =
-      ((StateSyn')(*! sharing FunPrint.FunSyn = FunSyn' !*)
-      (*! structure FunSyn = FunSyn' !*))
+    (*! structure FunSyn = FunSyn' !*)
+    module StateSyn = StateSyn'
     exception Error of string 
     module I = IntSyn
     module F = FunSyn
     module S = StateSyn
     module Fmt = Formatter
     let rec init (F, OF) =
-      let init' =
+      let rec init' =
         function
-        | ((g, B), All (_, O), All (Prim (D), F'), Ss) ->
-            let D' = Names.decName (g, D) in
+        | ((G, B), All (_, O), All (Prim (D), F'), Ss) ->
+            let D' = Names.decName (G, D) in
             init'
-              (((I.Decl (g, D')),
+              (((I.Decl (G, D')),
                  (I.Decl (B, (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
                 O, F', Ss)
         | (GB, And (O1, O2), And (F1, F2), Ss) ->
@@ -60,18 +60,18 @@ module MTPInit(MTPInit:sig
       Names.varReset I.Null;
       MTPData.maxFill := 0;
       init' ((I.Null, I.Null), OF, F, nil)
-    let ((init)(* init (F, OF) = Ss'
+    (* init (F, OF) = Ss'
 
        Invariant:
        If   . |- F formula    and   F in nf
        and  . |- OF order
        then Ss' is a list of initial states for the theorem prover
     *)
-      (* it is possible to calculuate
+    (* it is possible to calculuate
                  index/induction variable information here
                  define occursOrder in StateSyn.fun  --cs *)
-      (*      | init' (g, B, O, (F.All (F.Block _, F), s)) =
+    (*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
            no such case yet  --cs *)
-      (* added in case there are no existentials -fp *)) =
-      init
+    (* added in case there are no existentials -fp *)
+    let init = init
   end ;;

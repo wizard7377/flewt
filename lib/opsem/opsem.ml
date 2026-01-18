@@ -1,9 +1,9 @@
 
 module AbsMachine =
   (Make_AbsMachine)(struct
-                      module Unify =
-                        ((UnifyTrail)(*! structure IntSyn' = IntSyn !*)
-                        (*! structure CompSyn' = CompSyn !*))
+                      (*! structure IntSyn' = IntSyn !*)
+                      (*! structure CompSyn' = CompSyn !*)
+                      module Unify = UnifyTrail
                       module Assign = Assign
                       module Index = Index
                       module CPrint = CPrint
@@ -12,75 +12,70 @@ module AbsMachine =
                     end)
 module AbstractTabled =
   (Make_AbstractTabled)(struct
-                          module Print =
-                            ((Print)(*! structure CSManager = CSManager !*)
-                            (*! structure IntSyn' = IntSyn !*))
+                          (*! structure IntSyn' = IntSyn !*)
+                          module Print = Print
                           module Whnf = Whnf
                           module Unify = UnifyTrail
                           module Constraints = Constraints
                           module Subordinate = Subordinate
-                          module Conv =
-                            ((Conv)(*! structure TableParam = TableParam !*))
+                          (*! structure TableParam = TableParam !*)
+                          module Conv = Conv
                           module Print = Print
                         end)
 module MemoTable =
   (Make_MemoTable)(struct
-                     module Conv =
-                       ((Conv)(*! structure IntSyn' = IntSyn !*)
-                       (*! structure CompSyn' = CompSyn !*))
+                     (*! structure IntSyn' = IntSyn !*)
+                     (*! structure CompSyn' = CompSyn !*)
+                     module Conv = Conv
                      module Whnf = Whnf
                      module Print = Print
-                     module AbstractTabled =
-                       ((AbstractTabled)(*! structure TableParam = TableParam !*))
+                     (*! structure TableParam = TableParam !*)
+                     module AbstractTabled = AbstractTabled
                      module Table = IntRedBlackTree
                    end)
 module MemoTableInst =
   (Make_MemoTableInst)(struct
-                         module Conv =
-                           ((Conv)(*! structure RBSet = RBSet!*)
-                           (*! structure IntSyn' = IntSyn !*)(*! structure CompSyn' = CompSyn !*))
+                         (*! structure IntSyn' = IntSyn !*)
+                         (*! structure CompSyn' = CompSyn !*)
+                         module Conv = Conv
                          module Whnf = Whnf
                          module Match = Match
                          module Assign = Assign
                          module Print = Print
-                         module AbstractTabled =
-                           ((AbstractTabled)(*! structure TableParam = TableParam !*))
+                         (*! structure TableParam = TableParam !*)
+                         module AbstractTabled = AbstractTabled
                          module Table = IntRedBlackTree
                        end)
 module SwMemoTable =
   (Make_SwMemoTable)(struct
-                       module MemoTable =
-                         ((MemoTable)(*! structure RBSet = RBSet!*)
-                         (*! structure TableParam = TableParam !*))
+                       (*! structure TableParam = TableParam !*)
+                       module MemoTable = MemoTable
                        module MemoTableInst = MemoTableInst
                      end)
 module Tabled =
   (Make_Tabled)(struct
-                  module Unify =
-                    ((UnifyTrail)(*! structure IntSyn' = IntSyn !*)
-                    (*! structure CompSyn' = CompSyn !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  (*! structure CompSyn' = CompSyn !*)
+                  module Unify = UnifyTrail
                   module Match = Match
                   module TabledSyn = TabledSyn
                   module Assign = Assign
                   module Index = Index
                   module Queue = Queue
-                  module MemoTable =
-                    ((SwMemoTable)(*! structure TableParam = TableParam !*)
-                    (*	  structure MemoTable = MemoTable    *))
+                  (*! structure TableParam = TableParam !*)
+                  (*	  structure MemoTable = MemoTable    *)
+                  module MemoTable = SwMemoTable
                   module AbstractTabled = AbstractTabled
                   module CPrint = CPrint
                   module Print = Print
                 end)
 module PtRecon =
   (Make_PtRecon)(struct
-                   module Unify =
-                     ((UnifyTrail)(*	  structure Names = Names*)
-                     (*! structure CSManager = CSManager !*)
-                     (*	  structure Subordinate = Subordinate*)
-                     (*! structure IntSyn' = IntSyn !*)
-                     (*! structure CompSyn' = CompSyn !*))
-                   module MemoTable =
-                     ((SwMemoTable)(*! structure TableParam = TableParam !*))
+                   (*! structure IntSyn' = IntSyn !*)
+                   (*! structure CompSyn' = CompSyn !*)
+                   module Unify = UnifyTrail
+                   (*! structure TableParam = TableParam !*)
+                   module MemoTable = SwMemoTable
                    module Assign = Assign
                    module Index = Index
                    module CPrint = CPrint
@@ -88,9 +83,8 @@ module PtRecon =
                  end)
 module Trace =
   (Make_Trace)(struct
-                 module Names =
-                   ((Names)(*! structure CSManager = CSManager !*)
-                   (*! structure IntSyn' = IntSyn !*))
+                 (*! structure IntSyn' = IntSyn !*)
+                 module Names = Names
                  module Whnf = Whnf
                  module Abstract = Abstract
                  module Print = Print
@@ -110,9 +104,9 @@ module AbsMachineSbt =
                        end)
 module TMachine =
   (Make_TMachine)(struct
-                    module Unify =
-                      ((UnifyTrail)(*! structure IntSyn' = IntSyn !*)
-                      (*! structure CompSyn' = CompSyn !*))
+                    (*! structure IntSyn' = IntSyn !*)
+                    (*! structure CompSyn' = CompSyn !*)
+                    module Unify = UnifyTrail
                     module Index = Index
                     module Assign = Assign
                     module CPrint = CPrint
@@ -121,8 +115,7 @@ module TMachine =
                   end)
 module SwMachine =
   (Make_SwMachine)(struct
-                     module Trace =
-                       ((Trace)(*! structure CSManager = CSManager !*))
+                     module Trace = Trace
                      module AbsMachine = AbsMachine
                      module TMachine = TMachine
                    end);;

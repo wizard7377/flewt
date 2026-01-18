@@ -1,8 +1,9 @@
 
+(* Trailing Abstract Operations *)
+(* Author: Roberto Virga *)
 module type TRAIL  =
   sig
-    type nonrec 'a trail(* Author: Roberto Virga *)
-    (* Trailing Abstract Operations *)
+    type nonrec 'a trail
     val trail : unit -> 'a trail
     val suspend : ('a trail * ('a -> 'b)) -> 'b trail
     val resume : ('b trail * 'a trail * ('b -> 'a)) -> unit
@@ -15,6 +16,8 @@ module type TRAIL  =
 
 
 
+(* Trailing Abstract Operations *)
+(* Author: Roberto Virga *)
 module Trail : TRAIL =
   struct
     type 'a __Trail =
@@ -25,14 +28,14 @@ module Trail : TRAIL =
     let rec trail () = ref Nil
     let rec reset trail = trail := Nil
     let rec suspend (trail, copy) =
-      let suspend' =
+      let rec suspend' =
         function
         | Nil -> Nil
         | Mark trail -> suspend' trail
         | Cons (action, trail) -> Cons ((copy action), (suspend' trail)) in
       let ftrail = suspend' (!trail) in ref ftrail
     let rec resume (ftrail, trail, reset) =
-      let resume' =
+      let rec resume' =
         function
         | Nil -> Nil
         | Mark ftrail -> resume' ftrail
@@ -40,18 +43,16 @@ module Trail : TRAIL =
       let trail' = resume' (!ftrail) in trail := trail'
     let rec mark trail = (:=) trail Mark (!trail)
     let rec unwind (trail, undo) =
-      let unwind' =
+      let rec unwind' =
         function
         | Nil -> Nil
         | Mark trail -> trail
         | Cons (action, trail) -> (undo action; unwind' trail) in
       (:=) trail unwind' (!trail)
     let rec log (trail, action) = (:=) trail Cons (action, (!trail))
-    type nonrec 'a trail =
-      (('a)(*	  | resume' (Mark ftrail) = (Mark (resume' ftrail)) *)
-        (*	  | suspend' (Mark trail) = (Mark (suspend' trail))*)
-        (* Author: Roberto Virga *)(* Trailing Abstract Operations *))
-        trail
+    (*	  | suspend' (Mark trail) = (Mark (suspend' trail))*)
+    (*	  | resume' (Mark ftrail) = (Mark (resume' ftrail)) *)
+    type nonrec 'a trail = 'a trail
     let trail = trail
     let suspend = suspend
     let resume = resume

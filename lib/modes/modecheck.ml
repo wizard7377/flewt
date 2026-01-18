@@ -1,40 +1,44 @@
 
+(* Mode Checking *)
+(* Author: Carsten Schuermann *)
+(* Modified: Frank Pfenning *)
 module type MODECHECK  =
   sig
-    exception Error of
-      ((string)(* Modified: Frank Pfenning *)(* Author: Carsten Schuermann *)
-      (* Mode Checking *)) 
-    val checkD :
-      (IntSyn.__ConDec * string * Paths.occConDec option) ->
-        ((unit)(* for new declarations *))
-    val checkMode :
-      (IntSyn.cid * ModeSyn.__ModeSpine) ->
-        ((unit)(* for prior declarations *)(* raises Error (msg) *))
-    val checkFreeOut :
-      (IntSyn.cid * ModeSyn.__ModeSpine) ->
-        ((unit)(* for output coverage of prior declarations *)(* raises Error(msg) *))
+    exception Error of string 
+    (* for new declarations *)
+    val checkD : (IntSyn.__ConDec * string * Paths.occConDec option) -> unit
+    (* raises Error (msg) *)
+    (* for prior declarations *)
+    val checkMode : (IntSyn.cid * ModeSyn.__ModeSpine) -> unit
+    (* raises Error(msg) *)
+    (* for output coverage of prior declarations *)
+    val checkFreeOut : (IntSyn.cid * ModeSyn.__ModeSpine) -> unit
   end;;
 
 
 
 
+(* Mode Checking *)
+(* Author: Carsten Schuermann *)
+(* Modified: Frank Pfenning, Roberto Virga *)
 module ModeCheck(ModeCheck:sig
+                             (*! structure IntSyn : INTSYN !*)
                              module ModeTable : MODETABLE
                              module Whnf : WHNF
                              module Index : INDEX
-                             module Origins :
-                             ((ORIGINS)(* Mode Checking *)
-                             (* Author: Carsten Schuermann *)(* Modified: Frank Pfenning, Roberto Virga *)
-                             (*! structure IntSyn : INTSYN !*)(*! sharing ModeSyn.IntSyn = IntSyn !*)
+                             (*! sharing ModeSyn.IntSyn = IntSyn !*)
                              (*! sharing Whnf.IntSyn = IntSyn !*)
                              (*! sharing Index.IntSyn = IntSyn !*)
-                             (*! structure Paths : PATHS !*))
+                             (*! structure Paths : PATHS !*)
+                             module Origins : ORIGINS
                            end) : MODECHECK =
   struct
-    exception Error of
-      ((string)(*! structure Paths = Paths !*)(*! structure ModeSyn = ModeSyn !*)
-      (*! structure IntSyn = IntSyn !*)(*! sharing Origins.IntSyn = IntSyn !*)
-      (*! sharing Origins.Paths = Paths !*)) 
+    (*! sharing Origins.Paths = Paths !*)
+    (*! sharing Origins.IntSyn = IntSyn !*)
+    (*! structure IntSyn = IntSyn !*)
+    (*! structure ModeSyn = ModeSyn !*)
+    (*! structure Paths = Paths !*)
+    exception Error of string 
     module I = IntSyn
     module M = ModeSyn
     module P = Paths
@@ -364,11 +368,11 @@ module ModeCheck(ModeCheck:sig
                | Decl (D', m) ->
                    ctxPush (m, (checkG1 (D', V1, (P.label occ), k)))))
       | (D, Root (Const a, S), occ, k) ->
-          let checkAll =
+          let rec checkAll =
             function
             | nil -> ()
             | mS::mSs ->
-                let checkSome =
+                let rec checkSome =
                   function
                   | (D')::[] ->
                       (groundAtom (D', M.Minus, S, mS, (1, occ));
@@ -380,11 +384,11 @@ module ModeCheck(ModeCheck:sig
                 checkSome (k (updateAtom (D, M.Plus, S, a, mS, (1, occ)))) in
           checkAll (lookup (a, occ))
       | (D, Root (Def d, S), occ, k) ->
-          let checkAll =
+          let rec checkAll =
             function
             | nil -> ()
             | mS::mSs ->
-                let checkSome =
+                let rec checkSome =
                   function
                   | (D')::[] ->
                       (groundAtom (D', M.Minus, S, mS, (1, occ));
@@ -409,7 +413,7 @@ module ModeCheck(ModeCheck:sig
                ((I.Decl (D, Universal)), V2, (P.body occ),
                  (function | Decl (D', m) -> ctxPush (m, (k D')))))
       | (D, Root (Const a, S), occ, k) ->
-          let checkList arg__0 arg__1 =
+          let rec checkList arg__0 arg__1 =
             match (arg__0, arg__1) with
             | (found, nil) -> nil
             | (false__, mS::[]) ->
@@ -426,7 +430,7 @@ module ModeCheck(ModeCheck:sig
                 else Ds' in
           checkList false__ (lookup (a, occ))
       | (D, Root (Def d, S), occ, k) ->
-          let checkList arg__0 arg__1 =
+          let rec checkList arg__0 arg__1 =
             match (arg__0, arg__1) with
             | (found, nil) -> nil
             | (false__, mS::[]) ->
@@ -448,7 +452,7 @@ module ModeCheck(ModeCheck:sig
     let rec cidFromHead = function | Const a -> a | Def a -> a
     let rec checkD (conDec, fileName, occOpt) =
       let _ = checkFree := false__ in
-      let checkable =
+      let rec checkable =
         function
         | Root (Ha, _) ->
             (match ModeTable.mmodeLookup (cidFromHead Ha) with
@@ -513,13 +517,18 @@ module ModeCheck(ModeCheck:sig
       let _ = checkFree := true__ in
       let _ = checkAll clist in
       let _ = if (!Global.chatter) > 3 then print "\n" else () in ()
-    let ((checkD)(* Uniqueness information *)(* u ::= Unique           *)
-      (*     | Ambig            *)(* Groundedness information   *)
-      (* I ::= Free                 *)(*     | Unknown              *)
-      (*     | Ground               *)(* Variable status             *)
-      (* S ::= Existential (I, xOpt) *)(*     | Universal             *)
-      (* hack: if true, check freeness of output arguments in subgoals *)
-      (* Representation invariant:
+    (* Uniqueness information *)
+    (* u ::= Unique           *)
+    (*     | Ambig            *)
+    (* Groundedness information   *)
+    (* I ::= Free                 *)
+    (*     | Unknown              *)
+    (*     | Ground               *)
+    (* Variable status             *)
+    (* S ::= Existential (I, xOpt) *)
+    (*     | Universal             *)
+    (* hack: if true, check freeness of output arguments in subgoals *)
+    (* Representation invariant:
 
        Groundness information:
        T stands for ground, B stands for unknown
@@ -529,89 +538,96 @@ module ModeCheck(ModeCheck:sig
        Mode context   D ::= . | D, S
 
        If D contains Status information for variables in
-       a context g, we write g ~ D
+       a context G, we write G ~ D
        We write D' >= D if for all i
          D(i) par iff D'(i) par
          D(i) bot implies D'(i) bot or D'(i) top
          D(i) top implies D'(i) top
     *)
-      (* copied from worldcheck/worldsyn.fun *)(* lookup (a, occ) = mSs
+    (* copied from worldcheck/worldsyn.fun *)
+    (* lookup (a, occ) = mSs
 
        Invariant: mS are the argument modes for a
        Raises an error if no mode for a has declared.
        (occ is used in error message)
     *)
-      (* nameOf S, selects a name for S *)(* unique (k, ks) = B
+    (* nameOf S, selects a name for S *)
+    (* unique (k, ks) = B
 
        Invariant:
        B iff k does not occur in ks
     *)
-      (* isUniversal S = B
+    (* isUniversal S = B
 
        Invariant:
        B iff S = Par
     *)
-      (* isGround S = B
+    (* isGround S = B
 
        Invariant:
        B iff S = Ex (T x)
     *)
-      (* uniqueness S = u
+    (* uniqueness S = u
        where u is the uniqueness property of status S
     *)
-      (* ambiguate (mode) = mode'
+    (* ambiguate (mode) = mode'
        where mode' forgets uniqueness properties
     *)
-      (* andUnique (u1, u2) = Unique if u1 = u2 = Unique
+    (* andUnique (u1, u2) = Unique if u1 = u2 = Unique
        = Ambig otherwise
     *)
-      (* isFree S = b
+    (* isFree S = b
 
        Invariant:
        b iff S = Ex (B x)
     *)
-      (* etaContract (U, n) = k
+    (* etaContract (U, n) = k
 
        if lam V1... lam Vn. U =eta*=> k
        otherwise raise exception Eta
 
-       Invariant: g, V1,..., Vn |- U : V for some g, Vi, V.
+       Invariant: G, V1,..., Vn |- U : V for some G, Vi, V.
                   U in NF
     *)
-      (* etaSpine (S, n) = ()
+    (* etaSpine (S, n) = ()
        if S =eta*=> n ; n-1 ; ... ; 1 ; Nil
        otherwise raise exception Eta
 
-       Invariant: g |- S : V1 >> V2 for some g, V1, V2
+       Invariant: G |- S : V1 >> V2 for some G, V1, V2
                   S in NF
     *)
-      (* S[s] should be impossible *)(* isPattern (D, k, mS) = B
+    (* S[s] should be impossible *)
+    (* isPattern (D, k, mS) = B
 
        Invariant:
        B iff k > k' for all k' in mS
          and for all k in mS: k is parameter
          and for all k', k'' in mS: k' <> k''
     *)
-      (* ------------------------------------------- strictness check *)
-      (* This repeats some code from ../typecheck/strict.fun *)(* Interface here is somewhat different *)
-      (* strictExpN (D, p, U) = B
+    (* ------------------------------------------- strictness check *)
+    (* This repeats some code from ../typecheck/strict.fun *)
+    (* Interface here is somewhat different *)
+    (* strictExpN (D, p, U) = B
 
        Invariant:
        If  D |- U : V
        and U is in nf (normal form)
        then B iff U is strict in p
     *)
-      (* checking D in this case should be redundant -fp *)
-      (* strictDecN (D, p, D) orelse *)(* equivalently: isUniversal .. andalso strictSpineN .. *)
-      (* no other cases possible *)(* this is a hack - until we investigate this further   -rv *)
-      (* no other cases possible *)(* strictSpineN (D, S) = B
+    (* checking D in this case should be redundant -fp *)
+    (* strictDecN (D, p, D) orelse *)
+    (* equivalently: isUniversal .. andalso strictSpineN .. *)
+    (* no other cases possible *)
+    (* this is a hack - until we investigate this further   -rv *)
+    (* no other cases possible *)
+    (* strictSpineN (D, S) = B
 
        Invariant:
        If  D |- S : V > W
        and S is in nf (normal form)
        then B iff S is strict in k
     *)
-      (*
+    (*
     fun strictAtom (D, p, mode, I.Nil, (V, s), M.Mnil) = false
       | strictAtom (D, p, M.Minus, I.App (U, S), (I.Pi ((I.Dec (_, V1), _), V2), s),
                      M.Mapp (M.Marg (M.Minus, _), mS)) =
@@ -620,62 +636,63 @@ module ModeCheck(ModeCheck:sig
       | strictAtom (D, p, mode, I.App (U, S), (I.Pi (_, V2), s), M.Mapp(_, mS)) =
           strictAtom (D, p, mode, S, Whnf.whnfExpandDef (V2, I.Dot (I.Exp U, s)), mS)
     *)
-      (* ------------------------------------------- freeness check *)
-      (* freeExpN (D, mode, U, occ = ()
+    (* ------------------------------------------- freeness check *)
+    (* freeExpN (D, mode, U, occ = ()
 
-       If g |- U : V  (U in nf)
-       and g ~ D
+       If G |- U : V  (U in nf)
+       and G ~ D
        then freeExpN terminates with () if D |- U free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
-      (* punting on the occ here  - ak *)(* freeSpineN (D, mode, S, occ, strictFun)  = ()
+    (* punting on the occ here  - ak *)
+    (* freeSpineN (D, mode, S, occ, strictFun)  = ()
 
-       If   g |- S : V1  > V2   (S in nf)
-       and  g ~ D
+       If   G |- S : V1  > V2   (S in nf)
+       and  G ~ D
        then freeSpineN terminates with () if  D |- S free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
-      (* freeVar (D, mode, k, occ, strictFun)  = ()
+    (* freeVar (D, mode, k, occ, strictFun)  = ()
 
-       If   g |- k : V1
-       and  g ~ D
+       If   G |- k : V1
+       and  G ~ D
        then freeVar terminates with () if  D |- S free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
-      (* -------------------------------- non-strict mode context update *)
-      (* nonStrictExpN (D, U) = D'
+    (* -------------------------------- non-strict mode context update *)
+    (* nonStrictExpN (D, U) = D'
 
-       If   g |- U : V     (U in nf)
-       and  D ~ g
+       If   G |- U : V     (U in nf)
+       and  D ~ G
        then D' >= D where D'(k) Unknown for all existential variables k
             in U that are free in D
     *)
-      (* nonStrictSpineN (D, S) = D'
+    (* nonStrictSpineN (D, S) = D'
 
-       If   g |- S : V1 > V2      (S in nf)
-       and  D ~ g
+       If   G |- S : V1 > V2      (S in nf)
+       and  D ~ G
        then D' >= D' where D'(k) Unkown for all existential variables k
             in S that are Free in D
     *)
-      (* nonStrictVarD (D, k) = D'
+    (* nonStrictVarD (D, k) = D'
 
-       If   g |- k : V
-       and  D ~ g
+       If   G |- k : V
+       and  D ~ G
        and  k is an existential variable
        then D' >= D where k is nonStrictd as described in  nonStrictExpN
     *)
-      (* Universal, or already Unknown or Ground - leave unchanged *)
-      (* ------------------------------------------- mode context update *)
-      (* updateExpN (D, U, u) = D'
+    (* Universal, or already Unknown or Ground - leave unchanged *)
+    (* ------------------------------------------- mode context update *)
+    (* updateExpN (D, U, u) = D'
 
-       If   g |- U : V     (U in nf)
-       and  D ~ g
+       If   G |- U : V     (U in nf)
+       and  D ~ G
        then D' >= D where D'(k) Ground for all existential variables k
             with a strict occurrence in U
             and D'(k) Unkown for all existential variable k
@@ -684,25 +701,26 @@ module ModeCheck(ModeCheck:sig
 
        u is the uniqueness property for the new ground assumptions
     *)
-      (* no occurrence inside a FgnExp is considered strict *)(* updateSpineN (D, S, u) = D'
+    (* no occurrence inside a FgnExp is considered strict *)
+    (* updateSpineN (D, S, u) = D'
 
-       If   g |- S : V1 > V2      (S in nf)
-       and  D ~ g
+       If   G |- S : V1 > V2      (S in nf)
+       and  D ~ G
        then D' >= D' where D'(k) Ground for all existential variables k
             with a strict occurrence in S
     *)
-      (* updateVarD (D, k, u) = D'
+    (* updateVarD (D, k, u) = D'
 
-       If   g |- k : V
-       and  D ~ g
+       If   G |- k : V
+       and  D ~ G
        and  k is an existential variable
        then D' >= D where k is updated as described in  updateExpN
     *)
-      (* ----------------------- mode context update by argument modes *)
-      (* updateAtom (D, m, S, mS, (p,occ)) = D'
+    (* ----------------------- mode context update by argument modes *)
+    (* updateAtom (D, m, S, mS, (p,occ)) = D'
 
-       If   g |- S : V > V'   ( S = u1 ; .. ; Un)
-       and  D ~ g
+       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
+       and  D ~ G
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode
        then D' >= D where
@@ -715,23 +733,23 @@ module ModeCheck(ModeCheck:sig
 
        (p,occ) is used in error message if freeness is to be checked
     *)
-      (* when checking freeness, all arguments must be input (+) or output (-) *)
-      (* therefore, no case for M.Mapp (M.Marg (M.Minus, _), mS) is provided here *)
-      (* freeAtom (D, m, S, (V,s), mS, (p, occ)) = ()
+    (* when checking freeness, all arguments must be input (+) or output (-) *)
+    (* therefore, no case for M.Mapp (M.Marg (M.Minus, _), mS) is provided here *)
+    (* freeAtom (D, m, S, (V,s), mS, (p, occ)) = ()
 
        checks if all output arguments in S according to mS are free.
-       Invariant: g |- S : V[s] >> P for some g and P  (S in nf)
-                  g ~ D
+       Invariant: G |- S : V[s] >> P for some G and P  (S in nf)
+                  G ~ D
                   mode = (-) or (+); ( * ) or (-1) are excluded
     *)
-      (* updateAtom (D, m, S, a, mS, (p, occ))
+    (* updateAtom (D, m, S, a, mS, (p, occ))
        see updateAtom', and performs additional freeness check if required
     *)
-      (* ------------------------------------------- groundness check *)
-      (* groundExpN (D, mode, U, occ)  = u
+    (* ------------------------------------------- groundness check *)
+    (* groundExpN (D, mode, U, occ)  = u
 
-       If   g |- U : V    (U in nf)
-       and  g ~ D
+       If   G |- U : V    (U in nf)
+       and  G ~ D
        then if mode = (+) or (-)
             then groundExpN terminates with u if  D |- U ground
                  else exception ModeError is raised
@@ -743,10 +761,11 @@ module ModeCheck(ModeCheck:sig
 
        (occ and mode are used in error messages)
     *)
-      (* punting on occ here  - ak *)(* groundSpineN (D, mode, S, occ)  = u
+    (* punting on occ here  - ak *)
+    (* groundSpineN (D, mode, S, occ)  = u
 
-       If   g |- S : V1  > V2   (S in nf)
-       and  g ~ D
+       If   G |- S : V1  > V2   (S in nf)
+       and  G ~ D
        then if mode = (+) or (-)
             then groundSpineN terminates with u if  D |- S ground
                  else exception ModeError is raised
@@ -758,10 +777,10 @@ module ModeCheck(ModeCheck:sig
 
        (occ and mode are used in error messages)
     *)
-      (* groundVar (D, mode, k, occ)  = u
+    (* groundVar (D, mode, k, occ)  = u
 
-       If   g |- k : V1
-       and  g ~ D
+       If   G |- k : V1
+       and  G ~ D
        then if mode = (+) or (-)
             then groundVar terminates with u if  D |- k ground
                  else exception ModeError is raised
@@ -772,11 +791,12 @@ module ModeCheck(ModeCheck:sig
 
        (occ and mode are used in error messages)
     *)
-      (* Existential (Free, _) or Existential (Unknown, _) *)(* ------------------------------------------- groundness check by polarity *)
-      (* groundAtom (D, m, S, mS, (p,occ))  = u
+    (* Existential (Free, _) or Existential (Unknown, _) *)
+    (* ------------------------------------------- groundness check by polarity *)
+    (* groundAtom (D, m, S, mS, (p,occ))  = u
 
-       If   g |- S : V > V'   ( S = u1 ; .. ; Un)
-       and  D ~ g
+       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
+       and  D ~ G
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode = (+) or (-1)
        then groundAtom returns u if  D |- Ui ground
@@ -789,80 +809,92 @@ module ModeCheck(ModeCheck:sig
 
        ((p,occ) used in error messages)
     *)
-      (* ignore uniqueness result here *)(* ignore uniqueness result here *)
-      (* ------------------------------------------- mode checking first phase *)
-      (* ctxPush (Ds, m) = Ds'
+    (* ignore uniqueness result here *)
+    (* ignore uniqueness result here *)
+    (* ------------------------------------------- mode checking first phase *)
+    (* ctxPush (Ds, m) = Ds'
        raises the contexts Ds prepending m
     *)
-      (* ctxPop Ds = Ds'
+    (* ctxPop Ds = Ds'
        lowers the contexts Ds
-    *)(* checkD1 (D, V, occ, k) = ()
+    *)
+    (* checkD1 (D, V, occ, k) = ()
 
        Invariant:
-         if g |- V : L
+         if G |- V : L
          and  V does not contain Skolem constants
-         and  D ~ g
+         and  D ~ G
          then
             for each  mode mS of the head of V
               exists  some Di s.t. all (-) evars of mS are ground
-                where  D' ~ g, D' >= D is obtained by updating D
+                where  D' ~ G, D' >= D is obtained by updating D
                   and  k D' = [D1, ..., Di, ..., Dn]
-                  and  Di ~ g, Di >= D' is obtained by mode checking on the subgoals of V
+                  and  Di ~ G, Di >= D' is obtained by mode checking on the subgoals of V
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
        that have no mode information associated with them
        (occ used in error messages)
     *)
-      (* for a declaration, all modes must be satisfied *)
-      (* D' is the only (last) possibility; on failure, we raise ModeError *)
-      (* ignore return *)(* try D', if it doesn't work, try another context in the Ds *)
-      (* ignore return *)(* for a declaration, all modes must be satisfied *)
-      (* D' is the only (last) possibility; on failure, we raise ModeError *)
-      (* ignore return *)(* try D', if it doesn't work, try another context in the Ds *)
-      (* ignore return *)(* checkG1 (D, V, occ, k) = Ds
+    (* for a declaration, all modes must be satisfied *)
+    (* D' is the only (last) possibility; on failure, we raise ModeError *)
+    (* ignore return *)
+    (* try D', if it doesn't work, try another context in the Ds *)
+    (* ignore return *)
+    (* for a declaration, all modes must be satisfied *)
+    (* D' is the only (last) possibility; on failure, we raise ModeError *)
+    (* ignore return *)
+    (* try D', if it doesn't work, try another context in the Ds *)
+    (* ignore return *)
+    (* checkG1 (D, V, occ, k) = Ds
 
        Invariant:
-         if g |- V : L
+         if G |- V : L
          and  V does not contain Skolem constants
-         and  D ~ g
+         and  D ~ G
          then forall D' >= D that mode checks V, (k D') is a sublist of Ds
-         and for each Di in Ds, Di ~ g and Di >= D'
+         and for each Di in Ds, Di ~ G and Di >= D'
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
        that have no mode information associated with them
        (occ used in error messages)
      *)
-      (* for a goal, at least one mode must be satisfied *)
-      (* found = true *)(* mS is the last possible mode to check;
+    (* for a goal, at least one mode must be satisfied *)
+    (* found = true *)
+    (* mS is the last possible mode to check;
                     if the check fails, we don't catch ModeError *)
-      (* uniqueness not permitted on multiple modes right now *)
-      (* Wed Aug 20 21:52:31 2003 -fp *)(* found' is true iff D satisfies mS *)
-      (* handler scope??? -fp *)(* compute all other mode contexts *)
-      (* for a goal, at least one mode must be satisfied *)
-      (* found = true *)(* mS is the last possible mode to check;
+    (* uniqueness not permitted on multiple modes right now *)
+    (* Wed Aug 20 21:52:31 2003 -fp *)
+    (* found' is true iff D satisfies mS *)
+    (* handler scope??? -fp *)
+    (* compute all other mode contexts *)
+    (* for a goal, at least one mode must be satisfied *)
+    (* found = true *)
+    (* mS is the last possible mode to check;
                     if the check fails, we don't catch ModeError *)
-      (* uniqueness not permitted on multiple modes right now *)
-      (* Wed Aug 20 21:52:31 2003 -fp *)(* found' is true iff D satisfies mS *)
-      (* compute all other mode contexts *)(* checkDlocal (D, V, occ) = ()
+    (* uniqueness not permitted on multiple modes right now *)
+    (* Wed Aug 20 21:52:31 2003 -fp *)
+    (* found' is true iff D satisfies mS *)
+    (* compute all other mode contexts *)
+    (* checkDlocal (D, V, occ) = ()
 
        Invariant:
-       If   g |- V : L
-       and  D ~ g
+       If   G |- V : L
+       and  D ~ G
        then checkD terminates with ()  iff V is mode correct.
 
        otherwise exception ModeError is raised (occ used in error messages)
     *)
-      (* --------------------------------------------------------- mode checking *)
-      (* checkD (ConDec, occOpt)  = ()
+    (* --------------------------------------------------------- mode checking *)
+    (* checkD (ConDec, occOpt)  = ()
 
        checkD terminates with () if ConDec is mode correct
        otherwise exception Error is raised
 
        (occOpt is used in error messages)
-    *))
-      = checkD
+    *)
+    let checkD = checkD
     let checkMode = checkMode
     let checkFreeOut = checkFreeOut
   end ;;

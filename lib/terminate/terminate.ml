@@ -2,8 +2,8 @@
 module Checking =
   (Make_Checking)(struct
                     module Global = Global
-                    module Whnf =
-                      ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                    (*! structure IntSyn' = IntSyn !*)
+                    module Whnf = Whnf
                     module Conv = Conv
                     module Unify = UnifyTrail
                     module Trail = Trail
@@ -18,10 +18,9 @@ module Checking =
                   end)
 module Reduces =
   (Make_Reduces)(struct
-                   module Global =
-                     ((Global)(*! structure CSManager = CSManager !*))
-                   module Whnf =
-                     ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                   module Global = Global
+                   (*! structure IntSyn' = IntSyn !*)
+                   module Whnf = Whnf
                    module Names = Names
                    module Index = Index
                    module Subordinate = Subordinate

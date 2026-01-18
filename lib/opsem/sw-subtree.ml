@@ -1,40 +1,44 @@
 
+(* Indexing *)
+(* Author: Brigitte Pientka *)
 module type MEMOTABLE  =
   sig
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure CompSyn : COMPSYN !*)
+    (*! structure TableParam : TABLEPARAM !*)
+    (* call check/insert *)
+    (* callCheck (G, D, U, eqn)
+   *
+   * if D, G |- U & eqn     in table  then RepeatedEntry (entries)
+   * if D, G |- U & eqn not in table  then NewEntry (ptrAnswer)
+   * SIDE EFFECT: D, G |- U added to table
+   *)
     val callCheck :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
         TableParam.__ResEqn * TableParam.__Status) ->
-        ((TableParam.callCheckResult)(* callCheck (g, D, U, eqn)
-   *
-   * if D, g |- U & eqn     in table  then RepeatedEntry (entries)
-   * if D, g |- U & eqn not in table  then NewEntry (ptrAnswer)
-   * SIDE EFFECT: D, g |- U added to table
-   *)
-        (* call check/insert *)(*! structure TableParam : TABLEPARAM !*)
-        (*! structure CompSyn : COMPSYN !*)(*! structure IntSyn : INTSYN !*)
-        (* Author: Brigitte Pientka *)(* Indexing *))
+        TableParam.callCheckResult
     val insertIntoTree :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
         TableParam.__ResEqn * TableParam.answer * TableParam.__Status) ->
         TableParam.callCheckResult
-    val answerCheck :
-      (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
-        ((TableParam.answState)(* answerCheck (g, D, (U,s))
+    (* answer check/insert *)
+    (* answerCheck (G, D, (U,s))
    * 
-   * Assupmtion: D, g |- U is in table
+   * Assupmtion: D, G |- U is in table
    *             and A represents the corresponding solutions
    * 
-   * g |- s : D, g
-   * Dk, g |- sk : D, g
+   * G |- s : D, G
+   * Dk, G |- sk : D, G
    *
    * If  (Dk, sk) in A then repeated
    *  else new
    *)
-        (* answer check/insert *))
-    val reset : unit -> ((unit)(* reset table *))
-    val updateTable :
-      unit ->
-        ((bool)(* updateTable 
+    val answerCheck :
+      (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
+        TableParam.answState
+    (* reset table *)
+    val reset : unit -> unit
+    (* updateTable 
    *
    * SIDE EFFECT: 
    *   for each table entry: 
@@ -43,7 +47,8 @@ module type MEMOTABLE  =
    * if Table did not change during last stage 
    *    then updateTable () =  false
    * else updateTable () = true
-   *))
+   *)
+    val updateTable : unit -> bool
     val tableSize : unit -> int
     val memberCtx :
       ((IntSyn.dctx * IntSyn.__Exp) * IntSyn.dctx) -> IntSyn.__Dec option
@@ -53,16 +58,18 @@ module type MEMOTABLE  =
 
 
 module SwMemoTable(SwMemoTable:sig
+                                 (* structure TableParam : TABLEPARAM *)
                                  module MemoTable : MEMOTABLE
-                                 module MemoTableInst :
-                                 ((MEMOTABLE)(* structure TableParam : TABLEPARAM *))
+                                 module MemoTableInst : MEMOTABLE
                                end) : MEMOTABLE =
   struct
-    let rec callCheck
-      ((args)(*! sharing MemoTableInst.IntSyn = MemoTable.IntSyn !*)
-      (*! sharing MemoTableInst.CompSyn = MemoTable.CompSyn !*)(*! sharing MemoTableInst.TableParam = MemoTable.TableParam !*)
-      (*! structure IntSyn = MemoTable.IntSyn !*)(*! structure CompSyn = MemoTable.CompSyn !*)
-      (*! structure TableParam = MemoTable.TableParam !*)) =
+    (*! sharing MemoTableInst.IntSyn = MemoTable.IntSyn !*)
+    (*! sharing MemoTableInst.CompSyn = MemoTable.CompSyn !*)
+    (*! sharing MemoTableInst.TableParam = MemoTable.TableParam !*)
+    (*! structure IntSyn = MemoTable.IntSyn !*)
+    (*! structure CompSyn = MemoTable.CompSyn !*)
+    (*! structure TableParam = MemoTable.TableParam !*)
+    let rec callCheck args =
       match !TableParam.strategy with
       | TableParam.Variant -> MemoTable.callCheck args
       | TableParam.Subsumption -> MemoTableInst.callCheck args

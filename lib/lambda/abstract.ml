@@ -1,9 +1,9 @@
 
+(* Abstraction *)
+(* Author: Frank Pfenning, Carsten Schuermann *)
 module type ABSTRACT  =
   sig
-    exception Error of
-      ((string)(* Author: Frank Pfenning, Carsten Schuermann *)(* Abstraction *))
-      
+    exception Error of string 
     val piDepend :
       ((IntSyn.__Dec * IntSyn.__Depend) * IntSyn.__Exp) -> IntSyn.__Exp
     val closedDec :
@@ -37,15 +37,16 @@ module type ABSTRACT  =
 
 
 
+(* Abstraction *)
+(* Author: Frank Pfenning, Carsten Schuermann *)
+(* Modified: Roberto Virga *)
 module Abstract(Abstract:sig
+                           (*! structure IntSyn' : INTSYN !*)
                            module Whnf : WHNF
                            module Unify : UNIFY
-                           module Constraints :
-                           ((CONSTRAINTS)(* Abstraction *)
-                           (* Author: Frank Pfenning, Carsten Schuermann *)
-                           (* Modified: Roberto Virga *)
-                           (*! structure IntSyn' : INTSYN !*)(*! sharing Whnf.IntSyn = IntSyn' !*)
-                           (*! sharing Unify.IntSyn = IntSyn' !*))
+                           (*! sharing Whnf.IntSyn = IntSyn' !*)
+                           (*! sharing Unify.IntSyn = IntSyn' !*)
+                           module Constraints : CONSTRAINTS
                          end) : ABSTRACT =
   struct
     exception Error of string 
@@ -61,11 +62,11 @@ module Abstract(Abstract:sig
     let rec collectConstraints =
       function
       | I.Null -> nil
-      | Decl (g, FV _) -> collectConstraints g
-      | Decl (g, EV (EVar (_, _, _, ref nil))) -> collectConstraints g
-      | Decl (g, EV (EVar (_, _, _, ref cnstrL))) ->
-          (@) (C.simplify cnstrL) collectConstraints g
-      | Decl (g, LV _) -> collectConstraints g
+      | Decl (G, FV _) -> collectConstraints G
+      | Decl (G, EV (EVar (_, _, _, ref nil))) -> collectConstraints G
+      | Decl (G, EV (EVar (_, _, _, ref cnstrL))) ->
+          (@) (C.simplify cnstrL) collectConstraints G
+      | Decl (G, LV _) -> collectConstraints G
     let rec checkConstraints (K) =
       let constraints = collectConstraints K in
       let _ =
@@ -84,7 +85,7 @@ module Abstract(Abstract:sig
       | (LVar (r1, _, _), LV (LVar (r2, _, _))) -> r1 = r2
       | (_, _) -> false__
     let rec exists (P) (K) =
-      let exists' =
+      let rec exists' =
         function | I.Null -> false__ | Decl (K', Y) -> (P Y) || (exists' K') in
       exists' K
     let rec or__ =
@@ -133,85 +134,85 @@ module Abstract(Abstract:sig
     let rec raiseType =
       function
       | (I.Null, V) -> V
-      | (Decl (g, D), V) -> raiseType (g, (I.Pi ((D, I.Maybe), V)))
+      | (Decl (G, D), V) -> raiseType (G, (I.Pi ((D, I.Maybe), V)))
     let rec raiseTerm =
       function
       | (I.Null, U) -> U
-      | (Decl (g, D), U) -> raiseTerm (g, (I.Lam (D, U)))
+      | (Decl (G, D), U) -> raiseTerm (G, (I.Lam (D, U)))
     let rec collectExpW =
       function
-      | (g, (Uni (L), s), K) -> K
-      | (g, (Pi ((D, _), V), s), K) ->
+      | (G, (Uni (L), s), K) -> K
+      | (G, (Pi ((D, _), V), s), K) ->
           collectExp
-            ((I.Decl (g, (I.decSub (D, s)))), (V, (I.dot1 s)),
-              (collectDec (g, (D, s), K)))
-      | (g, (Root ((FVar (name, V, s') as F), S), s), K) ->
+            ((I.Decl (G, (I.decSub (D, s)))), (V, (I.dot1 s)),
+              (collectDec (G, (D, s), K)))
+      | (G, (Root ((FVar (name, V, s') as F), S), s), K) ->
           if exists (eqFVar F) K
-          then collectSpine (g, (S, s), K)
+          then collectSpine (G, (S, s), K)
           else
             collectSpine
-              (g, (S, s),
+              (G, (S, s),
                 (I.Decl ((collectExp (I.Null, (V, I.id), K)), (FV (name, V)))))
-      | (g, (Root (Proj ((LVar (ref (NONE), sk, (l, t)) as L), i), S), s), K)
+      | (G, (Root (Proj ((LVar (ref (NONE), sk, (l, t)) as L), i), S), s), K)
           ->
           collectSpine
-            (g, (S, s), (collectBlock (g, (I.blockSub (L, s)), K)))
-      | (g, (Root (_, S), s), K) -> collectSpine (g, (S, s), K)
-      | (g, (Lam (D, U), s), K) ->
+            (G, (S, s), (collectBlock (G, (I.blockSub (L, s)), K)))
+      | (G, (Root (_, S), s), K) -> collectSpine (G, (S, s), K)
+      | (G, (Lam (D, U), s), K) ->
           collectExp
-            ((I.Decl (g, (I.decSub (D, s)))), (U, (I.dot1 s)),
-              (collectDec (g, (D, s), K)))
-      | (g, ((EVar (r, GX, V, cnstrs) as X), s), K) ->
+            ((I.Decl (G, (I.decSub (D, s)))), (U, (I.dot1 s)),
+              (collectDec (G, (D, s), K)))
+      | (G, ((EVar (r, GX, V, cnstrs) as X), s), K) ->
           if exists (eqEVar X) K
-          then collectSub (g, s, K)
+          then collectSub (G, s, K)
           else
             (let V' = raiseType (GX, V) in
              let K' = collectExp (I.Null, (V', I.id), K) in
-             collectSub (g, s, (I.Decl (K', (EV X)))))
-      | (g, (FgnExp csfe, s), K) ->
+             collectSub (G, s, (I.Decl (K', (EV X)))))
+      | (G, (FgnExp csfe, s), K) ->
           I.FgnExpStd.fold csfe
-            (function | (U, K) -> collectExp (g, (U, s), K)) K
-    let rec collectExp (g, Us, K) = collectExpW (g, (Whnf.whnf Us), K)
+            (function | (U, K) -> collectExp (G, (U, s), K)) K
+    let rec collectExp (G, Us, K) = collectExpW (G, (Whnf.whnf Us), K)
     let rec collectSpine =
       function
-      | (g, (I.Nil, _), K) -> K
-      | (g, (SClo (S, s'), s), K) ->
-          collectSpine (g, (S, (I.comp (s', s))), K)
-      | (g, (App (U, S), s), K) ->
-          collectSpine (g, (S, s), (collectExp (g, (U, s), K)))
+      | (G, (I.Nil, _), K) -> K
+      | (G, (SClo (S, s'), s), K) ->
+          collectSpine (G, (S, (I.comp (s', s))), K)
+      | (G, (App (U, S), s), K) ->
+          collectSpine (G, (S, s), (collectExp (G, (U, s), K)))
     let rec collectDec =
       function
-      | (g, (Dec (_, V), s), K) -> collectExp (g, (V, s), K)
-      | (g, (BDec (_, (_, t)), s), K) -> collectSub (g, (I.comp (t, s)), K)
-      | (g, (NDec _, s), K) -> K
+      | (G, (Dec (_, V), s), K) -> collectExp (G, (V, s), K)
+      | (G, (BDec (_, (_, t)), s), K) -> collectSub (G, (I.comp (t, s)), K)
+      | (G, (NDec _, s), K) -> K
     let rec collectSub =
       function
-      | (g, Shift _, K) -> K
-      | (g, Dot (Idx _, s), K) -> collectSub (g, s, K)
-      | (g, Dot (Exp (U), s), K) ->
-          collectSub (g, s, (collectExp (g, (U, I.id), K)))
-      | (g, Dot (Block (B), s), K) ->
-          collectSub (g, s, (collectBlock (g, B, K)))
+      | (G, Shift _, K) -> K
+      | (G, Dot (Idx _, s), K) -> collectSub (G, s, K)
+      | (G, Dot (Exp (U), s), K) ->
+          collectSub (G, s, (collectExp (G, (U, I.id), K)))
+      | (G, Dot (Block (B), s), K) ->
+          collectSub (G, s, (collectBlock (G, B, K)))
     let rec collectBlock =
       function
-      | (g, LVar (ref (SOME (B)), sk, _), K) ->
-          collectBlock (g, (I.blockSub (B, sk)), K)
-      | (g, (LVar (_, sk, (l, t)) as L), K) ->
+      | (G, LVar (ref (SOME (B)), sk, _), K) ->
+          collectBlock (G, (I.blockSub (B, sk)), K)
+      | (G, (LVar (_, sk, (l, t)) as L), K) ->
           if exists (eqLVar L) K
-          then collectSub (g, (I.comp (t, sk)), K)
-          else I.Decl ((collectSub (g, (I.comp (t, sk)), K)), (LV L))
+          then collectSub (G, (I.comp (t, sk)), K)
+          else I.Decl ((collectSub (G, (I.comp (t, sk)), K)), (LV L))
     let rec collectCtx =
       function
       | (G0, I.Null, K) -> (G0, K)
-      | (G0, Decl (g, D), K) ->
-          let (G0', K') = collectCtx (G0, g, K) in
+      | (G0, Decl (G, D), K) ->
+          let (G0', K') = collectCtx (G0, G, K) in
           let K'' = collectDec (G0', (D, I.id), K') in
           ((I.Decl (G0, D)), K'')
     let rec collectCtxs =
       function
       | (G0, nil, K) -> K
-      | (G0, (g)::Gs, K) ->
-          let (G0', K') = collectCtx (G0, g, K) in collectCtxs (G0', Gs, K')
+      | (G0, (G)::Gs, K) ->
+          let (G0', K') = collectCtx (G0, G, K) in collectCtxs (G0', Gs, K')
     let rec abstractEVar =
       function
       | (Decl (K', EV (EVar (r', _, _, _))), depth, (EVar (r, _, _, _) as X))
@@ -302,16 +303,16 @@ module Abstract(Abstract:sig
     let rec abstractCtx =
       function
       | (K, depth, I.Null) -> (I.Null, depth)
-      | (K, depth, Decl (g, D)) ->
-          let (g', depth') = abstractCtx (K, depth, g) in
+      | (K, depth, Decl (G, D)) ->
+          let (G', depth') = abstractCtx (K, depth, G) in
           let D' = abstractDec (K, depth', (D, I.id)) in
-          ((I.Decl (g', D')), (depth' + 1))
+          ((I.Decl (G', D')), (depth' + 1))
     let rec abstractCtxlist =
       function
       | (K, depth, nil) -> nil
-      | (K, depth, (g)::Gs) ->
-          let (g', depth') = abstractCtx (K, depth, g) in
-          let Gs' = abstractCtxlist (K, depth', Gs) in g' :: Gs'
+      | (K, depth, (G)::Gs) ->
+          let (G', depth') = abstractCtx (K, depth, G) in
+          let Gs' = abstractCtxlist (K, depth', Gs) in G' :: Gs'
     let rec abstractKPi =
       function
       | (I.Null, V) -> V
@@ -367,32 +368,32 @@ module Abstract(Abstract:sig
     let rec abstractSpineExt (S, s) =
       let K = collectSpine (I.Null, (S, s), I.Null) in
       let _ = checkConstraints K in
-      let g = abstractKCtx K in
-      let S = abstractSpine (K, 0, (S, s)) in (g, S)
+      let G = abstractKCtx K in
+      let S = abstractSpine (K, 0, (S, s)) in (G, S)
     let rec abstractCtxs (Gs) =
       let K = collectCtxs (I.Null, Gs, I.Null) in
       let _ = checkConstraints K in
       ((abstractKCtx K), (abstractCtxlist (K, 0, Gs)))
-    let rec closedDec (g, (Dec (_, V), s)) =
-      match collectExp (g, (V, s), I.Null) with
+    let rec closedDec (G, (Dec (_, V), s)) =
+      match collectExp (G, (V, s), I.Null) with
       | I.Null -> true__
       | _ -> false__
     let rec closedSub =
       function
-      | (g, Shift _) -> true__
-      | (g, Dot (Idx _, s)) -> closedSub (g, s)
-      | (g, Dot (Exp (U), s)) ->
-          (match collectExp (g, (U, I.id), I.Null) with
-           | I.Null -> closedSub (g, s)
+      | (G, Shift _) -> true__
+      | (G, Dot (Idx _, s)) -> closedSub (G, s)
+      | (G, Dot (Exp (U), s)) ->
+          (match collectExp (G, (U, I.id), I.Null) with
+           | I.Null -> closedSub (G, s)
            | _ -> false__)
-    let rec closedExp (g, (U, s)) =
-      match collectExp (g, (U, I.id), I.Null) with
+    let rec closedExp (G, (U, s)) =
+      match collectExp (G, (U, I.id), I.Null) with
       | I.Null -> true__
       | _ -> false__
     let rec closedCtx =
       function
       | I.Null -> true__
-      | Decl (g, D) -> (closedCtx g) && (closedDec (g, (D, I.id)))
+      | Decl (G, D) -> (closedCtx G) && (closedDec (G, (D, I.id)))
     let rec closedFor =
       function
       | (Psi, T.True) -> true__
@@ -416,10 +417,10 @@ module Abstract(Abstract:sig
       | I.Null -> nil
       | Decl (K, EV (X)) -> (::) X KToEVars K
       | Decl (K, _) -> KToEVars K
-    let rec collectEVars (g, Us, Xs) =
-      KToEVars (collectExp (g, Us, (evarsToK Xs)))
-    let rec collectEVarsSpine (g, (S, s), Xs) =
-      KToEVars (collectSpine (g, (S, s), (evarsToK Xs)))
+    let rec collectEVars (G, Us, Xs) =
+      KToEVars (collectExp (G, Us, (evarsToK Xs)))
+    let rec collectEVarsSpine (G, (S, s), Xs) =
+      KToEVars (collectSpine (G, (S, s), (evarsToK Xs)))
     let rec collectPrg =
       function
       | (_, (EVar (Psi, r, F, _, _, _) as P), K) -> I.Decl (K, (PV P))
@@ -451,10 +452,10 @@ module Abstract(Abstract:sig
       | Dot (Prg (P), t) -> collectPrg (I.Null, P, (collectTomegaSub t))
     let rec abstractOrder =
       function
-      | (K, depth, Arg (us1, us2)) ->
+      | (K, depth, Arg (Us1, Us2)) ->
           O.Arg
-            (((abstractExp (K, depth, us1)), I.id),
-              ((abstractExp (K, depth, us2)), I.id))
+            (((abstractExp (K, depth, Us1)), I.id),
+              ((abstractExp (K, depth, Us2)), I.id))
       | (K, depth, Simul (Os)) ->
           O.Simul (map (function | O -> abstractOrder (K, depth, O)) Os)
       | (K, depth, Lex (Os)) ->
@@ -531,16 +532,18 @@ module Abstract(Abstract:sig
     let rec abstractTomegaPrg (P) =
       let K = collectPrg (I.Null, P, I.Null) in
       let P' = abstractPrg (K, 0, P) in let Psi = abstractPsi K in (Psi, P')
-    let ((raiseType)(* Intermediate Data Structure *)
-      (* Y ::= X         for  GX |- X : VX *)(*     | (F, V)        if . |- F : V *)
-      (*     | L             if . |- L in W *)(*     | P                            *)
-      (*
+    (* Intermediate Data Structure *)
+    (* Y ::= X         for  GX |- X : VX *)
+    (*     | (F, V)        if . |- F : V *)
+    (*     | L             if . |- L in W *)
+    (*     | P                            *)
+    (*
        We write {{K}} for the context of K, where EVars, FVars, LVars have
        been translated to declarations and their occurrences to BVars.
        We write {{U}}_K, {{S}}_K for the corresponding translation of an
        expression or spine.
 
-       Just like contexts g, any K is implicitly assumed to be
+       Just like contexts G, any K is implicitly assumed to be
        well-formed and in dependency order.
 
        We write  K ||- U  if all EVars and FVars in U are collected in K.
@@ -550,44 +553,46 @@ module Abstract(Abstract:sig
        Collection and abstraction raise Error if there are unresolved
        constraints after simplification.
     *)
-      (* collectConstraints K = cnstrs
+    (* collectConstraints K = cnstrs
        where cnstrs collects all constraints attached to EVars in K
     *)
-      (* checkConstraints (K) = ()
+    (* checkConstraints (K) = ()
        Effect: raises Constraints.Error(C) if K contains unresolved constraints
     *)
-      (* checkEmpty Cnstr = ()
+    (* checkEmpty Cnstr = ()
        raises Error exception if constraints Cnstr cannot be simplified
        to the empty constraint
     *)
-      (*
+    (*
     fun checkEmpty (nil) = ()
       | checkEmpty (Cnstr) =
         (case C.simplify Cnstr
            of nil => ()
             | _ => raise Error "Typing ambiguous -- unresolved constraints")
     *)
-      (* eqEVar X Y = B
+    (* eqEVar X Y = B
        where B iff X and Y represent same variable
     *)
-      (* eqFVar F Y = B
+    (* eqFVar F Y = B
        where B iff X and Y represent same variable
     *)
-      (* eqLVar L Y = B
+    (* eqLVar L Y = B
        where B iff X and Y represent same variable
     *)
-      (* exists P K = B
+    (* exists P K = B
        where B iff K = K1, Y, K2  s.t. P Y  holds
     *)
-      (* this should be non-strict *)(* perhaps the whole repeated traversal are now a performance
+    (* this should be non-strict *)
+    (* perhaps the whole repeated traversal are now a performance
        bottleneck in PCC applications where logic programming search
        followed by abstraction creates certificates.  such certificates
        are large, so the quadratic algorithm is not really acceptable.
        possible improvement, collect, abstract, then traverse one more
        time to determine status of all variables.
     *)
-      (* Wed Aug  6 16:37:57 2003 -fp *)(* !!! *)
-      (* occursInExp (k, U) = DP,
+    (* Wed Aug  6 16:37:57 2003 -fp *)
+    (* !!! *)
+    (* occursInExp (k, U) = DP,
 
        Invariant:
        If    U in nf
@@ -595,178 +600,190 @@ module Abstract(Abstract:sig
              DP = Maybe   iff k occurs in U some place not as an argument to a Skonst
              DP = Meta    iff k occurs in U and only as arguments to Skonsts
     *)
-      (* no case for Redex, EVar, EClo *)(* no case for FVar *)
-      (* no case for SClo *)(* piDepend ((D,P), V) = Pi ((D,P'), V)
+    (* no case for Redex, EVar, EClo *)
+    (* no case for FVar *)
+    (* no case for SClo *)
+    (* piDepend ((D,P), V) = Pi ((D,P'), V)
        where P' = Maybe if D occurs in V, P' = No otherwise
     *)
-      (* optimize to have fewer traversals? -cs *)(* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
-      (* raiseType (g, V) = {{g}} V
+    (* optimize to have fewer traversals? -cs *)
+    (* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
+    (* raiseType (G, V) = {{G}} V
 
        Invariant:
-       If g |- V : L
-       then  . |- {{g}} V : L
+       If G |- V : L
+       then  . |- {{G}} V : L
 
        All abstractions are potentially dependent.
     *)
-      (* raiseTerm (g, U) = [[g]] U
+    (* raiseTerm (G, U) = [[G]] U
 
        Invariant:
-       If g |- U : V
-       then  . |- [[g]] U : {{g}} V
+       If G |- U : V
+       then  . |- [[G]] U : {{G}} V
 
        All abstractions are potentially dependent.
     *)
-      (* collectExpW (g, (U, s), K) = K'
+    (* collectExpW (G, (U, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- U : V      (U,s) in whnf
+       If    G |- s : G1     G1 |- U : V      (U,s) in whnf
        No circularities in U
              (enforced by extended occurs-check for FVars in Unify)
        and   K' = K, K''
              where K'' contains all EVars and FVars in (U,s)
     *)
-      (* Possible optimization: Calculate also the normal form of the term *)
-      (* s' = ^|g| *)(* BUG : We forget to deref L.  use collectBlock instead
+    (* Possible optimization: Calculate also the normal form of the term *)
+    (* s' = ^|G| *)
+    (* BUG : We forget to deref L.  use collectBlock instead
              FPCHECK
              -cs Sat Jul 24 18:48:59 2010
             was:
-      | collectExpW (g, (I.Root (I.Proj (L as I.LVar (r, sk, (l, t)), i), S), s), K) =
+      | collectExpW (G, (I.Root (I.Proj (L as I.LVar (r, sk, (l, t)), i), S), s), K) =
         if exists (eqLVar L) K
            note: don't collect t again below *)
-      (* was: collectSpine (g, (S, s), collectSub (I.Null, t, K)) *)
-      (* Sun Dec 16 10:54:52 2001 -fp !!! *)(* -fp Sun Dec  1 21:12:12 2002 *)
-      (* collectSpine (g, (S, s), I.Decl (collectSub (g, I.comp(t,s), K), LV L)) *)
-      (* was :
-         collectSpine (g, (S, s), collectSub (g, I.comp(t,s), I.Decl (K, LV L)))
+    (* was: collectSpine (G, (S, s), collectSub (I.Null, t, K)) *)
+    (* Sun Dec 16 10:54:52 2001 -fp !!! *)
+    (* -fp Sun Dec  1 21:12:12 2002 *)
+    (* collectSpine (G, (S, s), I.Decl (collectSub (G, I.comp(t,s), K), LV L)) *)
+    (* was :
+         collectSpine (G, (S, s), collectSub (G, I.comp(t,s), I.Decl (K, LV L)))
          July 22, 2010 -fp -cs
          *)
-      (* val _ = checkEmpty !cnstrs *)(* inefficient *)
-      (* No other cases can occur due to whnf invariant *)
-      (* collectExp (g, (U, s), K) = K'
+    (* val _ = checkEmpty !cnstrs *)
+    (* inefficient *)
+    (* No other cases can occur due to whnf invariant *)
+    (* collectExp (G, (U, s), K) = K'
 
        same as collectExpW  but  (U,s) need not to be in whnf
     *)
-      (* collectSpine (g, (S, s), K) = K'
+    (* collectSpine (G, (S, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- S : V > P
+       If    G |- s : G1     G1 |- S : V > P
        then  K' = K, K''
        where K'' contains all EVars and FVars in (S, s)
      *)
-      (* collectDec (g, (x:V, s), K) = K'
+    (* collectDec (G, (x:V, s), K) = K'
 
        Invariant:
-       If    g |- s : G1     G1 |- V : L
+       If    G |- s : G1     G1 |- V : L
        then  K' = K, K''
        where K'' contains all EVars and FVars in (V, s)
     *)
-      (* . |- t : Gsome, so do not compose with s *)
-      (* Sat Dec  8 13:28:15 2001 -fp *)(* was: collectSub (I.Null, t, K) *)
-      (* collectSub (g, s, K) = K'
+    (* . |- t : Gsome, so do not compose with s *)
+    (* Sat Dec  8 13:28:15 2001 -fp *)
+    (* was: collectSub (I.Null, t, K) *)
+    (* collectSub (G, s, K) = K'
 
        Invariant:
-       If    g |- s : G1
+       If    G |- s : G1
        then  K' = K, K''
        where K'' contains all EVars and FVars in s
     *)
-      (* next case should be impossible *)(*
-      | collectSub (g, I.Dot (I.Undef, s), K) =
-          collectSub (g, s, K)
+    (* next case should be impossible *)
+    (*
+      | collectSub (G, I.Dot (I.Undef, s), K) =
+          collectSub (G, s, K)
     *)
-      (* collectBlock (g, B, K) where g |- B block *)
-      (* collectBlock (B, K) *)(* correct?? -fp Sun Dec  1 21:15:33 2002 *)
-      (* was: t in the two lines above, July 22, 2010, -fp -cs *)
-      (* | collectBlock (g, I.Bidx _, K) = K *)(* should be impossible: Fronts of substitutions are never Bidx *)
-      (* Sat Dec  8 13:30:43 2001 -fp *)(* collectCtx (G0, g, K) = (G0', K')
+    (* collectBlock (G, B, K) where G |- B block *)
+    (* collectBlock (B, K) *)
+    (* correct?? -fp Sun Dec  1 21:15:33 2002 *)
+    (* was: t in the two lines above, July 22, 2010, -fp -cs *)
+    (* | collectBlock (G, I.Bidx _, K) = K *)
+    (* should be impossible: Fronts of substitutions are never Bidx *)
+    (* Sat Dec  8 13:30:43 2001 -fp *)
+    (* collectCtx (G0, G, K) = (G0', K')
        Invariant:
-       If G0 |- g ctx,
-       then G0' = G0,g
-       and K' = K, K'' where K'' contains all EVars and FVars in g
+       If G0 |- G ctx,
+       then G0' = G0,G
+       and K' = K, K'' where K'' contains all EVars and FVars in G
     *)
-      (* collectCtxs (G0, Gs, K) = K'
+    (* collectCtxs (G0, Gs, K) = K'
        Invariant: G0 |- G1,...,Gn ctx where Gs = [G1,...,Gn]
        and K' = K, K'' where K'' contains all EVars and FVars in G1,...,Gn
     *)
-      (* abstractEVar (K, depth, X) = C'
+    (* abstractEVar (K, depth, X) = C'
 
        Invariant:
-       If   g |- X : V
-       and  |g| = depth
+       If   G |- X : V
+       and  |G| = depth
        and  X occurs in K  at kth position (starting at 1)
        then C' = BVar (depth + k)
-       and  {{K}}, g |- C' : V
+       and  {{K}}, G |- C' : V
     *)
-      (*      | abstractEVar (I.Decl (K', FV (n', _)), depth, X) =
+    (*      | abstractEVar (I.Decl (K', FV (n', _)), depth, X) =
           abstractEVar (K', depth+1, X) remove later --cs*)
-      (* abstractFVar (K, depth, F) = C'
+    (* abstractFVar (K, depth, F) = C'
 
        Invariant:
-       If   g |- F : V
-       and  |g| = depth
+       If   G |- F : V
+       and  |G| = depth
        and  F occurs in K  at kth position (starting at 1)
        then C' = BVar (depth + k)
-       and  {{K}}, g |- C' : V
+       and  {{K}}, G |- C' : V
     *)
-      (*      | abstractFVar (I.Decl(K', EV _), depth, F) =
+    (*      | abstractFVar (I.Decl(K', EV _), depth, F) =
           abstractFVar (K', depth+1, F) remove later --cs *)
-      (* abstractLVar (K, depth, L) = C'
+    (* abstractLVar (K, depth, L) = C'
 
        Invariant:
-       If   g |- L : V
-       and  |g| = depth
+       If   G |- L : V
+       and  |G| = depth
        and  L occurs in K  at kth position (starting at 1)
        then C' = Bidx (depth + k)
-       and  {{K}}, g |- C' : V
+       and  {{K}}, G |- C' : V
     *)
-      (* abstractExpW (K, depth, (U, s)) = U'
+    (* abstractExpW (K, depth, (U, s)) = U'
        U' = {{U[s]}}_K
 
        Invariant:
-       If    g |- s : G1     G1 |- U : V    (U,s) is in whnf
+       If    G |- s : G1     G1 |- U : V    (U,s) is in whnf
        and   K is internal context in dependency order
-       and   |g| = depth
+       and   |G| = depth
        and   K ||- U and K ||- V
-       then  {{K}}, g |- U' : V'
+       then  {{K}}, G |- U' : V'
        and   . ||- U' and . ||- V'
        and   U' is in nf
     *)
-      (* abstractExp (K, depth, (U, s)) = U'
+    (* abstractExp (K, depth, (U, s)) = U'
 
        same as abstractExpW, but (U,s) need not to be in whnf
     *)
-      (* abstractSub (K, depth, s, S) = S'      (implicit raising)
+    (* abstractSub (K, depth, s, S) = S'      (implicit raising)
        S' = {{s}}_K @@ S
 
        Invariant:
-       If   g |- s : G1
-       and  |g| = depth
+       If   G |- s : G1
+       and  |G| = depth
        and  K ||- s
-       then {{K}}, g |- S' : {G1}.W > W   (for some W)
+       then {{K}}, G |- S' : {G1}.W > W   (for some W)
        and  . ||- S'
     *)
-      (* k = depth *)(* abstractSpine (K, depth, (S, s)) = S'
+    (* k = depth *)
+    (* abstractSpine (K, depth, (S, s)) = S'
        where S' = {{S[s]}}_K
 
        Invariant:
-       If   g |- s : G1     G1 |- S : V > P
+       If   G |- s : G1     G1 |- S : V > P
        and  K ||- S
-       and  |g| = depth
+       and  |G| = depth
 
-       then {{K}}, g |- S' : V' > P'
+       then {{K}}, G |- S' : V' > P'
        and  . ||- S'
     *)
-      (* abstractDec (K, depth, (x:V, s)) = x:V'
+    (* abstractDec (K, depth, (x:V, s)) = x:V'
        where V = {{V[s]}}_K
 
        Invariant:
-       If   g |- s : G1     G1 |- V : L
+       If   G |- s : G1     G1 |- V : L
        and  K ||- V
-       and  |g| = depth
+       and  |G| = depth
 
-       then {{K}}, g |- V' : L
+       then {{K}}, G |- V' : L
        and  . ||- V'
     *)
-      (* abstractSOME (K, s) = s'
+    (* abstractSOME (K, s) = s'
        s' = {{s}}_K
 
        Invariant:
@@ -780,20 +797,21 @@ module Abstract(Abstract:sig
        Above is now incorrect
        Sun Dec  1 22:36:50 2002 -fp
     *)
-      (* n = 0 by invariant, check for now *)(* n > 0 *)
-      (* I.Block (I.Bidx _) should be impossible as head of substitutions *)
-      (* abstractCtx (K, depth, g) = (g', depth')
-       where g' = {{g}}_K
+    (* n = 0 by invariant, check for now *)
+    (* n > 0 *)
+    (* I.Block (I.Bidx _) should be impossible as head of substitutions *)
+    (* abstractCtx (K, depth, G) = (G', depth')
+       where G' = {{G}}_K
 
        Invariants:
-       If G0 |- g ctx
-       and K ||- g
+       If G0 |- G ctx
+       and K ||- G
        and |G0| = depth
-       then {{K}}, G0 |- g' ctx
-       and . ||- g'
-       and |G0,g| = depth'
+       then {{K}}, G0 |- G' ctx
+       and . ||- G'
+       and |G0,G| = depth'
     *)
-      (* abstractCtxlist (K, depth, [G1,...,Gn]) = [G1',...,Gn']
+    (* abstractCtxlist (K, depth, [G1,...,Gn]) = [G1',...,Gn']
        where Gi' = {{Gi}}_K
 
        Invariants:
@@ -803,16 +821,16 @@ module Abstract(Abstract:sig
        then {{K}}, G0 |- G1',...,Gn' ctx
        and . ||- G1',...,Gn'
     *)
-      (* dead code under new reconstruction -kw
-     getlevel (V) = L if g |- V : L
+    (* dead code under new reconstruction -kw
+     getlevel (V) = L if G |- V : L
 
-       Invariant: g |- V : L' for some L'
+       Invariant: G |- V : L' for some L'
     *)
-      (* checkType (V) = () if g |- V : type
+    (* checkType (V) = () if G |- V : type
 
-       Invariant: g |- V : L' for some L'
+       Invariant: G |- V : L' for some L'
     *)
-      (* abstractKPi (K, V) = V'
+    (* abstractKPi (K, V) = V'
        where V' = {{K}} V
 
        Invariant:
@@ -823,11 +841,11 @@ module Abstract(Abstract:sig
        and  . |- V' : L
        and  . ||- V'
     *)
-      (* enforced by reconstruction -kw
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* enforced by reconstruction -kw
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* abstractKLam (K, U) = U'
+    (* abstractKLam (K, U) = U'
        where U' = [[K]] U
 
        Invariant:
@@ -839,12 +857,12 @@ module Abstract(Abstract:sig
        and  . |- U' : {{K}} V
        and  . ||- U'
     *)
-      (* enforced by reconstruction -kw
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* enforced by reconstruction -kw
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* abstractDecImp V = (k', V')    rename --cs  (see above) *)
-      (* abstractDef  (U, V) = (k', (U', V'))
+    (* abstractDecImp V = (k', V')    rename --cs  (see above) *)
+    (* abstractDef  (U, V) = (k', (U', V'))
 
        Invariant:
        If    . |- V : L
@@ -861,7 +879,7 @@ module Abstract(Abstract:sig
        and   . ||- U'
        and   k' = |K|
     *)
-      (* abstractCtxs [G1,...,Gn] = G0, [G1',...,Gn']
+    (* abstractCtxs [G1,...,Gn] = G0, [G1',...,Gn']
        Invariants:
        If . |- G1,...,Gn ctx
           K ||- G1,...,Gn for some K
@@ -869,37 +887,39 @@ module Abstract(Abstract:sig
        and G1',...,Gn' nf
        and . ||- G1',...,Gn' ctx
     *)
-      (* closedDec (g, D) = true iff D contains no EVar or FVar *)
-      (* collectEVars (g, U[s], Xs) = Xs'
+    (* closedDec (G, D) = true iff D contains no EVar or FVar *)
+    (* collectEVars (G, U[s], Xs) = Xs'
        Invariants:
-         g |- U[s] : V
+         G |- U[s] : V
          Xs' extends Xs by new EVars in U[s]
     *)
-      (* for the theorem prover:
+    (* for the theorem prover:
        collect and abstract in subsitutions  including residual lemmas
        pending approval of Frank.
     *)
-      (* abstractPVar (K, depth, L) = C'
+    (* abstractPVar (K, depth, L) = C'
 
        Invariant:
-       If   g |- L : V
-       and  |g| = depth
+       If   G |- L : V
+       and  |G| = depth
        and  L occurs in K  at kth position (starting at 1)
        then C' = Bidx (depth + k)
-       and  {{K}}, g |- C' : V
+       and  {{K}}, G |- C' : V
     *)
-      (* TC cannot contain free FVAR's or EVars'
+    (* TC cannot contain free FVAR's or EVars'
             --cs  Fri Apr 30 13:45:50 2004 *)
-      (* Argument must be in normal form *)(* enforced by reconstruction -kw
+    (* Argument must be in normal form *)
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* enforced by reconstruction -kw
+    (* enforced by reconstruction -kw
           val _ = checkType V'' *)
-      (* What's happening with GX? *)(* What's happening with TCs? *)
-      (* just added to abstract over residual lemmas  -cs *)
-      (* Tomorrow: Make collection in program values a priority *)
-      (* Then just traverse the Tomega by abstraction to get to the types of those
-       variables. *))
-      = raiseType
+    (* What's happening with GX? *)
+    (* What's happening with TCs? *)
+    (* just added to abstract over residual lemmas  -cs *)
+    (* Tomorrow: Make collection in program values a priority *)
+    (* Then just traverse the Tomega by abstraction to get to the types of those
+       variables. *)
+    let raiseType = raiseType
     let raiseTerm = raiseTerm
     let piDepend = piDepend
     let closedDec = closedDec

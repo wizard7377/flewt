@@ -1,10 +1,11 @@
 
+(* Origins of Declarations *)
+(* Author: Frank Pfenning *)
 module type ORIGINS  =
   sig
-    val reset :
-      unit ->
-        ((unit)(*! structure Paths : PATHS !*)(*! structure IntSyn : INTSYN !*)
-        (* Author: Frank Pfenning *)(* Origins of Declarations *))
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure Paths : PATHS !*)
+    val reset : unit -> unit
     val installLinesInfo : (string * Paths.linesInfo) -> unit
     val linesInfoLookup : string -> Paths.linesInfo option
     val installOrigin :
@@ -15,20 +16,21 @@ module type ORIGINS  =
 
 
 
-module Origins(Origins:sig
-                         module Global : GLOBAL
-                         module Table :
-                         ((TABLE)(* Origins of Declarations *)(* Author: Frank Pfenning *))
-                       end) : ORIGINS =
+(* Origins of Declarations *)
+(* Author: Frank Pfenning *)
+module Origins(Origins:sig module Global : GLOBAL module Table : TABLE end) :
+  ORIGINS =
   struct
+    (*! structure IntSyn' : INTSYN !*)
+    (*! structure Paths' : PATHS !*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure Paths = Paths' !*)
     let (linesInfoTable : Paths.linesInfo Table.__Table) = Table.new__ 31
     let rec reset () = Table.clear linesInfoTable
     let rec install (string, linesInfo) =
       Table.insert linesInfoTable (string, linesInfo)
     let rec lookup string = Table.lookup linesInfoTable string
-    let ((reset)(*! structure IntSyn' : INTSYN !*)(*! structure Paths' : PATHS !*)
-      (*! structure IntSyn = IntSyn' !*)(*! structure Paths = Paths' !*))
-      = reset
+    let reset = reset
     let installLinesInfo = install
     let linesInfoLookup = lookup
     let originArray =

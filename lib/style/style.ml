@@ -1,22 +1,23 @@
 
+(* Style Checking *)
+(* Author: Carsten Schuermann *)
 module type STYLECHECK  =
   sig
-    exception Error of
-      ((string)(* Author: Carsten Schuermann *)(* Style Checking *))
-      
+    exception Error of string 
     val check : unit -> unit
-    val checkConDec :
-      IntSyn.cid -> ((unit)(* raises Error (msg) *))
+    (* raises Error (msg) *)
+    val checkConDec : IntSyn.cid -> unit
   end;;
 
 
 
 
+(* Style Checking *)
+(* Author: Carsten Schuermann *)
 module StyleCheck(StyleCheck:sig
                                module Whnf : WHNF
                                module Index : INDEX
-                               module Origins :
-                               ((ORIGINS)(* Style Checking *)(* Author: Carsten Schuermann *))
+                               module Origins : ORIGINS
                              end) : STYLECHECK =
   struct
     exception Error of string 
@@ -81,87 +82,87 @@ module StyleCheck(StyleCheck:sig
       | FgnConst _ -> 0
     let rec checkExp arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), Uni _, occ), err) -> []
-      | (c, ((g, P), Lam (D, U), occ), err) ->
-          checkDec c ((g, P), D, Minus, occ) err
+      | (c, ((G, P), Uni _, occ), err) -> []
+      | (c, ((G, P), Lam (D, U), occ), err) ->
+          checkDec c ((G, P), D, Minus, occ) err
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkExp c ((g', P'), U, (P.body occ)) err)
-      | (c, ((g, P), Root (H, S), occ), err) ->
-          (@) (checkHead c ((g, P), H, (P.head occ)) err) checkSpine c
-            ((g, P), 1, (implicitHead H), S, (P.body occ)) err
-      | (c, ((g, P), FgnExp (_, _), occ), err) -> []
+             | ((G', P'), L') ->
+                 (@) L' checkExp c ((G', P'), U, (P.body occ)) err)
+      | (c, ((G, P), Root (H, S), occ), err) ->
+          (@) (checkHead c ((G, P), H, (P.head occ)) err) checkSpine c
+            ((G, P), 1, (implicitHead H), S, (P.body occ)) err
+      | (c, ((G, P), FgnExp (_, _), occ), err) -> []
     let rec checkType arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), Uni _, pol, occ), err) -> []
-      | (c, ((g, P), Pi ((D, I.Maybe), V), pol, occ), err) ->
-          checkDec c ((g, P), D, pol, occ) err
+      | (c, ((G, P), Uni _, pol, occ), err) -> []
+      | (c, ((G, P), Pi ((D, I.Maybe), V), pol, occ), err) ->
+          checkDec c ((G, P), D, pol, occ) err
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkType c ((g', P'), V, pol, (P.body occ)) err)
-      | (c, ((g, P), Pi ((D, I.No), V), pol, occ), err) ->
-          checkDec c ((g, P), D, pol, occ) err
+             | ((G', P'), L') ->
+                 (@) L' checkType c ((G', P'), V, pol, (P.body occ)) err)
+      | (c, ((G, P), Pi ((D, I.No), V), pol, occ), err) ->
+          checkDec c ((G, P), D, pol, occ) err
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkType c ((g', P'), V, pol, (P.body occ)) err)
-      | (c, ((g, P), Root (H, S), pol, occ), err) ->
-          (@) (checkHead c ((g, P), H, (P.head occ)) err) checkSpine c
-            ((g, P), 1, (implicitHead H), S, (P.body occ)) err
-      | (c, ((g, P), FgnExp (_, _), pol, occ), err) -> []
-    let rec checkDecImp ((g, P), (Dec (_, V) as D), pol) k =
-      let I = checkVar (D, pol) in k (((I.Decl (g, D)), (I.Decl (P, I))), [])
-    let rec checkDec c ((g, P), (Dec (_, V) as D), pol, occ) err k =
+             | ((G', P'), L') ->
+                 (@) L' checkType c ((G', P'), V, pol, (P.body occ)) err)
+      | (c, ((G, P), Root (H, S), pol, occ), err) ->
+          (@) (checkHead c ((G, P), H, (P.head occ)) err) checkSpine c
+            ((G, P), 1, (implicitHead H), S, (P.body occ)) err
+      | (c, ((G, P), FgnExp (_, _), pol, occ), err) -> []
+    let rec checkDecImp ((G, P), (Dec (_, V) as D), pol) k =
+      let I = checkVar (D, pol) in k (((I.Decl (G, D)), (I.Decl (P, I))), [])
+    let rec checkDec c ((G, P), (Dec (_, V) as D), pol, occ) err k =
       let I = checkVar (D, pol) in
       let E1 =
         match I with
         | Correct -> []
         | Incorrect (prefNames, n) -> error c (prefNames, n, occ) err in
-      let E2 = checkType c ((g, P), V, (toggle pol), (P.label occ)) err in
-      k (((I.Decl (g, D)), (I.Decl (P, I))), (E1 @ E2))
+      let E2 = checkType c ((G, P), V, (toggle pol), (P.label occ)) err in
+      k (((I.Decl (G, D)), (I.Decl (P, I))), (E1 @ E2))
     let rec checkHead arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), BVar k, occ), err) ->
+      | (c, ((G, P), BVar k, occ), err) ->
           (match I.ctxLookup (P, k) with
            | Correct -> []
            | Incorrect (prefNames, n) -> error c (prefNames, n, occ) err)
-      | (c, ((g, P), Const _, occ), err) -> []
-      | (c, ((g, P), Skonst k, occ), err) -> []
-      | (c, ((g, P), Def d, occ), err) -> []
-      | (c, ((g, P), NSDef d, occ), err) -> []
-      | (c, ((g, P), FgnConst _, occ), err) -> []
+      | (c, ((G, P), Const _, occ), err) -> []
+      | (c, ((G, P), Skonst k, occ), err) -> []
+      | (c, ((G, P), Def d, occ), err) -> []
+      | (c, ((G, P), NSDef d, occ), err) -> []
+      | (c, ((G, P), FgnConst _, occ), err) -> []
     let rec checkSpine arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), n, 0, I.Nil, occ), err) -> []
-      | (c, ((g, P), n, 0, App (U, S), occ), err) ->
-          (@) (checkExp c ((g, P), U, (P.arg (n, occ))) err) checkSpine c
-            ((g, P), (n + 1), 0, S, occ) err
-      | (c, ((g, P), n, i, App (U, S), occ), err) ->
-          checkSpine c ((g, P), (n + 1), (i - 1), S, occ) err
+      | (c, ((G, P), n, 0, I.Nil, occ), err) -> []
+      | (c, ((G, P), n, 0, App (U, S), occ), err) ->
+          (@) (checkExp c ((G, P), U, (P.arg (n, occ))) err) checkSpine c
+            ((G, P), (n + 1), 0, S, occ) err
+      | (c, ((G, P), n, i, App (U, S), occ), err) ->
+          checkSpine c ((G, P), (n + 1), (i - 1), S, occ) err
     let rec checkType' arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), 0, V, occ), err) ->
-          checkType c ((g, P), V, Plus, occ) err
-      | (c, ((g, P), n, Pi ((D, I.Maybe), V), occ), err) ->
-          checkDecImp ((g, P), D, Plus)
+      | (c, ((G, P), 0, V, occ), err) ->
+          checkType c ((G, P), V, Plus, occ) err
+      | (c, ((G, P), n, Pi ((D, I.Maybe), V), occ), err) ->
+          checkDecImp ((G, P), D, Plus)
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkType' c ((g', P'), (n - 1), V, (P.body occ)) err)
+             | ((G', P'), L') ->
+                 (@) L' checkType' c ((G', P'), (n - 1), V, (P.body occ)) err)
     let rec checkExp' arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), Lam (D, U), occ), err) ->
-          checkDec c ((g, P), D, Plus, occ) err
+      | (c, ((G, P), Lam (D, U), occ), err) ->
+          checkDec c ((G, P), D, Plus, occ) err
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkExp' c ((g', P'), U, (P.body occ)) err)
-      | (c, ((g, P), U, occ), err) -> checkExp c ((g, P), U, occ) err
+             | ((G', P'), L') ->
+                 (@) L' checkExp' c ((G', P'), U, (P.body occ)) err)
+      | (c, ((G, P), U, occ), err) -> checkExp c ((G, P), U, occ) err
     let rec checkDef arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (c, ((g, P), 0, U, occ), err) -> checkExp' c ((g, P), U, occ) err
-      | (c, ((g, P), n, Lam (D, U), occ), err) ->
-          checkDecImp ((g, P), D, Plus)
+      | (c, ((G, P), 0, U, occ), err) -> checkExp' c ((G, P), U, occ) err
+      | (c, ((G, P), n, Lam (D, U), occ), err) ->
+          checkDecImp ((G, P), D, Plus)
             (function
-             | ((g', P'), L') ->
-                 (@) L' checkDef c ((g', P'), (n - 1), U, (P.body occ)) err)
+             | ((G', P'), L') ->
+                 (@) L' checkDef c ((G', P'), (n - 1), U, (P.body occ)) err)
     let rec checkConDec arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (c, ConDec (_, _, implicit, _, U, _)) ->
@@ -193,9 +194,10 @@ module StyleCheck(StyleCheck:sig
       else []
     let rec check () =
       let (n, _) = I.sgnSize () in map print (checkAll (0, n)); ()
-    let ((checkConDec)(* indicates positivity *)(* distinguishes style correct
+    (* indicates positivity *)
+    (* distinguishes style correct
                                            from - incorrect declarations *)
-      (* wrapMsg (c, occ, msg) err = s
+    (* wrapMsg (c, occ, msg) err = s
 
        Invariant:
        Let c be a cid
@@ -204,151 +206,154 @@ module StyleCheck(StyleCheck:sig
        and err a function that computes adequate region information for c
        then s is msg wrapped with location information
     *)
-      (* denumber L = L'
+    (* denumber L = L'
 
        Invariant:
        L' = L without digits
     *)
-      (* checkVariblename (n, prefNames) = I
+    (* checkVariblename (n, prefNames) = I
 
        Invariant:
        If n occurs in prefNames then I = Correct otherwise Incorrect
     *)
-      (* checkVar (D, pol) = I
+    (* checkVar (D, pol) = I
 
        Invariant:
        If  D's name corresponds to the name choice for pol,
        then I is Correct else Incorrect
     *)
-      (* implicitHead H = k
+    (* implicitHead H = k
 
        Invariant:
        k = # implicit arguments associated with H
     *)
-      (* checkExp c ((g, P), U, occ) err = L
+    (* checkExp c ((G, P), U, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |- U : V
+       and   |- G ctx
+       and   |- P info for G
+       and   G |- U : V
        and   occ an occurrence to the current location
        and   err an function mapping occ to regions
        then  L is a list of strings (error messages) computed from U
     *)
-      (* checkType c ((g, P), V, pol, occ) err = L
+    (* checkType c ((G, P), V, pol, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |-pol  V : type
+       and   |- G ctx
+       and   |- P info for G
+       and   G |-pol  V : type
        and   occ an occurrence to the current location
        and   err an function mapping occ to regions
        then  L is a list of strings (error messages) computed from V
     *)
-      (* checkDecImp c ((g, P), D, pol) k = L
+    (* checkDecImp c ((G, P), D, pol) k = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |-pol  D declation
-       and   k a continuation, that expects the extended context (g', P')
+       and   |- G ctx
+       and   |- P info for G
+       and   G |-pol  D declation
+       and   k a continuation, that expects the extended context (G', P')
              and a list of already computed error messages L' as argument.
        then  L is a list of strings (error messages) computed D
        ( checkDecImp does not generate any error messages for D since omitted)
     *)
-      (* checkDec c ((g, P), D, pol, occ) err k = L
+    (* checkDec c ((G, P), D, pol, occ) err k = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |-pol  D declation
+       and   |- G ctx
+       and   |- P info for G
+       and   G |-pol  D declation
        and   occ occurrence, err wrapper function
-       and   k a continuation, that expects the extended context (g', P')
+       and   k a continuation, that expects the extended context (G', P')
              and a list of already computed error messages L' as argument.
        then  L is a list of strings (error messages) computed from D
     *)
-      (* checkHead c ((g, P), H, occ) err = L
+    (* checkHead c ((G, P), H, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |-  H head
+       and   |- G ctx
+       and   |- P info for G
+       and   G |-  H head
        and   occ occurrence, err wrapper function
        then  L is a list of at most one string (error message) computed from H
     *)
-      (* checkSpine c ((g, P), S, n, i, occ) err = L
+    (* checkSpine c ((G, P), S, n, i, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |- S : V1 >> V2  for V1 V2, valid types
+       and   |- G ctx
+       and   |- P info for G
+       and   G |- S : V1 >> V2  for V1 V2, valid types
        and   n a running number of arguments considered
        and   i the number of remaining implicit arguments
        and   occ occurrence, err wrapper function
        then  L is a list of  strings (error messages) computed from S
     *)
-      (* checkType' c ((g, P), n, V, occ) err = L
+    (* checkType' c ((G, P), n, V, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
+       and   |- G ctx
+       and   |- P info for G
        and   n a decreasing number of implicit arguments
-       and   g |- V : type
+       and   G |- V : type
        and   occ occurrence, err wrapper function
        then  L is a list of  strings (error messages) computed from V
        (omitted arguments generate error message where they are used not declared)
     *)
-      (* checkExp' c ((g, P), U, occ) err = L
+    (* checkExp' c ((G, P), U, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
-       and   g |- U : V for some type V, body of a definition
+       and   |- G ctx
+       and   |- P info for G
+       and   G |- U : V for some type V, body of a definition
        and   occ occurrence, err wrapper function
        then  L is a list of  strings (error messages) computed from U
        (top level negative occurrences exception.  Treated as pos occurrences)
     *)
-      (* checkDef c ((g, P), n, U, occ) err = L
+    (* checkDef c ((G, P), n, U, occ) err = L
 
        Invariant:
        Let   c be a cid
-       and   |- g ctx
-       and   |- P info for g
+       and   |- G ctx
+       and   |- P info for G
        and   n a decreasing number of implicit arguments
-       and   g |- U : V for some type V, body of a definition
+       and   G |- U : V for some type V, body of a definition
        and   occ occurrence, err wrapper function
        then  L is a list of strings (error messages) computed from U
        (top level negative occurrences exception.  Treated as pos occurrences)
     *)
-      (* checkConDec c C = L
+    (* checkConDec c C = L
 
        Invariant:
        Let   c be a cid
        and   . |- C : V for some type V, constant declaration
        then  L is a list of  strings (error messages) computed from C
     *)
-      (* type level definitions ? *)(* type level abbreviations ? *)
-      (* in all other cases *)(* checkAll (c, n) = L
+    (* type level definitions ? *)
+    (* type level abbreviations ? *)
+    (* in all other cases *)
+    (* checkAll (c, n) = L
 
        Invariant:
        Let   c be a cid
        and   n the max. number of cids
        then  L is a list of  strings (error messages) computed from the signature c<=n
     *)
-      (* checkAll () = L
+    (* checkAll () = L
 
        Invariant:
        L is a list of  strings (error messages) computed from the entire Twelf signature
-    *))
-      = function | c -> (map print (checkConDec c (I.sgnLookup c)); ())
+    *)
+    let checkConDec =
+      function | c -> (map print (checkConDec c (I.sgnLookup c)); ())
     let check = check
   end ;;
 

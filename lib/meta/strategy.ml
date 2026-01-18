@@ -1,8 +1,9 @@
 
+(* MTPStrategy : Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module type MTPSTRATEGY  =
   sig
-    module StateSyn :
-    ((STATESYN)(* MTPStrategy : Version 1.3 *)(* Author: Carsten Schuermann *))
+    module StateSyn : STATESYN
     val run :
       StateSyn.__State list ->
         (StateSyn.__State list * StateSyn.__State list)
@@ -11,6 +12,8 @@ module type MTPSTRATEGY  =
 
 
 
+(* MTP Strategy: Version 1.3 *)
+(* Author: Carsten Schuermann *)
 module MTPStrategy(MTPStrategy:sig
                                  module MTPGlobal : MTPGLOBAL
                                  module StateSyn' : STATESYN
@@ -20,9 +23,7 @@ module MTPStrategy(MTPStrategy:sig
                                  module MTPRecursion : MTPRECURSION
                                  module Inference : INFERENCE
                                  module MTPrint : MTPRINT
-                                 module Timers :
-                                 ((TIMERS)(* MTP Strategy: Version 1.3 *)
-                                 (* Author: Carsten Schuermann *))
+                                 module Timers : TIMERS
                                end) : MTPSTRATEGY =
   struct
     module StateSyn = StateSyn'
@@ -60,7 +61,7 @@ module MTPStrategy(MTPStrategy:sig
       function
       | nil -> NONE
       | L ->
-          let findMin' =
+          let rec findMin' =
             function
             | (nil, result) -> result
             | ((O')::L', NONE) ->
@@ -117,8 +118,8 @@ module MTPStrategy(MTPStrategy:sig
       let solvedStates' = map MTPrint.nameState solvedStates in
       let _ = match openStates with | nil -> printQed () | _ -> () in
       (openStates', solvedStates')
-    let ((run)(* if !Global.chatter > 5 then print ("[" ^ MTPSplitting.menu splitOp) *)
-      (* findMin L = Sopt
+    (* if !Global.chatter > 5 then print ("[" ^ MTPSplitting.menu splitOp) *)
+    (* findMin L = Sopt
 
        Invariant:
 
@@ -126,7 +127,7 @@ module MTPStrategy(MTPStrategy:sig
        then Sopt = NONE if L = []
        else Sopt = SOME S, s.t. index S is minimal among all elements in L
     *)
-      (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+    (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
        recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
        fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
 
@@ -138,22 +139,22 @@ module MTPStrategy(MTPStrategy:sig
          contains the states resulting from givenStates which can be
          solved using Filling, Recursion, and Splitting
     *)
-      (* Note: calling splitting in case filling fails, may cause the prover to succeed
+    (* Note: calling splitting in case filling fails, may cause the prover to succeed
               if there are no cases to split -- however this may in fact be wrong -bp*)
-      (* for comparing depth-first search (logic programming) with iterative deepening search
+    (* for comparing depth-first search (logic programming) with iterative deepening search
               in the meta-theorem prover, we must disallow splitting :
 
                 handle TimeLimit.TimeOut =>  raise Filling.Error "Time Out: Time limit exceeded\n"
                 handle MTPFilling.Error msg =>  raise Filling.Error msg
                   ) handle MTPFilling.Error msg =>  raise Filling.Error msg
             *)
-      (* run givenStates = (openStates', solvedStates')
+    (* run givenStates = (openStates', solvedStates')
 
        Invariant:
        openStates' contains the states resulting from givenStates which cannot be
          solved using Filling, Recursion, and Splitting
        solvedStates' contains the states resulting from givenStates which can be
          solved using Filling, Recursion, and Splitting
-     *))
-      = run
+     *)
+    let run = run
   end ;;

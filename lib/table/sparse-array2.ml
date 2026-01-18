@@ -1,8 +1,9 @@
 
+(* Sparse 2-Dimensional Arrays *)
+(* Author: Roberto Virga *)
 module type SPARSE_ARRAY2  =
   sig
-    type nonrec 'a array(* Author: Roberto Virga *)
-    (* Sparse 2-Dimensional Arrays *)
+    type nonrec 'a array
     type nonrec 'a region =
       < base: 'a array  ;row: int  ;col: int  ;nrows: int  ;ncols: int   > 
     type traversal =
@@ -22,11 +23,10 @@ module type SPARSE_ARRAY2  =
 
 
 
-module SparseArray2(SparseArray2:sig
-                                   module IntTable :
-                                   ((TABLE)(* Sparse 2-Dimensional Arrays *)
-                                   (* Author: Roberto Virga *))
-                                 end) : SPARSE_ARRAY2 =
+(* Sparse 2-Dimensional Arrays *)
+(* Author: Roberto Virga *)
+module SparseArray2(SparseArray2:sig module IntTable : TABLE end) :
+  SPARSE_ARRAY2 =
   struct
     type nonrec 'a array = < default: 'a  ;table: 'a IntTable.__Table   > 
     type nonrec 'a region =
@@ -36,7 +36,7 @@ module SparseArray2(SparseArray2:sig
       | ColMajor 
     let size = 29
     let rec fromInt code =
-      let fromInt' r =
+      let rec fromInt' r =
         let code' = ( * ) (r + 1) (r + 2) div 2 in
         if code < code'
         then let diff = (code' - code) - 1 in (diff, (r - diff))
@@ -82,7 +82,7 @@ module SparseArray2(SparseArray2:sig
       then
         let rmax = row + nrows in
         let cmax = col + ncols in
-        let appR (row', col') =
+        let rec appR (row', col') =
           if row' < rmax
           then
             (if col' < cmax
@@ -91,7 +91,7 @@ module SparseArray2(SparseArray2:sig
                 appR (row', (col' + 1)))
              else appR ((row' + 1), col))
           else () in
-        let appC (row', col') =
+        let rec appC (row', col') =
           if col' < cmax
           then
             (if row' < rmax
@@ -112,7 +112,7 @@ module SparseArray2(SparseArray2:sig
       then
         let rmax = row + nrows in
         let cmax = col + ncols in
-        let foldR (row', col') =
+        let rec foldR (row', col') =
           if row' < rmax
           then
             (if col' < cmax
@@ -122,7 +122,7 @@ module SparseArray2(SparseArray2:sig
                    (foldR (row', (col' + 1))))
              else foldR ((row' + 1), col))
           else init in
-        let foldC (row', col') =
+        let rec foldC (row', col') =
           if col' < cmax
           then
             (if row' < rmax
@@ -144,7 +144,7 @@ module SparseArray2(SparseArray2:sig
       then
         let rmax = row + nrows in
         let cmax = col + ncols in
-        let modifyR (row', col') =
+        let rec modifyR (row', col') =
           if row' < rmax
           then
             (if col' < cmax
@@ -155,7 +155,7 @@ module SparseArray2(SparseArray2:sig
                 modifyR (row', (col' + 1)))
              else modifyR ((row' + 1), col))
           else () in
-        let modifyC (row', col') =
+        let rec modifyC (row', col') =
           if col' < cmax
           then
             (if row' < rmax

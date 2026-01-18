@@ -1,19 +1,19 @@
 
+(* Naming *)
+(* Author: Carsten Schuermann *)
 module type TOMEGANAMES  =
   sig
-    val decName :
-      (Tomega.__Dec IntSyn.__Ctx * Tomega.__Dec) ->
-        ((Tomega.__Dec)(* Author: Carsten Schuermann *)
-        (* Naming *))
+    val decName : (Tomega.__Dec IntSyn.__Ctx * Tomega.__Dec) -> Tomega.__Dec
   end;;
 
 
 
 
+(* Naming *)
+(* Author: Carsten Schuermann *)
 module TomegaNames : TOMEGANAMES =
   struct
-    module T =
-      ((Tomega)(* Naming *)(* Author: Carsten Schuermann *))
+    module T = Tomega
     module I = IntSyn
     let rec decName =
       function

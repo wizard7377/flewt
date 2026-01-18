@@ -45,20 +45,29 @@ module CSIntWord32 =
                      let wordSize = 32
                    end)
 module type CS_INSTALLER  = sig val version : string end
-module CSInstaller : CS_INSTALLER =
-  struct
-    let ((solvers)(* now in cs-manager.fun *)(*
+(* now in cs-manager.fun *)
+(*
 structure CSManager = CSManager (structure Global = Global
                                  ! structure IntSyn = IntSyn !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (*! structure IntSyn = IntSyn !*)(*! structure CSManager = CSManager !*)
-      (* execute for effect *)(* wrapped in structure so it can be tracked by CM *))
-      =
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(*! structure IntSyn = IntSyn !*)
+(*! structure CSManager = CSManager !*)
+(* execute for effect *)
+(* wrapped in structure so it can be tracked by CM *)
+module CSInstaller : CS_INSTALLER =
+  struct
+    let solvers =
       [CSEqQ.solver;
       CSIneqQ.solver;
       CSEqStrings.solver;

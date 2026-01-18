@@ -1,9 +1,9 @@
 
+(* Global parameters *)
+(* Author: Frank Pfenning *)
 module type GLOBAL  =
   sig
-    val chatter :
-      ((int)(* Author: Frank Pfenning *)(* Global parameters *))
-        ref
+    val chatter : int ref
     val style : int ref
     val maxCid : int
     val maxMid : int
@@ -19,10 +19,11 @@ module type GLOBAL  =
 
 
 
+(* Global parameters *)
+(* Author: Frank Pfenning *)
 module Global : GLOBAL =
   struct
-    let ((chatter)(* Global parameters *)(* Author: Frank Pfenning *))
-      = ref 3
+    let chatter = ref 3
     let style = ref 0
     let maxCid = 19999
     let maxMid = 999
@@ -30,8 +31,8 @@ module Global : GLOBAL =
     let doubleCheck = ref false__
     let unsafe = ref false__
     let autoFreeze = ref true__
-    let ((timeLimit)(* !!!reconsider later!!! Thu Mar 10 09:42:28 2005 *))
-      = ref (NONE : Time.time option)
+    (* !!!reconsider later!!! Thu Mar 10 09:42:28 2005 *)
+    let timeLimit = ref (NONE : Time.time option)
     let rec chPrint n s = if (!chatter) >= n then print (s ()) else ()
     let rec chMessage n s f = if (!chatter) >= n then f (s ()) else ()
   end ;;

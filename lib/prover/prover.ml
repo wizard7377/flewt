@@ -1,24 +1,24 @@
 
 module State =
   (Make_State)(struct
-                 module WorldSyn' =
-                   ((WorldSyn)(*! structure IntSyn' = IntSyn !*)
-                   (*! structure Tomega' = Tomega !*))
+                 (*! structure IntSyn' = IntSyn !*)
+                 (*! structure Tomega' = Tomega !*)
+                 module WorldSyn' = WorldSyn
                  module Formatter = Formatter
                end)
 module Introduce =
   (Make_Introduce)(struct
-                     module TomegaNames =
-                       ((TomegaNames)(*! structure IntSyn' = IntSyn !*)
-                       (*! structure Tomega' = Tomega !*))
+                     (*! structure IntSyn' = IntSyn !*)
+                     (*! structure Tomega' = Tomega !*)
+                     module TomegaNames = TomegaNames
                      module State' = State
                    end)
 module Elim =
   (Make_Elim)(struct
                 module Data = Data
-                module State' =
-                  ((State)(*! structure IntSyn' = IntSyn !*)
-                  (*! structure Tomega' = Tomega !*))
+                (*! structure IntSyn' = IntSyn !*)
+                (*! structure Tomega' = Tomega !*)
+                module State' = State
                 module Whnf = Whnf
                 module Abstract = Abstract
                 module Unify = UnifyTrail
@@ -28,15 +28,16 @@ module Elim =
               end)
 module FixedPoint =
   (Make_FixedPoint)(struct
-                      module State' =
-                        ((State)(*! structure IntSyn' = IntSyn !*)
-                        (*! structure Tomega' = Tomega !*))
+                      (*! structure IntSyn' = IntSyn !*)
+                      (*! structure Tomega' = Tomega !*)
+                      module State' = State
                     end)
 module Split =
   (Make_Split)(struct
                  module Global = Global
-                 module State' =
-                   ((State)(*! structure IntSyn' = IntSyn !*)(*! structure Tomega' = Tomega !*))
+                 (*! structure IntSyn' = IntSyn !*)
+                 (*! structure Tomega' = Tomega !*)
+                 module State' = State
                  module Whnf = Whnf
                  module Abstract = Abstract
                  module Unify = UnifyTrail
@@ -51,8 +52,9 @@ module Search =
   (Make_Search)(struct
                   module Global = Global
                   module Data = Data
-                  module State' =
-                    ((State)(*! structure IntSyn' = IntSyn !*)(*! structure Tomega' = Tomega !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  (*! structure Tomega' = Tomega !*)
+                  module State' = State
                   module Abstract = Abstract
                   module Conv = Conv
                   module CompSyn' = CompSyn
@@ -69,9 +71,9 @@ module Search =
 module Fill =
   (Make_Fill)(struct
                 module Data = Data
-                module State' =
-                  ((State)(*! structure IntSyn' = IntSyn !*)
-                  (*! structure Tomega' = Tomega !*))
+                (*! structure IntSyn' = IntSyn !*)
+                (*! structure Tomega' = Tomega !*)
+                module State' = State
                 module Whnf = Whnf
                 module Abstract = Abstract
                 module Unify = UnifyTrail
@@ -82,13 +84,10 @@ module Fill =
               end)
 module Weaken =
   (Make_Weaken)(struct
-                  module Whnf =
-                    ((Whnf)(*! structure IntSyn' = IntSyn !*))
+                  (*! structure IntSyn' = IntSyn !*)
+                  module Whnf = Whnf
                 end)
-module Interactive =
-  (Make_Interactive)(struct
-                       module Global =
-                         ((Global)(*
+(*
 structure Recurse = Recurse
   (structure Global = Global
    structure Data = Data
@@ -106,10 +105,13 @@ structure Recurse = Recurse
    structure Index = Index
    structure Search = Search
    structure TypeCheck = TypeCheck)
-*))
-                       module State' =
-                         ((State)(*! structure IntSyn' = IntSyn !*)
-                         (*! structure Tomega' = Tomega !*))
+*)
+module Interactive =
+  (Make_Interactive)(struct
+                       module Global = Global
+                       (*! structure IntSyn' = IntSyn !*)
+                       (*! structure Tomega' = Tomega !*)
+                       module State' = State
                        module Ring = Ring
                        module Formatter = Formatter
                        module Trail = Trail

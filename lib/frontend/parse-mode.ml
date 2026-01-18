@@ -1,29 +1,30 @@
 
+(* Parsing Mode Declarations *)
+(* Author: Carsten Schuermann *)
 module type PARSE_MODE  =
   sig
-    module ExtModes :
-    ((EXTMODES)(* Parsing Mode Declarations *)(* Author: Carsten Schuermann *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module ExtModes : EXTMODES
     val parseMode' : ExtModes.modedec list Parsing.parser
   end;;
 
 
 
 
+(* Parsing Mode Declarations *)
+(* Author: Carsten Schuermann *)
 module ParseMode(ParseMode:sig
-                             module ExtModes' : EXTMODES
-                             module ParseTerm :
-                             ((PARSE_TERM)(* Parsing Mode Declarations *)
-                             (* Author: Carsten Schuermann *)(*! structure Paths : PATHS !*)
+                             (*! structure Paths : PATHS !*)
                              (*! structure Parsing' : PARSING !*)
                              (*! sharing Parsing'.Lexer.Paths = Paths !*)
+                             module ExtModes' : EXTMODES
                              (*! sharing ExtModes'.Paths = Paths !*)
-                             (*! sharing ExtModes'.ExtSyn.Paths = Paths !*))
+                             (*! sharing ExtModes'.ExtSyn.Paths = Paths !*)
+                             module ParseTerm : PARSE_TERM
                            end) : PARSE_MODE =
   struct
-    module ExtModes =
-      ((ExtModes')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ExtModes = ExtModes'
     module L = Lexer
     module LS = Lexer.Stream
     module E = ExtModes
@@ -145,19 +146,24 @@ module ParseMode(ParseMode:sig
       | Cons ((L.MODE, r), s') -> parseMode1 (LS.expose s')
       | Cons ((L.UNIQUE, r), s') -> parseMode1 (LS.expose s')
       | Cons ((L.COVERS, r), s') -> parseMode1 (LS.expose s')
-    let ((parseMode')(* extract (s, i) = substring of s starting at index i
+    (* extract (s, i) = substring of s starting at index i
        Effect: raises Subscript if i > |s|
     *)
-      (* splitModeId (r, id) = (mode, idOpt) where id = "<mode><idOpt>"
+    (* splitModeId (r, id) = (mode, idOpt) where id = "<mode><idOpt>"
        Invariant: id <> ""
     *)
-      (* t = `.' or ? *)(* parseShortSpine "modeid ... modeid." *)
-      (* parseFull "mode {id:term} ... mode {x:term} term" *)(* Look ahead one token to decide if quantifier follows *)
-      (* found quantifier --- id must be mode *)(* no quantifier --- parse atomic type *)
-      (* Left paren --- parse atomic type *)(* parseMode2 switches between full and short mode declarations *)
-      (* lexid could be mode or other identifier *)(* parseMode1 parses mdecl *)
-      (* parseMode' : lexResult front -> modedec * lexResult front
+    (* t = `.' or ? *)
+    (* parseShortSpine "modeid ... modeid." *)
+    (* parseFull "mode {id:term} ... mode {x:term} term" *)
+    (* Look ahead one token to decide if quantifier follows *)
+    (* found quantifier --- id must be mode *)
+    (* no quantifier --- parse atomic type *)
+    (* Left paren --- parse atomic type *)
+    (* parseMode2 switches between full and short mode declarations *)
+    (* lexid could be mode or other identifier *)
+    (* parseMode1 parses mdecl *)
+    (* parseMode' : lexResult front -> modedec * lexResult front
        Invariant: exposed input stream starts with MODE
-    *))
-      = parseMode'
+    *)
+    let parseMode' = parseMode'
   end ;;

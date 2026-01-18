@@ -1,17 +1,16 @@
 
+(* World Checking *)
+(* Author: Carsten Schuermann *)
 module type WORLDSYN  =
   sig
-    exception Error of
-      ((string)(* Author: Carsten Schuermann *)(* World Checking *))
-      
+    exception Error of string 
     val reset : unit -> unit
     val install : (IntSyn.cid * Tomega.__Worlds) -> unit
     val lookup : IntSyn.cid -> Tomega.__Worlds
-    val uninstall :
-      IntSyn.cid -> ((bool)(* raises Error if undeclared *))
-    val worldcheck :
-      Tomega.__Worlds ->
-        IntSyn.cid -> ((unit)(* true if declared *))
+    (* raises Error if undeclared *)
+    val uninstall : IntSyn.cid -> bool
+    (* true if declared *)
+    val worldcheck : Tomega.__Worlds -> IntSyn.cid -> unit
     val ctxToList : IntSyn.__Dec IntSyn.__Ctx -> IntSyn.__Dec list
     val isSubsumed : Tomega.__Worlds -> IntSyn.cid -> unit
     val getWorlds : IntSyn.cid -> Tomega.__Worlds
@@ -20,6 +19,9 @@ module type WORLDSYN  =
 
 
 
+(* World Checking *)
+(* Author: Carsten Schuermann *)
+(* Modified: Frank Pfenning *)
 module WorldSyn(WorldSyn:sig
                            module Global : GLOBAL
                            module Whnf : WHNF
@@ -32,11 +34,8 @@ module WorldSyn(WorldSyn:sig
                            module Print : PRINT
                            module Table : TABLE
                            module Origins : ORIGINS
-                           module Timers :
-                           ((TIMERS)(* World Checking *)
-                           (* Author: Carsten Schuermann *)
-                           (* Modified: Frank Pfenning *)
-                           (*! sharing Whnf.IntSyn = IntSyn !*)(*! sharing Index.IntSyn = IntSyn !*)
+                           (*! sharing Whnf.IntSyn = IntSyn !*)
+                           (*! sharing Index.IntSyn = IntSyn !*)
                            (*! sharing Names.IntSyn = IntSyn !*)
                            (*! sharing Unify.IntSyn = IntSyn !*)
                            (*! sharing Abstract.IntSyn = IntSyn !*)
@@ -47,7 +46,8 @@ module WorldSyn(WorldSyn:sig
                            (*! sharing Print.IntSyn = IntSyn !*)
                            (*! structure Paths : PATHS !*)
                            (*! sharing Origins.Paths = Paths !*)
-                           (*! sharing Origins.IntSyn = IntSyn !*))
+                           (*! sharing Origins.IntSyn = IntSyn !*)
+                           module Timers : TIMERS
                          end) : WORLDSYN =
   struct
     module I = IntSyn
@@ -56,10 +56,8 @@ module WorldSyn(WorldSyn:sig
     module F = Print.Formatter
     exception Error of string 
     exception Error' of (P.occ * string) 
-    let rec wrapMsg
-      (((c)(* copied from terminates/reduces.fun *)), occ,
-       msg)
-      =
+    (* copied from terminates/reduces.fun *)
+    let rec wrapMsg (c, occ, msg) =
       match Origins.originLookup c with
       | (fileName, NONE) -> (fileName ^ ":") ^ msg
       | (fileName, SOME occDec) ->
@@ -98,7 +96,7 @@ module WorldSyn(WorldSyn:sig
     exception Success 
     let rec formatReg r =
       match r with
-      | Block (g, dl) -> Print.formatDecList (g, dl)
+      | Block (G, dl) -> Print.formatDecList (G, dl)
       | Seq (dl, s) -> Print.formatDecList' (I.Null, (dl, s))
       | Star r -> F.Hbox [F.String "("; formatReg r; F.String ")*"]
       | Plus (r1, r2) ->
@@ -113,7 +111,7 @@ module WorldSyn(WorldSyn:sig
             formatReg r2;
             F.String ")"]
       | One -> F.String "1"
-    let rec formatSubsump msg (g, dl, Rb, b) =
+    let rec formatSubsump msg (G, dl, Rb, b) =
       F.HVbox
         [F.String msg;
         F.Space;
@@ -121,18 +119,18 @@ module WorldSyn(WorldSyn:sig
         F.Space;
         F.String ((Names.qidToString (Names.constQid b)) ^ ":");
         F.Break;
-        Print.formatDecList (g, dl);
+        Print.formatDecList (G, dl);
         F.Break;
         F.String "</:";
         F.Space;
         formatReg Rb]
     let rec createEVarSub =
       function
-      | (g, I.Null) -> I.Shift (I.ctxLength g)
-      | (g, Decl (g', (Dec (_, V) as D))) ->
-          let s = createEVarSub (g, g') in
+      | (G, I.Null) -> I.Shift (I.ctxLength G)
+      | (G, Decl (G', (Dec (_, V) as D))) ->
+          let s = createEVarSub (G, G') in
           let V' = I.EClo (V, s) in
-          let X = I.newEVar (g, V') in I.Dot ((I.Exp X), s)
+          let X = I.newEVar (G, V') in I.Dot ((I.Exp X), s)
     let rec collectConstraints =
       function
       | nil -> nil
@@ -141,46 +139,46 @@ module WorldSyn(WorldSyn:sig
           (@) (Constraints.simplify constrs) collectConstraints Xs
     let rec collectEVars =
       function
-      | (g, Dot (Exp (X), s), Xs) ->
-          collectEVars (g, s, (Abstract.collectEVars (g, (X, I.id), Xs)))
-      | (g, Shift _, Xs) -> Xs
-    let rec noConstraints (g, s) =
-      match collectConstraints (collectEVars (g, s, nil)) with
+      | (G, Dot (Exp (X), s), Xs) ->
+          collectEVars (G, s, (Abstract.collectEVars (G, (X, I.id), Xs)))
+      | (G, Shift _, Xs) -> Xs
+    let rec noConstraints (G, s) =
+      match collectConstraints (collectEVars (G, s, nil)) with
       | nil -> true__
       | _ -> false__
-    let rec formatD (g, D) =
+    let rec formatD (G, D) =
       F.Hbox
-        (((::) ((::) (F.String "{") Print.formatDec (g, D)) F.String "}") ::
+        (((::) ((::) (F.String "{") Print.formatDec (G, D)) F.String "}") ::
            nil)
     let rec formatDList =
       function
-      | (g, nil, t) -> nil
-      | (g, (D)::nil, t) ->
-          let D' = I.decSub (D, t) in (formatD (g, D')) :: nil
-      | (g, (D)::L, t) ->
+      | (G, nil, t) -> nil
+      | (G, (D)::nil, t) ->
+          let D' = I.decSub (D, t) in (formatD (G, D')) :: nil
+      | (G, (D)::L, t) ->
           let D' = I.decSub (D, t) in
-          (::) ((formatD (g, D')) :: F.Break) formatDList
-            ((I.Decl (g, D')), L, (I.dot1 t))
-    let rec wGoalToString ((g, L), Seq (piDecs, t)) =
+          (::) ((formatD (G, D')) :: F.Break) formatDList
+            ((I.Decl (G, D')), L, (I.dot1 t))
+    let rec wGoalToString ((G, L), Seq (piDecs, t)) =
       F.makestring_fmt
         (F.HVbox
-           [F.HVbox (formatDList (g, L, I.id));
+           [F.HVbox (formatDList (G, L, I.id));
            F.Break;
            F.String "<|";
            F.Break;
-           F.HVbox (formatDList (g, piDecs, t))])
-    let rec worldToString (g, Seq (piDecs, t)) =
-      F.makestring_fmt (F.HVbox (formatDList (g, piDecs, t)))
-    let rec hypsToString (g, L) =
-      F.makestring_fmt (F.HVbox (formatDList (g, L, I.id)))
-    let rec mismatchToString (g, (V1, s1), (V2, s2)) =
+           F.HVbox (formatDList (G, piDecs, t))])
+    let rec worldToString (G, Seq (piDecs, t)) =
+      F.makestring_fmt (F.HVbox (formatDList (G, piDecs, t)))
+    let rec hypsToString (G, L) =
+      F.makestring_fmt (F.HVbox (formatDList (G, L, I.id)))
+    let rec mismatchToString (G, (V1, s1), (V2, s2)) =
       F.makestring_fmt
         (F.HVbox
-           [Print.formatExp (g, (I.EClo (V1, s1)));
+           [Print.formatExp (G, (I.EClo (V1, s1)));
            F.Break;
            F.String "<>";
            F.Break;
-           Print.formatExp (g, (I.EClo (V2, s2)))])
+           Print.formatExp (G, (I.EClo (V2, s2)))])
     module Trace :
       sig
         val clause : I.cid -> unit
@@ -211,21 +209,21 @@ module WorldSyn(WorldSyn:sig
           if (!Global.chatter) > 7
           then print (((^) "Unmatched hypotheses:\n" hypsToString GL) ^ "\n")
           else ()
-        let rec missing (g, R) =
+        let rec missing (G, R) =
           if (!Global.chatter) > 7
           then
-            print (((^) "Missing hypotheses:\n" worldToString (g, R)) ^ "\n")
+            print (((^) "Missing hypotheses:\n" worldToString (G, R)) ^ "\n")
           else ()
-        let rec mismatch (g, Vs1, Vs2) =
+        let rec mismatch (G, Vs1, Vs2) =
           if (!Global.chatter) > 7
           then
-            print (((^) "Mismatch:\n" mismatchToString (g, Vs1, Vs2)) ^ "\n")
+            print (((^) "Mismatch:\n" mismatchToString (G, Vs1, Vs2)) ^ "\n")
           else ()
         let rec success () =
           if (!Global.chatter) > 7 then print "Success\n" else ()
       end 
-    let rec decUName (g, D) = I.Decl (g, (Names.decUName (g, D)))
-    let rec decEName (g, D) = I.Decl (g, (Names.decEName (g, D)))
+    let rec decUName (G, D) = I.Decl (G, (Names.decUName (G, D)))
+    let rec decEName (G, D) = I.Decl (G, (Names.decEName (G, D)))
     let rec subGoalToDList =
       function | Pi ((D, _), V) -> (::) D subGoalToDList V | Root _ -> nil
     let rec worldsToReg =
@@ -237,37 +235,37 @@ module WorldSyn(WorldSyn:sig
     let rec init arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (b, (_, nil)) -> (Trace.success (); raise Success)
-      | (b, (g, ((Dec (_, V1) as D1)::L2 as L))) ->
+      | (b, (G, ((Dec (_, V1) as D1)::L2 as L))) ->
           if Subordinate.belowEq ((I.targetFam V1), b)
-          then (Trace.unmatched (g, L); ())
-          else init b ((decUName (g, D1)), L2)
+          then (Trace.unmatched (G, L); ())
+          else init b ((decUName (G, D1)), L2)
     let rec accR =
       function
       | (GL, One, b, k) -> k GL
-      | (((g, L) as GL), Block (someDecs, piDecs), b, k) ->
-          let t = createEVarSub (g, someDecs) in
+      | (((G, L) as GL), Block (someDecs, piDecs), b, k) ->
+          let t = createEVarSub (G, someDecs) in
           let _ = Trace.matchBlock (GL, (Seq (piDecs, t))) in
           let k' =
             function
             | GL' ->
-                if noConstraints (g, t)
+                if noConstraints (G, t)
                 then k GL'
                 else (Trace.constraintsRemain (); ()) in
           accR (GL, (Seq (piDecs, t)), b, k')
-      | ((g, ((Dec (_, V1) as D)::L2 as L)),
+      | ((G, ((Dec (_, V1) as D)::L2 as L)),
          (Seq (((Dec (_, V1'))::L2' as B'), t) as L'), b, k) ->
-          if Unify.unifiable (g, (V1, I.id), (V1', t))
-          then accR (((decUName (g, D)), L2), (Seq (L2', (I.dot1 t))), b, k)
+          if Unify.unifiable (G, (V1, I.id), (V1', t))
+          then accR (((decUName (G, D)), L2), (Seq (L2', (I.dot1 t))), b, k)
           else
             if Subordinate.belowEq ((I.targetFam V1), b)
-            then (Trace.mismatch (g, (V1, I.id), (V1', t)); ())
+            then (Trace.mismatch (G, (V1, I.id), (V1', t)); ())
             else
               accR
-                (((decUName (g, D)), L2), (Seq (B', (I.comp (t, I.shift)))),
+                (((decUName (G, D)), L2), (Seq (B', (I.comp (t, I.shift)))),
                   b, k)
       | (GL, Seq (nil, t), b, k) -> k GL
-      | (((g, nil) as GL), (Seq (L', t) as R), b, k) ->
-          (Trace.missing (g, R); ())
+      | (((G, nil) as GL), (Seq (L', t) as R), b, k) ->
+          (Trace.missing (G, R); ())
       | (GL, Plus (r1, r2), b, k) ->
           (CSManager.trail (function | () -> accR (GL, r1, b, k));
            accR (GL, r2, b, k))
@@ -275,13 +273,13 @@ module WorldSyn(WorldSyn:sig
       | (GL, (Star r' as r), b, k) ->
           (CSManager.trail (function | () -> k GL);
            accR (GL, r', b, (function | GL' -> accR (GL', r, b, k))))
-    let rec checkSubsumedBlock (g, L', Rb, b) =
+    let rec checkSubsumedBlock (G, L', Rb, b) =
       try
-        accR ((g, L'), Rb, b, (init b));
+        accR ((G, L'), Rb, b, (init b));
         raise
           (Error
              (F.makestring_fmt
-                (formatSubsump "World subsumption failure" (g, L', Rb, b))))
+                (formatSubsump "World subsumption failure" (G, L', Rb, b))))
       with | Success -> ()
     let rec checkSubsumedWorlds =
       function
@@ -290,7 +288,7 @@ module WorldSyn(WorldSyn:sig
           let (someDecs, piDecs) = I.constBlock cid in
           (checkSubsumedBlock ((Names.ctxName someDecs), piDecs, Rb, b);
            checkSubsumedWorlds (cids, Rb, b))
-    let rec checkBlocks (Worlds cids) (g, V, occ) =
+    let rec checkBlocks (Worlds cids) (G, V, occ) =
       try
         let b = I.targetFam V in
         let Wb =
@@ -303,29 +301,29 @@ module WorldSyn(WorldSyn:sig
             (try checkSubsumedWorlds (cids, Rb, b); subsumedInsert b
              with | Error msg -> raise (Error' (occ, msg))) in
         let L = subGoalToDList V in
-        accR ((g, L), Rb, b, (init b));
+        accR ((G, L), Rb, b, (init b));
         raise
           (Error'
              (occ,
                (F.makestring_fmt
-                  (formatSubsump "World violation" (g, L, Rb, b)))))
+                  (formatSubsump "World violation" (G, L, Rb, b)))))
       with | Success -> ()
     let rec checkClause =
       function
-      | (g, Root (a, S), W, occ) -> ()
-      | (g, Pi (((Dec (_, V1) as D), I.Maybe), V2), W, occ) ->
-          (checkClause ((decEName (g, D)), V2, W, (P.body occ));
-           checkGoal (g, V1, W, (P.label occ)))
-      | (g, Pi (((Dec (_, V1) as D), I.No), V2), W, occ) ->
-          (checkBlocks W (g, V1, (P.label occ));
-           checkClause ((decEName (g, D)), V2, W, (P.body occ));
-           checkGoal (g, V1, W, (P.label occ)))
+      | (G, Root (a, S), W, occ) -> ()
+      | (G, Pi (((Dec (_, V1) as D), I.Maybe), V2), W, occ) ->
+          (checkClause ((decEName (G, D)), V2, W, (P.body occ));
+           checkGoal (G, V1, W, (P.label occ)))
+      | (G, Pi (((Dec (_, V1) as D), I.No), V2), W, occ) ->
+          (checkBlocks W (G, V1, (P.label occ));
+           checkClause ((decEName (G, D)), V2, W, (P.body occ));
+           checkGoal (G, V1, W, (P.label occ)))
     let rec checkGoal =
       function
-      | (g, Root (a, S), W, occ) -> ()
-      | (g, Pi (((Dec (_, V1) as D), _), V2), W, occ) ->
-          (checkGoal ((decUName (g, D)), V2, W, (P.body occ));
-           checkClause (g, V1, W, (P.label occ)))
+      | (G, Root (a, S), W, occ) -> ()
+      | (G, Pi (((Dec (_, V1) as D), _), V2), W, occ) ->
+          (checkGoal ((decUName (G, D)), V2, W, (P.body occ));
+           checkClause (G, V1, W, (P.label occ)))
     let rec worldcheck (W) a =
       let _ =
         if (!Global.chatter) > 3
@@ -336,7 +334,7 @@ module WorldSyn(WorldSyn:sig
                ^ ":\n")
         else () in
       let _ = subsumedReset () in
-      let checkAll =
+      let rec checkAll =
         function
         | nil -> ()
         | (Const c)::clist ->
@@ -361,16 +359,16 @@ module WorldSyn(WorldSyn:sig
       let _ = if (!Global.chatter) = 4 then print "\n" else () in ()
     let rec ctxAppend =
       function
-      | (g, I.Null) -> g
-      | (g, Decl (g', D)) -> I.Decl ((ctxAppend (g, g')), D)
-    let rec checkSubordBlock (g, g', L) =
-      checkSubordBlock' ((ctxAppend (g, g')), L)
+      | (G, I.Null) -> G
+      | (G, Decl (G', D)) -> I.Decl ((ctxAppend (G, G')), D)
+    let rec checkSubordBlock (G, G', L) =
+      checkSubordBlock' ((ctxAppend (G, G')), L)
     let rec checkSubordBlock' =
       function
-      | (g, (Dec (_, V) as D)::L') ->
-          (Subordinate.respectsN (g, V);
-           checkSubordBlock' ((I.Decl (g, D)), L'))
-      | (g, nil) -> ()
+      | (G, (Dec (_, V) as D)::L') ->
+          (Subordinate.respectsN (G, V);
+           checkSubordBlock' ((I.Decl (G, D)), L'))
+      | (G, nil) -> ()
     let rec conDecBlock =
       function
       | BlockDec (_, _, Gsome, Lpi) -> (Gsome, Lpi)
@@ -396,10 +394,10 @@ module WorldSyn(WorldSyn:sig
       | SOME _ -> (Table.delete worldsTable a; true__)
     let rec lookup a = getWorlds a
     let rec ctxToList (Gin) =
-      let ctxToList' =
+      let rec ctxToList' =
         function
-        | (I.Null, g) -> g
-        | (Decl (g, D), g') -> ctxToList' (g, (D :: g')) in
+        | (I.Null, G) -> G
+        | (Decl (G, D), G') -> ctxToList' (G, (D :: G')) in
       ctxToList' (Gin, nil)
     let rec isSubsumed (Worlds cids) b =
       let Wb = getWorlds b in
@@ -407,22 +405,27 @@ module WorldSyn(WorldSyn:sig
       if subsumedLookup b
       then ()
       else (checkSubsumedWorlds (cids, Rb, b); subsumedInsert b)
-    let ((reset)(* subsumedTable
+    (* subsumedTable
        For each family a that is world-checked, this
        contains the subordinate families b whose worlds
        subsume that of a modulo subordination
     *)
-      (* Regular world expressions R
+    (* Regular world expressions R
        Invariants:
-       If R = (D1,...,Dn)[s] then g |- s : g' and g' |- D1,...,Dn ctx
+       If R = (D1,...,Dn)[s] then G |- s : G' and G' |- D1,...,Dn ctx
        If R = r* then r = 1 or r does not accept the empty world
     *)
-      (* Regular world expressions  *)(* R ::= LD                   *)
-      (*     | (D1,...,Dn)[s]       *)(*     | R*                   *)
-      (*     | R1 + R2              *)(*     | 1                    *)
-      (* signals worldcheck success *)(* Format a regular world *)
-      (* Is this correct? - gaw *)(* Fixed June 3, 2009 -fp,cs *)
-      (* Format a subsumption failure judgment
+    (* Regular world expressions  *)
+    (* R ::= LD                   *)
+    (*     | (D1,...,Dn)[s]       *)
+    (*     | R*                   *)
+    (*     | R1 + R2              *)
+    (*     | 1                    *)
+    (* signals worldcheck success *)
+    (* Format a regular world *)
+    (* Is this correct? - gaw *)
+    (* Fixed June 3, 2009 -fp,cs *)
+    (* Format a subsumption failure judgment
        msg: Prefix for the message
        dl : declaration list
        Rb : regular world
@@ -430,149 +433,175 @@ module WorldSyn(WorldSyn:sig
        Displays:
 
          msg for family b:
-         g |- dl </: Rb
+         G |- dl </: Rb
      *)
-      (*
+    (*
             F.HVbox ([F.String ((Names.qidToString (Names.constQid b)) ^ ":")])
         *)
-      (* F.Newline (), *)(* Do not print some-variables; reenable if necessary *)
-      (* June 3, 2009 -fp,cs *)(* Print.formatCtx(I.Null, g), F.Break, F.String "|-", F.Space, *)
-      (* createEVarSub g g' = s
+    (* F.Newline (), *)
+    (* Do not print some-variables; reenable if necessary *)
+    (* June 3, 2009 -fp,cs *)
+    (* Print.formatCtx(I.Null, G), F.Break, F.String "|-", F.Space, *)
+    (* createEVarSub G G' = s
 
        Invariant:
-       If   g is a context
-       and  g' is a context
-       then g |- s : g'
+       If   G is a context
+       and  G' is a context
+       then G |- s : G'
     *)
-      (* from cover.fun *)(* collectConstraints (Xs) = constrs
+    (* from cover.fun *)
+    (* collectConstraints (Xs) = constrs
        collect all the constraints that may be attached to EVars in Xs
 
        try simplifying away the constraints in case they are "hard"
     *)
-      (* constrs <> nil *)(* collectEVars (g, s, Xs) = Xs'
+    (* constrs <> nil *)
+    (* collectEVars (G, s, Xs) = Xs'
        adds all uninstantiated EVars from s to Xs to obtain Xs'
        Invariant: s is EVar substitutions
     *)
-      (* other cases impossible by invariants since s is EVarSubst *)
-      (* noConstraints (g, s) = true iff there are no remaining constraints in s
+    (* other cases impossible by invariants since s is EVarSubst *)
+    (* noConstraints (G, s) = true iff there are no remaining constraints in s
        Invariants: s is an EVar substitution X1...Xn.^k
     *)
-      (* end from cover.fun *)(************)(* Printing *)
-      (************)(* Declarations *)
-      (* Declaration lists *)(* Names.decUName (g, I.decSub(D, t)) *)
-      (* Names.decUName (g, I.decSub (D, t)) *)(*
+    (* end from cover.fun *)
+    (************)
+    (* Printing *)
+    (************)
+    (* Declarations *)
+    (* Declaration lists *)
+    (* Names.decUName (G, I.decSub(D, t)) *)
+    (* Names.decUName (G, I.decSub (D, t)) *)
+    (*
     fun hypsToDList (I.Root _) = nil
       | hypsToDList (I.Pi ((D, _), V)) =
           D::hypsToDList V
     *)
-      (* Hypotheses and declaration lists *)(* Declaration list *)
-      (* Hypotheses *)(* Mismatch between hypothesis and world declaration *)
-      (***********)(* Tracing *)(***********)
-      (* R = (D1,...,Dn)[t] *)(* R = (D1,...,Dn)[t] *)
-      (**************************************)(* Matching hypotheses against worlds *)
-      (**************************************)(* worldsToReg (Worlds [c1,...,cn]) = R
+    (* Hypotheses and declaration lists *)
+    (* Declaration list *)
+    (* Hypotheses *)
+    (* Mismatch between hypothesis and world declaration *)
+    (***********)
+    (* Tracing *)
+    (***********)
+    (* R = (D1,...,Dn)[t] *)
+    (* R = (D1,...,Dn)[t] *)
+    (**************************************)
+    (* Matching hypotheses against worlds *)
+    (**************************************)
+    (* worldsToReg (Worlds [c1,...,cn]) = R
        W = R, except that R is a regular expression
        with non-empty contextblocks as leaves
     *)
-      (* init b (g, L) raises Success iff V is empty
+    (* init b (G, L) raises Success iff V is empty
        or none of the remaining declarations are relevant to b
        otherwise fails by returning ()
        Initial continuation for world checker
 
-       Invariant: g |- L dlist, L nf
+       Invariant: G |- L dlist, L nf
     *)
-      (* accR ((g, L), R, k)   raises Success
+    (* accR ((G, L), R, k)   raises Success
        iff L = L1,L2 such that R accepts L1
-           and k ((g, L1), L2) succeeds
+           and k ((G, L1), L2) succeeds
        otherwise fails by returning ()
-       Invariant: g |- L dlist, L nf
+       Invariant: G |- L dlist, L nf
                   R regular world expression
        trails at choice points to undo EVar instantiations during matching
     *)
-      (* g |- t : someDecs *)(* if block matches, check for remaining constraints *)
-      (* relevant to family b, fail *)(* not relevant to family b, skip in L *)
-      (* fixed bug in previous line; was: t instead of t o ^ *)(* Mon May 7 2007 -fp *)
-      (* L is missing *)(* only possibility for non-termination in next rule *)
-      (* r' does not accept empty declaration list *)
-      (* checkSubsumedBlock (g, someDecs, piDecs, Rb, b) = ()
+    (* G |- t : someDecs *)
+    (* if block matches, check for remaining constraints *)
+    (* relevant to family b, fail *)
+    (* not relevant to family b, skip in L *)
+    (* fixed bug in previous line; was: t instead of t o ^ *)
+    (* Mon May 7 2007 -fp *)
+    (* L is missing *)
+    (* only possibility for non-termination in next rule *)
+    (* r' does not accept empty declaration list *)
+    (* checkSubsumedBlock (G, someDecs, piDecs, Rb, b) = ()
        iff block SOME someDecs. PI piDecs is subsumed by Rb
        Effect: raises Error (msg) otherwise
 
        Invariants: Rb = reg (worlds (b))
     *)
-      (* checkSubsumedWorlds (Wa, Rb, b) = ()
+    (* checkSubsumedWorlds (Wa, Rb, b) = ()
        iff Wa is subsumed by Rb
        Effect: raises Error (msg) otherwise
 
        Invariants: Rb = reg (worlds (b))
     *)
-      (* checkBlocks W (g, V, occ) = ()
-       iff V = {{g'}} a @ S and g' satisfies worlds W
+    (* checkBlocks W (G, V, occ) = ()
+       iff V = {{G'}} a @ S and G' satisfies worlds W
        Effect: raises Error'(occ, msg) otherwise
 
-       Invariants: g |- V : type, V nf
+       Invariants: G |- V : type, V nf
     *)
-      (******************************)(* Checking clauses and goals *)
-      (******************************)(* checkClause (g, V, W, occ) = ()
+    (******************************)
+    (* Checking clauses and goals *)
+    (******************************)
+    (* checkClause (G, V, W, occ) = ()
        iff all subgoals in V satisfy world spec W
        Effect: raises Error' (occ', msg) otherwise
 
-       Invariant: g |- V : type, V nf
+       Invariant: G |- V : type, V nf
        occ is occurrence of V in current clause
      *)
-      (* checkGoal (g, V, W, occ) = ()
+    (* checkGoal (G, V, W, occ) = ()
         iff all (embedded) subgoals in V satisfy world spec W
         Effect: raises Error' (occ', msg) otherwise
 
-        Invariant: g |- V : type, V nf
+        Invariant: G |- V : type, V nf
      *)
-      (* Question: should dependent Pi's really be checked recursively? *)
-      (* Thu Mar 29 09:38:20 2001 -fp *)(* worldcheck W a = ()
+    (* Question: should dependent Pi's really be checked recursively? *)
+    (* Thu Mar 29 09:38:20 2001 -fp *)
+    (* worldcheck W a = ()
        iff all subgoals in all clauses defining a satisfy world spec W
        Effect: raises Error(msg) otherwise, where msg includes location
     *)
-      (* initialize table of subsumed families *)(**************************)
-      (* Checking Subordination *)(**************************)
-      (*
+    (* initialize table of subsumed families *)
+    (**************************)
+    (* Checking Subordination *)
+    (**************************)
+    (*
        At present, worlds declarations must respect the
        current subordination relation in order to guarantee
        soundness.
     *)
-      (* checkSubordBlock (g, g', L') = ()
+    (* checkSubordBlock (G, G', L') = ()
        Effect: raises Error(msg) if subordination is not respected
-               in context block SOME g'. PI L'
-       Invariants: g |- SOME g'. PI L' block
+               in context block SOME G'. PI L'
+       Invariants: G |- SOME G'. PI L' block
     *)
-      (* is V nf?  Assume here: yes! *)(* conDecBlock (condec) = (Gsome, Lpi)
+    (* is V nf?  Assume here: yes! *)
+    (* conDecBlock (condec) = (Gsome, Lpi)
        if condec is a block declaration
        raise Error (msg) otherwise
     *)
-      (* constBlock cid = (someDecs, piDecs)
+    (* constBlock cid = (someDecs, piDecs)
        if cid is defined as a context block
        Effect: raise Error (msg) otherwise
     *)
-      (* checkSubordWorlds (W) = ()
+    (* checkSubordWorlds (W) = ()
        Effect: raises Error(msg) if subordination is not respected
                in some context block in W
     *)
-      (* install (a, W) = ()
+    (* install (a, W) = ()
        install worlds declaration W for family a
 
        Effect: raises Error if W does not respect subordination
     *)
-      (* lookup (a) = SOME W if worlds declared for a, NONE otherwise *)
-      (* ctxToList g = L
+    (* lookup (a) = SOME W if worlds declared for a, NONE otherwise *)
+    (* ctxToList G = L
 
        Invariant:
-       g = L  (g is left associative, L is right associative)
+       G = L  (G is left associative, L is right associative)
     *)
-      (* isSubsumed (W, b) = ()
+    (* isSubsumed (W, b) = ()
        holds if the worlds associated with b are subsumed by W
        Effect: raises Error'(occ, msg) otherwise
 
-       Invariants: g |- V : type, V nf
-    *))
-      = reset
+       Invariants: G |- V : type, V nf
+    *)
+    let reset = reset
     let install = install
     let lookup = lookup
     let uninstall = uninstall

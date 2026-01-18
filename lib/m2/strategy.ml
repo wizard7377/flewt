@@ -1,8 +1,9 @@
 
+(* Strategy *)
+(* Author: Carsten Schuermann *)
 module type STRATEGY  =
   sig
-    module MetaSyn :
-    ((METASYN)(* Strategy *)(* Author: Carsten Schuermann *))
+    module MetaSyn : METASYN
     val run :
       MetaSyn.__State list -> (MetaSyn.__State list * MetaSyn.__State list)
   end;;
@@ -53,7 +54,7 @@ module StrategyFRS(StrategyFRS:sig
       function
       | nil -> NONE
       | (O)::L ->
-          let findMin' =
+          let rec findMin' =
             function
             | (nil, k, result) -> result
             | ((O')::L', k, result) ->
@@ -85,7 +86,7 @@ module StrategyFRS(StrategyFRS:sig
       function
       | (nil, os) -> os
       | ((S)::givenStates, ((openStates, solvedStates) as os)) ->
-          let fillOp () =
+          let rec fillOp () =
             match Timers.time Timers.filling Filling.expand S with
             | (_, fillingOp) ->
                 (try
@@ -153,7 +154,7 @@ module StrategyRFS(StrategyRFS:sig
       function
       | nil -> NONE
       | (O)::L ->
-          let findMin' =
+          let rec findMin' =
             function
             | (nil, k, result) -> result
             | ((O')::L', k, result) ->
@@ -209,72 +210,71 @@ module StrategyRFS(StrategyRFS:sig
       let os = recurse (givenStates, (nil, nil)) in
       let _ = match os with | (nil, _) -> printQed () | _ -> () in os
     let run = run
-  end 
+  end  (* Strategy *)
+(* Author: Carsten Schuermann *)
+(* findMin L = Sopt
+
+       Invariant:
+
+       If   L be a set of splitting operators
+       then Sopt = NONE if L = []
+       else Sopt = SOME S, s.t. index S is minimal among all elements in L
+    *)
+(* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+       recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+       fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+
+       Invariant:
+       openStates' extends openStates and
+         contains the states resulting from givenStates which cannot be
+         solved using Filling, Recursion, and Splitting
+       solvedStates' extends solvedStates and
+         contains the states resulting from givenStates which can be
+         solved using Filling, Recursion, and Splitting
+    *)
+(* run givenStates = (openStates', solvedStates')
+
+       Invariant:
+       openStates' contains the states resulting from givenStates which cannot be
+         solved using Filling, Recursion, and Splitting
+       solvedStates' contains the states resulting from givenStates which can be
+         solved using Filling, Recursion, and Splitting
+     *)
+(* local *) (* functor StrategyFRS *)
+(* findMin L = Sopt
+
+       Invariant:
+
+       If   L be a set of splitting operators
+       then Sopt = NONE if L = []
+       else Sopt = SOME S, s.t. index S is minimal among all elements in L
+    *)
+(* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+       recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+       fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
+
+       Invariant:
+       openStates' extends openStates and
+         contains the states resulting from givenStates which cannot be
+         solved using Filling, Recursion, and Splitting
+       solvedStates' extends solvedStates and
+         contains the states resulting from givenStates which can be
+         solved using Filling, Recursion, and Splitting
+    *)
+(* run givenStates = (openStates', solvedStates')
+
+       Invariant:
+       openStates' contains the states resulting from givenStates which cannot be
+         solved using Filling, Recursion, and Splitting
+       solvedStates' contains the states resulting from givenStates which can be
+         solved using Filling, Recursion, and Splitting
+     *)
+(* local *) (* functor StrategyRFS *)
 module Strategy(Strategy:sig
                            module MetaGlobal : METAGLOBAL
                            module MetaSyn' : METASYN
                            module StrategyFRS : STRATEGY
-                           module StrategyRFS :
-                           ((STRATEGY)(* Strategy *)
-                           (* Author: Carsten Schuermann *)
-                           (* findMin L = Sopt
-
-       Invariant:
-
-       If   L be a set of splitting operators
-       then Sopt = NONE if L = []
-       else Sopt = SOME S, s.t. index S is minimal among all elements in L
-    *)
-                           (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-
-       Invariant:
-       openStates' extends openStates and
-         contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' extends solvedStates and
-         contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-    *)
-                           (* run givenStates = (openStates', solvedStates')
-
-       Invariant:
-       openStates' contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-     *)
-                           (* local *)(* functor StrategyFRS *)
-                           (* findMin L = Sopt
-
-       Invariant:
-
-       If   L be a set of splitting operators
-       then Sopt = NONE if L = []
-       else Sopt = SOME S, s.t. index S is minimal among all elements in L
-    *)
-                           (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-
-       Invariant:
-       openStates' extends openStates and
-         contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' extends solvedStates and
-         contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-    *)
-                           (* run givenStates = (openStates', solvedStates')
-
-       Invariant:
-       openStates' contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-     *)
-                           (* local *)(* functor StrategyRFS *))
+                           module StrategyRFS : STRATEGY
                          end) : STRATEGY =
   struct
     module MetaSyn = MetaSyn'

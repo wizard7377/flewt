@@ -147,10 +147,7 @@ module type PARSERR  =
     val sameToken :
       ((svalue, pos) Token.token * (svalue, pos) Token.token) -> bool
   end
-module type ARG_PARSER  =
-  sig
-    module Token :
-    ((TOKEN)(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
+(* ML-Yacc Parser Generator (c) 1989 Andrew W. Appel, David R. Tarditi 
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.2.1  2003/01/14 22:46:39  carsten_lf
@@ -169,16 +166,17 @@ module type ARG_PARSER  =
  * Version 109
  * 
  *)
-    (* base.sig: Base signature file for SML-Yacc.  This file contains signatures
+(* base.sig: Base signature file for SML-Yacc.  This file contains signatures
    that must be loaded before any of the files produced by ML-Yacc are loaded
 *)
-    (* STREAM: signature for a lazy stream.*)(* LR_TABLE: signature for an LR Table.
+(* STREAM: signature for a lazy stream.*)
+(* LR_TABLE: signature for an LR Table.
 
    The list of actions and gotos passed to mkLrTable must be ordered by state
    number. The values for state 0 are the first in the list, the values for
     state 1 are next, etc.
 *)
-    (* TOKEN: signature revealing the internal structure of a token. This signature
+(* TOKEN: signature revealing the internal structure of a token. This signature
    TOKEN distinct from the signature {parser name}_TOKENS produced by ML-Yacc.
    The {parser name}_TOKENS structures contain some types and functions to
     construct tokens from values and positions.
@@ -205,9 +203,10 @@ module type ARG_PARSER  =
    must match and the types that a user must declare in the user declarations
    section of lexers.
 *)
-    (* LR_PARSER: signature for a polymorphic LR parser *)
-    (* max amount of lookahead used in *)(* error correction *)
-    (* LEXERR: a signature that most lexers produced for use with SML-Yacc's
+(* LR_PARSER: signature for a polymorphic LR parser *)
+(* max amount of lookahead used in *)
+(* error correction *)
+(* LEXERR: a signature that most lexers produced for use with SML-Yacc's
    output will match.  The user is responsible for declaring type token,
    type pos, and type svalue in the UserDeclarations section of a lexer.
 
@@ -217,10 +216,10 @@ module type ARG_PARSER  =
    a Tokens structure matching a TOKENS signature cannot examine the structure
    of tokens.
 *)
-    (* ARG_LEXER: the %arg option of ML-Lex allows users to produce lexers which
+(* ARG_LEXER: the %arg option of ML-Lex allows users to produce lexers which
    also take an argument before yielding a function from unit to a token
 *)
-    (* PARSER_DATA: the signature of ParserData structures in {parser name}LrValsFun
+(* PARSER_DATA: the signature of ParserData structures in {parser name}LrValsFun
    produced by  SML-Yacc.  All such structures match this signature.  
 
    The {parser name}LrValsFun produces a structure which contains all the values
@@ -228,32 +227,40 @@ module type ARG_PARSER  =
    before.
 
 *)
-    (* the type of line numbers *)(* the type of semantic values *)
-    (* the type of the user-supplied argument to the parser *)(* the intended type of the result of the parser.  This value is
+(* the type of line numbers *)
+(* the type of semantic values *)
+(* the type of the user-supplied argument to the parser *)
+(* the intended type of the result of the parser.  This value is
 	   produced by applying extract from the structure Actions to the
 	   final semantic value resultiing from a parse.
 	 *)
-    (* structure Actions contains the functions which mantain the
+(* structure Actions contains the functions which mantain the
 	   semantic values stack in the parser.  Void is used to provide
 	   a default value for the semantic stack.
 	 *)
-    (* structure EC contains information used to improve error
+(* structure EC contains information used to improve error
 	   recovery in an error-correcting parser *)
-    (* table is the LR table for the parser *)(* signature PARSER is the signature that most user parsers created by 
+(* table is the LR table for the parser *)
+(* signature PARSER is the signature that most user parsers created by 
    SML-Yacc will match.
 *)
-    (* type pos is the type of line numbers *)(* type result is the type of the result from the parser *)
-    (* the type of the user-supplied argument to the parser *)(* type svalue is the type of semantic values for the semantic value
+(* type pos is the type of line numbers *)
+(* type result is the type of the result from the parser *)
+(* the type of the user-supplied argument to the parser *)
+(* type svalue is the type of semantic values for the semantic value
 	   stack
 	 *)
-    (* val makeLexer is used to create a stream of tokens for the parser *)
-    (* val parse takes a stream of tokens and a function to print
+(* val makeLexer is used to create a stream of tokens for the parser *)
+(* val parse takes a stream of tokens and a function to print
 	   errors and returns a value of type result and a stream containing
 	   the unused tokens
 	 *)
-    (* signature ARG_PARSER is the signature that will be matched by parsers whose
+(* signature ARG_PARSER is the signature that will be matched by parsers whose
     lexer takes an additional argument.
-*))
+*)
+module type ARG_PARSER  =
+  sig
+    module Token : TOKEN
     module Streamm : STREAMM
     exception ParseError 
     type nonrec arg

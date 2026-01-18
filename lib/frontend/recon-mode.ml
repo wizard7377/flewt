@@ -24,13 +24,14 @@ module type EXTMODES  =
       val mpi : (mode * ExtSyn.dec * mterm) -> mterm
       val toModedec : mterm -> modedec
     end
-  end
+  end (* External Syntax of Mode Declarations *)
+(* Author: Carsten Schuermann *)
+(*! structure Paths : PATHS  !*)
+(* signature EXTMODES *)
 module type RECON_MODE  =
   sig
-    include
-      ((EXTMODES)(* External Syntax of Mode Declarations *)
-      (* Author: Carsten Schuermann *)(*! structure Paths : PATHS  !*)
-      (* signature EXTMODES *)(*! structure ModeSyn : MODESYN !*))
+    (*! structure ModeSyn : MODESYN !*)
+    include EXTMODES
     exception Error of string 
     val modeToMode :
       modedec -> ((IntSyn.cid * ModeSyn.__ModeSpine) * Paths.region)
@@ -39,25 +40,28 @@ module type RECON_MODE  =
 
 
 
+(* Reconstructing Mode Declarations *)
+(* Author: Carsten Schuermann *)
 module ReconMode(ReconMode:sig
                              module Global : GLOBAL
                              module Whnf : WHNF
                              module Names : NAMES
                              module ModePrint : MODEPRINT
                              module ModeDec : MODEDEC
-                             module ReconTerm' :
-                             ((RECON_TERM)(* Reconstructing Mode Declarations *)
-                             (* Author: Carsten Schuermann *)(*! structure ModeSyn' : MODESYN !*)
+                             (*! structure ModeSyn' : MODESYN !*)
                              (*! sharing Whnf.IntSyn = ModeSyn'.IntSyn !*)
-                             (*! structure Paths' : PATHS !*)(*! sharing Names.IntSyn = ModeSyn'.IntSyn !*)
-                             (*! sharing ModePrint.ModeSyn = ModeSyn' !*))
+                             (*! structure Paths' : PATHS !*)
+                             (*! sharing Names.IntSyn = ModeSyn'.IntSyn !*)
+                             (*! sharing ModePrint.ModeSyn = ModeSyn' !*)
+                             module ReconTerm' : RECON_TERM
                            end) : RECON_MODE =
   struct
-    module ExtSyn =
-      ((ReconTerm')(*! sharing ReconTerm'.IntSyn = ModeSyn'.IntSyn !*)
-      (*! sharing ReconTerm'.Paths = Paths' !*)(*! structure ModeSyn = ModeSyn' !*))
-    exception Error of
-      ((string)(*! structure Paths = Paths' !*)) 
+    (*! sharing ReconTerm'.IntSyn = ModeSyn'.IntSyn !*)
+    (*! sharing ReconTerm'.Paths = Paths' !*)
+    (*! structure ModeSyn = ModeSyn' !*)
+    module ExtSyn = ReconTerm'
+    (*! structure Paths = Paths' !*)
+    exception Error of string 
     let rec error (r, msg) = raise (Error (Paths.wrap (r, msg)))
     module M = ModeSyn
     module I = IntSyn
@@ -97,10 +101,10 @@ module ReconMode(ReconMode:sig
         let rec mpi ((m, _), d, t) (g, D) =
           t ((I.Decl (g, d)), (I.Decl (D, m)))
         let rec mroot (tm, r) (g, D) =
-          let JWithCtx (g, JOf ((V, _), _, _)) =
+          let JWithCtx (G, JOf ((V, _), _, _)) =
             T.recon (T.jwithctx (g, (T.jof (tm, (T.typ r))))) in
           let _ = T.checkErrors r in
-          let convertSpine =
+          let rec convertSpine =
             function
             | I.Nil -> M.Mnil
             | App (U, S) ->
@@ -110,12 +114,12 @@ module ReconMode(ReconMode:sig
                   | Whnf.Eta ->
                       error
                         (r,
-                          (("Argument " ^ (Print.expToString (g, U))) ^
+                          (("Argument " ^ (Print.expToString (G, U))) ^
                              " not a variable")) in
-                let Dec (name, _) = I.ctxLookup (g, k) in
+                let Dec (name, _) = I.ctxLookup (G, k) in
                 let mode = I.ctxLookup (D, k) in
                 M.Mapp ((M.Marg (mode, name)), (convertSpine S)) in
-          let convertExp =
+          let rec convertExp =
             function
             | Root (Const a, S) -> (a, (convertSpine S))
             | Root (Def d, S) -> (d, (convertSpine S))
@@ -126,13 +130,16 @@ module ReconMode(ReconMode:sig
           let _ = Names.varReset I.Null in let t' = t (I.Null, I.Null) in t'
       end
     let rec modeToMode (m, r) = (m, r)
-    type nonrec mode =
-      ((mode)(* structure Full *)(* convertExp (I.Root (I.Skonst _, S)) can't occur *)
-      (* error is signalled later in ModeDec.checkFull *)
-      (* convert root expression to head constant and mode spine *)
-      (* yes, print U. -gaw *)(* print U? -fp *)
-      (* Each argument must be contractible to variable *)
-      (* convert term spine to mode spine *)(* structure Short *))
+    (* structure Short *)
+    (* convert term spine to mode spine *)
+    (* Each argument must be contractible to variable *)
+    (* print U? -fp *)
+    (* yes, print U. -gaw *)
+    (* convert root expression to head constant and mode spine *)
+    (* error is signalled later in ModeDec.checkFull *)
+    (* convertExp (I.Root (I.Skonst _, S)) can't occur *)
+    (* structure Full *)
+    type nonrec mode = mode
     let plus = plus
     let star = star
     let minus = minus

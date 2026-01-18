@@ -2,7 +2,7 @@
 module SigINT : SIGINT =
   struct
     let rec interruptLoop (loop : unit -> unit) =
-      let ((_)(* open MLton *)) =
+      let _ =
         MLton.Cont.callcc
           (function
            | k ->
@@ -15,5 +15,5 @@ module SigINT : SIGINT =
                              ((MLton.Thread.new__
                                  (function | () -> MLton.Cont.throw (k, ()))),
                                ()))))) in
-      loop ()
+      ((loop ())(* open MLton *))
   end ;;

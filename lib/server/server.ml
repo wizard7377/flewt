@@ -10,12 +10,12 @@ module Server(Server:sig
   struct
     let (globalConfig : Twelf.Config.config option ref) = ref NONE
     let rec readLine () =
-      let getLine () =
+      let rec getLine () =
         try Compat.inputLine97 TextIO.stdIn
         with | SysErr (_, SOME _) -> getLine () in
       let line = getLine () in
-      let triml ss = Substring.dropl Char.isSpace ss in
-      let trimr ss = Substring.dropr Char.isSpace ss in
+      let rec triml ss = Substring.dropl Char.isSpace ss in
+      let rec trimr ss = Substring.dropr Char.isSpace ss in
       let line' = triml (trimr (Compat.Substring.full line)) in
       if line = ""
       then ("OS.exit", "")
@@ -271,47 +271,54 @@ module Server(Server:sig
       Timing.init ();
       SigINT.interruptLoop (function | () -> serveTop Twelf.OK);
       OS.Process.success
-  end 
-module Server =
-  (Make_Server)(struct
-                  module SigINT =
-                    ((SigINT)(* signature SERVER *)(* readLine () = (command, args)
+  end  (* signature SERVER *)
+(* readLine () = (command, args)
      reads a command and and its arguments from the command line.
   *)
-                    (* val line = TextIO.inputLine (TextIO.stdIn) *)
-                    (* Fix for MLton, Fri Dec 20 21:50:22 2002 -sweeks (fp) *)
-                    (* tokenize (args) = [token1, token2, ..., tokenn]
+(* val line = TextIO.inputLine (TextIO.stdIn) *)
+(* Fix for MLton, Fri Dec 20 21:50:22 2002 -sweeks (fp) *)
+(* tokenize (args) = [token1, token2, ..., tokenn]
      splits the arguments string into a list of space-separated
      tokens
   *)
-                    (* exception Error for server errors *)
-                    (* Print the OK or ABORT messages which are parsed by Emacs *)
-                    (* Checking if there are no extraneous arguments *)
-                    (* Command argument types *)(* File names, given a default *)
-                    (* File names, not defaults *)(* Identifiers, used as a constant *)
-                    (* Identifiers, used as a trace specification *)
-                    (* Strategies for %prove, %establish *)
-                    (* Booleans *)(* Natural numbers *)
-                    (* Limits ( *, or natural number) *)
-                    (* Tabling strategy *)(* Tracing mode for term reconstruction *)
-                    (* Compile options *)(* Setting Twelf parameters *)
-                    (* Getting Twelf parameter values *)
-                    (* extracted from doc/guide/twelf.texi *)(* serve' (command, args) = ()
+(* exception Error for server errors *)
+(* Print the OK or ABORT messages which are parsed by Emacs *)
+(* Checking if there are no extraneous arguments *)
+(* Command argument types *)
+(* File names, given a default *)
+(* File names, not defaults *)
+(* Identifiers, used as a constant *)
+(* Identifiers, used as a trace specification *)
+(* Strategies for %prove, %establish *)
+(* Booleans *) (* Natural numbers *)
+(* Limits ( *, or natural number) *)
+(* Tabling strategy *)
+(* Tracing mode for term reconstruction *)
+(* Compile options *)
+(* Setting Twelf parameters *)
+(* Getting Twelf parameter values *)
+(* extracted from doc/guide/twelf.texi *)
+(* serve' (command, args) = ()
      executes the server commands represented by `tokens', 
      issues success or failure and then reads another command line.
      Invariant: tokens must be non-empty.
 
      All input for one command must be on the same line.
   *)
-                    (*
+(*
       serve' ("toc", args) = error "NYI"
     | serve' ("list-program", args) = error "NYI"
     | serve' ("list-signature", args) = error "NYI"
     *)
-                    (* | serve' ("type-at", args) = error "NYI" *)
-                    (* | serve' ("complete-at", args) = error "NYI" *)
-                    (* quit, as a concession *)(* ignore server name and arguments *)
-                    (* initialize timers *)(* functor Server *))
+(* | serve' ("type-at", args) = error "NYI" *)
+(* | serve' ("complete-at", args) = error "NYI" *)
+(* quit, as a concession *)
+(* ignore server name and arguments *)
+(* initialize timers *)
+(* functor Server *)
+module Server =
+  (Make_Server)(struct
+                  module SigINT = SigINT
                   module Timing = Timing
                   module Lexer = Lexer
                   module Twelf = Twelf

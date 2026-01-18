@@ -1,10 +1,10 @@
 
+(* Delphin external syntax *)
 module type DEXTSYN  =
   sig
+    (* structure Lexer : LEXER *)
     type __Ast =
-      | Ast of
-      ((__Decs)(* structure Lexer : LEXER *)(* Delphin external syntax *))
-      
+      | Ast of __Decs 
     and __Decs =
       | Empty 
       | FunDecl of (__FunDecl * __Decs) 
@@ -39,9 +39,7 @@ module type DEXTSYN  =
       | World of (__World * __Form) 
     and __Prog =
       | Unit 
-      | Pair of
-      (((__Prog)(* | WldDef of (string list) * Form *)
-      (* | Arrow of Form * Form *)) * __Prog) 
+      | Pair of (__Prog * __Prog) 
       | AppProg of (__Prog * __Prog) 
       | AppTerm of (__Prog * __Term) 
       | Inx of (__Term * __Prog) 
@@ -53,8 +51,7 @@ module type DEXTSYN  =
       | New of (__Dec list * __Prog) 
       | Choose of (__Dec * __Prog) 
     and __Cases =
-      | First of (((__Pat)(* | Rec of MDec * Prog *)) *
-      __Prog) 
+      | First of (__Pat * __Prog) 
       | Alt of (__Cases * __Pat * __Prog) 
     and __Head =
       | Head of string 
@@ -71,11 +68,7 @@ module type DEXTSYN  =
     and __Block =
       | Block of string list 
     and __Term =
-      | Rtarrow of
-      (((__Term)(* and Term 
-  = Term of string
-*)) *
-      __Term) 
+      | Rtarrow of (__Term * __Term) 
       | Ltarrow of (__Term * __Term) 
       | Type 
       | Id of string 
@@ -93,24 +86,25 @@ module type DEXTSYN  =
 
 
 
+(* Delphin external syntax *)
+(* Author: Richard Fontana *)
 module DextSyn(DextSyn:sig
+                         (* structure Stream' : STREAM *)
                          module ExtSyn' : EXTSYN
-                         module Parsing' :
-                         ((PARSING)(* Delphin external syntax *)
-                         (* Author: Richard Fontana *)
-                         (* structure Stream' : STREAM *))
+                         module Parsing' : PARSING
                        end) : DEXTSYN =
   struct
-    module ExtSyn =
-      ((ExtSyn')(*                    sharing Parsing'.Lexer.Paths = ExtSyn'.Paths  *)
-      (*                  structure Lexer' : LEXER *)
-      (*                    sharing Lexer' = Parsing'.Lexer *)(*  structure Stream = Stream' *))
+    (*                    sharing Parsing'.Lexer.Paths = ExtSyn'.Paths  *)
+    (*                  structure Lexer' : LEXER *)
+    (*                    sharing Lexer' = Parsing'.Lexer *)
+    (*  structure Stream = Stream' *)
+    module ExtSyn = ExtSyn'
     module Parsing = Parsing'
-    module L =
-      ((Lexer)(*  structure Paths = ExtSyn.Paths
-  structure Lexer = Lexer' *))
-    module S =
-      ((Stream)(*  structure S = Parsing'.Lexer.Stream *))
+    (*  structure Paths = ExtSyn.Paths
+  structure Lexer = Lexer' *)
+    module L = Lexer
+    (*  structure S = Parsing'.Lexer.Stream *)
+    module S = Stream
     type __Ast =
       | Ast of __Decs 
     and __Decs =
@@ -150,9 +144,7 @@ module DextSyn(DextSyn:sig
       | World of (__World * __Form) 
     and __Prog =
       | Unit 
-      | Pair of
-      (((__Prog)(* | WldDef of (string list) * Form *)
-      (* | Arrow of Form * Form *)) * __Prog) 
+      | Pair of (__Prog * __Prog) 
       | AppProg of (__Prog * __Prog) 
       | AppTerm of (__Prog * __Term) 
       | Inx of (__Term * __Prog) 
@@ -164,7 +156,7 @@ module DextSyn(DextSyn:sig
       | New of (__Dec list * __Prog) 
       | Choose of (__Dec * __Prog) 
     and __Head =
-      | Head of ((string)(* | Rec of MDec * Prog *)) 
+      | Head of string 
       | AppLF of (__Head * __Term) 
       | AppMeta of (__Head * __Pat) 
     and __Pat =
@@ -178,11 +170,7 @@ module DextSyn(DextSyn:sig
     and __Block =
       | Block of string list 
     and __Term =
-      | Rtarrow of
-      (((__Term)(* and Term
-  = Term of string
-*)) *
-      __Term) 
+      | Rtarrow of (__Term * __Term) 
       | Ltarrow of (__Term * __Term) 
       | Type 
       | Id of string 

@@ -1,9 +1,10 @@
 
+(* Parsing Fixity Declarations *)
+(* Author: Frank Pfenning *)
 module type PARSE_FIXITY  =
   sig
-    module Names :
-    ((NAMES)(* Parsing Fixity Declarations *)(* Author: Frank Pfenning *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module Names : NAMES
     val parseFixity' :
       ((Names.__Qid * Paths.region) * Names.Fixity.fixity) Parsing.parser
     val parseNamePref' :
@@ -14,14 +15,16 @@ module type PARSE_FIXITY  =
 
 
 
+(* Parsing Fixity and Name Preference Declarations *)
+(* Author: Frank Pfenning *)
 module ParseFixity(ParseFixity:sig
-                                 module Names' :
-                                 ((NAMES)(* Parsing Fixity and Name Preference Declarations *)
-                                 (* Author: Frank Pfenning *)(*! structure Parsing' : PARSING !*))
+                                 (*! structure Parsing' : PARSING !*)
+                                 module Names' : NAMES
                                end) : PARSE_FIXITY =
   struct
-    module Names =
-      ((Names')(*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module Names = Names'
+    (* some shorthands *)
     module L = Lexer
     module LS = Lexer.Stream
     module FX = Names.Fixity
@@ -139,30 +142,37 @@ module ParseFixity(ParseFixity:sig
     let rec parseNamePref' (Cons ((L.NAME, r), s')) =
       parseName1 (LS.expose s')
     let rec parseNamePref s = parseNamePref' (LS.expose s)
-    let ((parseFixity')(* some shorthands *)(* idToPrec (region, (idCase, name)) = n
+    (* idToPrec (region, (idCase, name)) = n
        where n is the precedence indicated by name, which should consists
        of all digits.  Raises error otherwise, or if precedence it too large
     *)
-      (*-----------------------------*)(* Parsing fixity declarations *)
-      (*-----------------------------*)(* parseFixCon "id" *)
-      (* parseFixPrec "n id" where n is precedence *)
-      (* parseInfix "none|left|right n id" where n is precedence *)
-      (* parsePrefix "n id" where n is precedence *)
-      (* parsePostfix "n id" where n is precedence *)
-      (* parseFixity' : lexResult stream -> (name,fixity) * lexResult stream
+    (*-----------------------------*)
+    (* Parsing fixity declarations *)
+    (*-----------------------------*)
+    (* parseFixCon "id" *)
+    (* parseFixPrec "n id" where n is precedence *)
+    (* parseInfix "none|left|right n id" where n is precedence *)
+    (* parsePrefix "n id" where n is precedence *)
+    (* parsePostfix "n id" where n is precedence *)
+    (* parseFixity' : lexResult stream -> (name,fixity) * lexResult stream
        Invariant: token stream starts with %infix, %prefix or %postfix
     *)
-      (* anything else should be impossible *)(*------------------------------------*)
-      (* Parsing name preferences %name ... *)(*------------------------------------*)
-      (* parseName5 "string ... )" or ")" *)(* prefUName should be lower case---not enforced *)
-      (* parseName3 "string" or "" *)(* prefUName should be lower case---not enforced *)
-      (* parseName4 "string ... )" or ")" *)(* parseName2 "string" or "string string"
+    (* anything else should be impossible *)
+    (*------------------------------------*)
+    (* Parsing name preferences %name ... *)
+    (*------------------------------------*)
+    (* parseName5 "string ... )" or ")" *)
+    (* prefUName should be lower case---not enforced *)
+    (* parseName3 "string" or "" *)
+    (* prefUName should be lower case---not enforced *)
+    (* parseName4 "string ... )" or ")" *)
+    (* parseName2 "string" or "string string"
               or "(string ... ) string"  or " string (string ...)"
               or "(string ... ) (string ...)" *)
-      (* parseName1 "id string" or "id string string" *)
-      (* parseNamePref' "%name id string" or "%name id string string"
+    (* parseName1 "id string" or "id string string" *)
+    (* parseNamePref' "%name id string" or "%name id string string"
        Invariant: token stream starts with %name
-    *))
-      = parseFixity'
+    *)
+    let parseFixity' = parseFixity'
     let parseNamePref' = parseNamePref'
   end ;;

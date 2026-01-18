@@ -1,16 +1,17 @@
 
+(* Global Table parameters *)
+(* Author: Brigitte Pientka *)
 module type TABLEPARAM  =
   sig
-    exception Error of
-      ((string)(*! structure RBSet : RBSET !*)(*! structure CompSyn : COMPSYN !*)
-      (*! structure IntSyn : INTSYN !*)(* Author: Brigitte Pientka *)
-      (* Global Table parameters *)) 
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure CompSyn : COMPSYN !*)
+    (*! structure RBSet : RBSET !*)
+    exception Error of string 
+    (* Residual equation *)
     type __ResEqn =
       | Trivial 
-      | Unify of
-      (((IntSyn.dctx)(* trivially done *)(* Residual equation *))
-      * IntSyn.__Exp * ((IntSyn.__Exp)(* call unify *)) *
-      __ResEqn) 
+      | Unify of (IntSyn.dctx * IntSyn.__Exp * IntSyn.__Exp * __ResEqn) 
+    (* call unify *)
     type nonrec answer =
       <
         solutions: ((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) list  ;
@@ -23,17 +24,16 @@ module type TABLEPARAM  =
         answer * __Status) list ref
     val resetGlobalTable : unit -> unit
     val emptyAnsw : unit -> answer
+    (* destructively updates answers *)
     val addSolution :
-      (((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) * answer) ->
-        ((unit)(* destructively updates answers *))
+      (((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) * answer) -> unit
     val updateAnswLookup : (int * answer) -> unit
     val solutions :
       answer -> ((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) list
     val lookup : answer -> int
     val noAnswers : answer -> bool
-    type nonrec asub =
-      ((IntSyn.__Exp)(* ---------------------------------------------------------------------- *))
-        RBSet.ordSet
+    (* ---------------------------------------------------------------------- *)
+    type nonrec asub = IntSyn.__Exp RBSet.ordSet
     val aid : unit -> asub
     type callCheckResult =
       | NewEntry of answer 
@@ -43,9 +43,10 @@ module type TABLEPARAM  =
     type answState =
       | new__ 
       | repeated 
+    (* ---------------------------------------------------------------------- *)
     type __Strategy =
       | Variant 
-      | Subsumption (* ---------------------------------------------------------------------- *)
+      | Subsumption 
     val strategy : __Strategy ref
     val stageCtr : int ref
     val divHeuristic : bool ref
@@ -58,24 +59,25 @@ module type TABLEPARAM  =
 
 
 
-module TableParam(TableParam:sig
-                               module Global :
-                               ((GLOBAL)(* Table parameters *)(* Author: Brigitte Pientka *))
-                             end) : TABLEPARAM =
+(* Table parameters *)
+(* Author: Brigitte Pientka *)
+module TableParam(TableParam:sig module Global : GLOBAL end) : TABLEPARAM =
   struct
-    exception Error of
-      ((string)(*! structure RBSet = RBSet !*)(*! structure CompSyn = CompSyn' !*)
-      (*! structure IntSyn = IntSyn' !*)(*! structure RBSet : RBSET!*)
-      (*!  sharing CompSyn'.IntSyn = IntSyn'!*)(*! structure CompSyn' : COMPSYN !*)
-      (*! structure IntSyn' : INTSYN !*)) 
+    (*! structure IntSyn' : INTSYN !*)
+    (*! structure CompSyn' : COMPSYN !*)
+    (*!  sharing CompSyn'.IntSyn = IntSyn'!*)
+    (*! structure RBSet : RBSET!*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure CompSyn = CompSyn' !*)
+    (*! structure RBSet = RBSet !*)
+    exception Error of string 
     type __Strategy =
       | Variant 
       | Subsumption 
     type __ResEqn =
       | Trivial 
-      | Unify of (((IntSyn.dctx)(* trivially done *)) *
-      IntSyn.__Exp * ((IntSyn.__Exp)(* call unify *)) *
-      __ResEqn) 
+      | Unify of (IntSyn.dctx * IntSyn.__Exp * IntSyn.__Exp * __ResEqn) 
+    (* call unify *)
     type nonrec answer =
       <
         solutions: ((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) list  ;
@@ -83,10 +85,10 @@ module TableParam(TableParam:sig
     type __Status =
       | Complete 
       | Incomplete 
+    (* globalTable stores the queries whose solution we want to keep *)
     let (globalTable :
-      (((IntSyn.dctx)(* globalTable stores the queries whose solution we want to keep *))
-        * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp * __ResEqn * answer *
-        __Status) list ref)
+      (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp * __ResEqn *
+        answer * __Status) list ref)
       = ref []
     let rec resetGlobalTable () = globalTable := []
     let rec emptyAnsw () = ref { solutions = []; lookup = 0 }
@@ -101,9 +103,10 @@ module TableParam(TableParam:sig
     let rec lookup (ref { solutions = S; lookup = i; lookup = i } as answ) =
       i
     let rec noAnswers answ =
-      match List.take ((solutions answ), (lookup answ)) with
-      | [] -> ((true__)(*solutions(answ) *))
-      | L -> false__
+      ((match List.take ((solutions answ), (lookup answ)) with
+        | [] -> true__
+        | L -> false__)
+      (*solutions(answ) *))
     type nonrec asub = IntSyn.__Exp RBSet.ordSet
     let (aid : unit -> asub) = RBSet.new__
     type callCheckResult =
@@ -114,17 +117,20 @@ module TableParam(TableParam:sig
     type answState =
       | new__ [@sml.renamed "new__"][@sml.renamed "new__"]
       | repeated [@sml.renamed "repeated"][@sml.renamed "repeated"]
-    let ((strategy)(* ---------------------------------------------------------------------- *)
-      (* global search parameters *)) = ref Variant
-    let ((divHeuristic)(* Subsumption *)) = ref false__
-    let ((stageCtr)(*  val divHeuristic = ref true;*)) =
-      ref 0
-    let ((termDepth)(* term abstraction and ctx abstraction *)(* currently not used *))
-      = (ref NONE : int option ref)
+    (* ---------------------------------------------------------------------- *)
+    (* global search parameters *)
+    let strategy = ref Variant
+    (* Subsumption *)
+    let divHeuristic = ref false__
+    (*  val divHeuristic = ref true;*)
+    let stageCtr = ref 0
+    (* term abstraction and ctx abstraction *)
+    (* currently not used *)
+    let termDepth = (ref NONE : int option ref)
     let ctxDepth = (ref NONE : int option ref)
     let ctxLength = (ref NONE : int option ref)
-    let ((strengthen)(* apply strengthening during abstraction *))
-      = ref false__
+    (* apply strengthening during abstraction *)
+    let strengthen = ref false__
   end ;;
 
 

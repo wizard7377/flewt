@@ -1,36 +1,39 @@
 
+(* Indexing *)
+(* Author: Brigitte Pientka *)
 module type MEMOTABLE  =
   sig
+    (*! structure IntSyn : INTSYN !*)
+    (*! structure CompSyn : COMPSYN !*)
+    (*! structure TableParam : TABLEPARAM !*)
+    (* call check/insert *)
+    (* callCheck (G, D, U, eqn)
+   *
+   * if D, G |- U & eqn     in table  then RepeatedEntry (entries)
+   * if D, G |- U & eqn not in table  then NewEntry (ptrAnswer)
+   * SIDE EFFECT: D, G |- U added to table
+   *)
     val callCheck :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
-        TableParam.__ResEqn) ->
-        ((TableParam.callCheckResult)(* callCheck (g, D, U, eqn)
-   *
-   * if D, g |- U & eqn     in table  then RepeatedEntry (entries)
-   * if D, g |- U & eqn not in table  then NewEntry (ptrAnswer)
-   * SIDE EFFECT: D, g |- U added to table
-   *)
-        (* call check/insert *)(*! structure TableParam : TABLEPARAM !*)
-        (*! structure CompSyn : COMPSYN !*)(*! structure IntSyn : INTSYN !*)
-        (* Author: Brigitte Pientka *)(* Indexing *))
-    val answerCheck :
-      (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
-        ((TableParam.answState)(* answerCheck (g, D, (U,s))
+        TableParam.__ResEqn) -> TableParam.callCheckResult
+    (* answer check/insert *)
+    (* answerCheck (G, D, (U,s))
    * 
-   * Assupmtion: D, g |- U is in table
+   * Assupmtion: D, G |- U is in table
    *             and A represents the corresponding solutions
    * 
-   * g |- s : D, g
-   * Dk, g |- sk : D, g
+   * G |- s : D, G
+   * Dk, G |- sk : D, G
    *
    * If  (Dk, sk) in A then repeated
    *  else new
    *)
-        (* answer check/insert *))
-    val reset : unit -> ((unit)(* reset table *))
-    val updateTable :
-      unit ->
-        ((bool)(* updateTable 
+    val answerCheck :
+      (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
+        TableParam.answState
+    (* reset table *)
+    val reset : unit -> unit
+    (* updateTable 
    *
    * SIDE EFFECT: 
    *   for each table entry: 
@@ -39,24 +42,26 @@ module type MEMOTABLE  =
    * if Table did not change during last stage 
    *    then updateTable () =  false
    * else updateTable () = true
-   *))
+   *)
+    val updateTable : unit -> bool
     val tableSize : unit -> int
   end;;
 
 
 
 
+(* Linear Substitution Tree indexing *)
+(* Linearity: Any variables occurring inside the substitution tree are linear *)
+(* Any term we insert into the substitution tree is in normalform *)
+(* Variant Checking *)
+(* Author: Brigitte Pientka *)
 module MemoTable(MemoTable:sig
+                             (*! structure IntSyn' : INTSYN !*)
+                             (*! structure CompSyn' : COMPSYN !*)
+                             (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                              module Conv : CONV
                              module Whnf : WHNF
                              module AbstractTabled : ABSTRACTTABLED
-                             module Print :
-                             ((PRINT)(* Linear Substitution Tree indexing *)
-                             (* Linearity: Any variables occurring inside the substitution tree are linear *)
-                             (* Any term we insert into the substitution tree is in normalform *)
-                             (* Variant Checking *)(* Author: Brigitte Pientka *)
-                             (*! structure IntSyn' : INTSYN !*)(*! structure CompSyn' : COMPSYN !*)
-                             (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                              (*! sharing Conv.IntSyn = IntSyn' !*)
                              (*! sharing Whnf.IntSyn = IntSyn' !*)
                              (*! structure RBSet : RBSET !*)
@@ -64,31 +69,32 @@ module MemoTable(MemoTable:sig
                              (*! sharing TableParam.IntSyn = IntSyn' !*)
                              (*! sharing TableParam.CompSyn = CompSyn' !*)
                              (*! sharing TableParam.RBSet = RBSet !*)
-                             (*! sharing AbstractTabled.IntSyn = IntSyn' !*))
+                             (*! sharing AbstractTabled.IntSyn = IntSyn' !*)
+                             module Print : PRINT
                            end) : MEMOTABLE =
   struct
-    module AbstractTabled =
-      ((AbstractTabled)(*! sharing Print.IntSyn = IntSyn'!*)
-      (*! structure IntSyn = IntSyn' !*)(*! structure CompSyn = CompSyn' !*))
-    type nonrec normalSubsts =
-      ((IntSyn.__Exp)(* property: linear *)(* normalSubsts: key = int = nvar *)
-        (* Linear substitution tree for linear terms *)
-        (* ---------------------------------------------------------------------- *)
-        (*! structure TableParam = TableParam !*))
-        RBSet.ordSet
+    (*! sharing Print.IntSyn = IntSyn'!*)
+    (*! structure IntSyn = IntSyn' !*)
+    (*! structure CompSyn = CompSyn' !*)
+    module AbstractTabled = AbstractTabled
+    (*! structure TableParam = TableParam !*)
+    (* ---------------------------------------------------------------------- *)
+    (* Linear substitution tree for linear terms *)
+    (* normalSubsts: key = int = nvar *)
+    (* property: linear *)
+    type nonrec normalSubsts = IntSyn.__Exp RBSet.ordSet
     type nonrec exSubsts = IntSyn.__Exp RBSet.ordSet
     let (nid : unit -> normalSubsts) = RBSet.new__
     let aid = TableParam.aid
     let (existId : unit -> normalSubsts) = RBSet.new__
     let rec isId s = RBSet.isEmpty s
-    type nonrec ctx =
-      (((int)(* ---------------------------------------------------------------------- *))
-        * IntSyn.__Dec) list ref
+    (* ---------------------------------------------------------------------- *)
+    type nonrec ctx = (int * IntSyn.__Dec) list ref
     let rec emptyCtx () = (ref [] : ctx)
     let rec copy (L) = (ref (!L) : ctx)
-    let rec delete
-      (((x)(* destructively updates L *)), (L : ctx)) =
-      let del =
+    (* destructively updates L *)
+    let rec delete (x, (L : ctx)) =
+      let rec del =
         function
         | (x, [], L) -> NONE
         | (x, ((y, E) as H)::L, L') ->
@@ -99,58 +105,62 @@ module MemoTable(MemoTable:sig
       | NONE -> NONE
       | SOME ((y, E), L') -> (L := L'; SOME (y, E))
     let rec member (x, (L : ctx)) =
-      let memb =
+      let rec memb =
         function
         | (x, []) -> NONE
         | (x, ((y, E)::L as H)) -> if x = y then SOME (y, E) else memb (x, L) in
       memb (x, (!L))
     let rec insertList (E, L) = L := (E :: (!L)); L
-    let rec ctxToEVarSub =
-      function
-      | (((IntSyn.Null)(* ctxToEVarSub D = s
+    (* ctxToEVarSub D = s
 
      if D is a context for existential variables,
         s.t. u_1:: A_1,.... u_n:: A_n = D
      then . |- s : D where s = X_n....X_1.id
 
-    *)),
-         s) -> s
-      | (Decl (g, Dec (_, A)), s) ->
-          let s' = ctxToEVarSub (g, s) in
+    *)
+    let rec ctxToEVarSub =
+      function
+      | (IntSyn.Null, s) -> s
+      | (Decl (G, Dec (_, A)), s) ->
+          let s' = ctxToEVarSub (G, s) in
           let X = IntSyn.newEVar (IntSyn.Null, (IntSyn.EClo (A, s'))) in
           IntSyn.Dot ((IntSyn.Exp X), s')
-    type __Tree =
-      | Leaf of
-      ((((ctx)(* it is only possible to distribute the evar-ctx because
+    (* ---------------------------------------------------------------------- *)
+    (* Substitution Tree *)
+    (* it is only possible to distribute the evar-ctx because
      all evars occur exactly once! -- linear
      this allows us to maintain invariant, that every occurrence of an evar is
      defined in its evar-ctx
      *)
-      (* Substitution Tree *)(* ---------------------------------------------------------------------- *))
-      * normalSubsts) *
-      ((((int * ((int)(* #EVar *))))(* #g *))
-      * IntSyn.dctx * ((TableParam.__ResEqn)(* g *)) *
-      TableParam.answer * int * TableParam.__Status) list ref) 
+    type __Tree =
+      | Leaf of ((ctx * normalSubsts) * ((int * int) * IntSyn.dctx *
+      TableParam.__ResEqn * TableParam.answer * int * TableParam.__Status)
+      list ref) 
       | Node of ((ctx * normalSubsts) * __Tree ref list) 
+    (* #G *)
+    (* G *)
+    (* #EVar *)
     let rec makeTree () = ref (Node (((emptyCtx ()), (nid ())), []))
     let rec noChildren (C) = C = []
     type __Retrieval =
       | Variant of IntSyn.__Exp 
       | NotCompatible 
     type __CompSub =
-      | SplitSub of ((((ctx * normalSubsts))(* sigma *)) *
-      (((ctx * normalSubsts))(* rho1 *)) *
-      (((ctx * normalSubsts))(* rho2 *))) 
-      | VariantSub of
-      (((((ctx)(* normalSubsts * *)) * normalSubsts))
-      (* rho2 *)) 
+      | SplitSub of ((ctx * normalSubsts) * (ctx * normalSubsts) * (ctx *
+      normalSubsts)) 
+      | VariantSub of (ctx * normalSubsts) 
       | NoCompatibleSub 
-    let ((indexArray)(* Index array
+    (* sigma *)
+    (* rho1 *)
+    (* rho2 *)
+    (* normalSubsts * *)
+    (* rho2 *)
+    (* Index array
 
      All type families have their own substitution tree and all substitution trees
      are stored in an array [a1,...,an]   where ai is a substitution tree for type family ai
-     *))
-      =
+     *)
+    let indexArray =
       Array.tabulate
         (Global.maxCid, (function | i -> ((ref 0), (makeTree ()))))
     exception Error of string 
@@ -173,35 +183,35 @@ module MemoTable(MemoTable:sig
       function | (0, s) -> s | (i, s) -> dotn ((i - 1), (I.dot1 s))
     let rec compose =
       function
-      | (IntSyn.Null, g) -> g
-      | (Decl (g, D), g') -> IntSyn.Decl ((compose (g, g')), D)
+      | (IntSyn.Null, G) -> G
+      | (Decl (G, D), G') -> IntSyn.Decl ((compose (G, G')), D)
     let rec shift =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (g, D), s) -> I.dot1 (shift (g, s))
+      | (Decl (G, D), s) -> I.dot1 (shift (G, s))
     let rec raiseType =
       function
       | (I.Null, U) -> U
-      | (Decl (g, D), U) -> raiseType (g, (I.Lam (D, U)))
+      | (Decl (G, D), U) -> raiseType (G, (I.Lam (D, U)))
     let rec ctxToAVarSub =
       function
-      | (g', I.Null, s) -> s
-      | (g', Decl (D, Dec (_, A)), s) ->
+      | (G', I.Null, s) -> s
+      | (G', Decl (D, Dec (_, A)), s) ->
           let EVar (r, _, _, cnstr) as E = I.newEVar (I.Null, A) in
-          I.Dot ((I.Exp E), (ctxToAVarSub (g', D, s)))
-      | (g', Decl (D, ADec (_, d)), s) ->
+          I.Dot ((I.Exp E), (ctxToAVarSub (G', D, s)))
+      | (G', Decl (D, ADec (_, d)), s) ->
           let X = I.newAVar () in
           I.Dot
             ((I.Exp (I.EClo (X, (I.Shift (~ d))))),
-              (ctxToAVarSub (g', D, s)))
+              (ctxToAVarSub (G', D, s)))
     let rec solveEqn' =
       function
-      | ((T.Trivial, s), g) -> true__
-      | ((Unify (g', e1, N, eqns), s), g) ->
-          let g'' = compose (g', g) in
-          let s' = shift (g', s) in
-          (Assign.unifiable (g'', (N, s'), (e1, s'))) &&
-            (solveEqn' ((eqns, s), g))
+      | ((T.Trivial, s), G) -> true__
+      | ((Unify (G', e1, N, eqns), s), G) ->
+          let G'' = compose (G', G) in
+          let s' = shift (G', s) in
+          (Assign.unifiable (G'', (N, s'), (e1, s'))) &&
+            (solveEqn' ((eqns, s), G))
     let nctr = ref 1
     let rec newNVar () = ((!) ((:=) nctr) nctr) + 1; I.NVar (!nctr)
     let rec equalDec =
@@ -212,15 +222,15 @@ module MemoTable(MemoTable:sig
     let rec equalCtx =
       function
       | (I.Null, s, I.Null, s') -> true__
-      | (Decl (g, D), s, Decl (g', D'), s') ->
+      | (Decl (G, D), s, Decl (G', D'), s') ->
           (Conv.convDec ((D, s), (D', s'))) &&
-            (equalCtx (g, (I.dot1 s), g', (I.dot1 s')))
+            (equalCtx (G, (I.dot1 s), G', (I.dot1 s')))
       | (_, _, _, _) -> false__
     let rec equalEqn =
       function
       | (T.Trivial, T.Trivial) -> true__
-      | (Unify (g, X, N, eqn), Unify (g', X', N', eqn')) ->
-          (equalCtx (g, I.id, g', I.id)) &&
+      | (Unify (G, X, N, eqn), Unify (G', X', N', eqn')) ->
+          (equalCtx (G, I.id, G', I.id)) &&
             ((Conv.conv ((X, I.id), (X', I.id))) &&
                ((Conv.conv ((N, I.id), (N', I.id))) && (equalEqn (eqn, eqn'))))
       | (_, _) -> false__
@@ -245,7 +255,7 @@ module MemoTable(MemoTable:sig
       | (Decl (Dk, ADec (_, d')), Decl (D1, ADec (_, d))) ->
           (d = d') && (equalCtx' (Dk, D1))
       | (_, _) -> false__
-    let rec compareCtx (g, g') = equalCtx' (g, g')
+    let rec compareCtx (G, G') = equalCtx' (G, G')
     let rec isExists (d, BVar k, D) = member ((k - d), D)
     let rec compHeads =
       function
@@ -261,23 +271,23 @@ module MemoTable(MemoTable:sig
            | SOME (x, Dec) -> true__)
       | ((D_1, H1), (D_2, H2)) -> false__
     let rec compatible' ((D_t, T), (D_u, U), Ds, rho_t, rho_u) =
-      let genNVar ((rho_t, T), (rho_u, U)) =
+      let rec genNVar ((rho_t, T), (rho_u, U)) =
         S.insert rho_t (((!nctr) + 1), T);
         S.insert rho_u (((!nctr) + 1), U);
         newNVar () in
-      let genRoot =
+      let rec genRoot =
         function
-        | (depth, (Root ((Const k as H1), s1) as T),
-           (Root (Const k', s2) as U)) ->
+        | (depth, (Root ((Const k as H1), S1) as T),
+           (Root (Const k', S2) as U)) ->
             if k = k'
-            then let S' = genSpine (depth, s1, s2) in I.Root (H1, S')
+            then let S' = genSpine (depth, S1, S2) in I.Root (H1, S')
             else genNVar ((rho_t, T), (rho_u, U))
-        | (depth, (Root ((Def k as H1), s1) as T), (Root (Def k', s2) as U))
+        | (depth, (Root ((Def k as H1), S1) as T), (Root (Def k', S2) as U))
             ->
             if k = k'
-            then let S' = genSpine (depth, s1, s2) in I.Root (H1, S')
+            then let S' = genSpine (depth, S1, S2) in I.Root (H1, S')
             else genNVar ((rho_t, T), (rho_u, U))
-        | (d, (Root ((BVar k as H1), s1) as T), (Root (BVar k', s2) as U)) ->
+        | (d, (Root ((BVar k as H1), S1) as T), (Root (BVar k', S2) as U)) ->
             if (k > d) && (k' > d)
             then
               let k1 = k - d in
@@ -286,14 +296,14 @@ module MemoTable(MemoTable:sig
                | (NONE, NONE) ->
                    if k1 = k2
                    then
-                     (try let S' = genSpine (d, s1, s2) in I.Root (H1, S')
+                     (try let S' = genSpine (d, S1, S2) in I.Root (H1, S')
                       with
                       | DifferentSpine -> genNVar ((rho_t, T), (rho_u, U)))
                    else genNVar ((rho_t, T), (rho_u, U))
                | (SOME (x, Dec1), SOME (x', Dec2)) ->
                    if (k1 = k2) && (equalDec (Dec1, Dec2))
                    then
-                     let S' = genSpine (d, s1, s2) in
+                     let S' = genSpine (d, S1, S2) in
                      (delete (x, D_t);
                       delete (x', D_u);
                       insertList ((x, Dec1), Ds);
@@ -303,30 +313,30 @@ module MemoTable(MemoTable:sig
             else
               if k = k'
               then
-                (try let S' = genSpine (d, s1, s2) in I.Root (H1, S')
+                (try let S' = genSpine (d, S1, S2) in I.Root (H1, S')
                  with | DifferentSpines -> genNVar ((rho_t, T), (rho_u, U)))
               else genNVar ((rho_t, T), (rho_u, U))
-        | (d, (Root ((BVar k as H1), s1) as T), (Root (Const k', s2) as U))
+        | (d, (Root ((BVar k as H1), S1) as T), (Root (Const k', S2) as U))
             -> genNVar ((rho_t, T), (rho_u, U))
-        | (d, (Root (H1, s1) as T), (Root (H2, s2) as U)) ->
+        | (d, (Root (H1, S1) as T), (Root (H2, S2) as U)) ->
             genNVar ((rho_t, T), (rho_u, U))
       and genExp =
         function
         | (d, (NVar n as T), (Root (H, S) as U)) ->
             (S.insert rho_u (n, U); T)
-        | (d, (Root (H1, s1) as T), (Root (H2, s2) as U)) ->
-            genRoot (d, (I.Root (H1, s1)), (I.Root (H2, s2)))
-        | (d, Lam ((Dec (_, A1) as D1), T1), Lam ((Dec (_, A2) as D2), u2))
-            -> let E = genExp ((d + 1), T1, u2) in I.Lam (D1, E)
+        | (d, (Root (H1, S1) as T), (Root (H2, S2) as U)) ->
+            genRoot (d, (I.Root (H1, S1)), (I.Root (H2, S2)))
+        | (d, Lam ((Dec (_, A1) as D1), T1), Lam ((Dec (_, A2) as D2), U2))
+            -> let E = genExp ((d + 1), T1, U2) in I.Lam (D1, E)
         | (d, T, U) ->
             (print "genExp -- falls through?\n";
              genNVar ((rho_t, T), (rho_u, U)))
       and genSpine =
         function
         | (d, I.Nil, I.Nil) -> I.Nil
-        | (d, App (T, s1), App (U, s2)) ->
+        | (d, App (T, S1), App (U, S2)) ->
             let E = genExp (d, T, U) in
-            let S' = genSpine (d, s1, s2) in I.App (E, S')
+            let S' = genSpine (d, S1, S2) in I.App (E, S')
         | (d, I.Nil, App (_, _)) -> raise DifferentSpines
         | (d, App (_, _), I.Nil) -> raise DifferentSpines
         | (d, SClo (_, _), _) -> raise DifferentSpines
@@ -334,7 +344,7 @@ module MemoTable(MemoTable:sig
       let E = genExp (0, T, U) in Variant E
     let rec compatible =
       function
-      | ((D_t, (Root (H1, s1) as T)), (D_u, (Root (H2, s2) as U)), Ds, rho_t,
+      | ((D_t, (Root (H1, S1) as T)), (D_u, (Root (H2, S2) as U)), Ds, rho_t,
          rho_u) ->
           if compHeads ((D_t, H1), (D_u, H2))
           then compatible' ((D_t, T), (D_u, U), Ds, rho_t, rho_u)
@@ -386,11 +396,11 @@ module MemoTable(MemoTable:sig
               [ref (Leaf (Drho2, (ref [GR2]))); ref (Leaf (Drho1, GRlist))])
     let rec compatibleCtx =
       function
-      | ((g, eqn), []) -> NONE
-      | ((g, eqn), (l', g', eqn', answRef', _, status')::GRlist) ->
-          if (equalCtx' (g, g')) && (equalEqn (eqn, eqn'))
+      | ((G, eqn), []) -> NONE
+      | ((G, eqn), (l', G', eqn', answRef', _, status')::GRlist) ->
+          if (equalCtx' (G, G')) && (equalEqn (eqn, eqn'))
           then SOME (l', answRef', status')
-          else compatibleCtx ((g, eqn), GRlist)
+          else compatibleCtx ((G, eqn), GRlist)
     let rec compChild =
       function
       | ((Leaf ((D_t, nsub_t), GList) as N), (D_e, nsub_e)) ->
@@ -398,7 +408,7 @@ module MemoTable(MemoTable:sig
       | ((Node ((D_t, nsub_t), Children') as N), (D_e, nsub_e)) ->
           compatibleSub ((D_t, nsub_t), (D_e, nsub_e))
     let rec findAllCandidates (G_r, children, Ds) =
-      let findAllCands =
+      let rec findAllCands =
         function
         | (G_r, nil, (D_u, sub_u), VList, SList) -> (VList, SList)
         | (G_r, x::L, (D_u, sub_u), VList, SList) ->
@@ -413,12 +423,12 @@ module MemoTable(MemoTable:sig
                  findAllCands
                    (G_r, L, (D_u, sub_u), ((x, Drho2, I.id) :: VList), SList)) in
       findAllCands (G_r, children, Ds, nil, nil)
-    let rec divergingCtx (stage, g, GRlistRef) =
-      let l = I.ctxLength g in
+    let rec divergingCtx (stage, G, GRlistRef) =
+      let l = I.ctxLength G in
       List.exists
         (function
-         | ((evar, l), g', _, _, stage', _) ->
-             (stage = stage') && (l > (I.ctxLength g'))) (!GRlistRef)
+         | ((evar, l), G', _, _, stage', _) ->
+             (stage = stage') && (l > (I.ctxLength G'))) (!GRlistRef)
     let rec eqHeads =
       function
       | (Const k, Const k') -> k = k'
@@ -427,8 +437,8 @@ module MemoTable(MemoTable:sig
       | (_, _) -> false__
     let rec eqTerm =
       function
-      | (Root (H2, s2), ((Root (H, S) as t), rho1)) ->
-          if eqHeads (H2, H) then eqSpine (s2, (S, rho1)) else false__
+      | (Root (H2, S2), ((Root (H, S) as t), rho1)) ->
+          if eqHeads (H2, H) then eqSpine (S2, (S, rho1)) else false__
       | (T2, (NVar n, rho1)) ->
           (match S.lookup rho1 n with
            | NONE -> false__
@@ -438,8 +448,8 @@ module MemoTable(MemoTable:sig
     let rec eqSpine =
       function
       | (I.Nil, (I.Nil, rho1)) -> true__
-      | (App (T2, s2), (App (T, S), rho1)) ->
-          (eqTerm (T2, (T, rho1))) && (eqSpine (s2, (S, rho1)))
+      | (App (T2, S2), (App (T, S), rho1)) ->
+          (eqTerm (T2, (T, rho1))) && (eqSpine (S2, (S, rho1)))
       | (_, _) -> false__
     let rec divergingSub ((Ds, sigma), (Dr1, rho1), (Dr2, rho2)) =
       S.exists rho2
@@ -447,7 +457,7 @@ module MemoTable(MemoTable:sig
          | (n2, t2) ->
              S.exists sigma (function | (_, t) -> eqTerm (t2, (t, rho1))))
     let rec insert (Nref, (D_u, nsub_u), GR) =
-      let insert' =
+      let rec insert' =
         function
         | ((Leaf ((D, _), GRlistRef) as N), (D_u, nsub_u),
            (((evarl, l), G_r, eqn, answRef, stage, status) as GR)) ->
@@ -475,7 +485,7 @@ module MemoTable(MemoTable:sig
            ((l, G_r, eqn, answRef, stage, status) as GR)) ->
             let (VariantCand, SplitCand) =
               findAllCandidates (G_r, children, (D_u, nsub_u)) in
-            let checkCandidates =
+            let rec checkCandidates =
               function
               | (nil, nil) ->
                   (((function
@@ -516,7 +526,7 @@ module MemoTable(MemoTable:sig
             checkCandidates (VariantCand, SplitCand) in
       insert' ((!Nref), (D_u, nsub_u), GR)
     let rec answCheckVariant (s', answRef, O) =
-      let member =
+      let rec member =
         function
         | ((D, sk), []) -> false__
         | ((D, sk), ((D1, s1), _)::S) ->
@@ -540,25 +550,25 @@ module MemoTable(MemoTable:sig
     let rec makeCtx =
       function
       | (n, I.Null, (DEVars : ctx)) -> n
-      | (n, Decl (g, D), (DEVars : ctx)) ->
-          (insertList ((n, D), DEVars); makeCtx ((n + 1), g, DEVars))
-    let rec callCheck (a, DAVars, DEVars, g, U, eqn, status) =
+      | (n, Decl (G, D), (DEVars : ctx)) ->
+          (insertList ((n, D), DEVars); makeCtx ((n + 1), G, DEVars))
+    let rec callCheck (a, DAVars, DEVars, G, U, eqn, status) =
       let (n, Tree) = Array.sub (indexArray, a) in
       let nsub_goal = S.new__ () in
       let DAEVars = compose (DEVars, DAVars) in
       let D = emptyCtx () in
-      let n = I.ctxLength g in
+      let n = I.ctxLength G in
       let _ = makeCtx ((n + 1), DAEVars, (D : ctx)) in
       let l = I.ctxLength DAEVars in
       let _ = S.insert nsub_goal (1, U) in
       let result =
         insert
           (Tree, (D, nsub_goal),
-            ((l, (n + 1)), g, eqn, (emptyAnswer ()), (!TableParam.stageCtr),
+            ((l, (n + 1)), G, eqn, (emptyAnswer ()), (!TableParam.stageCtr),
               status)) in
-      let esub = ctxToAVarSub (g, DAEVars, (I.Shift 0)) in
+      let esub = ctxToAVarSub (G, DAEVars, (I.Shift 0)) in
       let _ =
-        if solveEqn' ((eqn, (shift (g, esub))), g)
+        if solveEqn' ((eqn, (shift (G, esub))), G)
         then ()
         else print " failed to solve eqn_query\n" in
       match result with
@@ -579,19 +589,19 @@ module MemoTable(MemoTable:sig
            then print "\t -- Add diverging goal\n"
            else ();
            T.DivergingEntry answRef)
-    let rec insertIntoTree (a, DAVars, DEVars, g, U, eqn, answRef, status) =
+    let rec insertIntoTree (a, DAVars, DEVars, G, U, eqn, answRef, status) =
       let (n, Tree) = Array.sub (indexArray, a) in
       let nsub_goal = S.new__ () in
       let DAEVars = compose (DEVars, DAVars) in
       let D = emptyCtx () in
-      let n = I.ctxLength g in
+      let n = I.ctxLength G in
       let _ = makeCtx ((n + 1), DAEVars, (D : ctx)) in
       let l = I.ctxLength DAEVars in
       let _ = S.insert nsub_goal (1, U) in
       let result =
         insert
           (Tree, (D, nsub_goal),
-            ((l, (n + 1)), g, eqn, answRef, (!TableParam.stageCtr), status)) in
+            ((l, (n + 1)), G, eqn, answRef, (!TableParam.stageCtr), status)) in
       match result with
       | (sf, NewEntry answRef) ->
           (added := true__;
@@ -611,7 +621,7 @@ module MemoTable(MemoTable:sig
            T.DivergingEntry answRef)
     let rec answCheck (s', answRef, O) = answCheckVariant (s', answRef, O)
     let rec updateTable () =
-      let update arg__0 arg__1 =
+      let rec update arg__0 arg__1 =
         match (arg__0, arg__1) with
         | ([], Flag) -> Flag
         | (answRef::AList, Flag) ->
@@ -621,30 +631,34 @@ module MemoTable(MemoTable:sig
             else (T.updateAnswLookup (l, answRef); update AList true__) in
       let Flag = update (!answList) false__ in
       let r = Flag || (!added) in added := false__; r
-    let ((reset)(* index for normal variables *)(* index for bound variables *)
-      (* depth of locally bound variables *)(* ------------------------------------------------------ *)
-      (* Auxiliary functions *)(* solveEqn' ((VarDef, s), g) = bool
+    (* index for normal variables *)
+    (* index for bound variables *)
+    (* depth of locally bound variables *)
+    (* ------------------------------------------------------ *)
+    (* Auxiliary functions *)
+    (* solveEqn' ((VarDef, s), G) = bool
 
-     if g'' |- VarDef and g   |- s : g''
-       g   |- VarDef[s]
+     if G'' |- VarDef and G   |- s : G''
+       G   |- VarDef[s]
     then
       return true, if VarDefs are solvable
       false otherwise
       *)
-      (* evar *)(* ------------------------------------------------------ *)
-      (*  Variable b    : bound variable
+    (* evar *)
+    (* ------------------------------------------------------ *)
+    (*  Variable b    : bound variable
      Variable n    : index variable
      linear term  U ::=  Root(c, S) | Lam (D, U) | Root(b, S)
      linear Spine S ::= p ; S | NIL
      indexed term t ::= Root(n, NIL) |  Root(c, S) | Lam (D, p) | Root(b, S)
      indexed spines S_i ::= t ; S_i | NIL
      Types   A
-     Context g : context for bound variables (bvars)
+     Context G : context for bound variables (bvars)
      (type information is stored in the context)
-        g ::= . | g, x : A
+        G ::= . | G, x : A
         Set of all index variables:  N
 
-        linear terms are approximately well-typed in g:  g |- p
+        linear terms are approximately well-typed in G:  G |- p
         after erasing all typing dependencies.
 
 
@@ -665,10 +679,10 @@ module MemoTable(MemoTable:sig
        a sequenence of substitutions s1, s2, ..., sn such that s1 o s2 o .... o sn = s
        and the following holds:
 
-       If    N  ; g |- t
-       then  N' ; g |- t'
-             N  ; g |- s : N' ; g
-             N  ; g |- t'[s]     and t'[s] = t
+       If    N  ; G |- t
+       then  N' ; G |- t'
+             N  ; G |- s : N' ; G
+             N  ; G |- t'[s]     and t'[s] = t
 
       if we have a linear term then N will be empty, but the same holds.
 
@@ -679,27 +693,32 @@ module MemoTable(MemoTable:sig
       a given expression simpler, because we can omit the occurs check)
 
    *)
-      (* ---------------------------------------------------------------*)
-      (* nctr = |D| =  #index variables *)(* We require order of both eqn must be the same Sun Sep  8 20:37:48 2002 -bp *)
-      (* s = s' = I.id *)(* in general, we need to carry around and build up a substitution *)
-      (* ---------------------------------------------------------------*)
-      (* ---------------------------------------------------------------*)
-      (* most specific linear common generalization *)
-      (* compatible (T, U) = (T', rho_u, rho_t) opt
+    (* ---------------------------------------------------------------*)
+    (* nctr = |D| =  #index variables *)
+    (* We require order of both eqn must be the same Sun Sep  8 20:37:48 2002 -bp *)
+    (* s = s' = I.id *)
+    (* in general, we need to carry around and build up a substitution *)
+    (* ---------------------------------------------------------------*)
+    (* ---------------------------------------------------------------*)
+    (* most specific linear common generalization *)
+    (* compatible (T, U) = (T', rho_u, rho_t) opt
     if T is an indexed term
        U is a linear term
        U and T share at least the top function symbol
    then
        T'[rho_u] = U and T'[rho_t] = T
    *)
-      (* globally bound variable *)(* k, k' refer to the existential *)
-      (* they refer to the same existential variable *)
-      (* this is unecessary -- since existential variables have the same type
-                                and need to be fully applied in order, s1 = s2 *)
-      (* variant checking only *)(* locally bound variables *)
-      (* by invariant A1 = A2 *)(* U = EVar, EClo -- can't happen -- Sun Oct 20 13:41:25 2002 -bp *)
-      (* ---------------------------------------------------------------*)
-      (* compatibleSub(nsub_t, nsub_u) = (sigma, rho_t, rho_u) opt
+    (* globally bound variable *)
+    (* k, k' refer to the existential *)
+    (* they refer to the same existential variable *)
+    (* this is unecessary -- since existential variables have the same type
+                                and need to be fully applied in order, S1 = S2 *)
+    (* variant checking only *)
+    (* locally bound variables *)
+    (* by invariant A1 = A2 *)
+    (* U = EVar, EClo -- can't happen -- Sun Oct 20 13:41:25 2002 -bp *)
+    (* ---------------------------------------------------------------*)
+    (* compatibleSub(nsub_t, nsub_u) = (sigma, rho_t, rho_u) opt
 
    if DOM(nsub_t) <= DOM(nsub_u)
       CODOM(nsub_t) : index terms
@@ -713,28 +732,32 @@ module MemoTable(MemoTable:sig
     Glocal_e ~ Glocal_t  (have "approximately" the same type)
 
    *)
-      (* by invariant rho_t = empty, since nsub_t <= nsub_u *)(* note by invariant Glocal_e ~ Glocal_t *)
-      (* here Glocal_t will be only approximately correct! *)(* perfect match under asub and rho_t = nsub_t
+    (* by invariant rho_t = empty, since nsub_t <= nsub_u *)
+    (* note by invariant Glocal_e ~ Glocal_t *)
+    (* here Glocal_t will be only approximately correct! *)
+    (* perfect match under asub and rho_t = nsub_t
            sigma = rho_t and sigma o asub = rho_u *)
-      (* split -- asub is unchanged *)(* Dsigma |~ sigma, D_r1 |~ rho_t, D_r1 |~ rho_u *)
-      (* ---------------------------------------------------------------------- *)
-      (* ---------------------------------------------------------------------- *)
-      (* we may not need to check that the DAVars are the same *)
-      (* ---------------------------------------------------------------------- *)
-      (* eqTerm (t2, (t, rho1)) = bool
+    (* split -- asub is unchanged *)
+    (* Dsigma |~ sigma, D_r1 |~ rho_t, D_r1 |~ rho_u *)
+    (* ---------------------------------------------------------------------- *)
+    (* ---------------------------------------------------------------------- *)
+    (* we may not need to check that the DAVars are the same *)
+    (* ---------------------------------------------------------------------- *)
+    (* eqTerm (t2, (t, rho1)) = bool
     returns true iff t2 = t[rho1]
   t2 is a linear term which may not contain any nvars!
   t may contain nvars
  *)
-      (* ---------------------------------------------------------------------- *)
-      (* Insert via variant checking *)(* insert' (N, (D, nsub), GR) = (f, callCheckResult)
+    (* ---------------------------------------------------------------------- *)
+    (* Insert via variant checking *)
+    (* insert' (N, (D, nsub), GR) = (f, callCheckResult)
 
      invariant:
 
        N is a substitution tree
        nsub is a normal substitution
        D contains all the existential variables in nsub
-       GR = (g : bound variable context,
+       GR = (G : bound variable context,
              eqn: residual equations
              answRef : ptr to answer list
 
@@ -746,14 +769,19 @@ module MemoTable(MemoTable:sig
                  callCheckResult = NewEntry (answRef)
 
   *)
-      (* need to compare D and D_u *)(* compatible path -- but different ctx! *)
-      (* ctx are diverging --- force suspension *)(* compatible path (variant) -- ctx are different *)
-      (* compatible path -- SAME ctx *)(* no child is compatible with nsub_u *)
-      (* split an existing node *)(* substree divering -- splitting node *)
-      (* split existing node *)(* unique "perfect" candidate (left) *)
-      (* there are several "perfect" candidates *)
-      (* ---------------------------------------------------------------------- *)
-      (* answer check and insert
+    (* need to compare D and D_u *)
+    (* compatible path -- but different ctx! *)
+    (* ctx are diverging --- force suspension *)
+    (* compatible path (variant) -- ctx are different *)
+    (* compatible path -- SAME ctx *)
+    (* no child is compatible with nsub_u *)
+    (* split an existing node *)
+    (* substree divering -- splitting node *)
+    (* split existing node *)
+    (* unique "perfect" candidate (left) *)
+    (* there are several "perfect" candidates *)
+    (* ---------------------------------------------------------------------- *)
+    (* answer check and insert
 
      Invariant:
         D |- Pi G.U
@@ -764,17 +792,17 @@ module MemoTable(MemoTable:sig
         D_k |- s_k : D  and eqn
         D_k |- (Pi G.U)[s_k] and eqn
 
-      answerCheck (g, s, answRef, 0) = repeated
+      answerCheck (G, s, answRef, 0) = repeated
          if (D_k, s_k, eqn)  already occurs in answRef
-      answerCheck (g,s, answRef, O) = new
+      answerCheck (G,s, answRef, O) = new
          if (D_k, s_k, eqn) did not occur in answRef
          Sideeffect: update answer list for U
      *)
-      (* ---------------------------------------------------------------------- *)
-      (* callCheck (a, DA, DE, g, U eqn) = callCheckResult
+    (* ---------------------------------------------------------------------- *)
+    (* callCheck (a, DA, DE, G, U eqn) = callCheckResult
 
        invariant:
-       DA, DE, g |- U
+       DA, DE, G |- U
        a is the type family of U
 
        if U is not already in the index, then it is inserted.
@@ -782,10 +810,10 @@ module MemoTable(MemoTable:sig
              a pointer answRef to the answer list.
              (for variant checking, asub = I.id, and varDefs = NONE)
      *)
-      (* insertIntoSTre (a, DA, DE, g, U eqn) = Succeeds
+    (* insertIntoSTre (a, DA, DE, G, U eqn) = Succeeds
 
        invariant:
-       DA, DE, g |- U
+       DA, DE, G |- U
        a is the type family of U
 
        U is not already in the index, then it is inserted.
@@ -793,40 +821,38 @@ module MemoTable(MemoTable:sig
              a pointer answRef to the answer list.
              (for variant checking, asub = I.id, and varDefs = NONE)
      *)
-      (* no new solutions were added in the previous stage *)(* new solutions were added *))
-      = reset
+    (* no new solutions were added in the previous stage *)
+    (* new solutions were added *)
+    let reset = reset
     let callCheck =
       function
-      | (DAVars, DEVars, g, U, eqn, status) ->
+      | (DAVars, DEVars, G, U, eqn, status) ->
           callCheck
-            ((cidFromHead (I.targetHead U)), DAVars, DEVars, g, U, eqn,
+            ((cidFromHead (I.targetHead U)), DAVars, DEVars, G, U, eqn,
               status)
     let insertIntoTree =
       function
-      | (DAVars, DEVars, g, U, eqn, answRef, status) ->
+      | (DAVars, DEVars, G, U, eqn, answRef, status) ->
           insertIntoTree
-            ((cidFromHead (I.targetHead U)), DAVars, DEVars, g, U, eqn,
+            ((cidFromHead (I.targetHead U)), DAVars, DEVars, G, U, eqn,
               answRef, status)
     let answerCheck = answCheck
     let updateTable = updateTable
     let tableSize = function | () -> length (!answList)
-    let rec memberCtx
-      ((((g)(* memberCtx ((g,V), g', n) = bool
+    (* memberCtx ((G,V), G', n) = bool
 
-       if g |- V and |- g' ctx
-          exists a V' in g s.t. V = V'[^n]
+       if G |- V and |- G' ctx
+          exists a V' in G s.t. V = V'[^n]
        then return true
          otherwise false
-     *)),
-        V),
-       g')
-      =
-      let memberCtx' =
+     *)
+    let rec memberCtx ((G, V), G') =
+      let rec memberCtx' =
         function
-        | ((g, V), I.Null, n) -> NONE
-        | ((g, V), Decl (g', (Dec (_, V') as D')), n) ->
+        | ((G, V), I.Null, n) -> NONE
+        | ((G, V), Decl (G', (Dec (_, V') as D')), n) ->
             if Conv.conv ((V, I.id), (V', (I.Shift n)))
             then SOME D'
-            else memberCtx' ((g, V), g', (n + 1)) in
-      memberCtx' ((g, V), g', 1)
+            else memberCtx' ((G, V), G', (n + 1)) in
+      memberCtx' ((G, V), G', 1)
   end ;;

@@ -1,8 +1,10 @@
 
+(* Interface for error reporting  syntax *)
+(* Author: Richard Fontana *)
+(* compare to Paths *)
 module type INTERFACE  =
   sig
-    type nonrec pos(* compare to Paths *)(* Author: Richard Fontana *)
-    (* Interface for error reporting  syntax *)
+    type nonrec pos
     val line : pos ref
     val init_line : unit -> unit
     val next_line : unit -> unit
@@ -14,6 +16,9 @@ module type INTERFACE  =
 
 
 
+(* Interface for error reporting  syntax *)
+(* Author: Richard Fontana *)
+(* compare to Paths *)
 module Interface() : INTERFACE =
   struct
     type nonrec pos = int

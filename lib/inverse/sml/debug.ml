@@ -2,14 +2,16 @@
 module type DEBUG  =
   sig
     exception Assert of exn 
-    val enable : unit -> ((unit)(* general *))
+    (* general *)
+    val enable : unit -> unit
     val disable : unit -> unit
-    val enable_assertions : unit -> ((unit)(* assertions *))
+    (* assertions *)
+    val enable_assertions : unit -> unit
     val disable_assertions : unit -> unit
     val assert__ : (bool * exn) -> unit
-    val enable_printing :
-      unit ->
-        ((unit)(* printing *)(* raises Assert *))
+    (* raises Assert *)
+    (* printing *)
+    val enable_printing : unit -> unit
     val disable_printing : unit -> unit
     val print : string -> unit
   end;;

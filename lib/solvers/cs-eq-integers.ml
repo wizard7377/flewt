@@ -1,31 +1,25 @@
 
+(* Gaussian-Elimination Equation Solver *)
+(* Author: Roberto Virga *)
 module type CS_EQ_INTEGERS  =
   sig
-    include
-      ((CS)(* Gaussian-Elimination Equation Solver *)
-      (* Author: Roberto Virga *))
+    include CS
     module Integers : INTEGERS
-    type nonrec 'a mset =
-      (('a)(* Foreign expressions *)(*! structure IntSyn : INTSYN !*))
-        list
+    (*! structure IntSyn : INTSYN !*)
+    (* Foreign expressions *)
+    type nonrec 'a mset = 'a list
+    (* MultiSet                   *)
     type __Sum =
-      | Sum of
-      (((Integers.int)(* Sum :                      *)
-      (* MultiSet                   *)) * __Mon mset) 
+      | Sum of (Integers.int * __Mon mset) 
     and __Mon =
-      | Mon of
-      (((Integers.int)(* Monomials:                 *)
-      (* Sum ::= m + M1 + ...       *)) * (IntSyn.__Exp *
-      IntSyn.__Sub) mset) 
-    val fromExp :
-      IntSyn.eclo ->
-        ((__Sum)(* Mon ::= n * u1[s1] * ...   *))
+      | Mon of (Integers.int * (IntSyn.__Exp * IntSyn.__Sub) mset) 
+    (* Mon ::= n * U1[s1] * ...   *)
+    val fromExp : IntSyn.eclo -> __Sum
     val toExp : __Sum -> IntSyn.__Exp
     val normalize : __Sum -> __Sum
     val compatibleMon : (__Mon * __Mon) -> bool
-    val number :
-      unit ->
-        ((IntSyn.__Exp)(* Internal expressions constructors *))
+    (* Internal expressions constructors *)
+    val number : unit -> IntSyn.__Exp
     val unaryMinus : IntSyn.__Exp -> IntSyn.__Exp
     val plus : (IntSyn.__Exp * IntSyn.__Exp) -> IntSyn.__Exp
     val minus : (IntSyn.__Exp * IntSyn.__Exp) -> IntSyn.__Exp
@@ -36,30 +30,36 @@ module type CS_EQ_INTEGERS  =
 
 
 
+(* Diophantine Equation Solver *)
+(* Author: Roberto Virga *)
 module CSEqIntegers(CSEqIntegers:sig
                                    module Integers : INTEGERS
                                    module Whnf : WHNF
-                                   module Unify :
-                                   ((UNIFY)(* Diophantine Equation Solver *)
-                                   (* Author: Roberto Virga *)(*! structure IntSyn : INTSYN !*)
-                                   (*! sharing Whnf.IntSyn = IntSyn !*))
+                                   (*! structure IntSyn : INTSYN !*)
+                                   (*! sharing Whnf.IntSyn = IntSyn !*)
+                                   module Unify : UNIFY
                                  end) : CS_EQ_INTEGERS =
   struct
-    module Integers =
-      ((Integers)(*! sharing Unify.IntSyn = IntSyn !*)
-      (*! structure CSManager : CS_MANAGER !*)(*! sharing CSManager.IntSyn = IntSyn !*)
-      (*! structure CSManager = CSManager !*))
-    type nonrec 'a mset =
-      (('a)(*! structure IntSyn = IntSyn !*)) list
+    (*! sharing Unify.IntSyn = IntSyn !*)
+    (*! structure CSManager : CS_MANAGER !*)
+    (*! sharing CSManager.IntSyn = IntSyn !*)
+    (*! structure CSManager = CSManager !*)
+    module Integers = Integers
+    (*! structure IntSyn = IntSyn !*)
+    type nonrec 'a mset = 'a list
+    (* MultiSet                   *)
     type __Sum =
-      | Sum of
-      (((Integers.int)(* Sum :                      *)
-      (* MultiSet                   *)) * __Mon mset) 
+      | Sum of (Integers.int * __Mon mset) 
     and __Mon =
-      | Mon of
-      (((Integers.int)(* Monomials:                 *)
-      (* Sum ::= m + M1 + ...       *)) * (IntSyn.__Exp *
-      IntSyn.__Sub) mset) 
+      | Mon of (Integers.int * (IntSyn.__Exp * IntSyn.__Sub) mset) 
+    (* Mon ::= n * U1[s1] * ...   *)
+    (* A monomial (n * U1[s1] * U2[s2] * ...) is said to be normal iff
+       (a) the coefficient n is different from zero;
+       (b) each (Ui,si) is in whnf and not a foreign term corresponding
+           to a sum.
+     A sum is normal iff all its monomials are normal, and moreover they
+     are pairwise distinct.
+  *)
     open IntSyn
     open Integers
     module FX = CSManager.Fixity
@@ -91,9 +91,9 @@ module CSEqIntegers(CSEqIntegers:sig
       match fromString string with
       | SOME d -> SOME (numberConDec d)
       | NONE -> NONE
-    let rec solveNumber (g, S, k) = SOME (numberExp (fromInt k))
+    let rec solveNumber (G, S, k) = SOME (numberExp (fromInt k))
     let rec findMSet eq (x, L) =
-      let findMSet' =
+      let rec findMSet' =
         function
         | (tried, nil) -> NONE
         | (tried, y::L) ->
@@ -102,7 +102,7 @@ module CSEqIntegers(CSEqIntegers:sig
             else findMSet' ((y :: tried), L) in
       findMSet' (nil, L)
     let rec equalMSet eq =
-      let equalMSet' =
+      let rec equalMSet' =
         function
         | (nil, nil) -> true__
         | (x::L1', L2) ->
@@ -131,30 +131,30 @@ module CSEqIntegers(CSEqIntegers:sig
           timesExp ((toExpMon (Mon (n, UsL))), (toExpEClo Us))
     let rec toExpEClo = function | (U, Shift 0) -> U | Us -> EClo Us
     let rec compatibleMon (Mon (_, UsL1), Mon (_, UsL2)) =
-      equalMSet (function | (us1, us2) -> sameExpW (us1, us2)) (UsL1, UsL2)
+      equalMSet (function | (Us1, Us2) -> sameExpW (Us1, Us2)) (UsL1, UsL2)
     let rec sameExpW =
       function
-      | (((Root (H1, s1), s1) as us1), ((Root (H2, s2), s2) as us2)) ->
+      | (((Root (H1, S1), s1) as Us1), ((Root (H2, S2), s2) as Us2)) ->
           (match (H1, H2) with
            | (BVar k1, BVar k2) ->
-               (k1 = k2) && (sameSpine ((s1, s1), (s2, s2)))
+               (k1 = k2) && (sameSpine ((S1, s1), (S2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
-               (n1 = n2) && (sameSpine ((s1, s1), (s2, s2)))
+               (n1 = n2) && (sameSpine ((S1, s1), (S2, s2)))
            | _ -> false__)
-      | ((((EVar (r1, G1, V1, cnstrs1) as u1), s1) as us1),
-         (((EVar (r2, G2, V2, cnstrs2) as u2), s2) as us2)) ->
+      | ((((EVar (r1, G1, V1, cnstrs1) as U1), s1) as Us1),
+         (((EVar (r2, G2, V2, cnstrs2) as U2), s2) as Us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
       | _ -> false__
-    let rec sameExp (us1, us2) = sameExpW ((Whnf.whnf us1), (Whnf.whnf us2))
+    let rec sameExp (Us1, Us2) = sameExpW ((Whnf.whnf Us1), (Whnf.whnf Us2))
     let rec sameSpine =
       function
       | ((Nil, s1), (Nil, s2)) -> true__
-      | ((SClo (s1, s1'), s1), Ss2) ->
-          sameSpine ((s1, (comp (s1', s1))), Ss2)
-      | (Ss1, (SClo (s2, s2'), s2)) ->
-          sameSpine (Ss1, (s2, (comp (s2', s2))))
-      | ((App (u1, s1), s1), (App (u2, s2), s2)) ->
-          (sameExp ((u1, s1), (u2, s2))) && (sameSpine ((s1, s1), (s2, s2)))
+      | ((SClo (S1, s1'), s1), Ss2) ->
+          sameSpine ((S1, (comp (s1', s1))), Ss2)
+      | (Ss1, (SClo (S2, s2'), s2)) ->
+          sameSpine (Ss1, (S2, (comp (s2', s2))))
+      | ((App (U1, S1), s1), (App (U2, S2), s2)) ->
+          (sameExp ((U1, s1), (U2, s2))) && (sameSpine ((S1, s1), (S2, s2)))
       | _ -> false__
     let rec sameSub =
       function
@@ -244,66 +244,67 @@ module CSEqIntegers(CSEqIntegers:sig
     let rec appMon (f, Mon (n, UsL)) =
       List.app (function | Us -> f (EClo Us)) UsL
     let rec solvableSum (Sum (m, monL)) =
-      let gcd_list =
+      let rec gcd_list =
         function
         | n1::nil -> n1
         | n1::n2::nil -> gcd (n1, n2)
         | n1::n2::l -> gcd ((gcd (n1, n2)), (gcd_list l)) in
       let coeffL = List.map (function | Mon (n, _) -> n) monL in
       let g = gcd_list coeffL in (rem (m, (gcd_list coeffL))) = zero
-    let rec findMon f (g, Sum (m, monL)) =
-      let findMon' =
+    let rec findMon f (G, Sum (m, monL)) =
+      let rec findMon' =
         function
         | (nil, monL2) -> NONE
         | (mon::monL1, monL2) ->
-            (match f (g, mon, (Sum (m, (monL1 @ monL2)))) with
+            (match f (G, mon, (Sum (m, (monL1 @ monL2)))) with
              | SOME _ as result -> result
              | NONE -> findMon' (monL1, (mon :: monL2))) in
       findMon' (monL, nil)
     let rec divideSum (Sum (m, monL), k) =
       let exception Err  in
-        let divide n = if (rem (n, k)) = zero then quot (n, k) else raise Err in
-        let divideMon (Mon (n, UsL)) = Mon ((divide n), UsL) in
+        let rec divide n =
+          if (rem (n, k)) = zero then quot (n, k) else raise Err in
+        let rec divideMon (Mon (n, UsL)) = Mon ((divide n), UsL) in
         try SOME (Sum ((divide m), (List.map divideMon monL)))
         with | Err -> NONE
-    let rec delaySum (g, sum) =
+    let rec delaySum (G, sum) =
       let U = toFgn sum in
-      let cnstr = ref (Eqn (g, U, (numberExp zero))) in Delay (U, cnstr)
+      let cnstr = ref (Eqn (G, U, (numberExp zero))) in Delay (U, cnstr)
     let rec solveSum =
       function
-      | (g,
+      | (G,
          (Sum (m, (Mon (n, ((EVar (r, _, _, _) as X), s)::[]))::[]) as sum))
           ->
           if Whnf.isPatSub s
           then
-            [Assign (g, X, (numberExp (~ (quot (m, n)))), (Whnf.invert s))]
-          else [delaySum (g, sum)]
-      | (g, sum) ->
-          let invertMon =
+            [Assign (G, X, (numberExp (~ (quot (m, n)))), (Whnf.invert s))]
+          else [delaySum (G, sum)]
+      | (G, sum) ->
+          let rec invertMon =
             function
-            | (g, (Mon (n, (EVar (r, _, _, _), s)::[]) as mon), sum) ->
+            | (G, (Mon (n, (EVar (r, _, _, _), s)::[]) as mon), sum) ->
                 if Whnf.isPatSub s
                 then
                   let ss = Whnf.invert s in
                   let RHS = toFgn sum in
-                  (if Unify.invertible (g, (RHS, id), ss, r)
+                  (if Unify.invertible (G, (RHS, id), ss, r)
                    then SOME (mon, ss, sum)
                    else NONE)
                 else NONE
-            | (g, mon, sum) -> NONE in
-          (match findMon invertMon (g, sum) with
+            | (G, mon, sum) -> NONE in
+          (match findMon invertMon (G, sum) with
            | SOME (Mon (n1, (X1, s1)::[]), ss1, sum1) ->
-               (match findMon invertMon (g, sum1) with
+               (match findMon invertMon (G, sum1) with
                 | SOME (Mon (n2, (X2, s2)::[]), ss2, sum2) ->
                     let s = Unify.intersection (s1, s2) in
                     let ss = Whnf.invert s in
-                    let g' = Whnf.strengthen (ss, g) in
+                    let G' = Whnf.strengthen (ss, G) in
                     let g = gcd (n1, n2) in
                     let (x1, x2) = solve_gcd (n1, n2) in
-                    let K = newEVar (g', (number ())) in
-                    let Z = newEVar (g', (number ())) in
+                    let K = newEVar (G', (number ())) in
+                    let Z = newEVar (G', (number ())) in
                     (::) ((::) (Assign
-                                  (g, X1,
+                                  (G, X1,
                                     (toFgn
                                        (plusSum
                                           ((Sum
@@ -318,7 +319,7 @@ module CSEqIntegers(CSEqIntegers:sig
                                                       [Mon (one, [(Z, ss)])]))))))),
                                     ss1))
                             Assign
-                            (g, X2,
+                            (G, X2,
                               (toFgn
                                  (plusSum
                                     ((Sum
@@ -331,27 +332,28 @@ module CSEqIntegers(CSEqIntegers:sig
                                               (zero, [Mon (one, [(Z, ss)])]))))))),
                               ss2))
                       solveSum
-                      (g,
+                      (G,
                         (plusSum ((Sum (zero, [Mon (g, [(Z, ss)])])), sum2)))
                 | NONE ->
                     (match divideSum (sum1, n1) with
                      | SOME sum1' ->
-                         [Assign (g, X1, (toFgn (unaryMinusSum sum1')), ss1)]
-                     | NONE -> [delaySum (g, sum)]))
-           | NONE -> [delaySum (g, sum)])
-    let rec unifySum (g, sum1, sum2) =
-      let invertMon (g, Mon (n, ((EVar (r, _, _, _) as LHS), s)::[]), sum) =
+                         [Assign (G, X1, (toFgn (unaryMinusSum sum1')), ss1)]
+                     | NONE -> [delaySum (G, sum)]))
+           | NONE -> [delaySum (G, sum)])
+    let rec unifySum (G, sum1, sum2) =
+      let rec invertMon
+        (G, Mon (n, ((EVar (r, _, _, _) as LHS), s)::[]), sum) =
         if Whnf.isPatSub s
         then
           let ss = Whnf.invert s in
           let RHS = toFgn (timesSum ((Sum ((~ n), nil)), sum)) in
-          (if Unify.invertible (g, (RHS, id), ss, r)
-           then SOME (g, LHS, RHS, ss)
+          (if Unify.invertible (G, (RHS, id), ss, r)
+           then SOME (G, LHS, RHS, ss)
            else NONE)
         else NONE in
       match minusSum (sum2, sum1) with
       | Sum (m, nil) -> if m = zero then Succeed nil else Fail
-      | sum -> if solvableSum sum then Succeed (solveSum (g, sum)) else Fail
+      | sum -> if solvableSum sum then Succeed (solveSum (G, sum)) else Fail
     let rec toFgn =
       function
       | Sum (m, nil) as sum -> toExp sum
@@ -370,15 +372,15 @@ module CSEqIntegers(CSEqIntegers:sig
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec equalTo arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, u2) ->
-          (match minusSum ((normalizeSum sum), (fromExp (u2, id))) with
+      | (MyIntsynRep sum, U2) ->
+          (match minusSum ((normalizeSum sum), (fromExp (U2, id))) with
            | Sum (m, nil) -> m = zero
            | _ -> false__)
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec unifyWith arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, (g, u2)) ->
-          unifySum (g, (normalizeSum sum), (fromExp (u2, id)))
+      | (MyIntsynRep sum, (G, U2)) ->
+          unifySum (G, (normalizeSum sum), (fromExp (U2, id)))
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec installFgnExpOps () =
       let csid = !myID in
@@ -388,16 +390,16 @@ module CSEqIntegers(CSEqIntegers:sig
       let _ = FgnExpStd.UnifyWith.install (csid, unifyWith) in
       let _ = FgnExpStd.EqualTo.install (csid, equalTo) in ()
     let rec makeFgn (arity, opExp) (S) =
-      let makeParams =
+      let rec makeParams =
         function
         | 0 -> Nil
         | n -> App ((Root ((BVar n), Nil)), (makeParams (Int.(-) (n, 1)))) in
-      let makeLam arg__0 arg__1 =
+      let rec makeLam arg__0 arg__1 =
         match (arg__0, arg__1) with
         | (E, 0) -> E
         | (E, n) ->
             Lam ((Dec (NONE, (number ()))), (makeLam E (Int.(-) (n, 1)))) in
-      let expand =
+      let rec expand =
         function
         | ((Nil, s), arity) -> ((makeParams arity), arity)
         | ((App (U, S), s), arity) ->
@@ -412,8 +414,8 @@ module CSEqIntegers(CSEqIntegers:sig
       makeFgn
         (2,
           (function
-           | App (u1, App (u2, Nil)) ->
-               opSum ((fromExp (u1, id)), (fromExp (u2, id)))))
+           | App (U1, App (U2, Nil)) ->
+               opSum ((fromExp (U1, id)), (fromExp (U2, id)))))
     let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
     let rec init (cs, installF) =
       myID := cs;
@@ -445,78 +447,72 @@ module CSEqIntegers(CSEqIntegers:sig
               Type)), (SOME (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       installFgnExpOps ();
       ()
-    let ((solver)(* Mon ::= n * u1[s1] * ...   *)(* A monomial (n * u1[s1] * u2[s2] * ...) is said to be normal iff
-       (a) the coefficient n is different from zero;
-       (b) each (Ui,si) is in whnf and not a foreign term corresponding
-           to a sum.
-     A sum is normal iff all its monomials are normal, and moreover they
-     are pairwise distinct.
-  *)
-      (* CSManager.ModeSyn *)(* parseNumber str = SOME(conDec) or NONE
+    (* CSManager.ModeSyn *)
+    (* parseNumber str = SOME(conDec) or NONE
 
        Invariant:
        If str parses to the number n
        then conDec is the (foreign) constant declaration of n
     *)
-      (* solveNumber k = SOME(U)
+    (* solveNumber k = SOME(U)
 
        Invariant:
        U is the term obtained applying the foreign constant
        corresponding to the number k to an empty spine
     *)
-      (* findMset eq (x, L) =
+    (* findMset eq (x, L) =
          SOME (y, L') if there exists y such that eq (x, y)
                          and L ~ (y :: L') (multiset equality)
          NONE if there is no y in L such that eq (x, y)
     *)
-      (* equalMset eq (L, L') = true iff L ~ L' (multiset equality) *)
-      (* toExp sum = U
+    (* equalMset eq (L, L') = true iff L ~ L' (multiset equality) *)
+    (* toExp sum = U
 
        Invariant:
        If sum is normal
-       g |- U : V and U is the Twelf syntax conversion of sum
+       G |- U : V and U is the Twelf syntax conversion of sum
     *)
-      (* toExpMon mon = U
+    (* toExpMon mon = U
 
        Invariant:
        If mon is normal
-       g |- U : V and U is the Twelf syntax conversion of mon
+       G |- U : V and U is the Twelf syntax conversion of mon
     *)
-      (* toExpEClo (U,s) = U
+    (* toExpEClo (U,s) = U
 
        Invariant:
-       g |- U : V and U is the Twelf syntax conversion of Us
+       G |- U : V and U is the Twelf syntax conversion of Us
     *)
-      (* compatibleMon (mon1, mon2) = true only if mon1 = mon2 (as monomials) *)
-      (* sameExpW ((u1,s1), (u2,s2)) = T
+    (* compatibleMon (mon1, mon2) = true only if mon1 = mon2 (as monomials) *)
+    (* sameExpW ((U1,s1), (U2,s2)) = T
 
        Invariant:
-       If   g |- s1 : G1    G1 |- u1 : V1    (u1,s1)  in whnf
-       and  g |- s2 : G2    G2 |- u2 : V2    (u2,s2)  in whnf
-       then T only if u1[s1] = u2[s2] (as expressions)
+       If   G |- s1 : G1    G1 |- U1 : V1    (U1,s1)  in whnf
+       and  G |- s2 : G2    G2 |- U2 : V2    (U2,s2)  in whnf
+       then T only if U1[s1] = U2[s2] (as expressions)
     *)
-      (* sameExp ((u1,s1), (u2,s2)) = T
+    (* sameExp ((U1,s1), (U2,s2)) = T
 
        Invariant:
-       If   g |- s1 : G1    G1 |- u1 : V1
-       and  g |- s2 : G2    G2 |- u2 : V2
-       then T only if u1[s1] = u2[s2] (as expressions)
+       If   G |- s1 : G1    G1 |- U1 : V1
+       and  G |- s2 : G2    G2 |- U2 : V2
+       then T only if U1[s1] = U2[s2] (as expressions)
     *)
-      (* sameSpine (s1, s2) = T
+    (* sameSpine (S1, S2) = T
 
        Invariant:
-       If   g |- s1 : V > W
-       and  g |- s2 : V > W
-       then T only if s1 = s2 (as spines)
+       If   G |- S1 : V > W
+       and  G |- S2 : V > W
+       then T only if S1 = S2 (as spines)
     *)
-      (* sameSub (s1, s2) = T
+    (* sameSub (s1, s2) = T
 
        Invariant:
-       If   g |- s1 : g'
-       and  g |- s2 : g'
+       If   G |- s1 : G'
+       and  G |- s2 : G'
        then T only if s1 = s2 (as substitutions)
     *)
-      (* plusSum (sum1, sum2) = sum3
+    (* plusSum (sum1, sum2) = sum3
 
        Invariant:
        If   sum1 normal
@@ -524,7 +520,7 @@ module CSEqIntegers(CSEqIntegers:sig
        then sum3 normal
        and  sum3 = sum1 + sum2
     *)
-      (* plusSumMon (sum1, mon2) = sum3
+    (* plusSumMon (sum1, mon2) = sum3
 
        Invariant:
        If   sum1 normal
@@ -532,7 +528,7 @@ module CSEqIntegers(CSEqIntegers:sig
        then sum3 normal
        and  sum3 = sum1 + mon2
     *)
-      (* timesSum (sum1, sum2) = sum3
+    (* timesSum (sum1, sum2) = sum3
 
        Invariant:
        If   sum1 normal
@@ -540,7 +536,7 @@ module CSEqIntegers(CSEqIntegers:sig
        then sum3 normal
        and  sum3 = sum1 * sum2
     *)
-      (* timesSumMon (sum1, mon2) = sum3
+    (* timesSumMon (sum1, mon2) = sum3
 
        Invariant:
        If   sum1 normal
@@ -548,14 +544,14 @@ module CSEqIntegers(CSEqIntegers:sig
        then sum3 normal
        and  sum3 = sum1 * mon2
     *)
-      (* unaryMinusSum sum = sum'
+    (* unaryMinusSum sum = sum'
 
        Invariant:
        If   sum  normal
        then sum' normal
        and  sum' = ~1 * sum
     *)
-      (* minusSum (sum1, sum2) = sum3
+    (* minusSum (sum1, sum2) = sum3
 
        Invariant:
        If   sum1 normal
@@ -563,79 +559,80 @@ module CSEqIntegers(CSEqIntegers:sig
        then sum3 normal
        and  sum3 = sum1 - sum2
     *)
-      (* fromExpW (U, s) = sum
+    (* fromExpW (U, s) = sum
 
        Invariant:
-       If   g' |- s : g    g |- U : V    (U,s)  in whnf
+       If   G' |- s : G    G |- U : V    (U,s)  in whnf
        then sum is the internal representation of U[s] as sum of monomials
        and sum is normal
     *)
-      (* fromExp (U, s) = sum
+    (* fromExp (U, s) = sum
 
        Invariant:
-       If   g' |- s : g    g |- U : V
+       If   G' |- s : G    G |- U : V
        then sum is the internal representation of U[s] as sum of monomials
        and sum is normal
     *)
-      (* normalizeSum sum = sum', where sum' normal and sum' = sum *)
-      (* normalizeMon mon = mon', where mon' normal and mon' = mon *)
-      (* mapSum (f, m + M1 + ...) = m + mapMon(f,M1) + ... *)(* mapMon (f, n * (u1,s1) + ...) = n * f(u1,s1) * ... *)
-      (* solvableSum (m + M1 + ....) =
+    (* normalizeSum sum = sum', where sum' normal and sum' = sum *)
+    (* normalizeMon mon = mon', where mon' normal and mon' = mon *)
+    (* mapSum (f, m + M1 + ...) = m + mapMon(f,M1) + ... *)
+    (* mapMon (f, n * (U1,s1) + ...) = n * f(U1,s1) * ... *)
+    (* solvableSum (m + M1 + ....) =
          true iff the generalized gcd of the coefficients of the Mi
                   divides m
     *)
-      (* findMon f (g, sum) =
+    (* findMon f (G, sum) =
          SOME(x) if f(M) = SOME(x) for some monomial M in sum
          NONE    if f(M) = NONE for all monomials M in sum
     *)
-      (* divideSum (sum, k) =
+    (* divideSum (sum, k) =
          SOME(sum') if sum is divisible by the scalar k, and sum' = sum/k
          NONE       if sum is not divisible by k
     *)
-      (* delaySum (g, sum) = Delay (U, cnstr)
+    (* delaySum (G, sum) = Delay (U, cnstr)
        where U the foreign expression corresponding to sum
-       and cnstr is the constraint g |- sum = 0 : integer
+       and cnstr is the constraint G |- sum = 0 : integer
     *)
-      (* unifySum (g, sum1, sum2) = result
+    (* unifySum (G, sum1, sum2) = result
 
        Invariant:
-       If   g |- sum1 : number     sum1 normal
-       and  g |- sum2 : number     sum2 normal
+       If   G |- sum1 : number     sum1 normal
+       and  G |- sum2 : number     sum2 normal
        then result is the outcome (of type FgnUnify) of solving the
        equation sum1 = sum2 by the (generalized) division theorem.
     *)
-      (* unifySum (g, sum1, sum2) = result
+    (* unifySum (G, sum1, sum2) = result
 
        Invariant:
-       If   g |- sum1 : number     sum1 normal
-       and  g |- sum2 : number     sum2 normal
+       If   G |- sum1 : number     sum1 normal
+       and  G |- sum2 : number     sum2 normal
        then result is the outcome (of type FgnUnify) of solving the
        equation sum1 = sum2 by gaussian elimination.
     *)
-      (* toFgn sum = U
+    (* toFgn sum = U
 
        Invariant:
        If sum normal
        then U is a foreign expression representing sum.
     *)
-      (* toInternal (fe) = U
+    (* toInternal (fe) = U
        Invariant:
        if fe is (MyIntsynRep sum) and sum : normal
        then U is the Twelf syntax conversion of sum
     *)
-      (* map (fe) f = U'
+    (* map (fe) f = U'
 
        Invariant:
        if fe is (MyIntsynRep sum)   sum : normal
        and
          f sum = f (m + mon1 + ... + monN) =
-               = m + f (m1 * us1 * ... * UsM) + ...
-               = m + (m1 * (f us1) * ... * f (UsM))
+               = m + f (m1 * Us1 * ... * UsM) + ...
+               = m + (m1 * (f Us1) * ... * f (UsM))
                = sum'           sum' : normal
        then
          U' is a foreign expression representing sum'
     *)
-      (* app (fe) f = ()
+    (* app (fe) f = ()
 
        Invariant:
        if fe is (MyIntsynRep sum)     sum : normal
@@ -645,11 +642,11 @@ module CSEqIntegers(CSEqIntegers:sig
        then f is applied to each Usij
          (since sum : normal, each Usij is in whnf)
     *)
-      (* init (cs, installFunction) = ()
+    (* init (cs, installFunction) = ()
        Initialize the constraint solver.
        installFunction is used to add its signature symbols.
-    *))
-      =
+    *)
+    let solver =
       {
         name = "equality/integers";
         keywords = "arithmetic,equality";

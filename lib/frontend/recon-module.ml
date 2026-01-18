@@ -19,12 +19,12 @@ module type MODEXTSYN  =
     type nonrec structdec
     val structdec : (string option * sigexp) -> structdec
     val structdef : (string option * strexp) -> structdec
-  end
+  end (* External syntax for module expressions *)
+(* Author: Kevin Watkins *)
+(*! structure Paths : PATHS !*)
 module type RECON_MODULE  =
   sig
-    include
-      ((MODEXTSYN)(* External syntax for module expressions *)(* Author: Kevin Watkins *)
-      (*! structure Paths : PATHS !*))
+    include MODEXTSYN
     module ModSyn : MODSYN
     exception Error of string 
     type nonrec whereclause
@@ -46,25 +46,25 @@ module type RECON_MODULE  =
 
 
 
+(* Elaboration for module expressions *)
+(* Author: Kevin Watkins *)
 module ReconModule(ReconModule:sig
                                  module Global : GLOBAL
                                  module Names : NAMES
                                  module ReconTerm' : RECON_TERM
                                  module ModSyn' : MODSYN
-                                 module IntTree :
-                                 ((TABLE)(* Elaboration for module expressions *)
-                                 (* Author: Kevin Watkins *)
                                  (*! structure IntSyn : INTSYN !*)
                                  (*! sharing Names.IntSyn = IntSyn !*)
                                  (*! structure Paths' : PATHS !*)
                                  (*! sharing ReconTerm'.IntSyn = IntSyn !*)
                                  (*! sharing ReconTerm'.Paths = Paths' !*)
-                                 (*! sharing ModSyn'.IntSyn = IntSyn !*))
+                                 (*! sharing ModSyn'.IntSyn = IntSyn !*)
+                                 module IntTree : TABLE
                                end) : RECON_MODULE =
   struct
     module ExtSyn = ReconTerm'
-    module ModSyn =
-      ((ModSyn')(*! structure Paths = Paths' !*))
+    (*! structure Paths = Paths' !*)
+    module ModSyn = ModSyn'
     exception Error of string 
     let rec error (r, msg) = raise (Error (Paths.wrap (r, msg)))
     type nonrec strexp = unit -> (IntSyn.mid * Paths.region)
@@ -91,15 +91,13 @@ module ReconModule(ReconModule:sig
             (r1,
               ((^) "Undeclared identifier " Names.qidToString
                  (valOf (Names.constUndefIn (ns, qid)))))
-      | SOME cid ->
-          (cid, (External tm), ((r2)
-            (* this is wrong because constants in the sig being instantiated might incorrectly appear in tm -kw *)))
-            :: eqns
+      | SOME cid -> (((cid, (External tm), r2) :: eqns)
+          (* this is wrong because constants in the sig being instantiated might incorrectly appear in tm -kw *))
     let rec addStructEqn (rEqns, r1, r2, ids, mid1, mid2) =
       let ns1 = Names.getComponents mid1 in
       let ns2 = Names.getComponents mid2 in
-      let push eqn = (rEqns := eqn) :: (!rEqns) in
-      let doConst (name, cid1) =
+      let rec push eqn = (rEqns := eqn) :: (!rEqns) in
+      let rec doConst (name, cid1) =
         match Names.constLookupIn (ns2, (Names.Qid (nil, name))) with
         | NONE ->
             error
@@ -107,7 +105,7 @@ module ReconModule(ReconModule:sig
                 ((^) "Instantiating structure lacks component "
                    Names.qidToString (Names.Qid ((rev ids), name))))
         | SOME cid2 -> push (cid1, (Internal cid2), r2) in
-      let doStruct (name, mid1) =
+      let rec doStruct (name, mid1) =
         match Names.structLookupIn (ns2, (Names.Qid (nil, name))) with
         | NONE ->
             error
@@ -140,7 +138,7 @@ module ReconModule(ReconModule:sig
       | SOME module__ -> (module__, nil)
     let rec wheresig (sigexp, instList) moduleOpt =
       let (module__, wherecls) = sigexp moduleOpt in
-      let wherecl ns =
+      let rec wherecl ns =
         foldr (function | (inst, eqns) -> inst (ns, eqns)) nil instList in
       (module__, (wherecls @ [wherecl]))
     let rec sigexpToSigexp (sigexp, moduleOpt) = sigexp moduleOpt
@@ -165,12 +163,12 @@ module ReconModule(ReconModule:sig
     let rec applyEqns wherecl namespace =
       let eqns = wherecl namespace in
       let (table : eqnTable) = IntTree.new__ 0 in
-      let add (cid, Inst, r) =
+      let rec add (cid, Inst, r) =
         match IntTree.lookup table cid with
         | NONE -> IntTree.insert table (cid, (ref [(Inst, r)]))
         | SOME rl -> (rl := (Inst, r)) :: (!rl) in
       let _ = List.app add eqns in
-      let doInst =
+      let rec doInst =
         function
         | ((Internal cid, r), condec) ->
             (try
@@ -186,7 +184,7 @@ module ReconModule(ReconModule:sig
                          Names.qidToString (Names.constQid cid))))
         | ((External tm, r), condec) ->
             ModSyn.strictify (ExtSyn.externalInst (condec, tm, r)) in
-      let transformConDec (cid, condec) =
+      let rec transformConDec (cid, condec) =
         match IntTree.lookup table cid with
         | NONE -> condec
         | SOME (ref l) -> List.foldr doInst condec l in

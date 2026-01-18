@@ -1,9 +1,9 @@
-(library 
- (wrapped (transition "Convert SML convention to OCaml convention"))
- 
+(library
+ (wrapped
+  (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.terminate)
  (name terminate)
- (libraries 
+ (libraries
   base
   global
   trail
@@ -14,9 +14,5 @@
   index
   subordinate
   paths
-  solvers
- )
- (modules 
-  checking
-  reduces
-  terminate))
+  solvers)
+ (modules checking reduces terminate))

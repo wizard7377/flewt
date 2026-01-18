@@ -1,9 +1,10 @@
 
+(* Parsing Queries *)
+(* Author: Frank Pfenning *)
 module type PARSE_QUERY  =
   sig
-    module ExtQuery :
-    ((EXTQUERY)(* Parsing Queries *)(* Author: Frank Pfenning *)
-    (*! structure Parsing : PARSING !*))
+    (*! structure Parsing : PARSING !*)
+    module ExtQuery : EXTQUERY
     val parseQuery' : ExtQuery.query Parsing.parser
     val parseSolve' : (ExtQuery.define list * ExtQuery.solve) Parsing.parser
   end;;
@@ -11,18 +12,17 @@ module type PARSE_QUERY  =
 
 
 
+(* Parsing Queries *)
+(* Author: Frank Pfenning *)
 module ParseQuery(ParseQuery:sig
-                               module ExtQuery' : EXTQUERY
-                               module ParseTerm :
-                               ((PARSE_TERM)(* Parsing Queries *)
-                               (* Author: Frank Pfenning *)
                                (*! structure Parsing' : PARSING !*)
-                               (*! sharing ExtQuery'.Paths = Parsing'.Lexer.Paths !*))
+                               module ExtQuery' : EXTQUERY
+                               (*! sharing ExtQuery'.Paths = Parsing'.Lexer.Paths !*)
+                               module ParseTerm : PARSE_TERM
                              end) : PARSE_QUERY =
   struct
-    module ExtQuery =
-      ((ExtQuery')(*! sharing ParseTerm.Lexer = Parsing'.Lexer !*)
-      (*! structure Parsing = Parsing' !*))
+    (*! structure Parsing = Parsing' !*)
+    module ExtQuery = ExtQuery'
     module L = Lexer
     module LS = Lexer.Stream
     module P = Paths
@@ -93,18 +93,23 @@ module ParseQuery(ParseQuery:sig
           Parsing.error
             (r, ((^) "Expected %define or %solve, found " L.toString t))
     let rec parseSolve' f = parseSolve1 (nil, f)
-    let ((parseQuery')(* parseQuery1 (name, f, f')   ": A" from f' or "V" from f. *)
-      (* parseQuery' : lexResult front -> ExtQuery.query * lexResult front *)
-      (* parseQuery'  "X : A" | "A" *)(* Query parsing is ambiguous, since a term "V" might have the form "U' : V'" *)
-      (* We look for an uppercase variable X followed by a `:'.
+    (* parseQuery1 (name, f, f')   ": A" from f' or "V" from f. *)
+    (* parseQuery' : lexResult front -> ExtQuery.query * lexResult front *)
+    (* parseQuery'  "X : A" | "A" *)
+    (* Query parsing is ambiguous, since a term "V" might have the form "U' : V'" *)
+    (* We look for an uppercase variable X followed by a `:'.
        If we find this, we parse a query of the form "X : A".
        Otherwise we parse a query of the form "A".
     *)
-      (* parseQuery --- currently not exported *)(* parseDefine4 parses the definition body *)
-      (* "U" *)(* parseDefine3 parses the equal sign in a long form define *)
-      (* "= U" *)(* parseDefine2 switches between short and long form *)
-      (* ": V = U" | "= U" *)(* parseDefine1 parses the name of the constant to be defined *)
-      (* "c : V = U" | "_ : V = U" | "c = U" | "_ = U" *))
-      = parseQuery'
+    (* parseQuery --- currently not exported *)
+    (* parseDefine4 parses the definition body *)
+    (* "U" *)
+    (* parseDefine3 parses the equal sign in a long form define *)
+    (* "= U" *)
+    (* parseDefine2 switches between short and long form *)
+    (* ": V = U" | "= U" *)
+    (* parseDefine1 parses the name of the constant to be defined *)
+    (* "c : V = U" | "_ : V = U" | "c = U" | "_ = U" *)
+    let parseQuery' = parseQuery'
     let parseSolve' = parseSolve'
   end ;;

@@ -1,8 +1,9 @@
 
+(* Integers *)
+(* Author: Roberto Virga *)
 module type INTEGERS  =
   sig
-    include
-      ((INTEGER)(* Integers *)(* Author: Roberto Virga *))
+    include INTEGER
     val gcd : (int * int) -> int
     val lcm : (int * int) -> int
     val solve_gcd : (int * int) -> (int * int)
@@ -11,14 +12,15 @@ module type INTEGERS  =
 
 
 
-module Integers(Integer:((INTEGER)(* Rationals *)(* Author: Roberto Virga *))) :
-  INTEGERS =
+(* Rationals *)
+(* Author: Roberto Virga *)
+module Integers(Integer:INTEGER) : INTEGERS =
   struct
     open Integer
     let zero = fromInt 0
     let one = fromInt 1
     let rec solve_gcd (m, n) =
-      let solve' (m, n) =
+      let rec solve' (m, n) =
         let q = quot (m, n) in
         let r = rem (m, n) in
         if r = zero
@@ -34,7 +36,7 @@ module Integers(Integer:((INTEGER)(* Rationals *)(* Author: Roberto Virga *))) :
     let rec gcd (m, n) = let (x, y) = solve_gcd (m, n) in ((m * x) + n) * y
     let rec lcm (m, n) = quot ((m * n), (gcd (m, n)))
     let rec fromString str =
-      let check =
+      let rec check =
         function
         | c::chars' as chars ->
             if c = '~'

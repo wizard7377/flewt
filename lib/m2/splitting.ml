@@ -1,8 +1,9 @@
 
+(* Splitting *)
+(* Author: Carsten Schuermann *)
 module type SPLITTING  =
   sig
-    module MetaSyn :
-    ((METASYN)(* Splitting *)(* Author: Carsten Schuermann *))
+    module MetaSyn : METASYN
     exception Error of string 
     type nonrec operator
     val expand : MetaSyn.__State -> operator list
@@ -15,6 +16,8 @@ module type SPLITTING  =
 
 
 
+(* Splitting *)
+(* Author: Carsten Schuermann *)
 module Splitting(Splitting:sig
                              module Global : GLOBAL
                              module MetaSyn' : METASYN
@@ -24,21 +27,19 @@ module Splitting(Splitting:sig
                              module Whnf : WHNF
                              module Index : INDEX
                              module Print : PRINT
-                             module Unify :
-                             ((UNIFY)(* Splitting *)
-                             (* Author: Carsten Schuermann *)(*! sharing ModeSyn.IntSyn = MetaSyn'.IntSyn !*)
+                             (*! sharing ModeSyn.IntSyn = MetaSyn'.IntSyn !*)
                              (*! sharing Whnf.IntSyn = MetaSyn'.IntSyn !*)
                              (*! sharing Index.IntSyn = MetaSyn'.IntSyn !*)
-                             (*! sharing Print.IntSyn = MetaSyn'.IntSyn !*))
+                             (*! sharing Print.IntSyn = MetaSyn'.IntSyn !*)
+                             module Unify : UNIFY
                            end) : SPLITTING =
   struct
-    module MetaSyn =
-      ((MetaSyn')(*! sharing Unify.IntSyn = MetaSyn'.IntSyn !*)(*! structure CSManager : CS_MANAGER !*)
-      (*! sharing CSManager.IntSyn = MetaSyn'.IntSyn !*))
+    (*! sharing Unify.IntSyn = MetaSyn'.IntSyn !*)
+    (*! structure CSManager : CS_MANAGER !*)
+    (*! sharing CSManager.IntSyn = MetaSyn'.IntSyn !*)
+    module MetaSyn = MetaSyn'
     exception Error of string 
-    type 'a flag =
-      | Active of
-      (('a)(* Invariant:
+    (* Invariant:
      Case analysis generates a list of successor states
      (the cases) from a given state.
 
@@ -50,8 +51,9 @@ module Splitting(Splitting:sig
 
      Consequence: Only those splitting operators can be
      applied which do not generate inactive cases.
-  *))
-      
+  *)
+    type 'a flag =
+      | Active of 'a 
       | InActive 
     type nonrec operator =
       ((MetaSyn.__State * int) * MetaSyn.__State flag list)
@@ -59,16 +61,16 @@ module Splitting(Splitting:sig
     module I = IntSyn
     let rec constCases =
       function
-      | (g, Vs, nil, abstract, ops) -> ops
-      | (g, Vs, (Const c)::Sgn, abstract, ops) ->
-          let (U, Vs') = M.createAtomConst (g, (I.Const c)) in
+      | (G, Vs, nil, abstract, ops) -> ops
+      | (G, Vs, (Const c)::Sgn, abstract, ops) ->
+          let (U, Vs') = M.createAtomConst (G, (I.Const c)) in
           constCases
-            (g, Vs, Sgn, abstract,
+            (G, Vs, Sgn, abstract,
               (CSManager.trail
                  (function
                   | () ->
                       (try
-                         if Unify.unifiable (g, Vs, Vs')
+                         if Unify.unifiable (G, Vs, Vs')
                          then
                            (Active
                               (abstract
@@ -78,16 +80,16 @@ module Splitting(Splitting:sig
                        with | Error _ -> InActive :: ops))))
     let rec paramCases =
       function
-      | (g, Vs, 0, abstract, ops) -> ops
-      | (g, Vs, k, abstract, ops) ->
-          let (U, Vs') = M.createAtomBVar (g, k) in
+      | (G, Vs, 0, abstract, ops) -> ops
+      | (G, Vs, k, abstract, ops) ->
+          let (U, Vs') = M.createAtomBVar (G, k) in
           paramCases
-            (g, Vs, (k - 1), abstract,
+            (G, Vs, (k - 1), abstract,
               (CSManager.trail
                  (function
                   | () ->
                       (try
-                         if Unify.unifiable (g, Vs, Vs')
+                         if Unify.unifiable (G, Vs, Vs')
                          then
                            (Active (abstract (((Int.toString k) ^ "/"), U)))
                              :: ops
@@ -95,22 +97,22 @@ module Splitting(Splitting:sig
                        with | Error _ -> InActive :: ops))))
     let rec lowerSplitDest =
       function
-      | (g, ((Root (Const c, _) as V), s'), abstract) ->
+      | (G, ((Root (Const c, _) as V), s'), abstract) ->
           constCases
-            (g, (V, s'), (Index.lookup c), abstract,
-              (paramCases (g, (V, s'), (I.ctxLength g), abstract, nil)))
-      | (g, (Pi ((D, P), V), s'), abstract) ->
+            (G, (V, s'), (Index.lookup c), abstract,
+              (paramCases (G, (V, s'), (I.ctxLength G), abstract, nil)))
+      | (G, (Pi ((D, P), V), s'), abstract) ->
           let D' = I.decSub (D, s') in
           lowerSplitDest
-            ((I.Decl (g, D')), (V, (I.dot1 s')),
+            ((I.Decl (G, D')), (V, (I.dot1 s')),
               (function | (name, U) -> abstract (name, (I.Lam (D', U)))))
-    let rec split (Prefix (g, M, B), ((Dec (_, V) as D), s), abstract) =
+    let rec split (Prefix (G, M, B), ((Dec (_, V) as D), s), abstract) =
       lowerSplitDest
         (I.Null, (V, s),
           (function
            | (name', U') ->
                abstract
-                 (name', (M.Prefix (g, M, B)), (I.Dot ((I.Exp U'), s)))))
+                 (name', (M.Prefix (G, M, B)), (I.Dot ((I.Exp U'), s)))))
     let rec occursInExp =
       function
       | (k, Uni _) -> false__
@@ -281,30 +283,30 @@ module Splitting(Splitting:sig
                 (inheritExp (B, k, U, k', U', Bdd')))
           else inheritSpineMode (mode, mS, B, k, S, k', S', Bdd')
     let rec inheritSplitDepth
-      ((State (_, Prefix (g, M, B), V) as S),
-       (State (name', Prefix (g', M', B'), V') as S'))
+      ((State (_, Prefix (G, M, B), V) as S),
+       (State (name', Prefix (G', M', B'), V') as S'))
       =
-      let d = I.ctxLength g in
-      let d' = I.ctxLength g' in
+      let d = I.ctxLength G in
+      let d' = I.ctxLength G' in
       let V = Whnf.normalize (V, I.id) in
       let V' = Whnf.normalize (V', I.id) in
       let (B'', 0, 0) =
         inheritDBot
           (B, 0, V, 0, V', (inheritDTop (B, 0, V, 0, V', (I.Null, d, d')))) in
-      M.State (name', (M.Prefix (g', M', B'')), V')
+      M.State (name', (M.Prefix (G', M', B'')), V')
     let rec abstractInit (State (name, GM, V))
-      (name', Prefix (g', M', B'), s') =
+      (name', Prefix (G', M', B'), s') =
       inheritSplitDepth
         ((M.State (name, GM, V)),
           (MetaAbstract.abstract
              (M.State
-                ((name ^ name'), (M.Prefix (g', M', B')), (I.EClo (V, s'))))))
+                ((name ^ name'), (M.Prefix (G', M', B')), (I.EClo (V, s'))))))
     let rec abstractCont ((D, mode, b), abstract)
-      (name', Prefix (g', M', B'), s') =
+      (name', Prefix (G', M', B'), s') =
       abstract
         (name',
           (M.Prefix
-             ((I.Decl (g', (I.decSub (D, s')))), (I.Decl (M', mode)),
+             ((I.Decl (G', (I.decSub (D, s')))), (I.Decl (M', mode)),
                (I.Decl (B', b)))), (I.dot1 s'))
     let rec makeAddressInit (S) k = (S, k)
     let rec makeAddressCont makeAddress k = makeAddress (k + 1)
@@ -312,36 +314,36 @@ module Splitting(Splitting:sig
       function
       | (Prefix (I.Null, I.Null, I.Null), isIndex, abstract, makeAddress) ->
           ((M.Prefix (I.Null, I.Null, I.Null)), I.id, nil)
-      | (Prefix (Decl (g, D), Decl (M, (M.Top as mode)), Decl (B, b)),
+      | (Prefix (Decl (G, D), Decl (M, (M.Top as mode)), Decl (B, b)),
          isIndex, abstract, makeAddress) ->
-          let (Prefix (g', M', B'), s', ops) =
+          let (Prefix (G', M', B'), s', ops) =
             expand'
-              ((M.Prefix (g, M, B)), (isIndexSucc (D, isIndex)),
+              ((M.Prefix (G, M, B)), (isIndexSucc (D, isIndex)),
                 (abstractCont ((D, mode, b), abstract)),
                 (makeAddressCont makeAddress)) in
           let Dec (xOpt, V) = D in
-          let X = I.newEVar (g', (I.EClo (V, s'))) in
+          let X = I.newEVar (G', (I.EClo (V, s'))) in
           let ops' =
             if (b > 0) && ((not (isIndex 1)) && (checkDec (M, D)))
             then
               ((makeAddress 1),
-                (split ((M.Prefix (g', M', B')), (D, s'), abstract))) :: ops
+                (split ((M.Prefix (G', M', B')), (D, s'), abstract))) :: ops
             else ops in
-          ((M.Prefix (g', M', B')), (I.Dot ((I.Exp X), s')), ops')
-      | (Prefix (Decl (g, D), Decl (M, (M.Bot as mode)), Decl (B, b)),
+          ((M.Prefix (G', M', B')), (I.Dot ((I.Exp X), s')), ops')
+      | (Prefix (Decl (G, D), Decl (M, (M.Bot as mode)), Decl (B, b)),
          isIndex, abstract, makeAddress) ->
-          let (Prefix (g', M', B'), s', ops) =
+          let (Prefix (G', M', B'), s', ops) =
             expand'
-              ((M.Prefix (g, M, B)), (isIndexSucc (D, isIndex)),
+              ((M.Prefix (G, M, B)), (isIndexSucc (D, isIndex)),
                 (abstractCont ((D, mode, b), abstract)),
                 (makeAddressCont makeAddress)) in
           ((M.Prefix
-              ((I.Decl (g', (I.decSub (D, s')))), (I.Decl (M', M.Bot)),
+              ((I.Decl (G', (I.decSub (D, s')))), (I.Decl (M', M.Bot)),
                 (I.Decl (B', b)))), (I.dot1 s'), ops)
-    let rec expand (State (name, Prefix (g, M, B), V) as S) =
+    let rec expand (State (name, Prefix (G, M, B), V) as S) =
       let (_, _, ops) =
         expand'
-          ((M.Prefix (g, M, B)), isIndexInit, (abstractInit S),
+          ((M.Prefix (G, M, B)), isIndexInit, (abstractInit S),
             (makeAddressInit S)) in
       ops
     let rec index (_, Sl) = List.length Sl
@@ -351,195 +353,212 @@ module Splitting(Splitting:sig
          | Active (S) -> S
          | InActive -> raise (Error "Not applicable: leftover constraints"))
         Sl
-    let rec menu (((State (name, Prefix (g, M, B), V), i), Sl) as Op) =
-      let active =
+    let rec menu (((State (name, Prefix (G, M, B), V), i), Sl) as Op) =
+      let rec active =
         function
         | (nil, n) -> n
         | ((InActive)::L, n) -> active (L, n)
         | ((Active _)::L, n) -> active (L, (n + 1)) in
-      let inactive =
+      let rec inactive =
         function
         | (nil, n) -> n
         | ((InActive)::L, n) -> inactive (L, (n + 1))
         | ((Active _)::L, n) -> inactive (L, n) in
-      let indexToString =
+      let rec indexToString =
         function
         | 0 -> "zero cases"
         | 1 -> "1 case"
         | n -> (Int.toString n) ^ " cases" in
-      let flagToString =
+      let rec flagToString =
         function
         | (_, 0) -> ""
         | (n, m) ->
             (((" [active: " ^ (Int.toString n)) ^ " inactive: ") ^
                (Int.toString m))
               ^ "]" in
-      (((((^) "Splitting : " Print.decToString (g, (I.ctxDec (g, i)))) ^ " (")
+      (((((^) "Splitting : " Print.decToString (G, (I.ctxDec (G, i)))) ^ " (")
           ^ (indexToString (index Op)))
          ^ (flagToString ((active (Sl, 0)), (inactive (Sl, 0)))))
         ^ ")"
     let rec var ((_, i), _) = i
-    let ((expand)(* constCases (g, (V, s), I, abstract, C) = C'
+    (* constCases (G, (V, s), I, abstract, C) = C'
 
        Invariant:
-       If   g |- s : g'  g' |- V : type
+       If   G |- s : G'  G' |- V : type
        and  I a list of of constant declarations
        and  abstract an abstraction function
        and  C a list of possible cases
        then C' is a list extending C, containing all possible
          cases from I
     *)
-      (* paramCases (g, (V, s), k, abstract, C) = C'
+    (* paramCases (G, (V, s), k, abstract, C) = C'
 
        Invariant:
-       If   g |- s : g'  g' |- V : type
+       If   G |- s : G'  G' |- V : type
        and  k a variable
        and  abstract an abstraction function
        and  C a list of possible cases
        then C' is a list extending C, containing all possible
-         cases introduced by parameters <= k in g
+         cases introduced by parameters <= k in G
     *)
-      (* lowerSplitDest (g, (V, s'), abstract) = C'
+    (* lowerSplitDest (G, (V, s'), abstract) = C'
 
        Invariant:
-       If   G0, g |- s' : G1  G1 |- V: type
-       and  g is the context of local parameters
+       If   G0, G |- s' : G1  G1 |- V: type
+       and  G is the context of local parameters
        and  abstract abstraction function
        then C' is a list of all cases unifying with V[s']
             (it contains constant and parameter cases)
     *)
-      (* split ((g, M), (x:D, s), abstract) = C'
+    (* split ((G, M), (x:D, s), abstract) = C'
 
        Invariant :
-       If   |- g ctx
-       and  g |- M mtx
-       and  g |- s : G1   and  G1 |- D : L
+       If   |- G ctx
+       and  G |- M mtx
+       and  G |- s : G1   and  G1 |- D : L
        and  abstract abstraction function
        then C' = (C1, ... Cn) are resulting cases from splitting D[s]
     *)
-      (* rename to add N prefix? *)(* occursIn (k, U) = B,
+    (* rename to add N prefix? *)
+    (* occursIn (k, U) = B,
 
        Invariant:
        If    U in nf
        then  B iff k occurs in U
     *)
-      (* no case for Redex, EVar, EClo *)(* no case for FVar *)
-      (* no case for SClo *)(* checkExp (M, U) = B
+    (* no case for Redex, EVar, EClo *)
+    (* no case for FVar *)
+    (* no case for SClo *)
+    (* checkExp (M, U) = B
 
        Invariant:
-       If   g |- M
-       and  g |- U : V
+       If   G |- M
+       and  G |- U : V
        and  U in nf
        then B holds iff U does not contain any Bot variables
     *)
-      (* copied from meta-abstract *)(* modeEq (marg, st) = B'
+    (* copied from meta-abstract *)
+    (* modeEq (marg, st) = B'
 
        Invariant:
        If   (marg = + and st = top) or (marg = - and st = bot)
        then B' = true
        else B' = false
     *)
-      (*
+    (*
        The inherit functions below copy the splitting depth attribute
        between successive states, using a simultaneous traversal
        in mode dependency order.
 
        Invariant:
-       (g,M,B) |- V type
-       g = G0, G1, G2
+       (G,M,B) |- V type
+       G = G0, G1, G2
        |G2| = k       (length of local context)
        d = |G1, G2|   (last BVar seen)
-       let n < |g|
+       let n < |G|
        if   n>d then n is an index of a variable already seen in mdo
        if   n=d then n is an index of a variable now seen for the first
                      time
        if   n<=k then n is a local parameter
        it is impossible for     k < n < d
     *)
-      (* invariants on inheritXXX functions? -fp *)(* necessary for d' = 0 *)
-      (* skip *)(* necessary for d = 0 *)
-      (* Uni impossible *)(* new original variable *)
-      (* inheritBelow (I.ctxLookup (B, n-k) - 1, k', V', (B', d-1, d')) *)
-      (* already seen original variable *)(* then (B', d, d') *)
-      (* previous line avoids redundancy,
+    (* invariants on inheritXXX functions? -fp *)
+    (* necessary for d' = 0 *)
+    (* skip *)
+    (* necessary for d = 0 *)
+    (* Uni impossible *)
+    (* new original variable *)
+    (* inheritBelow (I.ctxLookup (B, n-k) - 1, k', V', (B', d-1, d')) *)
+    (* already seen original variable *)
+    (* then (B', d, d') *)
+    (* previous line avoids redundancy,
                   but may violate invariant outside pattern fragment *)
-      (* must correspond *)(* C' = BVar (n) *)(* C ~ C' *)
-      (* n = k+d *)(* n' also new --- same variable: do not decrease *)
-      (* n' not new --- decrease the splitting depth of all variables in V' *)
-      (* cid = cid' *)(* cid = cid' *)
-      (* mode dependency in Goal: first M.Top, then M.Bot *)
-      (* S' *)(* current first occurrence depth in V *)
-      (* current first occurrence depth in V' *)(* mode dependency in Clause: first M.Top then M.Bot *)
-      (* check proper traversal *)(* abstractInit (M.State (name, M.Prefix (g, M, B), V)) = F'
+    (* must correspond *)
+    (* C' = BVar (n) *)
+    (* C ~ C' *)
+    (* n = k+d *)
+    (* n' also new --- same variable: do not decrease *)
+    (* n' not new --- decrease the splitting depth of all variables in V' *)
+    (* cid = cid' *)
+    (* cid = cid' *)
+    (* mode dependency in Goal: first M.Top, then M.Bot *)
+    (* S' *)
+    (* current first occurrence depth in V *)
+    (* current first occurrence depth in V' *)
+    (* mode dependency in Clause: first M.Top then M.Bot *)
+    (* check proper traversal *)
+    (* abstractInit (M.State (name, M.Prefix (G, M, B), V)) = F'
 
        State is the state before splitting, to inherit splitting depths.
        Invariant:
-       If   g |- V : L
-       then forall |- g' ctx
-            and    g' |- M' ctx
-            and    g' |- s' : g
+       If   G |- V : L
+       then forall |- G' ctx
+            and    G' |- M' ctx
+            and    G' |- s' : G
             and    names name'
-            then   following holds: S' = F' (name', g', M', s')
+            then   following holds: S' = F' (name', G', M', s')
                                     S' is a new state
     *)
-      (* abstractInit (x:D, mode, F) = F'
+    (* abstractInit (x:D, mode, F) = F'
 
        Invariant:
-       If   g |- D : L
-       and  forall |- g' ctx
-            and    g' |- M' ctx
-            and    g' |- s' : g
+       If   G |- D : L
+       and  forall |- G' ctx
+            and    G' |- M' ctx
+            and    G' |- s' : G
             and    names name'
-            then   S' = F (name', g', M', s')
-       then forall |- g' ctx
-            and    g' |- M' ctx
-            and    g' |- s' : g
-            then   following holds: S' = F (name', (g', D[s]) , (M', mode) , 1 . s' o ^)
+            then   S' = F (name', G', M', s')
+       then forall |- G' ctx
+            and    G' |- M' ctx
+            and    G' |- s' : G
+            then   following holds: S' = F (name', (G', D[s]) , (M', mode) , 1 . s' o ^)
                                     is a new state
     *)
-      (* expand' (M.Prefix (g, M), isIndex, abstract, makeAddress) = (M.Prefix (g', M'), s', ops')
+    (* expand' (M.Prefix (G, M), isIndex, abstract, makeAddress) = (M.Prefix (G', M'), s', ops')
 
        Invariant:
-       If   |- g ctx
-       and  g |- M mtx
+       If   |- G ctx
+       and  G |- M mtx
        and  isIndex (k) = B function s.t. B holds iff k index
        and  abstract, dynamic abstraction function
        and  makeAddress, a function which calculates the index of the variable
             to be split
-       then |- g' ctx
-       and  g' |- M' mtx
-       and  g' is a subcontext of g where all Top variables have been replaced
+       then |- G' ctx
+       and  G' |- M' mtx
+       and  G' is a subcontext of G where all Top variables have been replaced
             by EVars'
-       and  g' |- s' : g
+       and  G' |- s' : G
        and  ops' is a list of all possiblie splitting operators
     *)
-      (* check if splitting bound > 0 *)(* -###- *)
-      (* b = 0 *)(* expand ((g, M), V) = ops'
+    (* check if splitting bound > 0 *)
+    (* -###- *)
+    (* b = 0 *)
+    (* expand ((G, M), V) = ops'
 
        Invariant:
-       If   |- g ctx
-       and  g |- M mtx
-       and  g |- V : L
+       If   |- G ctx
+       and  G |- M mtx
+       and  G |- V : L
        then ops' is a list of all possiblie splitting operators
     *)
-      (* index (Op) = k
+    (* index (Op) = k
 
        Invariant:
        If   Op = (_, S) then k = |S|
     *)
-      (* apply (Op) = Sl'
+    (* apply (Op) = Sl'
 
        Invariant:
        If   Op = (_, Sl) then Sl' = Sl
     *)
-      (* menu (Op) = s'
+    (* menu (Op) = s'
 
        Invariant:
-       If   Op = ((g, D), Sl)
-       and  g |- D : L
+       If   Op = ((G, D), Sl)
+       and  G |- D : L
        then s' = string describing the operator
-    *))
-      = expand
+    *)
+    let expand = expand
     let apply = apply
     let var = var
     let index = index

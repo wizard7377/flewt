@@ -1,12 +1,14 @@
 
+(* Indexing (Constants and Skolem constants) *)
+(* Author: Carsten Schuermann *)
+(* Modified: Frank Pfenning *)
 module IndexSkolem(IndexSkolem:sig
                                  module Global : GLOBAL
-                                 module Queue :
-                                 ((QUEUE)(* Indexing (Constants and Skolem constants) *)
-                                 (* Author: Carsten Schuermann *)
-                                 (* Modified: Frank Pfenning *))
+                                 module Queue : QUEUE
                                end) : INDEX =
   struct
+    (*! structure IntSyn' : INTSYN !*)
+    (*! structure IntSyn = IntSyn' !*)
     module I = IntSyn
     let rec cidFromHead = function | Const c -> c | Def c -> c
     let (indexArray : IntSyn.__Head Queue.queue Array.array) =
@@ -45,19 +47,18 @@ module IndexSkolem(IndexSkolem:sig
       | _ -> ()
     let rec resetFrom mark =
       let (limit, _) = I.sgnSize () in
-      let iter i =
+      let rec iter i =
         if i < mark
         then ()
         else (uninstall i; Array.update (indexArray, i, Queue.empty)) in
       iter (limit - 1)
     let rec lookup a =
-      let lk =
+      let rec lk =
         function
         | (l, NONE) -> l
         | (l, SOME q') -> (Array.update (indexArray, a, q'); l) in
       lk (Queue.toList (Array.sub (indexArray, a)))
-    let ((reset)(*! structure IntSyn' : INTSYN !*)(*! structure IntSyn = IntSyn' !*)
-      (* Index array
+    (* Index array
 
        Invariant:
        For all type families  a
@@ -65,25 +66,26 @@ module IndexSkolem(IndexSkolem:sig
        where c1,...,cn is a queue consisting of all constants with
        target family a
     *)
-      (* reset () = ()
+    (* reset () = ()
        Empties index array
     *)
-      (* update (a, c) = ()
+    (* update (a, c) = ()
        inserts c into the index queue for family a
        Invariant: a = target family of c
     *)
-      (* install (c) = ()
+    (* install (c) = ()
        installs c into the correct index queue
        presently ignores definitions
     *)
-      (* lookup a = [c1,...,cn] *)(*
+    (* lookup a = [c1,...,cn] *)
+    (*
        c1,...,cn are all constants with target family a
        in order of declaration, defined constants are omitted.
 
        A second lookup after the first without intermediate inserts will
        be in constant time.
-    *))
-      = reset
+    *)
+    let reset = reset
     let resetFrom = resetFrom
     let install = install
     let lookup = lookup

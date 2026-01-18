@@ -1,18 +1,18 @@
 
-module type SIGNAT  =
-  sig
-    type nonrec 'phantom sgn(** 
+(** 
    A signature should only contain well-typed LF expressions.
    Thus, we check them before doing an insert.  To avoid copying
    the signature code, we instead use a phantom type.
    (See the paper "Phantom Types and Subtyping" by Fluet and Pucella)
 *)
+module type SIGNAT  =
+  sig
+    type nonrec 'phantom sgn
     val empty : unit -> 'phantom sgn
     val insert : 'phantom sgn -> (Syntax.const * Syntax.dec) -> 'phantom sgn
     val lookup : 'phantom sgn -> Syntax.const -> Syntax.dec
-    val size :
-      'phantom sgn ->
-        ((int)(** number of key/value pairs *))
+    (** number of key/value pairs *)
+    val size : 'phantom sgn -> int
   end;;
 
 
@@ -27,11 +27,11 @@ module type SIGNAT  =
     val insert : 'a sgn -> (key * 'a) -> 'a sgn
     val lookup : 'a sgn -> key -> 'a
     val size : 'a sgn -> int
-  end
+  end (* raises Signat if key is not fresh*)
+(* raises Signat if not present *)
 module ListSignat : SIGNAT =
   struct
-    module L =
-      ((Lib)(* raises Signat if key is not fresh*)(* raises Signat if not present *))
+    module L = Lib
     type nonrec key = int
     type nonrec 'a sgn = (key * 'a) list
     exception Signat of string 
@@ -49,7 +49,7 @@ module ListSignat : SIGNAT =
 module GrowarraySignat : SIGNAT =
   struct
     module L = Lib
-    module g = GrowArray
+    module G = GrowArray
     type nonrec key = int
     type nonrec 'a sgn = < arr: 'a G.growarray  ;size: int ref   > 
     exception Signat of string 
