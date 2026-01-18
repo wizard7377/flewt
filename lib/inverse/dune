@@ -1,0 +1,17 @@
+(library
+ (wrapped
+  (transition "Convert SML convention to OCaml convention"))
+ (public_name flewt.inverse)
+ (name inverse)
+ (libraries base lambda print frontend timing)
+ (modules
+  context
+  debug
+  growarray
+  layout
+  lib
+  syntax
+  table
+  timers
+  translate
+  typecheck))

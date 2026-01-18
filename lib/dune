@@ -17,7 +17,7 @@
   flewt.global
   flewt.heuristic
   flewt.index
-  flewt.int-inf
+  flewt.int_inf
   flewt.inverse
   flewt.lambda
   flewt.m2

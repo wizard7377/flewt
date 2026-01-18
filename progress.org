@@ -1,0 +1,45 @@
+* Progress on transformation
+** TODO ~lib/trail~ :CORE:
+** TODO ~lib/compat~ :CORE:
+** TODO ~lib/compile~
+** TODO ~lib/compress~
+** TODO ~lib/cover~
+** TODO ~lib/delphin~
+** TODO ~lib/domains~ :CORE:
+** TODO ~lib/flit~
+** TODO ~lib/formatter~ :CORE:
+** TODO ~lib/frontend~
+** TODO ~lib/global~ :CORE:
+** TODO ~lib/heuristic~ :CORE:
+** TODO ~lib/index~
+** TODO ~lib/int-inf~
+Renamed to ~lib/int_inf~
+** TODO ~lib/inverse~
+** TODO ~lib/lambda~
+** TODO ~lib/m2~
+** TODO ~lib/meta~
+** TODO ~lib/modes~
+** TODO ~lib/modules~
+** TODO ~lib/msg~
+** TODO ~lib/names~
+** TODO ~lib/netserver~
+** TODO ~lib/opsem~
+** TODO ~lib/order~
+** TODO ~lib/paths~
+** TODO ~lib/print~
+** TODO ~lib/prover~
+** TODO ~lib/server~
+** TODO ~lib/solvers~
+** TODO ~lib/stream~
+** TODO ~lib/style~
+** TODO ~lib/subordinate~
+** TODO ~lib/table~ :CORE:
+** TODO ~lib/tabling~
+** TODO ~lib/terminate~
+** TODO ~lib/thm~
+** TODO ~lib/timing~ :CORE:
+** TODO ~lib/tomega~
+** DONE ~lib/trail~
+** TODO ~lib/typecheck~
+** TODO ~lib/unique~
+** TODO ~lib/worldcheck~

@@ -1573,7 +1573,7 @@ module Checking(Checking:sig
         and D, D', O1 = O1', O2 < O2 --> P
 
         ...
-        and D, D', O1 = O1', .., O_n-1 = O'_n-1, O_n < O'_n --> P
+        and D, D', O1 = O1', .., O_n-1 = O'n-1, O_n < O'n --> P
     *)
     (* If D, D', Lex O1, ....On = Lex O'1, ....O'n --> P
       If D, D', Simul O1, ....On = Simul O'1, ....O'n --> P

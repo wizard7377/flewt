@@ -1,7 +1,7 @@
 
 (* Not Trailing Abstract Operations *)
 (* Author: Roberto Virga *)
-module NoTrail : TRAIL =
+module NoTrail : Trail_core.TRAIL =
   struct
     type nonrec 'a trail = unit
     let rec trail () = ()
@@ -12,3 +12,4 @@ module NoTrail : TRAIL =
     let rec unwind ((), undo) = ()
     let rec log ((), action) = ()
   end ;;
+ 

@@ -2,9 +2,9 @@
 module type STREAMM  =
   sig
     type nonrec 'xa stream
-    val streamify : (unit -> '_a) -> '_a stream
-    val cons : ('_a * '_a stream) -> '_a stream
-    val get : '_a stream -> ('_a * '_a stream)
+    val streamify : (unit -> 'a) -> 'a stream
+    val cons : ('a * 'a stream) -> 'a stream
+    val get : 'a stream -> ('a * 'a stream)
   end
 module type LR_TABLE  =
   sig
@@ -56,24 +56,24 @@ module type LR_PARSER  =
     exception ParseError 
     val parse :
       <
-        table: LrTable.table  ;lexer: ('_b, '_c) Token.token Streamm.stream  ;
-        arg: 'arg  ;saction: (int * '_c * (LrTable.state * ('_b * '_c * '_c))
+        table: LrTable.table  ;lexer: ('b, 'c) Token.token Streamm.stream  ;
+        arg: 'arg  ;saction: (int * 'c * (LrTable.state * ('b * 'c * 'c))
                                list * 'arg) ->
-                               (LrTable.nonterm * ('_b * '_c * '_c) *
-                                 (LrTable.state * ('_b * '_c * '_c)) list)  ;
-        void: '_b  ;ec: <
+                               (LrTable.nonterm * ('b * 'c * 'c) *
+                                 (LrTable.state * ('b * 'c * 'c)) list)  ;
+        void: 'b  ;ec: <
                           is_keyword: LrTable.term -> bool  ;noShift: 
                                                                LrTable.term
                                                                  -> bool  ;
                           preferred_change: (LrTable.term list * LrTable.term
                                               list) list  ;errtermvalue: 
                                                              LrTable.term ->
-                                                               '_b  ;
+                                                               'b  ;
                           showTerminal: LrTable.term -> string  ;terms: 
                                                                    LrTable.term
                                                                     list  ;
-                          error: (string * '_c * '_c) -> unit   >   ;
-        lookahead: int   >  -> ('_b * ('_b, '_c) Token.token Streamm.stream)
+                          error: (string * 'c * 'c) -> unit   >   ;
+        lookahead: int   >  -> ('b * ('b, 'c) Token.token Streamm.stream)
   end
 module type LEXERR  =
   sig

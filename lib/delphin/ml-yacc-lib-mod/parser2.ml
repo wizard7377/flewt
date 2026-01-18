@@ -289,7 +289,7 @@ module LrParser : LR_PARSER =
                  | ACCEPT ->
                      (lexPair, stack, queue, distance, (SOME nextAction)))
             | _ -> raise (ParseImpossible 242) in
-          (parseStep : ('_a, '_b) distanceParse)
+          (parseStep : ('a, 'b) distanceParse)
     (* mkFixError: function to create fixError function which adjusts parser state
    so that parse may continue in the presence of an error *)
     let rec mkFixError
@@ -299,8 +299,8 @@ module LrParser : LR_PARSER =
           noShift; showTerminal; error; preferred_change; noShift;
           showTerminal; error; noShift; showTerminal; error; showTerminal;
           error; error }
-         : ('_a, '_b) ecRecord),
-       (distanceParse : ('_a, '_b) distanceParse), minAdvance, maxAdvance)
+         : ('a, 'b) ecRecord),
+       (distanceParse : ('a, 'b) distanceParse), minAdvance, maxAdvance)
       (((TOKEN (term, ((_, leftPos, _) as value)), _) as lexv), stack, queue)
       =
       let _ =
@@ -582,16 +582,16 @@ module LrParser : LR_PARSER =
     let parse =
       function
       | { arg; table; lexer; saction; void; lookahead;
-          ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec); table;
+          ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec); table;
           lexer; saction; void; lookahead;
-          ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec); lexer;
+          ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec); lexer;
           saction; void; lookahead;
-          ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec); saction;
+          ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec); saction;
           void; lookahead;
-          ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec); void;
-          lookahead; ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec);
-          lookahead; ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec);
-          ec = (({ showTerminal } : ('_a, '_b) ecRecord) as ec) } ->
+          ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec); void;
+          lookahead; ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec);
+          lookahead; ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec);
+          ec = (({ showTerminal } : ('a, 'b) ecRecord) as ec) } ->
           let distance = 15 in
           let minAdvance = 1 in
           let maxAdvance = Int.max (lookahead, 0) in

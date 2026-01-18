@@ -1,0 +1,4 @@
+(lang dune 3.2)
+(context default)
+(env 
+ (_ (flags (:standard -w -A))))
