@@ -53,7 +53,7 @@ module Mpi(Mpi:sig
     let ((History) :
       (MetaSyn.__State Ring.ring * MetaSyn.__State Ring.ring) list ref) =
       ref nil
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec initOpen () = (:=) Open Ring.init []
     let rec initSolved () = (:=) Solved Ring.init []
     let rec empty () = Ring.empty (!Open)
@@ -80,33 +80,33 @@ module Mpi(Mpi:sig
           (History := History'; Open := Open'; Solved := Solved')
     let rec abort s = print ("* " ^ s); raise (Error s)
     let rec reset () =
-      initOpen (); initSolved (); History := nil; Menu := NONE
+      initOpen (); initSolved (); History := nil; Menu := None
     let rec cLToString =
       function
       | nil -> ""
       | c::nil -> I.conDecName (I.sgnLookup c)
-      | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
+      | c::__l -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString __l)
     let rec SplittingToMenu =
       function
       | (nil, A) -> A
-      | ((O)::L, A) -> SplittingToMenu (L, ((Splitting O) :: A))
+      | ((O)::__l, A) -> SplittingToMenu (__l, ((Splitting O) :: A))
     let rec FillingToMenu =
       function
       | (nil, A) -> A
-      | ((O)::L, A) -> FillingToMenu (L, ((Filling O) :: A))
+      | ((O)::__l, A) -> FillingToMenu (__l, ((Filling O) :: A))
     let rec RecursionToMenu =
       function
       | (nil, A) -> A
-      | ((O)::L, A) -> RecursionToMenu (L, ((Recursion O) :: A))
+      | ((O)::__l, A) -> RecursionToMenu (__l, ((Recursion O) :: A))
     let rec menu () =
       if empty ()
-      then Menu := NONE
+      then Menu := None
       else
         (let S = current () in
          let SplitO = Splitting.expand S in
          let RecO = Recursion.expandEager S in
          let (FillO, FillC) = Filling.expand S in
-         (:=) Menu SOME
+         (:=) Menu Some
            (FillingToMenu
               ([FillC],
                 (FillingToMenu
@@ -128,15 +128,15 @@ module Mpi(Mpi:sig
             (((menuToString' ((k + 1), M)) ^ "\n") ^ (format k)) ^
               (Recursion.menu O) in
       match !Menu with
-      | NONE -> raise (Error "Menu is empty")
-      | SOME (M) -> menuToString' (1, M)
-    let rec makeConDec (State (name, Prefix (G, M, B), V)) =
+      | None -> raise (Error "Menu is empty")
+      | Some (M) -> menuToString' (1, M)
+    let rec makeConDec (State (name, Prefix (__g, M, B), __v)) =
       let rec makeConDec' =
         function
-        | (I.Null, V, k) -> I.ConDec (name, NONE, k, I.Normal, V, I.Type)
-        | (Decl (G, D), V, k) ->
-            makeConDec' (G, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
-      makeConDec' (G, V, 0)
+        | (I.Null, __v, k) -> I.ConDec (name, None, k, I.Normal, __v, I.Type)
+        | (Decl (__g, __d), __v, k) ->
+            makeConDec' (__g, (I.Pi ((__d, I.Maybe), __v)), (k + 1)) in
+      makeConDec' (__g, __v, 0)
     let rec makeSignature =
       function
       | nil -> M.SgnEmpty
@@ -159,8 +159,8 @@ module Mpi(Mpi:sig
     let rec contains =
       function
       | (nil, _) -> true__
-      | (x::L, L') ->
-          (List.exists (function | x' -> x = x') L') && (contains (L, L'))
+      | (x::__l, __l') ->
+          (List.exists (function | x' -> x = x') __l') && (contains (__l, __l'))
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec init' (k, (c::_ as cL)) =
       let _ = MetaGlobal.maxFill := k in
@@ -180,16 +180,16 @@ module Mpi(Mpi:sig
         | nil -> nil
         | name::nL ->
             (match Names.stringToQid name with
-             | NONE ->
+             | None ->
                  raise (Error ("Malformed qualified identifier " ^ name))
-             | SOME qid ->
+             | Some qid ->
                  (match Names.constLookup qid with
-                  | NONE ->
+                  | None ->
                       raise
                         (Error
                            (((^) "Type family " Names.qidToString qid) ^
                               " not defined"))
-                  | SOME cid -> cid :: (cids nL))) in
+                  | Some cid -> cid :: (cids nL))) in
       try init' (k, (cids nL)); menu (); printMenu ()
       with | Error s -> abort ("Splitting Error: " ^ s)
       | Error s -> abort ("Filling Error: " ^ s)
@@ -217,8 +217,8 @@ module Mpi(Mpi:sig
         | (k, _::M) -> select' ((k - 1), M) in
       try
         match !Menu with
-        | NONE -> raise (Error "No menu defined")
-        | SOME (M) -> select' (k, M)
+        | None -> raise (Error "No menu defined")
+        | Some (M) -> select' (k, M)
       with | Error s -> abort ("Splitting Error: " ^ s)
       | Error s -> abort ("Filling Error: " ^ s)
       | Error s -> abort ("Recursion Error: " ^ s)

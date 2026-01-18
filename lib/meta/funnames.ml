@@ -77,8 +77,8 @@ module FunNames(FunNames:sig
       Array.update (nameArray, cid, (NameInfo (("%" ^ name) ^ "%")))(* should shadowed identifiers keep their fixity? *)
     let rec shadow =
       function
-      | NONE -> ()
-      | SOME (_, cid) -> override (cid, (Array.sub (nameArray, cid)))
+      | None -> ()
+      | Some (_, cid) -> override (cid, (Array.sub (nameArray, cid)))
     (* installName (name, cid) = ()
        Effect: update mappings from constants to print names and identifiers
                to constants, taking into account shadowing
@@ -87,8 +87,8 @@ module FunNames(FunNames:sig
       let shadowed = hashInsert (name, lemma) in
       ((Array.update (nameArray, lemma, (NameInfo name)); shadow shadowed)
         (* returns optional shadowed entry *))
-    (* nameLookup (name) = SOME(cid),  if cid has name and is not shadowed,
-                         = NONE,   if there is no such constant
+    (* nameLookup (name) = Some(cid),  if cid has name and is not shadowed,
+                         = None,   if there is no such constant
     *)
     let rec nameLookup name = hashLookup name
     (* constName (cid) = name,

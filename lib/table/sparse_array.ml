@@ -29,7 +29,7 @@ module SparseArray(SparseArray:sig module IntTable : TABLE end) :
     type nonrec 'a array = < default: 'a  ;table: 'a IntTable.__Table   > 
     let size = 29
     let rec unsafeSub ({ table; default; default }, i) =
-      match IntTable.lookup table i with | NONE -> default | SOME v -> v
+      match IntTable.lookup table i with | None -> default | Some v -> v
     let rec unsafeUpdate ({ table; default; default }, i, v) =
       IntTable.insert table (i, v)
     let rec array default = { default; table = (IntTable.new__ size) }

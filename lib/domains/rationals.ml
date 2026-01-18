@@ -4,7 +4,7 @@
 module type RATIONALS  =
   sig
     include ORDERED_FIELD
-    module Integers : INTEGERS
+    module Integers : Integers.INTEGERS
     (* Conversions between rationals and integers *)
     val fromInteger : Integers.int -> number
     val floor : number -> Integers.int
@@ -19,9 +19,9 @@ module type RATIONALS  =
 
 (* Rationals *)
 (* Author: Roberto Virga *)
-module Rationals(Integers:INTEGERS) : RATIONALS =
+module Rationals(Integers_param:Integers.INTEGERS) : RATIONALS =
   struct
-    module Integers = Integers
+    module Integers = Integers_param
     let name = "rational"
     exception Div = Div
     module I = Integers
@@ -45,7 +45,7 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
                 then gcd ((I.mod__ (m, n)), n)
                 else gcd (m, (I.mod__ (n, m))) in
           let g = gcd (n, d) in Fract (s, (I.div (n, g)), (I.div (d, g)))
-    let rec (~) (Fract (s, n, d)) = Fract ((Int.(~) s), n, d)
+    let rec (~-) (Fract (s, n, d)) = Fract ((Int.(~-) s), n, d)
     let rec (+) (Fract (s1, n1, d1), Fract (s2, n2, d2)) =
       let n =
         I.(+)
@@ -95,9 +95,9 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
         (if check_numerator (String.explode numerator)
          then
            match I.fromString numerator with
-           | SOME n -> SOME (Fract ((I.sign n), (I.abs n), (I.fromInt 1)))
-           | _ -> NONE
-         else NONE)
+           | Some n -> Some (Fract ((I.sign n), (I.abs n), (I.fromInt 1)))
+           | _ -> None
+         else None)
       else
         if (List.length fields) = 2
         then
@@ -109,28 +109,28 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
            then
              match ((I.fromString numerator), (I.fromString denominator))
              with
-             | (SOME n, SOME d) ->
-                 SOME (normalize (Fract ((I.sign n), (I.abs n), d)))
-             | _ -> NONE
-           else NONE)
-        else NONE
+             | (Some n, Some d) ->
+                 Some (normalize (Fract ((I.sign n), (I.abs n), d)))
+             | _ -> None
+           else None)
+        else None
     let rec toString (Fract (s, n, d)) =
       let nStr = I.toString (I.( * ) ((I.fromInt s), n)) in
       let dStr = I.toString d in
       if (=) d I.fromInt 1 then nStr else (nStr ^ "/") ^ dStr
     let rec fromInteger n = Fract ((I.sign n), (I.abs n), (I.fromInt 1))
     let rec floor (Fract (s, n, d) as q) =
-      if Int.(>=) (s, 0) then I.quot (n, d) else Integers.(~) (ceiling (~ q))
+      if Int.(>=) (s, 0) then I.quot (n, d) else Integers.(~-) (ceiling (~- q))
     let rec ceiling (Fract (s, n, d) as q) =
       if Int.(>=) (s, 0)
       then I.quot ((I.(+) (n, (I.(-) (d, (I.fromInt 1))))), d)
-      else Integers.(~) (floor (~ q))
+      else Integers.(~-) (floor (~- q))
     (* Rational number:              *)
     (* q := Fract (sign, num, denom) *)
     type nonrec number = number
     let zero = zero
     let one = one
-    let (~) = (~)
+    let (~-) = (~-)
     let (+) = (+)
     let (-) = (-)
     let ( * ) = ( * )

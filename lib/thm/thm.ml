@@ -50,7 +50,7 @@ module Thm(Thm:sig
       | Lex of __Order list 
       | Simul of __Order list 
     exception Error of string 
-    module L = ThmSyn
+    module __l = ThmSyn
     module M = ModeSyn
     module I = IntSyn
     module P = ThmPrint
@@ -60,8 +60,8 @@ module Thm(Thm:sig
       let rec unique' =
         function
         | (Uni _, nil, A) -> A
-        | (Pi (_, V), (NONE)::P, A) -> unique' (V, P, A)
-        | (Pi (_, V), (SOME x)::P, A) ->
+        | (Pi (_, __v), (None)::P, A) -> unique' (__v, P, A)
+        | (Pi (_, __v), (Some x)::P, A) ->
             (List.app
                (function
                 | x' ->
@@ -69,13 +69,13 @@ module Thm(Thm:sig
                     then
                       error (r, (("Variable " ^ x) ^ " used more than once"))
                     else ()) A;
-             unique' (V, P, (x :: A)))
+             unique' (__v, P, (x :: A)))
         | (Uni _, _, _) ->
             error
               (r,
                 ((^) "Too many arguments supplied to type family "
                    Names.qidToString (Names.constQid a)))
-        | (Pi (_, V), nil, _) ->
+        | (Pi (_, __v), nil, _) ->
             error
               (r,
                 ((^) "Too few arguments supplied to type family "
@@ -87,27 +87,27 @@ module Thm(Thm:sig
                    " is an object, not a type family")) in
       let rec skip =
         function
-        | (0, V, P, A) -> unique' (V, P, A)
-        | (k, Pi (_, V), P, A) -> skip ((k - 1), V, P, A) in
+        | (0, __v, P, A) -> unique' (__v, P, A)
+        | (k, Pi (_, __v), P, A) -> skip ((k - 1), __v, P, A) in
       skip ((I.constImp a), (I.constType a), P, A)
-    let rec uniqueCallpats (L, rs) =
+    let rec uniqueCallpats (__l, rs) =
       let rec uniqueCallpats' =
         function
         | ((nil, nil), A) -> ()
-        | ((aP::L, r::rs), A) ->
-            uniqueCallpats' ((L, rs), (unique ((aP, r), A))) in
-      uniqueCallpats' ((L, rs), nil)
+        | ((aP::__l, r::rs), A) ->
+            uniqueCallpats' ((__l, rs), (unique ((aP, r), A))) in
+      uniqueCallpats' ((__l, rs), nil)
     let rec wfCallpats (L0, C0, r) =
       let rec makestring =
         function
         | nil -> ""
         | s::nil -> s
-        | s::L -> (s ^ " ") ^ (makestring L) in
+        | s::__l -> (s ^ " ") ^ (makestring __l) in
       let rec exists' =
         function
         | (x, nil, _) -> false__
-        | (x, (NONE)::L, Mapp (_, mS)) -> exists' (x, L, mS)
-        | (x, (SOME y)::L, Mapp (Marg (mode, _), mS)) ->
+        | (x, (None)::__l, Mapp (_, mS)) -> exists' (x, __l, mS)
+        | (x, (Some y)::__l, Mapp (Marg (mode, _), mS)) ->
             if x = y
             then
               (match mode with
@@ -118,7 +118,7 @@ module Thm(Thm:sig
                        (((^) (("Expected " ^ x) ^ " to have ") M.modeToString
                            M.Plus)
                           ^ " mode")))
-            else exists' (x, L, mS) in
+            else exists' (x, __l, mS) in
       let rec skip =
         function
         | (0, x, P, mS) -> exists' (x, P, mS)
@@ -134,7 +134,7 @@ module Thm(Thm:sig
       let rec wfCallpats' =
         function
         | (nil, nil) -> ()
-        | (x::L, C) -> wfCallpats' (L, (delete (x, C)))
+        | (x::__l, C) -> wfCallpats' (__l, (delete (x, C)))
         | _ ->
             error
               (r,
@@ -144,74 +144,74 @@ module Thm(Thm:sig
     let rec wf ((O, Callpats (C)), (r, rs)) =
       let rec wfOrder =
         function
-        | Varg (L) -> wfCallpats (L, C, r)
-        | Lex (L) -> wfOrders L
-        | Simul (L) -> wfOrders L
-      and wfOrders = function | nil -> () | (O)::L -> (wfOrder O; wfOrders L) in
+        | Varg (__l) -> wfCallpats (__l, C, r)
+        | Lex (__l) -> wfOrders __l
+        | Simul (__l) -> wfOrders __l
+      and wfOrders = function | nil -> () | (O)::__l -> (wfOrder O; wfOrders __l) in
       let rec allModed =
         function
         | nil -> ()
-        | (a, P)::Cs ->
+        | (a, P)::__Cs ->
             ((match ModeTable.modeLookup a with
-              | NONE ->
+              | None ->
                   error
                     (r,
                       (((^) "Expected " Names.qidToString (Names.constQid a))
                          ^ " to be moded"))
-              | SOME mS -> ());
-             allModed Cs) in
+              | Some mS -> ());
+             allModed __Cs) in
       allModed C; uniqueCallpats (C, rs); wfOrder O
     let rec argPos =
       function
-      | (x, nil, n) -> NONE
-      | (x, (NONE)::L, n) -> argPos (x, L, (n + 1))
-      | (x, (SOME x')::L, n) ->
-          if x = x' then SOME n else argPos (x, L, (n + 1))
+      | (x, nil, n) -> None
+      | (x, (None)::__l, n) -> argPos (x, __l, (n + 1))
+      | (x, (Some x')::__l, n) ->
+          if x = x' then Some n else argPos (x, __l, (n + 1))
     let rec locate (x::vars, params, imp) =
       match argPos (x, params, (imp + 1)) with
-      | NONE -> locate (vars, params, imp)
-      | SOME n -> n
+      | None -> locate (vars, params, imp)
+      | Some n -> n
     let rec argOrder =
       function
-      | (Varg (L), P, n) -> O.Arg (locate (L, P, n))
-      | (Simul (L), P, n) -> O.Simul (argOrderL (L, P, n))
-      | (Lex (L), P, n) -> O.Lex (argOrderL (L, P, n))
+      | (Varg (__l), P, n) -> O.Arg (locate (__l, P, n))
+      | (Simul (__l), P, n) -> O.Simul (argOrderL (__l, P, n))
+      | (Lex (__l), P, n) -> O.Lex (argOrderL (__l, P, n))
     let rec argOrderL =
       function
       | (nil, P, n) -> nil
-      | ((O)::L, P, n) -> (::) (argOrder (O, P, n)) argOrderL (L, P, n)
+      | ((O)::__l, P, n) -> (::) (argOrder (O, P, n)) argOrderL (__l, P, n)
     let rec argOrderMutual =
       function
       | (nil, k, A) -> A
-      | ((P)::L, k, A) -> argOrderMutual (L, k, (k (P, A)))
+      | ((P)::__l, k, A) -> argOrderMutual (__l, k, (k (P, A)))
     let rec installOrder =
       function
       | (_, nil, _) -> ()
       | (O, ((a, P) as aP)::thmsLE, thmsLT) ->
           let M' =
             argOrderMutual
-              (thmsLE, (function | ((a, _), L) -> O.LE (a, L)),
+              (thmsLE, (function | ((a, _), __l) -> O.LE (a, __l)),
                 (argOrderMutual
-                   ((aP :: thmsLT), (function | ((a, _), L) -> O.LT (a, L)),
+                   ((aP :: thmsLT), (function | ((a, _), __l) -> O.LT (a, __l)),
                      O.Empty))) in
           let O' = argOrder (O, P, (I.constImp a)) in
           let S' = O.install (a, (O.TDec (O', M'))) in
           installOrder (O, thmsLE, (aP :: thmsLT))
-    let rec installDecl (O, Callpats (L)) =
-      installOrder (O, L, nil); map (function | (a, _) -> a) L
+    let rec installDecl (O, Callpats (__l)) =
+      installOrder (O, __l, nil); map (function | (a, _) -> a) __l
     let rec installTerminates (TDecl (T), rrs) = wf (T, rrs); installDecl T
     let rec uninstallTerminates cid = O.uninstall cid
     let rec installTotal (TDecl (T), rrs) = wf (T, rrs); installDecl T
     let rec uninstallTotal cid = O.uninstall cid
     let rec argROrder =
       function
-      | (Varg (L), P, n) -> O.Arg (locate (L, P, n))
-      | (Simul (L), P, n) -> O.Simul (argROrderL (L, P, n))
-      | (Lex (L), P, n) -> O.Lex (argROrderL (L, P, n))
+      | (Varg (__l), P, n) -> O.Arg (locate (__l, P, n))
+      | (Simul (__l), P, n) -> O.Simul (argROrderL (__l, P, n))
+      | (Lex (__l), P, n) -> O.Lex (argROrderL (__l, P, n))
     let rec argROrderL =
       function
       | (nil, P, n) -> nil
-      | ((O)::L, P, n) -> (::) (argROrder (O, P, n)) argROrderL (L, P, n)
+      | ((O)::__l, P, n) -> (::) (argROrder (O, P, n)) argROrderL (__l, P, n)
     let rec argPredicate =
       function
       | (L.Less, O, O') -> O.Less (O, O')
@@ -223,9 +223,9 @@ module Thm(Thm:sig
       | (RedOrder (Pred, O1, O2), ((a, P) as aP)::thmsLE, thmsLT) ->
           let M' =
             argOrderMutual
-              (thmsLE, (function | ((a, _), L) -> O.LE (a, L)),
+              (thmsLE, (function | ((a, _), __l) -> O.LE (a, __l)),
                 (argOrderMutual
-                   ((aP :: thmsLT), (function | ((a, _), L) -> O.LT (a, L)),
+                   ((aP :: thmsLT), (function | ((a, _), __l) -> O.LT (a, __l)),
                      O.Empty))) in
           let O1' = argROrder (O1, P, (I.constImp a)) in
           let O2' = argROrder (O2, P, (I.constImp a)) in
@@ -233,19 +233,19 @@ module Thm(Thm:sig
           let S'' = O.installROrder (a, (O.RDec (pr, M'))) in
           installPredicate
             ((L.RedOrder (Pred, O1, O2)), thmsLE, (aP :: thmsLT))
-    let rec installRDecl (R, Callpats (L)) =
-      installPredicate (R, L, nil); map (function | (a, _) -> a) L
+    let rec installRDecl (R, Callpats (__l)) =
+      installPredicate (R, __l, nil); map (function | (a, _) -> a) __l
     let rec wfRCallpats (L0, C0, r) =
       let rec makestring =
         function
         | nil -> ""
         | s::nil -> s
-        | s::L -> (s ^ " ") ^ (makestring L) in
+        | s::__l -> (s ^ " ") ^ (makestring __l) in
       let rec exists' =
         function
         | (x, nil) -> false__
-        | (x, (NONE)::L) -> exists' (x, L)
-        | (x, (SOME y)::L) -> if x = y then true__ else exists' (x, L) in
+        | (x, (None)::__l) -> exists' (x, __l)
+        | (x, (Some y)::__l) -> if x = y then true__ else exists' (x, __l) in
       let rec delete =
         function
         | (x, ((a, P) as aP)::C) ->
@@ -255,7 +255,7 @@ module Thm(Thm:sig
       let rec wfCallpats' =
         function
         | (nil, nil) -> ()
-        | (x::L, C) -> wfCallpats' (L, (delete (x, C)))
+        | (x::__l, C) -> wfCallpats' (__l, (delete (x, C)))
         | _ ->
             error
               (r,
@@ -265,11 +265,11 @@ module Thm(Thm:sig
     let rec wfred ((RedOrder (Pred, O, O'), Callpats (C)), (r, rs)) =
       let rec wfOrder =
         function
-        | Varg (L) -> (wfRCallpats (L, C, r); Varg)
-        | Lex (L) -> Lex (wfOrders L)
-        | Simul (L) -> Simul (wfOrders L)
+        | Varg (__l) -> (wfRCallpats (__l, C, r); Varg)
+        | Lex (__l) -> Lex (wfOrders __l)
+        | Simul (__l) -> Simul (wfOrders __l)
       and wfOrders =
-        function | nil -> nil | (O)::L -> (wfOrder O) :: (wfOrders L) in
+        function | nil -> nil | (O)::__l -> (wfOrder O) :: (wfOrders __l) in
       uniqueCallpats (C, rs);
       if (=) (wfOrder O) wfOrder O'
       then ()
@@ -302,11 +302,11 @@ module Thm(Thm:sig
        else exception Error is raised.
        (r is region information for error message)
     *)
-    (* uniqueCallpats (L, rs) = ()
+    (* uniqueCallpats (__l, rs) = ()
 
        Invariant:
-       If   L is a callpattern
-       and  each variable in L is unique
+       If   __l is a callpattern
+       and  each variable in __l is unique
        then uniqueCallpats returns ()
        else exception Error is raised.
 
@@ -314,10 +314,10 @@ module Thm(Thm:sig
        each region corresponds to one type in the call pattern,
        in order)
     *)
-    (* wfCallpats (L, C, r) = ()
+    (* wfCallpats (__l, C, r) = ()
 
        Invariant:
-       If   L is a list of variable names of a virtual argument
+       If   __l is a list of variable names of a virtual argument
        and  C is a call pattern, the predicate in C has a mode
        then wfCallpats terminates with () if
             1) there are as many call patterns as variable names
@@ -341,19 +341,19 @@ module Thm(Thm:sig
        else exception Error is raised
        (r, rs  region information, needed for error messages)
     *)
-    (* argPos (x, L, n) = nOpt
+    (* argPos (x, __l, n) = nOpt
 
        Invariant:
        If   x is a variable name
-       and  L is a list of argument for a call pattern
-       and  n is the position of the first argument name in L
+       and  __l is a list of argument for a call pattern
+       and  n is the position of the first argument name in __l
             in the call pattern
        then nOpt describes the optional  position of the occurrence
     *)
-    (* locate (L, P, n) = n'
+    (* locate (__l, P, n) = n'
 
        Invariant:
-       If   L is a list of variable names (as part of a virtual argument)
+       If   __l is a list of variable names (as part of a virtual argument)
        and  P is an argument list (from a call pattern)
        and  n is the position of the first argument name in P
             in the call pattern
@@ -391,29 +391,29 @@ module Thm(Thm:sig
 
        Effect: updates table associating argument order with type families.
     *)
-    (* installDecl (O, C) = L'
+    (* installDecl (O, C) = __l'
 
        Invariant:
        If   O is an order
        and  C is a call pattern
-       then L' is a list of all type families mentioned in C
+       then __l' is a list of all type families mentioned in C
 
        Effect: All orders are stored
     *)
-    (* installTerminates (T, (r,rs)) = L'
+    (* installTerminates (T, (r,rs)) = __l'
 
        Invariant:
        If   T is a termination declaration of (O, C)
        and  O is an order
        and  C is a call pattern
-       then L' is a list of all type families mentioned in C
+       then __l' is a list of all type families mentioned in C
             if (O, C) is well-formed
             else exception Error is raised
        (r is region information of O
         rs is a list of regions of C
         used for error messages)
     *)
-    (* installTotal (T, (r, rs)) = L'
+    (* installTotal (T, (r, rs)) = __l'
        Invariant as in installTerminates
     *)
     (* -bp *)
@@ -445,12 +445,12 @@ module Thm(Thm:sig
     (* fixed: Sun Mar 13 09:41:18 2005 -fp *)
     (* val S'  = O.install (a, O.TDec (O2', M')) *)
     (* install reduction order   *)
-    (* installRDecl (R, C) = L'
+    (* installRDecl (R, C) = __l'
 
        Invariant:
        If   R is a reduction order
        and  C is a call pattern
-       then L' is a list of all type families mentioned in C
+       then __l' is a list of all type families mentioned in C
 
        Effect: reduction order is stored
     *)
@@ -470,14 +470,14 @@ module Thm(Thm:sig
        else exception Error is raised
        (r, rs  region information, needed for error messages)
     *)
-    (* installRedOrder (R, (r,rs)) = L'
+    (* installRedOrder (R, (r,rs)) = __l'
 
        Invariant:
        If   R is a reduction declaration of (pred(O,O'), C)
        and  O,O' is an order
        and pred is a predicate
        and  C is a call pattern
-       then L' is a list of all type families mentioned in C
+       then __l' is a list of all type families mentioned in C
             if (pred(O,O'), C) is well-formed
             else exception Error is raised
        (r is region information of O

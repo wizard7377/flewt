@@ -75,7 +75,7 @@ module MTPi(MTPi:sig
     let ((History) :
       (StateSyn.__State Ring.ring * StateSyn.__State Ring.ring) list ref) =
       ref nil
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec initOpen () = (:=) Open Ring.init []
     let rec initSolved () = (:=) Solved Ring.init []
     let rec empty () = Ring.empty (!Open)
@@ -95,49 +95,49 @@ module MTPi(MTPi:sig
           (History := History'; Open := Open'; Solved := Solved')
     let rec abort s = print ("* " ^ s); raise (Error s)
     let rec reset () =
-      initOpen (); initSolved (); History := nil; Menu := NONE
+      initOpen (); initSolved (); History := nil; Menu := None
     let rec cLToString =
       function
       | nil -> ""
       | c::nil -> I.conDecName (I.sgnLookup c)
-      | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
+      | c::__l -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString __l)
     let rec printFillResult (_, P) =
-      let rec formatTuple (G, P) =
+      let rec formatTuple (__g, P) =
         let rec formatTuple' =
           function
           | F.Unit -> nil
-          | Inx (M, F.Unit) -> [Print.formatExp (G, M)]
-          | Inx (M, P') ->
-              (::) (((::) (Print.formatExp (G, M)) Fmt.String ",") ::
+          | Inx (M, F.Unit) -> [Print.formatExp (__g, M)]
+          | Inx (M, __P') ->
+              (::) (((::) (Print.formatExp (__g, M)) Fmt.String ",") ::
                       Fmt.Break)
-                formatTuple' P' in
+                formatTuple' __P' in
         match P with
-        | Inx (_, F.Unit) -> Fmt.Hbox (formatTuple' P)
+        | Inx (_, F.Unit) -> Fmt.hbox (formatTuple' P)
         | _ ->
-            Fmt.HVbox0 1 1 1
+            Fmt.hVbox0 1 1 1
               ((Fmt.String "(") :: ((formatTuple' P) @ [Fmt.String ")"])) in
-      let State (n, (G, B), (IH, OH), d, O, H, F) = current () in
+      let State (n, (__g, B), (IH, OH), d, O, H, F) = current () in
       TextIO.print
         (("Filling successful with proof term:\n" ^
-            (Formatter.makestring_fmt (formatTuple (G, P))))
+            (Formatter.makestring_fmt (formatTuple (__g, P))))
            ^ "\n")
     let rec SplittingToMenu =
       function
       | (nil, A) -> A
-      | ((O)::L, A) -> SplittingToMenu (L, ((Splitting O) :: A))
+      | ((O)::__l, A) -> SplittingToMenu (__l, ((Splitting O) :: A))
     let rec FillingToMenu (O, A) = (Filling O) :: A
     let rec RecursionToMenu (O, A) = (Recursion O) :: A
     let rec InferenceToMenu (O, A) = (Inference O) :: A
     let rec menu () =
       if empty ()
-      then Menu := NONE
+      then Menu := None
       else
         (let S = current () in
          let SplitO = MTPSplitting.expand S in
          let InfO = Inference.expand S in
          let RecO = MTPRecursion.expand S in
          let FillO = MTPFilling.expand S in
-         (:=) Menu SOME
+         (:=) Menu Some
            (FillingToMenu
               (FillO,
                 (RecursionToMenu
@@ -148,27 +148,27 @@ module MTPi(MTPi:sig
     let rec menuToString () =
       let rec menuToString' =
         function
-        | (k, nil, (NONE, _)) -> ((SOME k), "")
-        | (k, nil, ((SOME _ as kopt'), _)) -> (kopt', "")
-        | (k, (Splitting (O))::M, ((NONE, NONE) as kOopt')) ->
+        | (k, nil, (None, _)) -> ((Some k), "")
+        | (k, nil, ((Some _ as kopt'), _)) -> (kopt', "")
+        | (k, (Splitting (O))::M, ((None, None) as kOopt')) ->
             let kOopt'' =
               if MTPSplitting.applicable O
-              then ((SOME k), (SOME O))
+              then ((Some k), (Some O))
               else kOopt' in
-            let ((SOME k'' as kopt), s) = menuToString' ((k + 1), M, kOopt'') in
+            let ((Some k'' as kopt), s) = menuToString' ((k + 1), M, kOopt'') in
             (kopt,
               (if k = k''
                then ((s ^ "\n* ") ^ (format k)) ^ (MTPSplitting.menu O)
                else ((s ^ "\n  ") ^ (format k)) ^ (MTPSplitting.menu O)))
-        | (k, (Splitting (O))::M, ((SOME k', SOME (O')) as kOopt')) ->
+        | (k, (Splitting (O))::M, ((Some k', Some (O')) as kOopt')) ->
             let kOopt'' =
               if MTPSplitting.applicable O
               then
                 match MTPSplitting.compare (O, O') with
-                | LESS -> ((SOME k), (SOME O))
+                | LESS -> ((Some k), (Some O))
                 | _ -> kOopt'
               else kOopt' in
-            let ((SOME k'' as kopt), s) = menuToString' ((k + 1), M, kOopt'') in
+            let ((Some k'' as kopt), s) = menuToString' ((k + 1), M, kOopt'') in
             (kopt,
               (if k = k''
                then ((s ^ "\n* ") ^ (format k)) ^ (MTPSplitting.menu O)
@@ -183,8 +183,8 @@ module MTPi(MTPi:sig
             let (kopt, s) = menuToString' ((k + 1), M, kOopt) in
             (kopt, (((s ^ "\n  ") ^ (format k)) ^ (Inference.menu O))) in
       match !Menu with
-      | NONE -> raise (Error "Menu is empty")
-      | SOME (M) -> let (kopt, s) = menuToString' (1, M, (NONE, NONE)) in s
+      | None -> raise (Error "Menu is empty")
+      | Some (M) -> let (kopt, s) = menuToString' (1, M, (None, None)) in s
     let rec printMenu () =
       if empty ()
       then
@@ -204,26 +204,26 @@ module MTPi(MTPi:sig
     let rec contains =
       function
       | (nil, _) -> true__
-      | (x::L, L') ->
-          (List.exists (function | x' -> x = x') L') && (contains (L, L'))
+      | (x::__l, __l') ->
+          (List.exists (function | x' -> x = x') __l') && (contains (__l, __l'))
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec transformOrder' =
       function
-      | (G, Arg k) ->
-          let k' = ((I.ctxLength G) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (G, k') in
-          S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (G, Lex (Os)) ->
-          S.Lex (map (function | O -> transformOrder' (G, O)) Os)
-      | (G, Simul (Os)) ->
-          S.Simul (map (function | O -> transformOrder' (G, O)) Os)
+      | (__g, Arg k) ->
+          let k' = ((I.ctxLength __g) - k) + 1 in
+          let Dec (_, __v) = I.ctxDec (__g, k') in
+          S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (__v, I.id))
+      | (__g, Lex (__Os)) ->
+          S.Lex (map (function | O -> transformOrder' (__g, O)) __Os)
+      | (__g, Simul (__Os)) ->
+          S.Simul (map (function | O -> transformOrder' (__g, O)) __Os)
     let rec transformOrder =
       function
-      | (G, All (Prim (D), F), Os) ->
-          S.All (D, (transformOrder ((I.Decl (G, D)), F, Os)))
-      | (G, And (F1, F2), (O)::Os) ->
-          S.And ((transformOrder (G, F1, [O])), (transformOrder (G, F2, Os)))
-      | (G, Ex _, (O)::[]) -> transformOrder' (G, O)
+      | (__g, All (Prim (__d), F), __Os) ->
+          S.All (__d, (transformOrder ((I.Decl (__g, __d)), F, __Os)))
+      | (__g, And (__F1, __F2), (O)::__Os) ->
+          S.And ((transformOrder (__g, __F1, [O])), (transformOrder (__g, __F2, __Os)))
+      | (__g, Ex _, (O)::[]) -> transformOrder' (__g, O)
     let rec select c = try Order.selLookup c with | _ -> Order.Lex []
     let rec init (k, names) =
       let cL =
@@ -277,8 +277,8 @@ module MTPi(MTPi:sig
         | (k, _::M) -> select' ((k - 1), M) in
       try
         match !Menu with
-        | NONE -> raise (Error "No menu defined")
-        | SOME (M) -> select' (k, M)
+        | None -> raise (Error "No menu defined")
+        | Some (M) -> select' (k, M)
       with | Error s -> abort ("MTPSplitting. Error: " ^ s)
       | Error s -> abort ("Filling Error: " ^ s)
       | Error s -> abort ("Recursion Error: " ^ s)

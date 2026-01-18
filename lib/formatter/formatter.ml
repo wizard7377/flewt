@@ -11,45 +11,45 @@ module type FORMATTER  =
 \subsection{Default values}
 These may may be changed by the user.
 *)
-    val Indent : int ref
-    val Blanks : int ref
-    val Skip : int ref
-    val Pagewidth : int ref
+    val indent : int ref
+    val blanks : int ref
+    val skip : int ref
+    val pagewidth : int ref
     (* flag specifying whether bailouts should occur when page too narrow *)
-    val Bailout : bool ref
-    val BailoutIndent : int ref
-    val BailoutSpot : int ref
+    val bailout : bool ref
+    val bailoutIndent : int ref
+    val bailoutSpot : int ref
     (*
 \subsection{Formats}
 *)
     (* The Format datatype *)
     type nonrec format
     (* return the minimum/maximum width of a format *)
-    val Width : format -> (int * int)
+    val width : format -> (int * int)
     (* routines to create a format *)
     (* Note: the xxxx0 functions take extra arguments *)
-    val Break : format
-    val Break0 : int -> int -> format
+    val break : format
+    val break0 : int -> int -> format
     (* blanks, indent *)
-    val String : string -> format
-    val String0 : int -> string -> format
+    val string : string -> format
+    val string0 : int -> string -> format
     (* output width *)
-    val Space : format
-    val Spaces : int -> format
-    val Newline : unit -> format
-    val Newlines : int -> format
-    val Newpage : unit -> format
-    val Vbox : format list -> format
-    val Vbox0 : int -> int -> format list -> format
+    val space : format
+    val spaces : int -> format
+    val newline : unit -> format
+    val newlines : int -> format
+    val newpage : unit -> format
+    val vbox : format list -> format
+    val vbox0 : int -> int -> format list -> format
     (* indent, skip *)
-    val Hbox : format list -> format
-    val Hbox0 : int -> format list -> format
+    val hbox : format list -> format
+    val hbox0 : int -> format list -> format
     (* blanks *)
-    val HVbox : format list -> format
-    val HVbox0 : int -> int -> int -> format list -> format
+    val hVbox : format list -> format
+    val hVbox0 : int -> int -> int -> format list -> format
     (* blanks, indent, skip *)
-    val HOVbox : format list -> format
-    val HOVbox0 : int -> int -> int -> format list -> format
+    val hOVbox : format list -> format
+    val hOVbox0 : int -> int -> int -> format list -> format
     (* blanks, indent, skip *)
     (*
 \subsection{Output routines}
@@ -74,18 +74,18 @@ These may may be changed by the user.
   with the formatting and printing routines.}
 %************************************************************************
 *)
-module Formatter() : FORMATTER =
+module Make_Formatter() : FORMATTER =
   struct
     (*
 \subsection{Setting default values}
 *)
-    let Indent = ref 3
-    let Skip = ref 1
-    let Blanks = ref 1
-    let Pagewidth = ref 80
-    let Bailout = ref true__
-    let BailoutIndent = ref 0
-    let BailoutSpot = ref 40
+    let indent = ref 3
+    let skip = ref 1
+    let blanks = ref 1
+    let pagewidth = ref 80
+    let bailout = ref true
+    let bailoutIndent = ref 0
+    let bailoutSpot = ref 40
     (*
 %************************************************************************
 \subsection{Auxiliary functions}
@@ -93,23 +93,23 @@ module Formatter() : FORMATTER =
 A collection of miscellaneous functions which come in handy in different
 places.
 
-\subsubsection{String functions}
+\subsubsection{string functions}
 The {\tt Spmod} function is used when {\tt Bailout} is active.
 *)
-    let rec Spaces' arg__0 arg__1 =
+    let rec spaces' arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (0, s) -> s
-      | (n, s) -> Spaces' (n - 1) (s ^ " ")
-    let rec Spaces n = if n > 0 then Spaces' n "" else ""
-    let rec Newlines' arg__0 arg__1 =
+      | (n, s) -> spaces' (n - 1) (s ^ " ")
+    let rec spaces n = if n > 0 then spaces' n "" else ""
+    let rec newlines' arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (0, s) -> s
-      | (n, s) -> Newlines' (n - 1) (s ^ "\n")
-    let rec Newlines n = if n > 0 then Newlines' n "" else ""
-    let Sp = Spaces
+      | (n, s) -> newlines' (n - 1) (s ^ "\n")
+    let rec newlines n = if n > 0 then newlines' n "" else ""
+    let Sp = spaces
     (* return a number of spaces *)
-    let rec Spmod n = Spaces (n mod__ (!Pagewidth))
-    let Nl = Newlines
+    let rec Spmod n = spaces (n mod (!pagewidth))
+    let Nl = newlines
     (* return a number of newlines *)
     let rec Np () = "\n\012\n"
     (* CTRL_L == "\012" *)
@@ -151,7 +151,7 @@ the actual and default indentation width into account).
       | Vbx of (width * int * int * format list) 
       | Hvx of ((width * widthmode) * int * int * int * format list) 
       | Hov of ((width * widthmode) * int * int * int * format list) 
-    (* Width, blanks, indent, skip, ... *)
+    (* width, blanks, indent, skip, ... *)
     (*
 The function {\ml Width0} extracts the minimum and maximum width
 of {\ml formats}.
@@ -171,12 +171,12 @@ These are used to determine the width of breaks and default breaks.
       | (m, b, i, Hbx ((min, max), _, _)) -> (min, max)
       | (m, b, i, Hvx (((min, max), _), _, _, _, _)) -> (min, max)
       | (m, b, i, Hov (((min, max), _), _, _, _, _)) -> (min, max)
-    let rec Width fmt = Width0 (Hori, (!Blanks), (!Indent), fmt)
+    let rec width fmt = Width0 (Hori, (!blanks), (!indent), fmt)
     let Unused = (-9999)
     (* a bad value to mark unused arguments of Width0 *)
     (*
 {\bf Caution:}
-The function {\ml Width} assumes horizontal mode.
+The function {\ml width} assumes horizontal mode.
 This should only make a difference, if you are looking at a break.
 
 {\bf Improvements:}
@@ -330,29 +330,29 @@ Two notes:
  we can ``emulate'' CAML's {\ml V1box}es by starting a vertical box with a
 break.  This ensures that the first item is indented as much as all the others.
 *)
-    let Break = Dbk
-    let rec Break0 b i = Brk (b, i)
-    let rec String s = Str ((size s), s)
-    let rec String0 i s = Str (i, s)
-    let Space = Str (1, (Sp 1))
-    let rec Spaces n = Str (n, (Sp n))
-    let rec Newline () = Str (0, (Nl 1))
-    let rec Newlines n = Str (0, (Nl n))
-    let rec Vbox l = Vbx ((vlistWidth (l, (!Indent))), (!Indent), (!Skip), l)
-    let rec Vbox0 i s l = Vbx ((vlistWidth (l, i)), i, s, l)
-    let rec Hbox l = Hbx ((hlistWidth (l, (!Blanks))), (!Blanks), l)
-    let rec Hbox0 b l = Hbx ((hlistWidth (l, b)), b, l)
-    let rec HVbox l =
+    let break = Dbk
+    let rec break0 b i = Brk (b, i)
+    let rec string s = Str ((size s), s)
+    let rec string0 i s = Str (i, s)
+    let space = Str (1, (Sp 1))
+    let rec spaces n = Str (n, (Sp n))
+    let rec newline () = Str (0, (Nl 1))
+    let rec newlines n = Str (0, (Nl n))
+    let rec vbox l = Vbx ((vlistWidth (l, (!indent))), (!indent), (!skip), l)
+    let rec vbox0 i s l = Vbx ((vlistWidth (l, i)), i, s, l)
+    let rec hbox l = Hbx ((hlistWidth (l, (!blanks))), (!blanks), l)
+    let rec hbox0 b l = Hbx ((hlistWidth (l, b)), b, l)
+    let rec hVbox l =
       Hvx
-        ((hvlistWidth (l, (!Blanks), (!Indent))), (!Blanks), (!Indent),
-          (!Skip), l)
-    let rec HVbox0 b i s l = Hvx ((hvlistWidth (l, b, i)), b, i, s, l)
-    let rec HOVbox l =
+        ((hvlistWidth (l, (!blanks), (!indent))), (!blanks), (!indent),
+          (!skip), l)
+    let rec hVbox0 b i s l = Hvx ((hvlistWidth (l, b, i)), b, i, s, l)
+    let rec hOVbox l =
       Hov
-        ((hovlistWidth (l, (!Blanks), (!Indent))), (!Blanks), (!Indent),
-          (!Skip), l)
-    let rec HOVbox0 b i s l = Hov ((hovlistWidth (l, b, i)), b, i, s, l)
-    let rec Newpage () = Str (0, (Np ()))
+        ((hovlistWidth (l, (!blanks), (!indent))), (!blanks), (!indent),
+          (!skip), l)
+    let rec hOVbox0 b i s l = Hov ((hovlistWidth (l, b, i)), b, i, s, l)
+    let rec newpage () = Str (0, (Np ()))
     (*
 %***********************************************************************
 \subsection{Printing a {\ml format}-structure}
@@ -562,49 +562,49 @@ We thus get:
       function
       | (mw, id, bl, is, ss, mo, Str (n, s), res) -> (n, (s :: res))
       | (mw, id, bl, is, ss, Hori, Brk (b, i), res) ->
-          (b, ((if !Bailout then Spmod b else Sp b) :: res))
+          (b, ((if !bailout then Spmod b else Sp b) :: res))
       | (mw, id, bl, is, ss, Vert, Brk (b, i), res) ->
           (i,
-            (((if !Bailout then Spmod (id + i) else Sp (id + i)) :: (Nl ss))
+            (((if !bailout then Spmod (id + i) else Sp (id + i)) :: (Nl ss))
                :: res))
       | (mw, id, bl, is, ss, Hori, Dbk, res) ->
-          (bl, ((if !Bailout then Spmod bl else Sp bl) :: res))
+          (bl, ((if !bailout then Spmod bl else Sp bl) :: res))
       | (mw, id, bl, is, ss, Vert, Dbk, res) ->
           (is,
-            (((if !Bailout then Spmod (id + is) else Sp (id + is)) :: (Nl ss))
+            (((if !bailout then Spmod (id + is) else Sp (id + is)) :: (Nl ss))
                :: res))
       | (mw, id, bl, is, ss, mo, Ebk, res) -> (0, res)
       | (mw, id, bl, is, ss, mo, Hbx ((min, max), blanks, l), res) ->
           if
-            (!Bailout) &&
+            (!bailout) &&
               (((id + min) >= mw) &&
-                 ((!) ((>=) (id mod__ (!Pagewidth))) BailoutSpot))
+                 ((!) ((>=) (id mod (!pagewidth))) bailoutSpot))
           then
             pph
-              ((mw + (!Pagewidth)), (mw + (!BailoutIndent)), blanks, is, ss,
+              ((mw + (!pagewidth)), (mw + (!bailoutIndent)), blanks, is, ss,
                 l, 0, ((Nl ss) :: res))
           else pph (mw, id, blanks, is, ss, l, 0, res)
       | (mw, id, bl, is, ss, mo, Vbx ((min, max), indent, skip, l), res) ->
           if
-            (!Bailout) &&
+            (!bailout) &&
               (((id + min) >= mw) &&
-                 ((!) ((>=) (id mod__ (!Pagewidth))) BailoutSpot))
+                 ((!) ((>=) (id mod (!pagewidth))) bailoutSpot))
           then
-            let id = mw + (!BailoutIndent) in
+            let id = mw + (!bailoutIndent) in
             ppv
-              ((mw + (!Pagewidth)), id, id, bl, indent, skip, 0, 0, l,
+              ((mw + (!pagewidth)), id, id, bl, indent, skip, 0, 0, l,
                 ((Nl ss) :: res))
           else ppv (mw, id, id, bl, indent, skip, 0, 0, l, res)
       | (mw, id, bl, is, ss, mo, Hvx
          (((min, max), (nmode, xmode)), blanks, indent, skip, l), res) ->
           let gl = gh (nil, l, nil) in
           if
-            (!Bailout) &&
+            (!bailout) &&
               (((id + min) >= mw) &&
-                 ((!) ((>=) (id mod__ (!Pagewidth))) BailoutSpot))
+                 ((!) ((>=) (id mod (!pagewidth))) bailoutSpot))
           then
             pphv
-              ((mw + (!Pagewidth)), (mw + (!BailoutIndent)), blanks, indent,
+              ((mw + (!pagewidth)), (mw + (!bailoutIndent)), blanks, indent,
                 skip, 0, 0, Ebk, gl, ((Nl ss) :: res))
           else pphv (mw, id, blanks, indent, skip, 0, 0, Ebk, gl, res)
       | (mw, id, bl, is, ss, mo, Hov
@@ -616,19 +616,19 @@ We thus get:
              else ppv (mw, id, id, blanks, indent, skip, 0, 0, l, res))
           else
             if
-              (!Bailout) &&
+              (!bailout) &&
                 (((id + min) >= mw) &&
-                   ((!) ((>=) (id mod__ (!Pagewidth))) BailoutSpot))
+                   ((!) ((>=) (id mod (!pagewidth))) bailoutSpot))
             then
               (if nmode = Hori
                then
                  pph
-                   ((mw + (!Pagewidth)), (mw + (!BailoutIndent)), blanks, is,
+                   ((mw + (!pagewidth)), (mw + (!bailoutIndent)), blanks, is,
                      ss, l, 0, ((Nl ss) :: res))
                else
-                 (let id = mw + (!BailoutIndent) in
+                 (let id = mw + (!bailoutIndent) in
                   ppv
-                    ((mw + (!Pagewidth)), id, id, blanks, indent, skip, 0, 0,
+                    ((mw + (!pagewidth)), id, id, blanks, indent, skip, 0, 0,
                       l, ((Nl ss) :: res))))
             else
               if nmode = Hori
@@ -648,17 +648,17 @@ Finally we have {\ml print\_fmt} and {\ml makestring\_fmt}
    {\ml print'p} to do the formatting work.
 *)
     let rec makestring_fmt fm =
-      String.concat
+      string.concat
         (rev
            (snd
               (print'p
-                 ((!Pagewidth), 0, (!Blanks), (!Indent), (!Skip), Hori, fm,
+                 ((!pagewidth), 0, (!blanks), (!indent), (!skip), Hori, fm,
                    nil))))
     let rec print_fmt fm =
       List.foldr (function | (s, _) -> print s) ()
         (snd
            (print'p
-              ((!Pagewidth), 0, (!Blanks), (!Indent), (!Skip), Hori, fm, nil)))
+              ((!pagewidth), 0, (!blanks), (!indent), (!skip), Hori, fm, nil)))
     (*
 \subsubsection{Output functions}
 The output functions work on {\tt fmtstream}s which are just
@@ -674,10 +674,10 @@ make the use of {\tt fmtstreams} on files more convenient.
       List.foldr (function | (s, _) -> TextIO.output (outs, s)) ()
         (snd
            (print'p
-              ((!Pagewidth), 0, (!Blanks), (!Indent), (!Skip), Hori, fm, nil)))
+              ((!pagewidth), 0, (!blanks), (!indent), (!skip), Hori, fm, nil)))
     (*
       fun debug_output_fmt(Formatstream fs, fm) =
-                  let val mw = (!Pagewidth)
+                  let val mw = (!pagewidth)
                             val (min,max) = Width0(Hori,!Blanks,!Indent,fm)
                             val (w,s) = print'p(!Pagewidth,0,!Blanks,!Indent,!Skip,Hori,fm, nil)
                           in
@@ -707,4 +707,4 @@ make the use of {\tt fmtstreams} on files more convenient.
 
 
 
-module Formatter : FORMATTER = (Make_Formatter)(struct  end) ;;
+module Formatter : FORMATTER = Make_Formatter() ;;

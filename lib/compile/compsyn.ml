@@ -135,8 +135,8 @@ module CompSyn(CompSyn:sig
     let detTableInsert = Table.insert detTable
     let rec detTableCheck cid =
       match Table.lookup detTable cid with
-      | SOME deterministic -> deterministic
-      | NONE -> false__
+      | Some deterministic -> deterministic
+      | None -> false__
     let rec detTableReset () = Table.clear detTable
     let rec goalSub =
       function
@@ -145,8 +145,8 @@ module CompSyn(CompSyn:sig
           Impl
             ((resGoalSub (d, s)), (IntSyn.EClo (A, s)), Ha,
               (goalSub (g, (IntSyn.dot1 s))))
-      | (All (D, g), s) ->
-          All ((IntSyn.decSub (D, s)), (goalSub (g, (IntSyn.dot1 s))))
+      | (All (__d, g), s) ->
+          All ((IntSyn.decSub (__d, s)), (goalSub (g, (IntSyn.dot1 s))))
     let rec resGoalSub =
       function
       | (Eq q, s) -> Eq (IntSyn.EClo (q, s))
@@ -158,8 +158,8 @@ module CompSyn(CompSyn:sig
           In
             ((resGoalSub (r, (IntSyn.dot1 s))), (IntSyn.EClo (A, s)),
               (goalSub (g, s)))
-      | (Exists (D, r), s) ->
-          Exists ((IntSyn.decSub (D, s)), (resGoalSub (r, (IntSyn.dot1 s))))
+      | (Exists (__d, r), s) ->
+          Exists ((IntSyn.decSub (__d, s)), (resGoalSub (r, (IntSyn.dot1 s))))
     let rec pskeletonToString =
       function
       | [] -> " "
@@ -168,7 +168,7 @@ module CompSyn(CompSyn:sig
             (pskeletonToString O)
       | (Dc i)::O ->
           (("(Dc " ^ (Int.toString i)) ^ ") ") ^ (pskeletonToString O)
-      | (Csolver (U))::O -> "(cs _ ) " ^ (pskeletonToString O)
+      | (Csolver (__u))::O -> "(cs _ ) " ^ (pskeletonToString O)
   end  (* Compiled Syntax *)
 (* Author: Iliano Cervesato *)
 (* Modified: Jeff Polakow *)
@@ -199,15 +199,15 @@ module CompSyn(CompSyn:sig
 (* proof skeletons instead of proof term *)
 (* Representation invariants for compiled syntax:
      Judgments:
-       G |- g goal   g is a valid goal in G
-       G |- r resgoal  g is a valid residual goal in G
+       __g |- g goal   g is a valid goal in __g
+       __g |- r resgoal  g is a valid residual goal in __g
 
-       G |- A ~> g   A compiles to goal g
-       G |- A ~> r   A compiles to residual goal r
-       G |- A ~> <head , subgoals>
+       __g |- A ~> g   A compiles to goal g
+       __g |- A ~> r   A compiles to residual goal r
+       __g |- A ~> <head , subgoals>
 
-     G |- p  goal
-     if  G |- p : type, p = H @ S        mod whnf *)
+     __g |- p  goal
+     if  __g |- p : type, p = H @ S        mod whnf *)
 (* mod whnf *)
 (* Static programs --- compiled version of the signature (no indexing) *)
 (* Compiled constant declaration           *)
@@ -228,16 +228,16 @@ module CompSyn(CompSyn:sig
 (* goalSub (g, s) = g'
 
      Invariants:
-     If   G  |- s : G'    G' |- g : A
+     If   __g  |- s : __g'    __g' |- g : A
      then g' = g[s]
-     and  G  |- g' : A
+     and  __g  |- g' : A
   *)
 (* resGoalSub (r, s) = r'
 
      Invariants:
-     If   G  |- s : G'    G' |- r : A
+     If   __g  |- s : __g'    __g' |- r : A
      then r' = r[s]
-     and  G  |- r' : A [s]
+     and  __g  |- r' : A [s]
   *)
 (* functor CompSyn *)
 module CompSyn =

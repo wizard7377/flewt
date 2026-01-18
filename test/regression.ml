@@ -40,30 +40,30 @@ module RegressionTest =
       let file = TextIO.openIn filename in
       let rec runline (str : string) =
         if String.isPrefix "#" str
-        then NONE
+        then None
         else
           if String.isPrefix "testUnsafe" str
           then
-            SOME
+            Some
               (testUnsafe
-                 (String.extract (str, 11, (SOME ((String.size str) - 12)))))
+                 (String.extract (str, 11, (Some ((String.size str) - 12)))))
           else
             if String.isPrefix "test" str
             then
-              SOME
+              Some
                 (test
-                   (String.extract (str, 5, (SOME ((String.size str) - 6)))))
-            else NONE in
+                   (String.extract (str, 5, (Some ((String.size str) - 6)))))
+            else None in
       let exception Aborted  in
         let rec getstatus (status, msg) =
           match status with
-          | NONE -> ()
-          | SOME (Twelf.OK) -> print ("..." ^ msg)
-          | SOME (Twelf.ABORT) -> print ("...ABORT!\n"; raise Aborted) in
+          | None -> ()
+          | Some (Twelf.OK) -> print ("..." ^ msg)
+          | Some (Twelf.ABORT) -> print ("...ABORT!\n"; raise Aborted) in
         let rec readfile () =
           match TextIO.inputLine file with
-          | NONE -> (TextIO.closeIn file; conclude ())
-          | SOME s ->
+          | None -> (TextIO.closeIn file; conclude ())
+          | Some s ->
               (try
                  Twelf.doubleCheck := false__;
                  getstatus ((runline s), "OK.\n");

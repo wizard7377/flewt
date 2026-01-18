@@ -97,26 +97,26 @@ module ReconThm(ReconThm:sig
     exception Error of string 
     module M = ModeSyn
     module I = IntSyn
-    module L = ThmSyn
+    module __l = ThmSyn
     module P = Paths
     module T = ReconTerm'
     let rec error (r, msg) = raise (Error (P.wrap (r, msg)))
     type nonrec order = (ThmSyn.__Order * Paths.region)
-    let rec varg (r, L) = ((ThmSyn.Varg L), r)
-    let rec lex (r0, L) =
+    let rec varg (r, __l) = ((ThmSyn.Varg __l), r)
+    let rec lex (r0, __l) =
       let rec lex' =
         function
         | nil -> (nil, r0)
-        | (O, r)::L ->
-            let (Os, r') = lex' L in ((O :: Os), (Paths.join (r, r'))) in
-      let (Os, r1) = lex' L in ((ThmSyn.Lex Os), r1)
-    let rec simul (r0, L) =
+        | (O, r)::__l ->
+            let (__Os, r') = lex' __l in ((O :: __Os), (Paths.join (r, r'))) in
+      let (__Os, r1) = lex' __l in ((ThmSyn.Lex __Os), r1)
+    let rec simul (r0, __l) =
       let rec simul' =
         function
         | nil -> (nil, r0)
-        | (O, r)::L ->
-            let (Os, r') = simul' L in ((O :: Os), (Paths.join (r, r'))) in
-      let (Os, r1) = simul' L in ((ThmSyn.Simul Os), r1)
+        | (O, r)::__l ->
+            let (__Os, r') = simul' __l in ((O :: __Os), (Paths.join (r, r'))) in
+      let (__Os, r1) = simul' __l in ((ThmSyn.Simul __Os), r1)
     type nonrec callpats = (ThmSyn.__Callpats * Paths.region list)
     let rec checkArgNumber =
       function
@@ -129,8 +129,8 @@ module ReconThm(ReconThm:sig
       | (i, Pi (_, V2), args, r) -> checkArgNumber ((i - 1), V2, args, r)
     let rec checkCallPat =
       function
-      | (ConDec (_, _, i, I.Normal, V, I.Kind), P, r) ->
-          checkArgNumber (i, V, P, r)
+      | (ConDec (_, _, i, I.Normal, __v, I.Kind), P, r) ->
+          checkArgNumber (i, __v, P, r)
       | (ConDec (a, _, _, Constraint _, _, _), P, r) ->
           error
             (r, (("Illegal constraint constant " ^ a) ^ " in call pattern"))
@@ -147,24 +147,24 @@ module ReconThm(ReconThm:sig
           error (r, (("Illegal block identifier " ^ a) ^ " in call pattern"))
       | (SkoDec (a, _, _, _, _), P, r) ->
           error (r, (("Illegal Skolem constant " ^ a) ^ " in call pattern"))
-    let rec callpats (L) =
+    let rec callpats (__l) =
       let rec callpats' =
         function
         | nil -> (nil, nil)
-        | (name, P, r)::L ->
-            let (cps, rs) = callpats' L in
+        | (name, P, r)::__l ->
+            let (cps, rs) = callpats' __l in
             let qid = Names.Qid (nil, name) in
             (match Names.constLookup qid with
-             | NONE ->
+             | None ->
                  error
                    (r,
                      (((^) "Undeclared identifier " Names.qidToString
                          (valOf (Names.constUndef qid)))
                         ^ " in call pattern"))
-             | SOME cid ->
+             | Some cid ->
                  (checkCallPat ((I.sgnLookup cid), P, r);
                   (((cid, P) :: cps), (r :: rs)))) in
-      let (cps, rs) = callpats' L in ((ThmSyn.Callpats cps), rs)
+      let (cps, rs) = callpats' __l in ((ThmSyn.Callpats cps), rs)
     type nonrec tdecl = (ThmSyn.__TDecl * (Paths.region * Paths.region list))
     let rec tdecl ((O, r), (C, rs)) = ((ThmSyn.TDecl (O, C)), (r, rs))
     let rec tdeclTotDecl (T) = T
@@ -184,25 +184,25 @@ module ReconThm(ReconThm:sig
     let rec tableddecl (name, r) =
       let qid = Names.Qid (nil, name) in
       match Names.constLookup qid with
-      | NONE ->
+      | None ->
           error
             (r,
               (((^) "Undeclared identifier " Names.qidToString
                   (valOf (Names.constUndef qid)))
                  ^ " in call pattern"))
-      | SOME cid -> ((ThmSyn.TabledDecl cid), r)
+      | Some cid -> ((ThmSyn.TabledDecl cid), r)
     let rec tableddeclTotabledDecl (T) = T
     type nonrec keepTabledecl = (ThmSyn.__KeepTableDecl * Paths.region)
     let rec keepTabledecl (name, r) =
       let qid = Names.Qid (nil, name) in
       match Names.constLookup qid with
-      | NONE ->
+      | None ->
           error
             (r,
               (((^) "Undeclared identifier " Names.qidToString
                   (valOf (Names.constUndef qid)))
                  ^ " in call pattern"))
-      | SOME cid -> ((ThmSyn.KeepTableDecl cid), r)
+      | Some cid -> ((ThmSyn.KeepTableDecl cid), r)
     let rec keepTabledeclToktDecl (T) = T
     type nonrec prove = (ThmSyn.__PDecl * (Paths.region * Paths.region list))
     let rec prove (n, (td, rrs)) = ((ThmSyn.PDecl (n, td)), rrs)
@@ -225,12 +225,12 @@ module ReconThm(ReconThm:sig
     let rec dec (name, t) = (name, t)
     let rec ctxAppend =
       function
-      | (G, I.Null) -> G
-      | (G, Decl (G', D)) -> I.Decl ((ctxAppend (G, G')), D)
+      | (__g, I.Null) -> __g
+      | (__g, Decl (__g', __d)) -> I.Decl ((ctxAppend (__g, __g')), __d)
     let rec ctxMap arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (f, I.Null) -> I.Null
-      | (f, Decl (G, D)) -> I.Decl ((ctxMap f G), (f D))
+      | (f, Decl (__g, __d)) -> I.Decl ((ctxMap f __g), (f __d))
     let rec ctxBlockToString (G0, (G1, G2)) =
       let _ = Names.varReset I.Null in
       let G0' = Names.ctxName G0 in
@@ -257,8 +257,8 @@ module ReconThm(ReconThm:sig
     let rec abstractCtxPair (g1, g2) =
       let r =
         match ((T.ctxRegion g1), (T.ctxRegion g2)) with
-        | (SOME r1, SOME r2) -> Paths.join (r1, r2)
-        | (_, SOME r2) -> r2 in
+        | (Some r1, Some r2) -> Paths.join (r1, r2)
+        | (_, Some r2) -> r2 in
       let JWithCtx (G1, JWithCtx (G2, _)) =
         T.recon (T.jwithctx (g1, (T.jwithctx (g2, T.jnothing)))) in
       let (G0, (G1')::(G2')::[]) =
@@ -292,8 +292,8 @@ module ReconThm(ReconThm:sig
       let (gbs, g, M, k) = t (nil, I.Null, I.Null, 0) in
       let _ = Names.varReset IntSyn.Null in
       let GBs = List.map abstractCtxPair gbs in
-      let JWithCtx (G, _) = T.recon (T.jwithctx (g, T.jnothing)) in
-      L.ThDecl (GBs, G, M, k)
+      let JWithCtx (__g, _) = T.recon (T.jwithctx (g, T.jnothing)) in
+      L.ThDecl (GBs, __g, M, k)
     let rec theoremDecToTheoremDec (name, t) = (name, (theoremToTheorem t))
     let rec abstractWDecl (W) = let W' = List.map Names.Qid W in W'
     type nonrec wdecl = (ThmSyn.__WDecl * Paths.region list)

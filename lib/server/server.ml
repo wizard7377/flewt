@@ -8,11 +8,11 @@ module Server(Server:sig
                        module Twelf : TWELF
                      end) : SERVER =
   struct
-    let (globalConfig : Twelf.Config.config option ref) = ref NONE
+    let (globalConfig : Twelf.Config.config option ref) = ref None
     let rec readLine () =
       let rec getLine () =
         try Compat.inputLine97 TextIO.stdIn
-        with | SysErr (_, SOME _) -> getLine () in
+        with | SysErr (_, Some _) -> getLine () in
       let line = getLine () in
       let rec triml ss = Substring.dropl Char.isSpace ss in
       let rec trimr ss = Substring.dropr Char.isSpace ss in
@@ -72,10 +72,10 @@ module Server(Server:sig
       | ts -> error "Extraneous arguments"
     let rec getLimit =
       function
-      | "*"::nil -> NONE
-      | t::ts -> SOME (getNat (t :: ts))
+      | "*"::nil -> None
+      | t::ts -> Some (getNat (t :: ts))
       | nil -> error "Missing `*' or natural number"
-    let rec limitToString = function | NONE -> "*" | SOME i -> Int.toString i
+    let rec limitToString = function | None -> "*" | Some i -> Int.toString i
     let rec getTableStrategy =
       function
       | "Variant"::nil -> Twelf.Table.Variant
@@ -225,23 +225,23 @@ module Server(Server:sig
       | ("quit", args) -> ()
       | ("Config.read", args) ->
           let fileName = getFile (args, "sources.cfg") in
-          ((:=) globalConfig SOME (Twelf.Config.read fileName);
+          ((:=) globalConfig Some (Twelf.Config.read fileName);
            serve Twelf.OK)
       | ("Config.load", args) ->
           ((match !globalConfig with
-            | NONE ->
-                (:=) globalConfig SOME (Twelf.Config.read "sources.cfg")
+            | None ->
+                (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.load (valOf (!globalConfig))))
       | ("Config.append", args) ->
           ((match !globalConfig with
-            | NONE ->
-                (:=) globalConfig SOME (Twelf.Config.read "sources.cfg")
+            | None ->
+                (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.append (valOf (!globalConfig))))
       | ("make", args) ->
           let fileName = getFile (args, "sources.cfg") in
-          ((:=) globalConfig SOME (Twelf.Config.read fileName);
+          ((:=) globalConfig Some (Twelf.Config.read fileName);
            serve (Twelf.Config.load (valOf (!globalConfig))))
       | ("reset", args) -> (checkEmpty args; Twelf.reset (); serve Twelf.OK)
       | ("loadFile", args) -> serve (Twelf.loadFile (getFile' args))

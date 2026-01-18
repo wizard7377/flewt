@@ -27,65 +27,65 @@ module ThmPrint(ThmPrint:sig
                          end) : THMPRINT =
   struct
     module ThmSyn = ThmSyn'
-    module L = ThmSyn
+    module __l = ThmSyn
     module I = IntSyn
     module F = Formatter
     let rec fmtIds =
       function
       | nil -> []
       | n::nil -> [F.String n]
-      | n::L -> [F.String n; F.String " "] @ (fmtIds L)
+      | n::__l -> [F.String n; F.String " "] @ (fmtIds __l)
     let rec fmtParams =
       function
       | nil -> []
-      | (SOME n)::nil -> [F.String n]
-      | (NONE)::nil -> [F.String "_"]
-      | (SOME n)::L -> [F.String n; F.String " "] @ (fmtParams L)
-      | (NONE)::L -> [F.String "_"; F.String " "] @ (fmtParams L)
-    let rec fmtType (c, L) =
-      F.HVbox
+      | (Some n)::nil -> [F.String n]
+      | (None)::nil -> [F.String "_"]
+      | (Some n)::__l -> [F.String n; F.String " "] @ (fmtParams __l)
+      | (None)::__l -> [F.String "_"; F.String " "] @ (fmtParams __l)
+    let rec fmtType (c, __l) =
+      F.hVbox
         ([F.String (I.conDecName (I.sgnLookup c)); F.String " "] @
-           (fmtParams L))
+           (fmtParams __l))
     let rec fmtCallpats =
       function
       | nil -> []
       | (T)::nil -> [F.String "("; fmtType T; F.String ")"]
-      | (T)::L -> [F.String "("; fmtType T; F.String ") "] @ (fmtCallpats L)
+      | (T)::__l -> [F.String "("; fmtType T; F.String ") "] @ (fmtCallpats __l)
     let rec fmtOptions =
       function
-      | _::nil as L -> [F.HVbox (fmtIds L)]
-      | L -> [F.String "("; F.HVbox (fmtIds L); F.String ") "]
+      | _::nil as __l -> [F.hVbox (fmtIds __l)]
+      | __l -> [F.String "("; F.hVbox (fmtIds __l); F.String ") "]
     let rec fmtOrder =
       function
-      | Varg (L) ->
-          (match L with
-           | (H)::nil -> fmtIds L
-           | _ -> [F.String "("; F.HVbox (fmtIds L); F.String ")"])
-      | Lex (L) -> [F.String "{"; F.HVbox (fmtOrders L); F.String "}"]
-      | Simul (L) -> [F.String "["; F.HVbox (fmtOrders L); F.String "]"]
+      | Varg (__l) ->
+          (match __l with
+           | (H)::nil -> fmtIds __l
+           | _ -> [F.String "("; F.hVbox (fmtIds __l); F.String ")"])
+      | Lex (__l) -> [F.String "{"; F.hVbox (fmtOrders __l); F.String "}"]
+      | Simul (__l) -> [F.String "["; F.hVbox (fmtOrders __l); F.String "]"]
     let rec fmtOrders =
       function
       | nil -> nil
       | (O)::nil -> fmtOrder O
-      | (O)::L -> (fmtOrder O) @ ((::) (F.String " ") fmtOrders L)
-    let rec tDeclToString (TDecl (O, Callpats (L))) =
+      | (O)::__l -> (fmtOrder O) @ ((::) (F.String " ") fmtOrders __l)
+    let rec tDeclToString (TDecl (O, Callpats (__l))) =
       F.makestring_fmt
-        (F.HVbox ((fmtOrder O) @ ((::) (F.String " ") fmtCallpats L)))
-    let rec callpatsToString (Callpats (L)) =
-      F.makestring_fmt (F.HVbox (fmtCallpats L))
+        (F.hVbox ((fmtOrder O) @ ((::) (F.String " ") fmtCallpats __l)))
+    let rec callpatsToString (Callpats (__l)) =
+      F.makestring_fmt (F.hVbox (fmtCallpats __l))
     let rec fmtROrder (RedOrder (P, O, O')) =
       match P with
       | L.Less -> (fmtOrder O) @ ((::) (F.String " < ") fmtOrder O')
       | L.Leq -> (fmtOrder O) @ ((::) (F.String " <= ") fmtOrder O')
       | L.Eq -> (fmtOrder O) @ ((::) (F.String " = ") fmtOrder O')
-    let rec ROrderToString (R) = F.makestring_fmt (F.HVbox (fmtROrder R))
-    let rec rDeclToString (RDecl (R, Callpats (L))) =
+    let rec ROrderToString (R) = F.makestring_fmt (F.hVbox (fmtROrder R))
+    let rec rDeclToString (RDecl (R, Callpats (__l))) =
       F.makestring_fmt
-        (F.HVbox ((fmtROrder R) @ ((::) (F.String " ") fmtCallpats L)))
+        (F.hVbox ((fmtROrder R) @ ((::) (F.String " ") fmtCallpats __l)))
     let rec tabledDeclToString (TabledDecl cid) =
-      F.makestring_fmt (F.HVbox [F.String (I.conDecName (I.sgnLookup cid))])
+      F.makestring_fmt (F.hVbox [F.String (I.conDecName (I.sgnLookup cid))])
     let rec keepTableDeclToString (KeepTableDecl cid) =
-      F.makestring_fmt (F.HVbox [F.String (I.conDecName (I.sgnLookup cid))])
+      F.makestring_fmt (F.hVbox [F.String (I.conDecName (I.sgnLookup cid))])
     (* -bp *)
     let tDeclToString = tDeclToString
     let callpatsToString = callpatsToString

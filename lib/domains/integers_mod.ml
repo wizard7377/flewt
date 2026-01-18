@@ -8,8 +8,8 @@ module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
     let rec normalize n = n mod__ p
     let zero = 0
     let one = 1
-    exception Div 
-    let rec (~) n = Int.(-) (p, n)
+    exception Div
+    let rec (~-) n = Int.(-) (p, n)
     let rec (+) (m, n) = normalize (Int.(+) (m, n))
     let rec (-) (m, n) = normalize (Int.(-) (m, n))
     let rec ( * ) (m, n) = normalize (Int.( * ) (m, n))
@@ -28,8 +28,8 @@ module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
       if check (String.explode str)
       then
         match Int.fromString str with
-        | SOME n -> (if n < p then SOME n else NONE)
-        | NONE -> NONE
-      else NONE
+        | Some n -> (if n < p then Some n else None)
+        | None -> None
+      else None
     let toString = Int.toString
   end ;;

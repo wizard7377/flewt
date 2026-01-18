@@ -1,12 +1,13 @@
-(library 
+(library
  (wrapped (transition "Convert SML convention to OCaml convention"))
- 
+
  (public_name flewt.domains)
  (name domains)
- (libraries 
+ (libraries
   base
+  flewt.int_inf
  )
- (modules 
+ (modules
   domains
   field
   integers

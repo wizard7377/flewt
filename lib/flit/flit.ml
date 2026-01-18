@@ -46,7 +46,7 @@ module Flit(Flit:sig
     module IHT = Table
     exception Error of string 
     let size_of_expr = 3
-    let (tcb_table : (string * int) list option ref) = ref NONE
+    let (tcb_table : (string * int) list option ref) = ref None
     let (tcb_size : int ref) = ref 0
     let rec print_table () =
       let rec print_table' =
@@ -75,8 +75,8 @@ module Flit(Flit:sig
                 (Int.toString (!linecount)))) in
       let rec read_size () =
         match Int.fromString (get_line ()) with
-        | SOME tcb_size -> tcb_size
-        | NONE -> error () in
+        | Some tcb_size -> tcb_size
+        | None -> error () in
       let () = (:=) tcb_size read_size () in
       let () = if (!Global.chatter) >= 3 then print_size () else () in
       let rec read_table =
@@ -88,17 +88,17 @@ module Flit(Flit:sig
                  (::) (id, (valOf (Int.fromString addr))) read_table
                    (get_line ())
              | _ -> error ()) in
-      let () = (:=) tcb_table SOME (read_table (get_line ())) in
+      let () = (:=) tcb_table Some (read_table (get_line ())) in
       let () = if (!Global.chatter) >= 3 then print_table () else () in
       let () = TextIO.closeIn stream in ()
     let closedMask = LargeWord.fromInt 256
     let predicateMask = LargeWord.fromInt 512
     let clauseMask = LargeWord.fromInt 1024
     let (baseAddr : int ref) = ref 0
-    let (startClause : int option ref) = ref NONE
-    let (startSemant : int option ref) = ref NONE
+    let (startClause : int option ref) = ref None
+    let (startSemant : int option ref) = ref None
     let (tuples : int ref) = ref 0
-    let (out : BinIO.outstream option ref) = ref NONE
+    let (out : BinIO.outstream option ref) = ref None
     let (symTable : W.word Table.__Table) = Table.new__ 32
     let (printTable : unit Table.__Table) = Table.new__ 32
     let (shadowTable : int SHT.__Table) = SHT.new__ 32
@@ -108,7 +108,7 @@ module Flit(Flit:sig
     let (replaceTable : string IHT.__Table) = IHT.new__ 32
     let rec cname cid = I.conDecName (I.sgnLookup cid)
     let rec clookup name =
-      let size = (fun r -> r.1) (I.sgnSize ()) in
+      let size = (fun (r, _) -> r) (I.sgnSize ()) in
       let rec clookup' cid =
         if cid = size
         then raise (Error (("symbol " ^ name) ^ " not found"))
@@ -116,10 +116,10 @@ module Flit(Flit:sig
       clookup' 0
     let rec print_once cid =
       match Table.lookup printTable cid with
-      | NONE ->
+      | None ->
           (Table.insert printTable (cid, ());
            print ((Print.conDecToString (I.sgnLookup cid)) ^ "\n"))
-      | SOME _ -> ()
+      | Some _ -> ()
     let rec print_tuple (addr, code, (cld, prd, cls), arg1, arg2) =
       print
         (((((((^) (((^) (((^) (((^) ((W.fmt StringCvt.DEC addr) ^ " : ")
@@ -137,13 +137,13 @@ module Flit(Flit:sig
            ^ "\n")
     let rec writeArray array =
       match !out with
-      | SOME stream ->
+      | Some stream ->
           (((!) ((:=) tuples) tuples) + 1;
            BinIO.output
              (stream,
                (Word8ArraySlice.vector
-                  (Word8ArraySlice.slice (array, 0, NONE)))))
-      | NONE -> ()
+                  (Word8ArraySlice.slice (array, 0, None)))))
+      | None -> ()
     let rec tuple (code, ((cld, prd, cls) as flags), arg1, arg2) =
       let addr = W.fromInt ((!) ((+) (!tuples)) tcb_size) in
       let array =
@@ -198,7 +198,7 @@ module Flit(Flit:sig
         | nil -> false__ in
       if check (String.explode string)
       then StringCvt.scanString (W.scan StringCvt.DEC) string
-      else NONE
+      else None
     let rec scanBinopPf oper string =
       let args = String.tokens (function | c -> c = oper) string in
       match args with
@@ -206,9 +206,9 @@ module Flit(Flit:sig
           (match ((StringCvt.scanString (W.scan StringCvt.DEC) arg1),
                    (StringCvt.scanString (W.scan StringCvt.DEC) arg2))
            with
-           | (SOME d1, SOME d2) -> SOME (d1, d2)
-           | _ -> NONE)
-      | _ -> NONE
+           | (Some d1, Some d2) -> Some (d1, d2)
+           | _ -> None)
+      | _ -> None
     let rec scanTernopPf oper1 oper2 string =
       let args = String.tokens (function | c -> c = oper1) string in
       match args with
@@ -220,24 +220,24 @@ module Flit(Flit:sig
                         (StringCvt.scanString (W.scan StringCvt.DEC) arg2),
                         (StringCvt.scanString (W.scan StringCvt.DEC) arg3))
                 with
-                | (SOME d1, SOME d2, SOME d3) -> SOME (d1, d2, d3)
-                | _ -> NONE)
-           | _ -> NONE)
-      | _ -> NONE
+                | (Some d1, Some d2, Some d3) -> Some (d1, d2, d3)
+                | _ -> None)
+           | _ -> None)
+      | _ -> None
     let rec isPredicate cid =
       match ((!startClause), (I.constUni cid)) with
-      | (SOME cid', I.Kind) -> cid >= cid'
+      | (Some cid', I.Kind) -> cid >= cid'
       | _ -> false__
     let rec headCID =
       function
-      | Const cid -> SOME cid
-      | Skonst cid -> SOME cid
-      | Def cid -> SOME cid
-      | NSDef cid -> SOME cid
-      | _ -> NONE
+      | Const cid -> Some cid
+      | Skonst cid -> Some cid
+      | Def cid -> Some cid
+      | NSDef cid -> Some cid
+      | _ -> None
     let rec isClause cid =
       match ((!startClause), (I.constUni cid)) with
-      | (SOME cid', I.Type) ->
+      | (Some cid', I.Type) ->
           if cid >= cid'
           then
             let a = I.targetHead (I.constType cid) in
@@ -248,8 +248,8 @@ module Flit(Flit:sig
       | _ -> false__
     let rec lookup cid =
       match Table.lookup symTable cid with
-      | SOME idx -> idx
-      | NONE ->
+      | Some idx -> idx
+      | None ->
           let idx =
             compileConDec
               ((I.sgnLookup cid), ((isPredicate cid), (isClause cid))) in
@@ -259,136 +259,136 @@ module Flit(Flit:sig
     let rec compileUni = function | I.Kind -> kd () | I.Type -> ty ()
     let rec compileExpN arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, Uni (V), flags)) -> compileUni V
-      | (generate, (G, Pi ((Dec (_, U1), _), U2), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (__g, Uni (__v), flags)) -> compileUni __v
+      | (generate, (__g, Pi ((Dec (_, __U1), _), __U2), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (__g, __U1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
+              ((I.Decl (__g, idxU1var)), __U2, (false__, false__, false__)) in
           pi generate (flags, idxU1var, idxU2)
-      | (generate, (G, Lam ((Dec (_, U1) as D), U2), ((cld, _, _) as flags)))
+      | (generate, (__g, Lam ((Dec (_, __U1) as __d), __U2), ((cld, _, _) as flags)))
           ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+          let idxU1 = compileExpN generate (__g, __U1, (cld, false__, false__)) in
           let idxU1var = var generate idxU1 in
           let idxU2 =
             compileExpN generate
-              ((I.Decl (G, idxU1var)), U2, (false__, false__, false__)) in
+              ((I.Decl (__g, idxU1var)), __U2, (false__, false__, false__)) in
           lam generate (flags, idxU1var, idxU2)
-      | (generate, (G, (Root (H, S) as U), flags)) ->
-          let idx = compileHead generate (G, H) in
-          compileSpine generate (G, idx, S, flags)
-      | (generate, (G, FgnExp csfe, flags)) ->
+      | (generate, (__g, (Root (H, S) as __u), flags)) ->
+          let idx = compileHead generate (__g, H) in
+          compileSpine generate (__g, idx, S, flags)
+      | (generate, (__g, FgnExp csfe, flags)) ->
           compileExp generate
-            (G, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
+            (__g, (I.FgnExpStd.ToInternal.apply csfe ()), flags)
     let rec compileSpine arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, idx, I.Nil, flags)) -> idx
-      | (generate, (G, idx, App (U1, I.Nil), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (__g, idx, I.Nil, flags)) -> idx
+      | (generate, (__g, idx, App (__U1, I.Nil), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (__g, __U1, (cld, false__, false__)) in
           app generate (flags, idx, idxU1)
-      | (generate, (G, idx, App (U1, S), ((cld, _, _) as flags))) ->
-          let idxU1 = compileExpN generate (G, U1, (cld, false__, false__)) in
+      | (generate, (__g, idx, App (__U1, S), ((cld, _, _) as flags))) ->
+          let idxU1 = compileExpN generate (__g, __U1, (cld, false__, false__)) in
           compileSpine generate
-            (G, (app generate ((cld, false__, false__), idx, idxU1)), S,
+            (__g, (app generate ((cld, false__, false__), idx, idxU1)), S,
               flags)
     let rec compileHead arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (generate, (G, BVar k)) -> I.ctxLookup (G, k)
-      | (generate, (G, Const cid)) -> lookup cid
-      | (generate, (G, Def cid)) -> lookup cid
-      | (generate, (G, NSDef cid)) -> lookup cid
-      | (generate, (G, FgnConst (cs, conDec))) ->
-          compileFgnDec generate (G, conDec)
+      | (generate, (__g, BVar k)) -> I.ctxLookup (__g, k)
+      | (generate, (__g, Const cid)) -> lookup cid
+      | (generate, (__g, Def cid)) -> lookup cid
+      | (generate, (__g, NSDef cid)) -> lookup cid
+      | (generate, (__g, FgnConst (cs, conDec))) ->
+          compileFgnDec generate (__g, conDec)
     let rec compileFgnDec arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (true__, (G, conDec)) ->
+      | (true__, (__g, conDec)) ->
           let name = I.conDecName conDec in
           let flags = (true__, false__, false__) in
           (match scanNumber name with
-           | SOME n -> tuple ('#', flags, n, (W.fromInt 0))
-           | NONE ->
+           | Some n -> tuple ('#', flags, n, (W.fromInt 0))
+           | None ->
                (match scanBinopPf '/' name with
-                | SOME (n1, n2) -> tuple ('/', flags, n1, n2)
-                | NONE ->
+                | Some (n1, n2) -> tuple ('/', flags, n1, n2)
+                | None ->
                     (match scanBinopPf '+' name with
-                     | SOME (n1, n2) -> tuple ('+', flags, n1, n2)
-                     | NONE ->
+                     | Some (n1, n2) -> tuple ('+', flags, n1, n2)
+                     | None ->
                          (match scanBinopPf '*' name with
-                          | SOME (n1, n2) -> tuple ('*', flags, n1, n2)
-                          | NONE ->
+                          | Some (n1, n2) -> tuple ('*', flags, n1, n2)
+                          | None ->
                               raise
                                 (Error ("unknown foreign constant " ^ name))))))
       | (false__, _) -> W.fromInt 0
-    let rec compileExp generate (G, U, flags) =
-      compileExpN generate (G, (Whnf.normalize (U, I.id)), flags)
+    let rec compileExp generate (__g, __u, flags) =
+      compileExpN generate (__g, (Whnf.normalize (__u, I.id)), flags)
     let rec compileConDec =
       function
-      | ((ConDec (_, _, _, _, V, _) as condec), (true__, cls)) ->
+      | ((ConDec (_, _, _, _, __v, _) as condec), (true__, cls)) ->
           const true__
-            (compileExpN true__ (I.Null, V, (true__, true__, cls)))
+            (compileExpN true__ (I.Null, __v, (true__, true__, cls)))
       | ((ConDec (_, _, _, _, _, _) as condec), (pred, cls)) ->
           raise
             (Error ("attempt to shadow constant " ^ (I.conDecName condec)))
-      | ((ConDef (_, _, _, U, V, _, _) as condec), (pred, cls)) ->
+      | ((ConDef (_, _, _, __u, __v, _, _) as condec), (pred, cls)) ->
           let exp =
-            compileExpN true__ (I.Null, V, (true__, false__, false__)) in
-          let arg = compileExpN true__ (I.Null, U, (true__, pred, cls)) in
+            compileExpN true__ (I.Null, __v, (true__, false__, false__)) in
+          let arg = compileExpN true__ (I.Null, __u, (true__, pred, cls)) in
           annotate true__ ((true__, pred, cls), arg, exp)
-      | ((AbbrevDef (_, _, _, U, V, _) as condec), (pred, cls)) ->
+      | ((AbbrevDef (_, _, _, __u, __v, _) as condec), (pred, cls)) ->
           let exp =
-            compileExpN true__ (I.Null, V, (true__, false__, false__)) in
-          let arg = compileExpN true__ (I.Null, U, (true__, pred, cls)) in
+            compileExpN true__ (I.Null, __v, (true__, false__, false__)) in
+          let arg = compileExpN true__ (I.Null, __u, (true__, pred, cls)) in
           annotate true__ ((true__, pred, cls), arg, exp)
     let rec initTuples () =
       let _ = tuples := 0 in
       let _ = Table.clear symTable in
       let _ = Table.clear printTable in
       match !tcb_table with
-      | SOME l ->
+      | Some l ->
           List.app
             (function
              | (name, idx) ->
                  Table.insert symTable ((clookup name), (W.fromInt idx))) l
-      | NONE -> raise (Error "dump(...) before init(...)")
+      | None -> raise (Error "dump(...) before init(...)")
     let rec dump (name, file) =
       let rec dump' cid =
-        let _ = (:=) out SOME (BinIO.openOut file) in
+        let _ = (:=) out Some (BinIO.openOut file) in
         let stream = valOf (!out) in
         let _ = initTuples () in
         let idx = W.toInt (lookup cid) in
         let _ = BinIO.closeOut stream in idx in
       let rec error msg =
         let rec closeOut () =
-          match !out with | SOME stream -> BinIO.closeOut stream | NONE -> () in
+          match !out with | Some stream -> BinIO.closeOut stream | None -> () in
         print (("Error: " ^ msg) ^ "\n"); closeOut (); (-1) in
       match N.constLookup (valOf (N.stringToQid name)) with
-      | SOME cid -> (try dump' cid with | Error msg -> error msg)
-      | NONE -> error (("symbol " ^ name) ^ " not found\n")
+      | Some cid -> (try dump' cid with | Error msg -> error msg)
+      | None -> error (("symbol " ^ name) ^ " not found\n")
     let rec setFlag () =
       match !startClause with
-      | SOME cid -> print "Error: flag already set\n"
-      | NONE -> (:=) startClause SOME (((fun r -> r.1)) (I.sgnSize ()))
+      | Some cid -> print "Error: flag already set\n"
+      | None -> (:=) startClause Some (((fun (r, _) -> r)) (I.sgnSize ()))
     let rec setEndTcb () =
       match !startSemant with
-      | SOME cid -> print "Error: flag already set\n"
-      | NONE -> (:=) startSemant SOME (((fun r -> r.1)) (I.sgnSize ()))
+      | Some cid -> print "Error: flag already set\n"
+      | None -> (:=) startSemant Some (((fun (r, _) -> r)) (I.sgnSize ()))
     let rec dumpFlagged file =
-      let max = (fun r -> r.1) (I.sgnSize ()) in
+      let max = (fun (r, _) -> r) (I.sgnSize ()) in
       let rec compileSeq cid =
         if cid < max then (lookup cid; compileSeq (cid + 1)) else () in
       let rec dump' cid =
-        (:=) out SOME (BinIO.openOut file);
+        (:=) out Some (BinIO.openOut file);
         initTuples ();
         compileSeq cid;
         BinIO.closeOut (valOf (!out)) in
       let rec error msg =
         let rec closeOut () =
-          match !out with | SOME stream -> BinIO.closeOut stream | NONE -> () in
+          match !out with | Some stream -> BinIO.closeOut stream | None -> () in
         print (("Error: " ^ msg) ^ "\n"); closeOut () in
       match !startClause with
-      | SOME cid -> (try dump' cid with | Error msg -> error msg)
-      | NONE -> error "setFlag() has not been called yet\n"
+      | Some cid -> (try dump' cid with | Error msg -> error msg)
+      | None -> error "setFlag() has not been called yet\n"
     let rec dumpSymTable (name1, name2, file) =
       let stream = TextIO.openOut file in
       let Strength nonfixLevel = F.minPrec in
@@ -400,7 +400,7 @@ module Flit(Flit:sig
         | F.Nonfix -> (nonfixLevel, 0) in
       let rec dumpEntry cid =
         match ((Table.lookup symTable cid), (dumpFixity cid)) with
-        | (SOME idx, (level, assoc)) ->
+        | (Some idx, (level, assoc)) ->
             TextIO.output
               (stream,
                 (((^) (((^) ((((I.conDecName (I.sgnLookup cid)) ^ "\t") ^
@@ -410,7 +410,7 @@ module Flit(Flit:sig
                          ^ "\t")
                     Int.toString assoc)
                    ^ "\n"))
-        | (NONE, _) -> () in
+        | (None, _) -> () in
       let rec dumpTable (cid1, cid2) =
         if cid1 <= cid2
         then (dumpEntry cid1; dumpTable ((cid1 + 1), cid2))
@@ -419,9 +419,9 @@ module Flit(Flit:sig
       (match ((N.constLookup (valOf (N.stringToQid name1))),
                (N.constLookup (valOf (N.stringToQid name2))))
        with
-       | (SOME cid1, SOME cid2) -> dumpTable (cid1, cid2)
-       | (NONE, _) -> error (name1 ^ " undefined")
-       | (_, NONE) -> error (name2 ^ " undefined"));
+       | (Some cid1, Some cid2) -> dumpTable (cid1, cid2)
+       | (None, _) -> error (name1 ^ " undefined")
+       | (_, None) -> error (name2 ^ " undefined"));
       TextIO.flushOut stream;
       TextIO.closeOut stream
     let rec sort cmp l =
@@ -450,30 +450,30 @@ module Flit(Flit:sig
     let rec sortedKeys t =
       let r = ref [] in
       let _ = IHT.app (function | x -> (!) ((::) (r := x)) r) t in
-      sort Int.compare (map (fun r -> r.1) (!r))
+      sort Int.compare (map (fun (r, _) -> r) (!r))
     exception noPriorEntry of string 
     exception Error of string 
     let rec valOfE arg__0 arg__1 =
-      match (arg__0, arg__1) with | (e, NONE) -> raise e | (e, SOME x) -> x
+      match (arg__0, arg__1) with | (e, None) -> raise e | (e, Some x) -> x
     let counter = ref 0
     let rec isShadowedBy cid =
       let name = I.conDecName (I.sgnLookup cid) in
       let currentcid =
         valOfE (noPriorEntry name) (SHT.lookup shadowTable name) in
-      (name, (if currentcid <> cid then SOME currentcid else NONE))
+      (name, (if currentcid <> cid then Some currentcid else None))
     let rec isShadowing () =
       let _ = SHT.clear shadowTable in
       let changes = ref false__ in
       let rec processDep rcid cid =
         let rec handleProblem (currentcid, name) =
           match Table.lookup replaceTable cid with
-          | SOME _ -> ()
+          | Some _ -> ()
           | _ ->
               let replacement =
                 Option.map (I.conDecName o I.sgnLookup)
                   (Table.lookup imitatesTable cid) in
               (match replacement with
-               | NONE ->
+               | None ->
                    raise
                      (Error
                         (((^) (((^) (((^) (("Error: " ^ name) ^ " (")
@@ -483,10 +483,10 @@ module Flit(Flit:sig
                                  ^ " but shadowed by ")
                             Int.toString currentcid)
                            ^ ".\n"))
-               | SOME x -> Table.insert replaceTable (cid, x)) in
+               | Some x -> Table.insert replaceTable (cid, x)) in
         let (name, sb) = isShadowedBy cid in
         match sb with
-        | SOME currentcid ->
+        | Some currentcid ->
             if
               ((<) cid valOf (!startSemant)) ||
                 ((>=) cid valOf (!startClause))
@@ -497,7 +497,7 @@ module Flit(Flit:sig
                SHT.insert shadowTable (newname, cid);
                ((!) ((:=) counter) counter) + 1;
                changes := true__)
-        | NONE -> () in
+        | None -> () in
       let rec processCid cid =
         let name = I.conDecName (I.sgnLookup cid) in
         (try
@@ -518,33 +518,33 @@ module Flit(Flit:sig
       | _ -> ""
     let rec record_once k cid =
       match IHT.insertShadow recordTable (cid, ()) with
-      | NONE -> k cid
-      | SOME _ -> ()
+      | None -> k cid
+      | Some _ -> ()
     let rec recordDependency (x, y) =
       let table =
         match IHT.lookup depTable x with
-        | SOME y -> y
-        | NONE -> let t = IHT.new__ 32 in (IHT.insert depTable (x, t); t) in
+        | Some y -> y
+        | None -> let t = IHT.new__ 32 in (IHT.insert depTable (x, t); t) in
       IHT.insert table (y, ())
     open I
     let rec etaReduce arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (n, Root (h, sp)) -> if etaReduceSpine n sp then SOME h else NONE
+      | (n, Root (h, sp)) -> if etaReduceSpine n sp then Some h else None
       | (n, Lam (_, t)) -> etaReduce (n + 1) t
-      | (_, _) -> NONE
+      | (_, _) -> None
     let rec etaReduceSpine arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (n, App (fst, sp)) ->
           (match etaReduce 0 fst with
-           | SOME (BVar n') -> (n = n') && (etaReduceSpine (n - 1) sp)
+           | Some (BVar n') -> (n = n') && (etaReduceSpine (n - 1) sp)
            | _ -> false__)
       | (n, Nil) -> true__
       | (n, _) -> false__
     let rec checkTrivial cid =
       match sgnLookup cid with
-      | AbbrevDef (_, _, _, M, V, _) ->
+      | AbbrevDef (_, _, _, M, __v, _) ->
           (match etaReduce 0 M with
-           | SOME (Const cid') ->
+           | Some (Const cid') ->
                (print
                   (((^) (((^) "DX inserting " Int.toString cid') ^ " = ")
                       Int.toString cid)
@@ -555,10 +555,10 @@ module Flit(Flit:sig
     let rec travExp arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (cid, Uni _) -> ()
-      | (cid, Pi ((D, _), B)) -> (travDec cid D; travExp cid B)
+      | (cid, Pi ((__d, _), B)) -> (travDec cid __d; travExp cid B)
       | (cid, Root (H, S)) -> (travHead cid H; travSpine cid S)
       | (cid, Redex (M, S)) -> (travExp cid M; travSpine cid S)
-      | (cid, Lam (D, M)) -> (travDec cid D; travExp cid M)
+      | (cid, Lam (__d, M)) -> (travDec cid __d; travExp cid M)
       | (cid, _) -> ()
     let rec travDec arg__0 arg__1 =
       match (arg__0, arg__1) with
@@ -574,9 +574,9 @@ module Flit(Flit:sig
         (headCID h)
     let rec traverseDescendants' arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (cid, ConDec (_, _, _, _, V, _)) -> travExp cid V
-      | (cid, ConDef (_, _, _, M, V, _, _)) -> (travExp cid M; travExp cid V)
-      | (cid, AbbrevDef (_, _, _, M, V, _)) -> (travExp cid M; travExp cid V)
+      | (cid, ConDec (_, _, _, _, __v, _)) -> travExp cid __v
+      | (cid, ConDef (_, _, _, M, __v, _, _)) -> (travExp cid M; travExp cid __v)
+      | (cid, AbbrevDef (_, _, _, M, __v, _)) -> (travExp cid M; travExp cid __v)
       | (cid, _) -> ()
     let rec traverseDescendants cid =
       traverseDescendants' cid (I.sgnLookup cid)
@@ -584,8 +584,8 @@ module Flit(Flit:sig
       let name = conDecName (sgnLookup cid) in
       record_once traverseDescendants cid
     let rec initForText () =
-      startClause := NONE;
-      startSemant := NONE;
+      startClause := None;
+      startSemant := None;
       Table.clear depTable;
       Table.clear recordTable;
       Table.clear imitatesTable;
@@ -623,7 +623,7 @@ module Flit(Flit:sig
       TextIO.closeOut streamChecker;
       TextIO.closeOut streamTcb
     let rec dumpText (outputSemant, outputChecker) =
-      let max = (fun r -> r.1) (I.sgnSize ()) in
+      let max = (fun (r, _) -> r) (I.sgnSize ()) in
       let rec correctFixities cid =
         if cid < max
         then
@@ -645,18 +645,18 @@ module Flit(Flit:sig
       let _ = correctFixities 0 in
       let rec error msg = print (("Error: " ^ msg) ^ "\n") in
       match !startClause with
-      | SOME cid ->
+      | Some cid ->
           (try dumpAll (max, cid, outputSemant, outputChecker)
            with | Error msg -> error msg)
-      | NONE -> error "setFlag() has not been called yet\n"
+      | None -> error "setFlag() has not been called yet\n"
     (* currently unused *)
-    (* returns a tuple of the name of the cid and SOME of the shadowing cid if any *)
+    (* returns a tuple of the name of the cid and Some of the shadowing cid if any *)
     (* returns true if it changed any names *)
     (* val _ = print "clearing table...\n" *)
     (* Option.mapPartial
                                                     (fn x => (case isShadowedBy x of
-                                                    (_, SOME _) => NONE
-                                                      | (x, NONE) => SOME x)) *)
+                                                    (_, Some _) => None
+                                                      | (x, None) => Some x)) *)
     (* XXX worrying - jcreed 7/05 *)
     (* print ("DX planning to subtly rename " ^ Int.toString cid ^ " to " ^ x ^ "\n");  *)
     (* problematic shadowing *)

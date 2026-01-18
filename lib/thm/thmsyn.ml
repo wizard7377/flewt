@@ -122,43 +122,43 @@ module ThmSyn(ThmSyn:sig
       | WDecl of (Names.__Qid list * __Callpats) 
     module I = IntSyn
     module M = ModeSyn
-    let rec theoremDecToConDec ((name, ThDecl (GBs, G, MG, i)), r) =
+    let rec theoremDecToConDec ((name, ThDecl (GBs, __g, MG, i)), r) =
       let rec theoremToConDec' =
         function
-        | (I.Null, V) -> V
-        | (Decl (G, D), V) ->
-            if Abstract.closedDec (G, (D, I.id))
+        | (I.Null, __v) -> __v
+        | (Decl (__g, __d), __v) ->
+            if Abstract.closedDec (__g, (__d, I.id))
             then
               theoremToConDec'
-                (G,
+                (__g,
                   (Abstract.piDepend
-                     (((Whnf.normalizeDec (D, I.id)), I.Maybe), V)))
+                     (((Whnf.normalizeDec (__d, I.id)), I.Maybe), __v)))
             else error (r, "Free variables in theorem declaration") in
       (GBs,
         (I.ConDec
-           (name, NONE, i, I.Normal, (theoremToConDec' (G, (I.Uni I.Type))),
+           (name, None, i, I.Normal, (theoremToConDec' (__g, (I.Uni I.Type))),
              I.Kind)))
-    let rec theoremDecToModeSpine ((name, ThDecl (GBs, G, MG, i)), r) =
+    let rec theoremDecToModeSpine ((name, ThDecl (GBs, __g, MG, i)), r) =
       let rec theoremToModeSpine' =
         function
         | (I.Null, I.Null, mS) -> mS
-        | (Decl (G, Dec (x, _)), Decl (MG, m), mS) ->
-            theoremToModeSpine' (G, MG, (M.Mapp ((M.Marg (m, x)), mS))) in
-      theoremToModeSpine' (G, MG, M.Mnil)
-    (* theoremDecToConDec (name, T) = D'
+        | (Decl (__g, Dec (x, _)), Decl (MG, m), mS) ->
+            theoremToModeSpine' (__g, MG, (M.Mapp ((M.Marg (m, x)), mS))) in
+      theoremToModeSpine' (__g, MG, M.Mnil)
+    (* theoremDecToConDec (name, T) = __d'
 
        Invariant:
        If   name is the name of a theorem
        and  T is the declaration of a theorem
-       then D' is a constant type declaration of this theorem
+       then __d' is a constant type declaration of this theorem
     *)
-    (* theoremToConDec' G V = V'
+    (* theoremToConDec' __g __v = __v'
 
              Invariant:
-             If   G = V1 .. Vn
-             and  G |- V : kind
-             then V' = {V1} .. {Vn} V
-             and  . |-  V' : kind
+             If   __g = V1 .. Vn
+             and  __g |- __v : kind
+             then __v' = {V1} .. {Vn} __v
+             and  . |-  __v' : kind
           *)
     (* theoremDecToModeSpine (name, T) = mS'
 

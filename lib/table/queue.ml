@@ -9,7 +9,7 @@ module type QUEUE  =
     val delete : 'a queue -> ('a * 'a queue) option
     val insertFront : ('a * 'a queue) -> 'a queue
     val deleteEnd : 'a queue -> ('a * 'a queue) option
-    (* If  toList (q) ==> (l, SOME(q')) *)
+    (* If  toList (q) ==> (l, Some(q')) *)
     (* then q == q' and toList q' is constant time *)
     val toList : 'a queue -> ('a list * 'a queue option)
   end;;
@@ -35,21 +35,21 @@ module Queue : QUEUE =
     let rec insert (x, (inp, out)) = ((x :: inp), out)
     let rec delete =
       function
-      | (nil, nil) -> NONE
-      | (inp, x::out) -> SOME (x, (inp, out))
+      | (nil, nil) -> None
+      | (inp, x::out) -> Some (x, (inp, out))
       | (inp, nil) -> delete (nil, (List.rev inp))
     let rec insertFront (x, (inp, out)) = (inp, (x :: out))
     let rec deleteEnd =
       function
-      | (nil, nil) -> NONE
-      | (x::inp, out) -> SOME (x, (inp, out))
+      | (nil, nil) -> None
+      | (x::inp, out) -> Some (x, (inp, out))
       | (nil, out) -> delete ((List.rev out), nil)
-    (* toList q ==> (l, NONE)  means q == l and toList is constant time *)
-    (* toList q ==> (l, SOME(q')) means q == l == q' *)
+    (* toList q ==> (l, None)  means q == l and toList is constant time *)
+    (* toList q ==> (l, Some(q')) means q == l == q' *)
     (* and toList q' is constant time *)
     let rec toList =
       function
-      | (nil, out) -> (out, NONE)
+      | (nil, out) -> (out, None)
       | (inp, out) ->
-          let out' = (@) out List.rev inp in (out', (SOME (nil, out')))
+          let out' = (@) out List.rev inp in (out', (Some (nil, out')))
   end ;;

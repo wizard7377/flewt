@@ -46,28 +46,28 @@ module MTPFilling(MTPFilling:sig
     exception Success of int 
     let rec createEVars =
       function
-      | (G, (F.True, s)) -> (nil, F.Unit)
-      | (G, (Ex (Dec (_, V), F), s)) ->
-          let X = I.newEVar (G, (I.EClo (V, s))) in
-          let X' = Whnf.lowerEVar X in
-          let (Xs, P) = createEVars (G, (F, (I.Dot ((I.Exp X), s)))) in
-          ((X' :: Xs), (F.Inx (X, P)))
-    let rec expand (State (n, (G, B), (IH, OH), d, O, H, F) as S) =
-      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx G else () in
-      let (Xs, P) = createEVars (G, (F, I.id)) in
+      | (__g, (F.True, s)) -> (nil, F.Unit)
+      | (__g, (Ex (Dec (_, __v), F), s)) ->
+          let x = I.newEVar (__g, (I.EClo (__v, s))) in
+          let x' = Whnf.lowerEVar x in
+          let (__Xs, P) = createEVars (__g, (F, (I.Dot ((I.Exp x), s)))) in
+          ((x' :: __Xs), (F.Inx (x, P)))
+    let rec expand (State (n, (__g, B), (IH, OH), d, O, H, F) as S) =
+      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx __g else () in
+      let (__Xs, P) = createEVars (__g, (F, I.id)) in
       function
       | () ->
           (try
              Search.searchEx
-               ((!MTPGlobal.maxFill), Xs,
+               ((!MTPGlobal.maxFill), __Xs,
                  (function
                   | max ->
                       (if !Global.doubleCheck
                        then
                          map
                            (function
-                            | EVar (_, G', V, _) as X ->
-                                TypeCheck.typeCheck (G', (X, V))) Xs
+                            | EVar (_, __g', __v, _) as x ->
+                                TypeCheck.typeCheck (__g', (x, __v))) __Xs
                        else [];
                        raise (Success max))));
              raise (Error "Filling unsuccessful")
@@ -78,18 +78,18 @@ module MTPFilling(MTPFilling:sig
     let rec apply f = f ()
     let rec menu _ = "Filling   (tries to close this subgoal)"
     (* Checking for constraints: Used to be in abstract, now must be done explicitly! --cs*)
-    (* createEVars (G, F) = (Xs', P')
+    (* createEVars (__g, F) = (__Xs', __P')
 
        Invariant:
-       If   |- G ctx
-       and  G |- F = [[x1:A1]] .. [[xn::An]] formula
-       then Xs' = (X1', .., Xn') a list of EVars
-       and  G |- Xi' : A1 [X1'/x1..X(i-1)'/x(i-1)]          for all i <= n
-       and  G; D |- P' = <X1', <.... <Xn', <>> ..> in F     for some D
+       If   |- __g ctx
+       and  __g |- F = [[x1:A1]] .. [[xn::An]] formula
+       then __Xs' = (X1', .., Xn') a list of EVars
+       and  __g |- Xi' : A1 [X1'/x1..X(i-1)'/x(i-1)]          for all i <= n
+       and  __g; __d |- __P' = <X1', <.... <Xn', <>> ..> in F     for some __d
     *)
     (*    fun checkConstraints nil = raise Success
-      | checkConstraints (X :: L) =
-        if Abstract.closedExp (I.Null, (Whnf.normalize (X, I.id), I.id)) then checkConstraints L
+      | checkConstraints (x :: __l) =
+        if Abstract.closedExp (I.Null, (Whnf.normalize (x, I.id), I.id)) then checkConstraints __l
         else ()
 *)
     (* expand' S = op'

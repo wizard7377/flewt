@@ -29,7 +29,7 @@ module ParseModule(ParseModule:sig
   struct
     (*! structure Parsing = Parsing' !*)
     module ModExtSyn = ModExtSyn'
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module E = ModExtSyn
     let rec parseStructExp' =
@@ -142,8 +142,8 @@ module ParseModule(ParseModule:sig
     let rec parseSgDef' =
       function
       | Cons ((ID (_, id), r), s') ->
-          parseSgEqual' ((SOME id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (NONE, (LS.expose s'))
+          parseSgEqual' ((Some id), (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (None, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,
@@ -165,8 +165,8 @@ module ParseModule(ParseModule:sig
     let rec parseStrDec' =
       function
       | Cons ((ID (_, id), r), s') ->
-          parseStrDec2' ((SOME id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (NONE, (LS.expose s'))
+          parseStrDec2' ((Some id), (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (None, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,

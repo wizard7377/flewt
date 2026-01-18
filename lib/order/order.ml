@@ -59,7 +59,7 @@ module Order(Order:sig
       | Leq of (int __Order * int __Order) 
       | Eq of (int __Order * int __Order) 
     (* Mutual dependencies in call patterns:                            *)
-    (* A call pattern   (a1 P1) .. (ai Pi) .. (an Pn)   expresses       *)
+    (* A call pattern   (a1 __P1) .. (ai Pi) .. (an Pn)   expresses       *)
     (* that the proof of ai can refer to                                *)
     (*   ih a1 .. ai, as long as the arguments are strictly smaller     *)
     (* and to                                                           *)
@@ -84,47 +84,47 @@ module Order(Order:sig
     let rec install (cid, O) = Table.insert OrderTable (cid, O)
     let rec uninstall cid =
       match Table.lookup OrderTable cid with
-      | NONE -> false__
-      | SOME _ -> (Table.delete OrderTable cid; true__)
+      | None -> false__
+      | Some _ -> (Table.delete OrderTable cid; true__)
     let rec installROrder (cid, P) = Table.insert RedOrderTable (cid, P)
     let rec uninstallROrder cid =
       match Table.lookup RedOrderTable cid with
-      | NONE -> false__
-      | SOME _ -> (Table.delete RedOrderTable cid; true__)
+      | None -> false__
+      | Some _ -> (Table.delete RedOrderTable cid; true__)
     let rec lookup cid = Table.lookup OrderTable cid
     let rec lookupROrder cid = Table.lookup RedOrderTable cid
     let rec selLookup a =
       match lookup a with
-      | NONE ->
+      | None ->
           raise
             (Error
                ((^) "No termination order assigned for " I.conDecName
                   (I.sgnLookup a)))
-      | SOME (TDec (S, _)) -> S
+      | Some (TDec (S, _)) -> S
     let rec selLookupROrder a =
       match lookupROrder a with
-      | NONE ->
+      | None ->
           raise
             (Error
                (((^) "No reduction order assigned for " I.conDecName
                    (I.sgnLookup a))
                   ^ "."))
-      | SOME (RDec (P, _)) -> P
+      | Some (RDec (P, _)) -> P
     let rec mutLookupROrder a =
       match lookupROrder a with
-      | NONE ->
+      | None ->
           raise
             (Error
                (((^) "No order assigned for " I.conDecName (I.sgnLookup a)) ^
                   "."))
-      | SOME (RDec (_, M)) -> M
+      | Some (RDec (_, M)) -> M
     let rec mutLookup a =
       match lookup a with
-      | NONE ->
+      | None ->
           raise
             (Error
                ((^) "No order assigned for " I.conDecName (I.sgnLookup a)))
-      | SOME (TDec (_, M)) -> M
+      | Some (TDec (_, M)) -> M
     let rec mutual a =
       let rec mutual' =
         function
@@ -142,7 +142,7 @@ module Order(Order:sig
     (* mutual a = a's
 
        Invariant:
-       If   a occurs in a call pattern (a1 P1) .. (an Pn)
+       If   a occurs in a call pattern (a1 __P1) .. (an Pn)
        then a's = a1 .. an
     *)
     (* closure (a1s, a2s) = a3s

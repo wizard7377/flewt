@@ -52,71 +52,71 @@ module AbsMachine(AbsMachine:sig
       | _ -> false__
     let rec compose =
       function
-      | (G, IntSyn.Null) -> G
-      | (G, Decl (G', D)) -> IntSyn.Decl ((compose (G, G')), D)
+      | (__g, IntSyn.Null) -> __g
+      | (__g, Decl (__g', __d)) -> IntSyn.Decl ((compose (__g, __g')), __d)
     let rec shiftSub =
       function
       | (IntSyn.Null, s) -> s
-      | (Decl (G, D), s) -> I.dot1 (shiftSub (G, s))
+      | (Decl (__g, __d), s) -> I.dot1 (shiftSub (__g, s))
     let rec raiseType =
       function
-      | (I.Null, V) -> V
-      | (Decl (G, D), V) -> raiseType (G, (I.Pi ((D, I.Maybe), V)))
+      | (I.Null, __v) -> __v
+      | (Decl (__g, __d), __v) -> raiseType (__g, (I.Pi ((__d, I.Maybe), __v)))
     let rec solve =
       function
-      | ((Atom p, s), (DProg (G, dPool) as dp), sc) ->
+      | ((Atom p, s), (DProg (__g, dPool) as dp), sc) ->
           matchAtom ((p, s), dp, sc)
-      | ((Impl (r, A, Ha, g), s), DProg (G, dPool), sc) ->
-          let D' = I.Dec (NONE, (I.EClo (A, s))) in
+      | ((Impl (r, A, Ha, g), s), DProg (__g, dPool), sc) ->
+          let __d' = I.Dec (None, (I.EClo (A, s))) in
           solve
             ((g, (I.dot1 s)),
               (C.DProg
-                 ((I.Decl (G, D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
-              (function | M -> sc (I.Lam (D', M))))
-      | ((All (D, g), s), DProg (G, dPool), sc) ->
-          let D' = Names.decLUName (G, (I.decSub (D, s))) in
+                 ((I.Decl (__g, __d')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+              (function | M -> sc (I.Lam (__d', M))))
+      | ((All (__d, g), s), DProg (__g, dPool), sc) ->
+          let __d' = Names.decLUName (__g, (I.decSub (__d, s))) in
           solve
             ((g, (I.dot1 s)),
-              (C.DProg ((I.Decl (G, D')), (I.Decl (dPool, C.Parameter)))),
-              (function | M -> sc (I.Lam (D', M))))
+              (C.DProg ((I.Decl (__g, __d')), (I.Decl (dPool, C.Parameter)))),
+              (function | M -> sc (I.Lam (__d', M))))
     let rec rSolve =
       function
-      | (ps', (Eq (Q), s), DProg (G, dPool), sc) ->
-          if Unify.unifiable (G, (Q, s), ps') then sc I.Nil else ()
-      | (ps', (Assign (Q, eqns), s), (DProg (G, dPool) as dp), sc) ->
-          (match Assign.assignable (G, ps', (Q, s)) with
-           | SOME cnstr ->
+      | (ps', (Eq (Q), s), DProg (__g, dPool), sc) ->
+          if Unify.unifiable (__g, (Q, s), ps') then sc I.Nil else ()
+      | (ps', (Assign (Q, eqns), s), (DProg (__g, dPool) as dp), sc) ->
+          (match Assign.assignable (__g, ps', (Q, s)) with
+           | Some cnstr ->
                aSolve ((eqns, s), dp, cnstr, (function | () -> sc I.Nil))
-           | NONE -> ())
-      | (ps', (And (r, A, g), s), (DProg (G, dPool) as dp), sc) ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+           | None -> ())
+      | (ps', (And (r, A, g), s), (DProg (__g, dPool) as dp), sc) ->
+          let x = I.newEVar (__g, (I.EClo (A, s))) in
           rSolve
-            (ps', (r, (I.Dot ((I.Exp X), s))), dp,
+            (ps', (r, (I.Dot ((I.Exp x), s))), dp,
               (function
                | S -> solve ((g, s), dp, (function | M -> sc (I.App (M, S))))))
-      | (ps', (Exists (Dec (_, A), r), s), (DProg (G, dPool) as dp), sc) ->
-          let X = I.newEVar (G, (I.EClo (A, s))) in
+      | (ps', (Exists (Dec (_, A), r), s), (DProg (__g, dPool) as dp), sc) ->
+          let x = I.newEVar (__g, (I.EClo (A, s))) in
           rSolve
-            (ps', (r, (I.Dot ((I.Exp X), s))), dp,
-              (function | S -> sc (I.App (X, S))))
-      | (ps', (Axists (ADec (_, d), r), s), (DProg (G, dPool) as dp), sc) ->
-          let X' = I.newAVar () in
+            (ps', (r, (I.Dot ((I.Exp x), s))), dp,
+              (function | S -> sc (I.App (x, S))))
+      | (ps', (Axists (ADec (_, d), r), s), (DProg (__g, dPool) as dp), sc) ->
+          let x' = I.newAVar () in
           rSolve
-            (ps', (r, (I.Dot ((I.Exp (I.EClo (X', (I.Shift (~ d))))), s))),
+            (ps', (r, (I.Dot ((I.Exp (I.EClo (x', (I.Shift (~- d))))), s))),
               dp, sc)
     let rec aSolve =
       function
       | ((C.Trivial, s), dp, cnstr, sc) ->
           if Assign.solveCnstr cnstr then sc () else ()
-      | ((UnifyEq (G', e1, N, eqns), s), (DProg (G, dPool) as dp), cnstr, sc)
+      | ((UnifyEq (__g', e1, N, eqns), s), (DProg (__g, dPool) as dp), cnstr, sc)
           ->
-          let G'' = compose (G, G') in
-          let s' = shiftSub (G', s) in
-          if Assign.unifiable (G'', (N, s'), (e1, s'))
+          let __g'' = compose (__g, __g') in
+          let s' = shiftSub (__g', s) in
+          if Assign.unifiable (__g'', (N, s'), (e1, s'))
           then aSolve ((eqns, s), dp, cnstr, sc)
           else ()
     let rec matchAtom
-      (((Root (Ha, S), s) as ps'), (DProg (G, dPool) as dp), sc) =
+      (((Root (Ha, S), s) as ps'), (DProg (__g, dPool) as dp), sc) =
       let deterministic = C.detTableCheck (cidFromHead Ha) in
       let exception SucceedOnce of I.__Spine  in
         let rec matchSig =
@@ -180,15 +180,15 @@ module AbsMachine(AbsMachine:sig
             CSManager.trail
               (function
                | () ->
-                   (match cnstrSolve (G, (I.SClo (S, s)), try__) with
-                    | SOME (U) -> (sc U; true__)
-                    | NONE -> false__)) in
+                   (match cnstrSolve (__g, (I.SClo (S, s)), try__) with
+                    | Some (__u) -> (sc __u; true__)
+                    | None -> false__)) in
           if succeeded then matchConstraint (cnstrSolve, (try__ + 1)) else () in
         match I.constStatus (cidFromHead Ha) with
         | Constraint (cs, cnstrSolve) -> matchConstraint (cnstrSolve, 0)
         | _ -> matchDProg (dPool, 1)
     (* We write
-       G |- M : g
+       __g |- M : g
      if M is a canonical proof term for goal g which could be found
      following the operational semantics.  In general, the
      success continuation sc may be applied to such M's in the order
@@ -196,7 +196,7 @@ module AbsMachine(AbsMachine:sig
      the success continuation.
 
      Similarly, we write
-       G |- S : r
+       __g |- S : r
      if S is a canonical proof spine for residual goal r which could
      be found following the operational semantics.  A success continuation
      sc may be applies to such S's in the order they are found and
@@ -206,24 +206,24 @@ module AbsMachine(AbsMachine:sig
     (* should probably go to intsyn.fun *)
     (* solve ((g, s), dp, sc) = ()
      Invariants:
-       dp = (G, dPool) where  G ~ dPool  (context G matches dPool)
-       G |- s : G'
-       G' |- g  goal
-       if  G |- M : g[s]
+       dp = (__g, dPool) where  __g ~ dPool  (context __g matches dPool)
+       __g |- s : __g'
+       __g' |- g  goal
+       if  __g |- M : g[s]
        then  sc M  is evaluated
 
      Effects: instantiation of EVars in g, s, and dp
               any effect  sc M  might have
   *)
-    (*      val D' = I.decSub (D, s) *)
+    (*      val __d' = I.decSub (__d, s) *)
     (* rSolve ((p,s'), (r,s), dp, sc) = ()
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       G' |- r  resgoal
-       G |- s' : G''
-       G'' |- p : H @ S' (mod whnf)
-       if G |- S : r[s]
+       dp = (__g, dPool) where __g ~ dPool
+       __g |- s : __g'
+       __g' |- r  resgoal
+       __g |- s' : __g''
+       __g'' |- p : H @ S' (mod whnf)
+       if __g |- S : r[s]
        then sc S is evaluated
      Effects: instantiation of EVars in p[s'], r[s], and dp
               any effect  sc S  might have
@@ -236,17 +236,17 @@ module AbsMachine(AbsMachine:sig
     (* we don't increase the proof term here! *)
     (* aSolve ((ag, s), dp, sc) = ()
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       if G |- ag[s] auxgoal
+       dp = (__g, dPool) where __g ~ dPool
+       __g |- s : __g'
+       if __g |- ag[s] auxgoal
        then sc () is evaluated
      Effects: instantiation of EVars in ag[s], dp and sc () *)
     (* matchatom ((p, s), dp, sc) => ()
      Invariants:
-       dp = (G, dPool) where G ~ dPool
-       G |- s : G'
-       G' |- p : type, p = H @ S mod whnf
-       if G |- M :: p[s]
+       dp = (__g, dPool) where __g ~ dPool
+       __g |- s : __g'
+       __g' |- p : type, p = H @ S mod whnf
+       if __g |- M :: p[s]
        then sc M is evaluated
      Effects: instantiation of EVars in p[s] and dp
               any effect  sc M  might have

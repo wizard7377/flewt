@@ -505,7 +505,7 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
 
      inputFun maintains state, reading input one line at a time and
      returning a string terminated by <newline> each time.
-     The end of the stream is signalled by a string consisting only of ^D
+     The end of the stream is signalled by a string consisting only of ^__d
      Argument to inputFun is the character position.
   *)
 (* local state maintained by the lexer *)

@@ -27,45 +27,45 @@ module Lemma(Lemma:sig
       function
       | Prefix (I.Null, I.Null, I.Null) ->
           ((M.Prefix (I.Null, I.Null, I.Null)), I.id)
-      | Prefix (Decl (G, D), Decl (M, M.Top), Decl (B, b)) ->
-          let (Prefix (G', M', B'), s') = createEVars (M.Prefix (G, M, B)) in
+      | Prefix (Decl (__g, __d), Decl (M, M.Top), Decl (B, b)) ->
+          let (Prefix (__g', M', B'), s') = createEVars (M.Prefix (__g, M, B)) in
           ((M.Prefix
-              ((I.Decl (G', (I.decSub (D, s')))), (I.Decl (M', M.Top)),
+              ((I.Decl (__g', (I.decSub (__d, s')))), (I.Decl (M', M.Top)),
                 (I.Decl (B', b)))), (I.dot1 s'))
-      | Prefix (Decl (G, Dec (_, V)), Decl (M, M.Bot), Decl (B, _)) ->
-          let (Prefix (G', M', B'), s') = createEVars (M.Prefix (G, M, B)) in
-          let X = I.newEVar (G', (I.EClo (V, s'))) in
-          ((M.Prefix (G', M', B')), (I.Dot ((I.Exp X), s')))
-    let rec apply (State (name, GM, V), a) =
-      let ((Prefix (G', M', B') as GM'), s') = createEVars GM in
-      let (U', Vs') = M.createAtomConst (G', (I.Const a)) in
+      | Prefix (Decl (__g, Dec (_, __v)), Decl (M, M.Bot), Decl (B, _)) ->
+          let (Prefix (__g', M', B'), s') = createEVars (M.Prefix (__g, M, B)) in
+          let x = I.newEVar (__g', (I.EClo (__v, s'))) in
+          ((M.Prefix (__g', M', B')), (I.Dot ((I.Exp x), s')))
+    let rec apply (State (name, GM, __v), a) =
+      let ((Prefix (__g', M', B') as GM'), s') = createEVars GM in
+      let (__u', __Vs') = M.createAtomConst (__g', (I.Const a)) in
       A.abstract
         (M.State
            (name, GM',
              (I.Pi
-                (((I.Dec (NONE, U')), I.No),
-                  (I.EClo (V, (I.comp (s', I.shift))))))))
-    (* createEVars (G, M, B) = ((G', M', B'), s')
+                (((I.Dec (None, __u')), I.No),
+                  (I.EClo (__v, (I.comp (s', I.shift))))))))
+    (* createEVars (__g, M, B) = ((__g', M', B'), s')
 
        Invariant:
-       If   |- G ctx
-       then |- G' ctx
-       and  . |- s' : G
-       M and B are mode and bound contexts matching G, and similarly for M' and B'.
+       If   |- __g ctx
+       then |- __g' ctx
+       and  . |- s' : __g
+       M and B are mode and bound contexts matching __g, and similarly for M' and B'.
     *)
-    (* apply (((G, M), V), a) = ((G', M'), V')
+    (* apply (((__g, M), __v), a) = ((__g', M'), __v')
 
        Invariant:
-       If   |- G ctx
-       and  G |- M mtx
+       If   |- __g ctx
+       and  __g |- M mtx
        and  a is a type constant of type Va: Sigma (a) = Va
-       then |- G' ctx
-       and  G' |- M' mtx
-       and  G' |- S' : Va > type
-       and  G' |- s' : G
-       and  G' |- V' = {a S'}. V[s' o ^]
-       and  ((G', M'), V') is a state
+       then |- __g' ctx
+       and  __g' |- M' mtx
+       and  __g' |- S' : Va > type
+       and  __g' |- s' : __g
+       and  __g' |- __v' = {a S'}. __v[s' o ^]
+       and  ((__g', M'), __v') is a state
     *)
-    (* Vs' = type *)
+    (* __Vs' = type *)
     let apply = apply
   end ;;

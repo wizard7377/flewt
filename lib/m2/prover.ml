@@ -43,8 +43,8 @@ module Prover(Prover:sig
     let rec contains =
       function
       | (nil, _) -> true__
-      | (x::L, L') ->
-          (List.exists (function | x' -> x = x') L') && (contains (L, L'))
+      | (x::__l, __l') ->
+          (List.exists (function | x' -> x = x') __l') && (contains (__l, __l'))
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec insertState (S) =
       if Qed.subgoal S
@@ -54,7 +54,7 @@ module Prover(Prover:sig
       function
       | nil -> ""
       | c::nil -> I.conDecName (I.sgnLookup c)
-      | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
+      | c::__l -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString __l)
     let rec init (k, (c::_ as cL)) =
       let _ = MetaGlobal.maxFill := k in
       let _ = reset () in
@@ -82,13 +82,13 @@ module Prover(Prover:sig
       if (List.length (!openStates)) > 0
       then raise (Error "A proof could not be found")
       else ()
-    let rec makeConDec (State (name, Prefix (G, M, B), V)) =
+    let rec makeConDec (State (name, Prefix (__g, M, B), __v)) =
       let rec makeConDec' =
         function
-        | (I.Null, V, k) -> I.ConDec (name, NONE, k, I.Normal, V, I.Type)
-        | (Decl (G, D), V, k) ->
-            makeConDec' (G, (I.Pi ((D, I.Maybe), V)), (k + 1)) in
-      makeConDec' (G, V, 0)
+        | (I.Null, __v, k) -> I.ConDec (name, None, k, I.Normal, __v, I.Type)
+        | (Decl (__g, __d), __v, k) ->
+            makeConDec' (__g, (I.Pi ((__d, I.Maybe), __v)), (k + 1)) in
+      makeConDec' (__g, __v, 0)
     let rec makeSignature =
       function
       | nil -> M.SgnEmpty
@@ -113,7 +113,7 @@ module Prover(Prover:sig
       let rec print' =
         function
         | nil -> ()
-        | (S)::L -> (print (MetaPrint.stateToString S); print' L) in
+        | (S)::__l -> (print (MetaPrint.stateToString S); print' __l) in
       print "Open problems:\n";
       print "==============\n\n";
       print' (!openStates);
@@ -143,10 +143,10 @@ module Prover(Prover:sig
        If S is successful prove state, S is stored in solvedStates
        else S is stored in openStates
     *)
-    (* cLtoString L = s
+    (* cLtoString __l = s
 
        Invariant:
-       If   L is a list of cid,
+       If   __l is a list of cid,
        then s is a string, listing their names
     *)
     (* init (k, cL) = ()
@@ -164,13 +164,13 @@ module Prover(Prover:sig
        Solves as many States in openStates
        as possible.
     *)
-    (* makeConDec (name, (G, M), V) = e'
+    (* makeConDec (name, (__g, M), __v) = e'
 
        Invariant:
-       If   |- G ctx
-       and  G |- M mtx
-       and  G |- V : type
-       then e' = (name, |G|, {G}.V, Type) is a signature conDec
+       If   |- __g ctx
+       and  __g |- M mtx
+       and  __g |- __v : type
+       then e' = (name, |__g|, {__g}.V, Type) is a signature conDec
     *)
     (* makeSignature (SL) = IS'
 

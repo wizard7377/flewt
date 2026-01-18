@@ -31,7 +31,7 @@ module type SIGNAT  =
 (* raises Signat if not present *)
 module ListSignat : SIGNAT =
   struct
-    module L = Lib
+    module __l = Lib
     type nonrec key = int
     type nonrec 'a sgn = (key * 'a) list
     exception Signat of string 
@@ -42,14 +42,14 @@ module ListSignat : SIGNAT =
       else p :: sgn
     let rec lookup sgn x =
       match L.assoc x sgn with
-      | SOME y -> y
-      | NONE -> raise (Signat "lookup: no such key")
+      | Some y -> y
+      | None -> raise (Signat "lookup: no such key")
     let rec size l = length l
   end 
 module GrowarraySignat : SIGNAT =
   struct
-    module L = Lib
-    module G = GrowArray
+    module __l = Lib
+    module __g = GrowArray
     type nonrec key = int
     type nonrec 'a sgn = < arr: 'a G.growarray  ;size: int ref   > 
     exception Signat of string 

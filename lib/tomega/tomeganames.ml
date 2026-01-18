@@ -17,7 +17,7 @@ module TomegaNames : TOMEGANAMES =
     module I = IntSyn
     let rec decName =
       function
-      | (Psi, UDec (D)) -> T.UDec (Names.decName ((T.coerceCtx Psi), D))
+      | (Psi, UDec (__d)) -> T.UDec (Names.decName ((T.coerceCtx Psi), __d))
       | (Psi, PDec (x, F, TC1, TC2)) ->
           let NDec x' = Names.decName ((T.coerceCtx Psi), (I.NDec x)) in
           T.PDec (x', F, TC1, TC2)

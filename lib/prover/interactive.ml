@@ -68,30 +68,30 @@ module Interactive(Interactive:sig
     module W = WorldSyn
     let rec abort s = print (("* " ^ s) ^ "\n"); raise (Error s)
     let rec convertOneFor cid =
-      let V =
+      let __v =
         match I.sgnLookup cid with
-        | ConDec (name, _, _, _, V, I.Kind) -> V
+        | ConDec (name, _, _, _, __v, I.Kind) -> __v
         | _ -> raise (Error "Type Constant declaration expected") in
       let mS =
         match ModeTable.modeLookup cid with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
       let rec convertFor' =
         function
-        | (Pi ((D, _), V), Mapp (Marg (M.Plus, _), mS), w1, w2, n) ->
-            let (F', F'') =
+        | (Pi ((__d, _), __v), Mapp (Marg (M.Plus, _), mS), w1, w2, n) ->
+            let (__F', __F'') =
               convertFor'
-                (V, mS, (I.dot1 w1), (I.Dot ((I.Idx n), w2)), (n - 1)) in
+                (__v, mS, (I.dot1 w1), (I.Dot ((I.Idx n), w2)), (n - 1)) in
             (((function
                | F ->
                    T.All
-                     (((T.UDec (Weaken.strengthenDec (D, w1))), T.Explicit),
-                       (F' F)))), F'')
-        | (Pi ((D, _), V), Mapp (Marg (M.Minus, _), mS), w1, w2, n) ->
-            let (F', F'') =
+                     (((T.UDec (Weaken.strengthenDec (__d, w1))), T.Explicit),
+                       (__F' F)))), __F'')
+        | (Pi ((__d, _), __v), Mapp (Marg (M.Minus, _), mS), w1, w2, n) ->
+            let (__F', __F'') =
               convertFor'
-                (V, mS, (I.comp (w1, I.shift)), (I.dot1 w2), (n + 1)) in
-            (F', (T.Ex (((I.decSub (D, w2)), T.Explicit), F'')))
+                (__v, mS, (I.comp (w1, I.shift)), (I.dot1 w2), (n + 1)) in
+            (__F', (T.Ex (((I.decSub (__d, w2)), T.Explicit), __F'')))
         | (Uni (I.Type), M.Mnil, _, _, _) -> (((function | F -> F)), T.True)
         | _ -> raise (Error "type family must be +/- moded") in
       let rec shiftPlus mS =
@@ -102,12 +102,12 @@ module Interactive(Interactive:sig
           | (Mapp (Marg (M.Minus, _), mS'), n) -> shiftPlus' (mS', n) in
         shiftPlus' (mS, 0) in
       let n = shiftPlus mS in
-      let (F, F') = convertFor' (V, mS, I.id, (I.Shift n), n) in F F'
+      let (F, __F') = convertFor' (__v, mS, I.id, (I.Shift n), n) in F __F'
     let rec convertFor =
       function
       | nil -> raise (Error "Empty theorem")
       | a::[] -> convertOneFor a
-      | a::L -> T.And ((convertOneFor a), (convertFor L))
+      | a::__l -> T.And ((convertOneFor a), (convertFor __l))
     type __MenuItem =
       | Split of Split.operator 
       | Fill of Fill.operator 
@@ -115,7 +115,7 @@ module Interactive(Interactive:sig
       | Fix of FixedPoint.operator 
       | Elim of Elim.operator 
     let ((Focus) : S.__State list ref) = ref []
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec SplittingToMenu (O, A) = (Split O) :: A
     let rec initFocus () = Focus := []
     let rec normalize () =
@@ -123,7 +123,7 @@ module Interactive(Interactive:sig
       | (State (W, Psi, P, F))::Rest ->
           Focus := ((S.State (W, Psi, (T.derefPrg P), F)) :: Rest)
       | _ -> ()
-    let rec reset () = initFocus (); Menu := NONE
+    let rec reset () = initFocus (); Menu := None
     let rec format k =
       if k < 10 then (Int.toString k) ^ ".  " else (Int.toString k) ^ ". "
     let rec menuToString () =
@@ -146,8 +146,8 @@ module Interactive(Interactive:sig
             let s = menuToString' ((k + 1), M) in
             ((s ^ "\n  ") ^ (format k)) ^ (Elim.menu O) in
       match !Menu with
-      | NONE -> raise (Error "Menu is empty")
-      | SOME (M) -> menuToString' (1, M)
+      | None -> raise (Error "Menu is empty")
+      | Some (M) -> menuToString' (1, M)
     let rec printStats () =
       let nopen = 0 in
       let nsolved = 0 in
@@ -170,14 +170,14 @@ module Interactive(Interactive:sig
            print "\n-----------------------";
            print (menuToString ());
            print "\n=======================\n")
-      | (StateLF (EVar (r, G, V, Cs) as X))::R ->
+      | (StateLF (EVar (r, __g, __v, __Cs) as x))::R ->
           (print "\n=======================";
            print "\n=== THEOREM PROVER ====\n";
-           print (Print.ctxToString (I.Null, G));
+           print (Print.ctxToString (I.Null, __g));
            print "\n-----------------------\n";
-           print (Print.expToString (G, V));
+           print (Print.expToString (__g, __v));
            print "\n-----------------------\n";
-           print (Print.expToString (G, X));
+           print (Print.expToString (__g, x));
            print "\n-----------------------";
            print (menuToString ());
            print "\n=======================\n")
@@ -185,17 +185,17 @@ module Interactive(Interactive:sig
       match !Focus with
       | [] -> print "Please initialize first\n"
       | (State (W, Psi, P, F))::_ ->
-          let Xs = S.collectT P in
-          let F1 =
+          let __Xs = S.collectT P in
+          let __F1 =
             map
               (function
-               | EVar (Psi, r, F, TC, TCs, X) ->
+               | EVar (Psi, r, F, TC, TCs, x) ->
                    (Names.varReset I.Null;
                     S.Focus
-                      ((T.EVar ((TomegaPrint.nameCtx Psi), r, F, TC, TCs, X)),
-                        W))) Xs in
-          let Ys = S.collectLF P in
-          let F2 = map (function | Y -> S.FocusLF Y) Ys in
+                      ((T.EVar ((TomegaPrint.nameCtx Psi), r, F, TC, TCs, x)),
+                        W))) __Xs in
+          let __Ys = S.collectLF P in
+          let __F2 = map (function | y -> S.FocusLF y) __Ys in
           let rec splitMenu =
             function
             | [] -> []
@@ -204,32 +204,32 @@ module Interactive(Interactive:sig
           let rec introMenu =
             function
             | [] -> []
-            | (SOME oper)::l -> (::) (Introduce oper) introMenu l
-            | (NONE)::l -> introMenu l in
-          let intro = introMenu (map Introduce.expand F1) in
+            | (Some oper)::l -> (::) (Introduce oper) introMenu l
+            | (None)::l -> introMenu l in
+          let intro = introMenu (map Introduce.expand __F1) in
           let fill =
             foldr
               (function
                | (S, l) ->
                    (@) l map ((function | O -> Fill O)) (Fill.expand S)) nil
-              F2 in
+              __F2 in
           let rec elimMenu =
             function
             | [] -> []
             | operators::l -> (@) (map Elim operators) elimMenu l in
-          let elim = elimMenu (map Elim.expand F1) in
-          let split = splitMenu (map Split.expand F1) in
-          (:=) Menu SOME (((intro @ split) @ fill) @ elim)
-      | (StateLF (Y))::_ ->
-          let Ys = Abstract.collectEVars (I.Null, (Y, I.id), nil) in
-          let F2 = map (function | Y -> S.FocusLF Y) Ys in
+          let elim = elimMenu (map Elim.expand __F1) in
+          let split = splitMenu (map Split.expand __F1) in
+          (:=) Menu Some (((intro @ split) @ fill) @ elim)
+      | (StateLF (y))::_ ->
+          let __Ys = Abstract.collectEVars (I.Null, (y, I.id), nil) in
+          let __F2 = map (function | y -> S.FocusLF y) __Ys in
           let fill =
             foldr
               (function
                | (S, l) ->
                    (@) l map ((function | O -> Fill O)) (Fill.expand S)) nil
-              F2 in
-          (:=) Menu SOME fill
+              __F2 in
+          (:=) Menu Some fill
     let rec select k =
       let rec select' =
         function
@@ -240,8 +240,8 @@ module Interactive(Interactive:sig
         | (1, (Fill (O))::_) -> Timers.time Timers.filling Fill.apply O
         | (k, _::M) -> select' ((k - 1), M) in
       match !Menu with
-      | NONE -> raise (Error "No menu defined")
-      | SOME (M) ->
+      | None -> raise (Error "No menu defined")
+      | Some (M) ->
           (try select' (k, M); normalize (); menu (); printmenu ()
            with | Error s -> ())
     let rec init names =
@@ -252,24 +252,24 @@ module Interactive(Interactive:sig
            | x -> valOf (Names.constLookup (valOf (Names.stringToQid x))))
           names in
       let F = convertFor cL in
-      let Ws = map W.lookup cL in
+      let __Ws = map W.lookup cL in
       let rec select c = try Order.selLookup c with | _ -> Order.Lex [] in
       let TC = Tomega.transformTC (I.Null, F, (map select cL)) in
-      let (W)::_ = Ws in
+      let (W)::_ = __Ws in
       let _ = Focus := [S.init (F, W)] in
       let P =
         match !Focus with
         | [] -> abort "Initialization of proof goal failed\n"
         | (State (W, Psi, P, F))::_ -> P in
-      let Xs = S.collectT P in
+      let __Xs = S.collectT P in
       let F =
         map
           (function
-           | EVar (Psi, r, F, TC, TCs, X) ->
+           | EVar (Psi, r, F, TC, TCs, x) ->
                (Names.varReset I.Null;
                 S.Focus
-                  ((T.EVar ((TomegaPrint.nameCtx Psi), r, F, TC, TCs, X)), W)))
-          Xs in
+                  ((T.EVar ((TomegaPrint.nameCtx Psi), r, F, TC, TCs, x)), W)))
+          __Xs in
       let (Ofix)::[] = map (function | f -> FixedPoint.expand (f, TC)) F in
       let _ = FixedPoint.apply Ofix in
       let _ = normalize () in let _ = menu () in let _ = printmenu () in ()
@@ -280,33 +280,33 @@ module Interactive(Interactive:sig
           let rec findIEVar =
             function
             | nil -> raise (Error ("cannot focus on " ^ n))
-            | (Y)::Ys ->
-                if (Names.evarName ((T.coerceCtx Psi), Y)) = n
+            | (y)::__Ys ->
+                if (Names.evarName ((T.coerceCtx Psi), y)) = n
                 then
-                  (Focus := ((!) ((::) (S.StateLF Y)) Focus);
+                  (Focus := ((!) ((::) (S.StateLF y)) Focus);
                    normalize ();
                    menu ();
                    printmenu ())
-                else findIEVar Ys in
+                else findIEVar __Ys in
           let rec findTEVar =
             function
             | nil -> findIEVar (S.collectLF P)
-            | (EVar (Psi, r, F, TC, TCs, Y) as X)::Xs ->
-                if (Names.evarName ((T.coerceCtx Psi), Y)) = n
+            | (EVar (Psi, r, F, TC, TCs, y) as x)::__Xs ->
+                if (Names.evarName ((T.coerceCtx Psi), y)) = n
                 then
                   (Focus :=
-                     ((!) ((::) (S.State (W, (TomegaPrint.nameCtx Psi), X, F)))
+                     ((!) ((::) (S.State (W, (TomegaPrint.nameCtx Psi), x, F)))
                         Focus);
                    normalize ();
                    menu ();
                    printmenu ())
-                else findTEVar Xs in
+                else findTEVar __Xs in
           findTEVar (S.collectT P)
-      | (StateLF (U))::_ ->
+      | (StateLF (__u))::_ ->
           (match Names.getEVarOpt n with
-           | NONE -> raise (Error ("cannot focus on " ^ n))
-           | SOME (Y) ->
-               (Focus := ((!) ((::) (S.StateLF Y)) Focus);
+           | None -> raise (Error ("cannot focus on " ^ n))
+           | Some (y) ->
+               (Focus := ((!) ((::) (S.StateLF y)) Focus);
                 normalize ();
                 menu ();
                 printmenu ()))
@@ -317,29 +317,29 @@ module Interactive(Interactive:sig
     (* this is pretty preliminary:
        I think we should just adapt the internal representation for formulas
     *)
-    (* convertFor' (V, mS, w1, w2, n) = (F', F'')
+    (* convertFor' (__v, mS, w1, w2, n) = (__F', __F'')
 
            Invariant:
-           If   G |- V = {{G'}} type :kind
-           and  G |- w1 : G+
-           and  G+, G'+, G- |- w2 : G
-           and  G+, G'+, G- |- ^n : G+
-           and  mS is a spine for G'
-           then F'  is a formula excepting a another formula as argument s.t.
-                If G+, G'+ |- F formula,
-                then . |- F' F formula
-           and  G+, G'+ |- F'' formula
+           If   __g |- __v = {{__g'}} type :kind
+           and  __g |- w1 : __g+
+           and  __g+, __g'+, __g- |- w2 : __g
+           and  __g+, __g'+, __g- |- ^n : __g+
+           and  mS is a spine for __g'
+           then __F'  is a formula excepting a another formula as argument s.t.
+                If __g+, __g'+ |- F formula,
+                then . |- __F' F formula
+           and  __g+, __g'+ |- __F'' formula
         *)
     (* shiftPlus (mS) = s'
 
          Invariant:
          s' = ^(# of +'s in mS)
          *)
-    (* convertFor L = F'
+    (* convertFor __l = __F'
 
        Invariant:
-       If   L is a list of type families
-       then F' is the conjunction of the logical interpretation of each
+       If   __l is a list of type families
+       then __F' is the conjunction of the logical interpretation of each
             type family
      *)
     (* here ends the preliminary stuff *)
@@ -361,8 +361,8 @@ module Interactive(Interactive:sig
        Let n be a string.
        Side effect: Focus on selected subgoal.
     *)
-    (* Invariant: U has already been printed, all EVars occuring
-                 in U are already named.
+    (* Invariant: __u has already been printed, all EVars occuring
+                 in __u are already named.
               *)
     let init = init
     let select = select

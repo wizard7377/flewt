@@ -98,12 +98,12 @@ module RBSet : RBSET =
     let rec lookup (Set (n, dict)) key =
       let rec lk =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' ((key1, datum1), left, right) =
         match compare (key, key1) with
-        | EQUAL -> SOME datum1
+        | EQUAL -> Some datum1
         | LESS -> lk left
         | GREATER -> lk right in
       lk dict
@@ -159,23 +159,23 @@ module RBSet : RBSET =
       let Set (n', dic') = insert ((Set (n, dict)), ((n + 1), datum)) in
       Set (n', dic')
     let rec insertShadow (Set (n, dict), ((key, datum) as entry)) =
-      let oldEntry = ref NONE in
+      let oldEntry = ref None in
       let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
         | Red (((key1, datum1) as entry1), left, right) ->
             (match compare (key, key1) with
-             | EQUAL -> ((:=) oldEntry SOME entry1; Red (entry, left, right))
+             | EQUAL -> ((:=) oldEntry Some entry1; Red (entry, left, right))
              | LESS -> Red (entry1, (ins left), right)
              | GREATER -> Red (entry1, left, (ins right)))
         | Black (((key1, datum1) as entry1), left, right) ->
             (match compare (key, key1) with
              | EQUAL ->
-                 ((:=) oldEntry SOME entry1; Black (entry, left, right))
+                 ((:=) oldEntry Some entry1; Black (entry, left, right))
              | LESS -> restore_left (Black (entry1, (ins left), right))
              | GREATER -> restore_right (Black (entry1, left, (ins right)))) in
       let (dict', oldEntry') =
-        oldEntry := NONE;
+        oldEntry := None;
         (((match ins dict with
            | Red ((_, Red _, _) as t) -> Black t
            | Red ((_, _, Red _) as t) -> Black t
@@ -246,12 +246,12 @@ module RBSet : RBSET =
         | (Black (y, a, b), z) -> delMin (a, (LeftBlack (y, b, z))) in
       let rec joinBlack =
         function
-        | (a, Empty, z) -> ((fun r -> r.2)) (bbZip (z, a))
-        | (Empty, b, z) -> ((fun r -> r.2)) (bbZip (z, b))
+        | (a, Empty, z) -> ((fun (_, r) -> r)) (bbZip (z, a))
+        | (Empty, b, z) -> ((fun (_, r) -> r)) (bbZip (z, b))
         | (a, b, z) ->
             let (x, (needB, b')) = delMin (b, Top) in
             if needB
-            then ((fun r -> r.2)) (bbZip (z, (Black (x, a, b'))))
+            then ((fun (_, r) -> r)) (bbZip (z, (Black (x, a, b'))))
             else zip (z, (Black (x, a, b'))) in
       let rec joinRed =
         function
@@ -259,7 +259,7 @@ module RBSet : RBSET =
         | (a, b, z) ->
             let (x, (needB, b')) = delMin (b, Top) in
             if needB
-            then ((fun r -> r.2)) (bbZip (z, (Red (x, a, b'))))
+            then ((fun (_, r) -> r)) (bbZip (z, (Red (x, a, b'))))
             else zip (z, (Red (x, a, b'))) in
       let rec del =
         function
@@ -305,15 +305,15 @@ module RBSet : RBSET =
     let rec existsOpt (Set (n, dict)) f =
       let rec ap =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> ap' tree
         | Black tree -> ap' tree
       and ap' (((k, d) as entry), left, right) =
         if f d
-        then (print "SUCCESS\n"; SOME k)
+        then (print "SUCCESS\n"; Some k)
         else
           (print "FAILED\n";
-           (match ap left with | NONE -> ap right | SOME res -> SOME res)) in
+           (match ap left with | None -> ap right | Some res -> Some res)) in
       ap dict
     let rec exists (Set (n, dict)) f =
       let rec ap =
@@ -500,11 +500,11 @@ module RBSet : RBSET =
                  split (r1, t2, nr, ((n1 + 1), (addItem (e1, result1))), nr2)
              | EQUAL ->
                  (match F d1 d2 with
-                  | NONE ->
+                  | None ->
                       split
                         (r1, r2, nr, ((n1 + 1), (addItem (e1, result1))),
                           ((n2 + 1), (addItem (e2, result2))))
-                  | SOME d ->
+                  | Some d ->
                       split
                         (r1, r2, ((n + 1), (addItem ((x, d), result))), nr1,
                           nr2))

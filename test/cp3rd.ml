@@ -18,51 +18,51 @@ let three = I.Root ((I.BVar 3), I.Nil) let four = I.Root ((I.BVar 4), I.Nil)
 let five = I.Root ((I.BVar 5), I.Nil) let six = I.Root ((I.BVar 6), I.Nil)
 let cpt_theorem =
   All
-    ((Prim (I.Dec ((SOME "E"), exp))),
+    ((Prim (I.Dec ((Some "E"), exp))),
       (Ex
-         ((I.Dec ((SOME "E'"), exp')),
+         ((I.Dec ((Some "E'"), exp')),
            (Ex
               ((I.Dec
-                  ((SOME "D"),
+                  ((Some "__d"),
                     (I.Root (cp, (I.App (two, (I.App (one, I.Nil)))))))),
                 True)))))
 let rec union =
   function
-  | (G, I.Null) -> G
-  | (G, Decl (G', D)) -> I.Decl ((union (G, G')), D)
+  | (__g, I.Null) -> __g
+  | (__g, Decl (__g', __d)) -> I.Decl ((union (__g, __g')), __d)
 let rec makectx =
   function
   | I.Null -> I.Null
-  | Decl (G, Prim (D)) -> I.Decl ((makectx G), D)
-  | Decl (G, Block (CtxBlock (l, G'))) -> union ((makectx G), G')
+  | Decl (__g, Prim (__d)) -> I.Decl ((makectx __g), __d)
+  | Decl (__g, Block (CtxBlock (l, __g'))) -> union ((makectx __g), __g')
 let rec printCtx =
   function
   | I.Null -> ()
-  | Decl (G, Prim (D)) ->
-      (printCtx G; TextIO.print ((Print.decToString ((makectx G), D)) ^ "\n"))
-  | Decl (G, _) -> (printCtx G; TextIO.print "BLOCK\n")
-let rec print (Psi, U) =
-  TextIO.print ((Print.expToString ((makectx Psi), U)) ^ "\n")
+  | Decl (__g, Prim (__d)) ->
+      (printCtx __g; TextIO.print ((Print.decToString ((makectx __g), __d)) ^ "\n"))
+  | Decl (__g, _) -> (printCtx __g; TextIO.print "BLOCK\n")
+let rec print (Psi, __u) =
+  TextIO.print ((Print.expToString ((makectx Psi), __u)) ^ "\n")
 let cpt_proof =
   Rec
-    ((MDec ((SOME "IH"), cpt_theorem)),
+    ((MDec ((Some "IH"), cpt_theorem)),
       (Lam
-         ((Prim (I.Dec ((SOME "E"), exp))),
+         ((Prim (I.Dec ((Some "E"), exp))),
            (Case
               (Opts
                  [((I.Decl
                       (I.Null,
                         (Block
                            (CtxBlock
-                              ((SOME 1),
+                              ((Some 1),
                                 (I.Decl
                                    ((I.Decl
                                        ((I.Decl
                                            (I.Null,
-                                             (I.Dec ((SOME "x"), exp)))),
-                                         (I.Dec ((SOME "y"), exp')))),
+                                             (I.Dec ((Some "x"), exp)))),
+                                         (I.Dec ((Some "y"), exp')))),
                                      (I.Dec
-                                        ((SOME "u"),
+                                        ((Some "u"),
                                           (I.Root
                                              (cp,
                                                (I.App
@@ -74,33 +74,33 @@ let cpt_proof =
                          (I.Null,
                            (Block
                               (CtxBlock
-                                 ((SOME 2),
+                                 ((Some 2),
                                    (I.Decl
                                       ((I.Decl
                                           ((I.Decl
                                               (I.Null,
                                                 (I.Dec
-                                                   ((SOME "c"),
+                                                   ((Some "c"),
                                                      (I.Pi
-                                                        (((I.Dec (NONE, exp)),
+                                                        (((I.Dec (None, exp)),
                                                            I.No), exp)))))),
                                             (I.Dec
-                                               ((SOME "d"),
+                                               ((Some "d"),
                                                  (I.Pi
-                                                    (((I.Dec (NONE, exp')),
+                                                    (((I.Dec (None, exp')),
                                                        I.No), exp')))))),
                                         (I.Dec
-                                           ((SOME "e"),
+                                           ((Some "e"),
                                              (I.Pi
-                                                (((I.Dec ((SOME "x"), exp)),
+                                                (((I.Dec ((Some "x"), exp)),
                                                    I.Maybe),
                                                   (I.Pi
                                                      (((I.Dec
-                                                          ((SOME "y"), exp')),
+                                                          ((Some "y"), exp')),
                                                         I.Maybe),
                                                        (I.Pi
                                                           (((I.Dec
-                                                               (NONE,
+                                                               (None,
                                                                  (I.Root
                                                                     (cp,
                                                                     (I.App
@@ -126,7 +126,7 @@ let cpt_proof =
                                                                     (two,
                                                                     I.Nil)))),
                                                                     I.Nil))))))))))))))))))))),
-                       (Prim (I.Dec ((SOME "E"), exp))))),
+                       (Prim (I.Dec ((Some "E"), exp))))),
                    (I.Dot
                       ((I.Exp
                           ((I.Root ((I.BVar 4), (I.App (one, I.Nil)))), exp)),
@@ -146,23 +146,23 @@ let cpt_proof =
                      (I.Null,
                        (Prim
                           (I.Dec
-                             ((SOME "E1"),
-                               (I.Pi (((I.Dec ((SOME "x"), exp)), I.No), exp))))))),
+                             ((Some "E1"),
+                               (I.Pi (((I.Dec ((Some "x"), exp)), I.No), exp))))))),
                    (I.Dot
                       ((I.Exp ((I.Root (lam, (I.App (one, I.Nil)))), exp)),
                         (I.Shift 1))),
                    (Let
                       ((New
                           ((CtxBlock
-                              ((SOME 1),
+                              ((Some 1),
                                 (I.Decl
                                    ((I.Decl
                                        ((I.Decl
                                            (I.Null,
-                                             (I.Dec ((SOME "x"), exp)))),
-                                         (I.Dec ((SOME "y"), exp')))),
+                                             (I.Dec ((Some "x"), exp)))),
+                                         (I.Dec ((Some "y"), exp')))),
                                      (I.Dec
-                                        ((SOME "u"),
+                                        ((Some "u"),
                                           (I.Root
                                              (cp,
                                                (I.App
@@ -180,8 +180,8 @@ let cpt_proof =
                                            (I.App (two, (I.App (one, I.Nil)))))))),
                                   Unit)))))));
                  ((I.Decl
-                     ((I.Decl (I.Null, (Prim (I.Dec ((SOME "E1"), exp))))),
-                       (Prim (I.Dec ((SOME "E2"), exp))))),
+                     ((I.Decl (I.Null, (Prim (I.Dec ((Some "E1"), exp))))),
+                       (Prim (I.Dec ((Some "E2"), exp))))),
                    (I.Dot
                       ((I.Exp
                           ((I.Root (app, (I.App (two, (I.App (one, I.Nil)))))),
@@ -220,12 +220,12 @@ let cpt_proof =
                      (I.Null,
                        (Prim
                           (I.Dec
-                             ((SOME "E1"),
+                             ((Some "E1"),
                                (I.Pi
                                   (((I.Dec
-                                       ((SOME "x"),
+                                       ((Some "x"),
                                          (I.Pi
-                                            (((I.Dec (NONE, exp)), I.No),
+                                            (((I.Dec (None, exp)), I.No),
                                               exp)))), I.No), exp))))))),
                    (I.Dot
                       ((I.Exp ((I.Root (callcc, (I.App (one, I.Nil)))), exp)),
@@ -233,32 +233,32 @@ let cpt_proof =
                    (Let
                       ((New
                           ((CtxBlock
-                              ((SOME 2),
+                              ((Some 2),
                                 (I.Decl
                                    ((I.Decl
                                        ((I.Decl
                                            (I.Null,
                                              (I.Dec
-                                                ((SOME "c"),
+                                                ((Some "c"),
                                                   (I.Pi
-                                                     (((I.Dec (NONE, exp)),
+                                                     (((I.Dec (None, exp)),
                                                         I.No), exp)))))),
                                          (I.Dec
-                                            ((SOME "d"),
+                                            ((Some "d"),
                                               (I.Pi
-                                                 (((I.Dec (NONE, exp')),
+                                                 (((I.Dec (None, exp')),
                                                     I.No), exp')))))),
                                      (I.Dec
-                                        ((SOME "e"),
+                                        ((Some "e"),
                                           (I.Pi
-                                             (((I.Dec ((SOME "x"), exp)),
+                                             (((I.Dec ((Some "x"), exp)),
                                                 I.Maybe),
                                                (I.Pi
-                                                  (((I.Dec ((SOME "y"), exp')),
+                                                  (((I.Dec ((Some "y"), exp')),
                                                      I.Maybe),
                                                     (I.Pi
                                                        (((I.Dec
-                                                            (NONE,
+                                                            (None,
                                                               (I.Root
                                                                  (cp,
                                                                    (I.App

@@ -25,7 +25,7 @@ module Rep =
       | _ -> 0
     open SMLofNJ.Cont
     (* val l : (Syntax.term * Syntax.tp) list ref = ref [] *)
-    let (k : Reductio.eq_c option ref) = ref NONE
+    let (k : Reductio.eq_c option ref) = ref None
     exception Crap 
     let rec sanityCheck cid =
       try
@@ -78,7 +78,7 @@ module Rep =
                   ((^) ((Int.toString x) ^ " ") Int.toString y) ^ "\n") pairs) in
       let f = TextIO.openOut "/tmp/graph" in
       let _ = TextIO.output (f, s) in let _ = TextIO.closeOut f in ()
-    (* DEBUG  handle Reductio.Matching2 s => (print "doesn'tmatch"; k := SOME s); *)
+    (* DEBUG  handle Reductio.Matching2 s => (print "doesn'tmatch"; k := Some s); *)
     (* fun gg n = (Compress.sgnReset(); gen_graph n
 	    (fn n => Compress.sgnAutoCompressUpTo n Compress.naiveModes)) *)
     (* Syntax.size_term (Option.valOf(#o_def (Compress.sgnLookup n))) *)

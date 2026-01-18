@@ -25,42 +25,42 @@ module Weaken(Weaken:sig
     (*! sharing Whnf.IntSyn = IntSyn' !*)
     (*! structure IntSyn = IntSyn' !*)
     module I = IntSyn
-    let rec strengthenExp (U, s) =
-      Whnf.normalize ((Whnf.cloInv (U, s)), I.id)
-    let rec strengthenDec (Dec (name, V), s) =
-      I.Dec (name, (strengthenExp (V, s)))
+    let rec strengthenExp (__u, s) =
+      Whnf.normalize ((Whnf.cloInv (__u, s)), I.id)
+    let rec strengthenDec (Dec (name, __v), s) =
+      I.Dec (name, (strengthenExp (__v, s)))
     let rec strengthenCtx =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = strengthenCtx (G, s) in
-          ((I.Decl (G', (strengthenDec (D, s')))), (I.dot1 s'))
+      | (Decl (__g, __d), s) ->
+          let (__g', s') = strengthenCtx (__g, s) in
+          ((I.Decl (__g', (strengthenDec (__d, s')))), (I.dot1 s'))
     let rec strengthenSub (s, t) = Whnf.compInv (s, t)
     let rec strengthenSpine =
       function
       | (I.Nil, t) -> I.Nil
-      | (App (U, S), t) ->
-          I.App ((strengthenExp (U, t)), (strengthenSpine (S, t)))
-    (* strengthenExp (U, s) = U'
+      | (App (__u, S), t) ->
+          I.App ((strengthenExp (__u, t)), (strengthenSpine (S, t)))
+    (* strengthenExp (__u, s) = __u'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- U : V
-       then G' |- U' = U[s^-1] : V [s^-1]
+       If   __g |- s : __g'
+       and  __g |- __u : __v
+       then __g' |- __u' = __u[s^-1] : __v [s^-1]
     *)
-    (* strengthenDec (x:V, s) = x:V'
+    (* strengthenDec (x:__v, s) = x:__v'
 
        Invariant:
-       If   G |- s : G'
-       and  G |- V : L
-       then G' |- V' = V[s^-1] : L
+       If   __g |- s : __g'
+       and  __g |- __v : __l
+       then __g' |- __v' = __v[s^-1] : __l
     *)
-    (* strengthenCtx (G, s) = (G', s')
+    (* strengthenCtx (__g, s) = (__g', s')
 
-       If   G0 |- G ctx
+       If   G0 |- __g ctx
        and  G0 |- s G1
-       then G1 |- G' = G[s^-1] ctx
-       and  G0 |- s' : G1, G'
+       then G1 |- __g' = __g[s^-1] ctx
+       and  G0 |- s' : G1, __g'
     *)
     let strengthenExp = strengthenExp
     let strengthenSpine = strengthenSpine

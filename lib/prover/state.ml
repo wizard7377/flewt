@@ -33,7 +33,7 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       | State of (Tomega.__Worlds * Tomega.__Dec IntSyn.__Ctx * Tomega.__Prg
       * Tomega.__For) 
       | StateLF of IntSyn.__Exp 
-    (* StateLF X, X is always lowered *)
+    (* StateLF x, x is always lowered *)
     type __Focus =
       | Focus of (Tomega.__Prg * Tomega.__Worlds) 
       | FocusLF of IntSyn.__Exp 
@@ -51,16 +51,16 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       | Choose (P) -> findPrg P
       | PairExp (_, P) -> findPrg P
       | PairBlock (B, P) -> findPrg P
-      | PairPrg (P1, P2) -> (@) (findPrg P1) findPrg P2
+      | PairPrg (__P1, __P2) -> (@) (findPrg __P1) findPrg __P2
       | T.Unit -> []
       | Rec (_, P) -> findPrg P
       | Case (Cases (C)) -> findCases C
       | PClo (P, t) -> (@) (findPrg P) findSub t
-      | Let (D, P1, P2) -> (@) (findPrg P1) findPrg P2
-      | LetPairExp (D1, D2, P1, P2) -> (@) (findPrg P1) findPrg P2
-      | LetUnit (P1, P2) -> (@) (findPrg P1) findPrg P2
-      | EVar (_, ref (NONE), _, _, _, _) as X -> [X]
-      | EVar (_, ref (SOME (P)), _, _, _, _) as X -> findPrg P
+      | Let (__d, __P1, __P2) -> (@) (findPrg __P1) findPrg __P2
+      | LetPairExp (D1, D2, __P1, __P2) -> (@) (findPrg __P1) findPrg __P2
+      | LetUnit (__P1, __P2) -> (@) (findPrg __P1) findPrg __P2
+      | EVar (_, ref (None), _, _, _, _) as x -> [x]
+      | EVar (_, ref (Some (P)), _, _, _, _) as x -> findPrg P
       | Const _ -> []
       | Var _ -> []
       | Redex (P, S) -> (@) (findPrg P) findSpine S
@@ -83,27 +83,27 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       | AppBlock (_, S) -> findSpine S
     let rec findExp arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | ((Psi, Lam (D, P)), K) -> findExp ((I.Decl (Psi, D)), P) K
+      | ((Psi, Lam (__d, P)), K) -> findExp ((I.Decl (Psi, __d)), P) K
       | ((Psi, New (P)), K) -> findExp (Psi, P) K
       | ((Psi, Choose (P)), K) -> findExp (Psi, P) K
       | ((Psi, PairExp (M, P)), K) ->
           findExp (Psi, P)
             (Abstract.collectEVars ((T.coerceCtx Psi), (M, I.id), K))
       | ((Psi, PairBlock (B, P)), K) -> findExp (Psi, P) K
-      | ((Psi, PairPrg (P1, P2)), K) ->
-          findExp (Psi, P2) (findExp (Psi, P1) K)
+      | ((Psi, PairPrg (__P1, __P2)), K) ->
+          findExp (Psi, __P2) (findExp (Psi, __P1) K)
       | ((Psi, T.Unit), K) -> K
-      | ((Psi, Rec (D, P)), K) -> findExp (Psi, P) K
+      | ((Psi, Rec (__d, P)), K) -> findExp (Psi, P) K
       | ((Psi, Case (Cases (C))), K) -> findExpCases (Psi, C) K
       | ((Psi, PClo (P, t)), K) -> findExpSub (Psi, t) (findExp (Psi, P) K)
-      | ((Psi, Let (D, P1, P2)), K) ->
-          findExp ((I.Decl (Psi, D)), P2) (findExp (Psi, P1) K)
-      | ((Psi, LetPairExp (D1, D2, P1, P2)), K) ->
-          findExp ((I.Decl ((I.Decl (Psi, (T.UDec D1))), D2)), P2)
-            (findExp (Psi, P1) K)
-      | ((Psi, LetUnit (P1, P2)), K) ->
-          findExp (Psi, P2) (findExp (Psi, P1) K)
-      | ((Psi, (EVar _ as X)), K) -> K
+      | ((Psi, Let (__d, __P1, __P2)), K) ->
+          findExp ((I.Decl (Psi, __d)), __P2) (findExp (Psi, __P1) K)
+      | ((Psi, LetPairExp (D1, D2, __P1, __P2)), K) ->
+          findExp ((I.Decl ((I.Decl (Psi, (T.UDec D1))), D2)), __P2)
+            (findExp (Psi, __P1) K)
+      | ((Psi, LetUnit (__P1, __P2)), K) ->
+          findExp (Psi, __P2) (findExp (Psi, __P1) K)
+      | ((Psi, (EVar _ as x)), K) -> K
       | ((Psi, Const _), K) -> K
       | ((Psi, Var _), K) -> K
       | ((Psi, Redex (P, S)), K) -> findExpSpine (Psi, S) K
@@ -134,7 +134,7 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       | ((Psi, Block _), K) -> K
       | ((Psi, T.Undef), K) -> K
     let rec init (F, W) =
-      let X = T.newEVar (I.Null, F) in State (W, I.Null, X, F)
+      let x = T.newEVar (I.Null, F) in State (W, I.Null, x, F)
     let rec close (State (W, _, P, _)) =
       match ((findPrg P), (findExp (I.Null, P) [])) with
       | (nil, nil) -> true__

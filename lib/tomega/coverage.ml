@@ -43,9 +43,9 @@ module TomegaCoverage(TomegaCoverage:sig
     let rec purifyFor =
       function
       | ((T.Unit, t), (Psi, T.True), s) -> (t, Psi, s)
-      | ((PairExp (U, P), t), (Psi, Ex ((D, _), F)), s) ->
+      | ((PairExp (__u, P), t), (Psi, Ex ((__d, _), F)), s) ->
           purifyFor
-            ((P, (T.Dot ((T.Exp U), t))), ((I.Decl (Psi, (T.UDec D))), F),
+            ((P, (T.Dot ((T.Exp __u), t))), ((I.Decl (Psi, (T.UDec __d))), F),
               (T.comp (s, T.shift)))
     let rec purifyCtx =
       function
@@ -67,57 +67,57 @@ module TomegaCoverage(TomegaCoverage:sig
           let (t'', Psi'', s'') =
             purifyFor ((P, t'), (Psi', (T.forSub (F, s'))), s') in
           (t'', Psi'', (T.Dot (T.Undef, s'')))
-      | (Dot (F, t), Decl (Psi, UDec (D))) ->
+      | (Dot (F, t), Decl (Psi, UDec (__d))) ->
           let (t', Psi', s') = purifyCtx (t, Psi) in
           ((T.Dot (F, t')),
-            (I.Decl (Psi', (T.UDec (I.decSub (D, (T.coerceSub s')))))),
+            (I.Decl (Psi', (T.UDec (I.decSub (__d, (T.coerceSub s')))))),
             (T.dot1 s'))
     let rec purify (Psi0, t, Psi) =
       let (t', Psi', s') = purifyCtx (t, Psi) in
       let _ = TomegaTypeCheck.checkSub (Psi0, t', Psi') in (Psi0, t', Psi')
     let rec coverageCheckPrg =
       function
-      | (W, Psi, Lam (D, P)) -> coverageCheckPrg (W, (I.Decl (Psi, D)), P)
+      | (W, Psi, Lam (__d, P)) -> coverageCheckPrg (W, (I.Decl (Psi, __d)), P)
       | (W, Psi, New (P)) -> coverageCheckPrg (W, Psi, P)
-      | (W, Psi, PairExp (U, P)) -> coverageCheckPrg (W, Psi, P)
+      | (W, Psi, PairExp (__u, P)) -> coverageCheckPrg (W, Psi, P)
       | (W, Psi, PairBlock (B, P)) -> coverageCheckPrg (W, Psi, P)
-      | (W, Psi, PairPrg (P1, P2)) ->
-          (coverageCheckPrg (W, Psi, P1); coverageCheckPrg (W, Psi, P2))
+      | (W, Psi, PairPrg (__P1, __P2)) ->
+          (coverageCheckPrg (W, Psi, __P1); coverageCheckPrg (W, Psi, __P2))
       | (W, Psi, T.Unit) -> ()
       | (W, Psi, Var _) -> ()
       | (W, Psi, Const _) -> ()
-      | (W, Psi, Rec (D, P)) -> coverageCheckPrg (W, (I.Decl (Psi, D)), P)
+      | (W, Psi, Rec (__d, P)) -> coverageCheckPrg (W, (I.Decl (Psi, __d)), P)
       | (W, Psi, Case (Cases (Omega))) ->
           coverageCheckCases (W, Psi, Omega, nil)
-      | (W, Psi, (Let (D, P1, P2) as P)) ->
-          (coverageCheckPrg (W, Psi, P1);
-           coverageCheckPrg (W, (I.Decl (Psi, D)), P2))
+      | (W, Psi, (Let (__d, __P1, __P2) as P)) ->
+          (coverageCheckPrg (W, Psi, __P1);
+           coverageCheckPrg (W, (I.Decl (Psi, __d)), __P2))
       | (W, Psi, Redex (P, S)) -> coverageCheckSpine (W, Psi, S)
     let rec coverageCheckSpine =
       function
       | (W, Psi, T.Nil) -> ()
-      | (W, Psi, AppExp (U, S)) -> coverageCheckSpine (W, Psi, S)
+      | (W, Psi, AppExp (__u, S)) -> coverageCheckSpine (W, Psi, S)
       | (W, Psi, AppBlock (B, S)) -> coverageCheckSpine (W, Psi, S)
       | (W, Psi, AppPrg (P, S)) ->
           (coverageCheckPrg (W, Psi, P); coverageCheckSpine (W, Psi, S))
     let rec coverageCheckCases =
       function
       | (W, Psi, nil, nil) -> ()
-      | (W, Psi, nil, Cs) ->
+      | (W, Psi, nil, __Cs) ->
           let _ =
             chatter 5
               (function
                | () ->
-                   (Int.toString (List.length Cs)) ^ " cases to be checked\n") in
-          let (_, _, Psi')::_ as Cs' = map purify Cs in
-          let Cs'' =
+                   (Int.toString (List.length __Cs)) ^ " cases to be checked\n") in
+          let (_, _, Psi')::_ as __Cs' = map purify __Cs in
+          let __Cs'' =
             map
               (function
-               | (Psi0, t, _) -> ((T.coerceCtx Psi0), (T.coerceSub t))) Cs' in
-          Cover.coverageCheckCases (W, Cs'', (T.coerceCtx Psi'))
-      | (W, Psi, (Psi', t, P)::Omega, Cs) ->
+               | (Psi0, t, _) -> ((T.coerceCtx Psi0), (T.coerceSub t))) __Cs' in
+          Cover.coverageCheckCases (W, __Cs'', (T.coerceCtx Psi'))
+      | (W, Psi, (Psi', t, P)::Omega, __Cs) ->
           (coverageCheckPrg (W, Psi', P);
-           coverageCheckCases (W, Psi, Omega, ((Psi', t, Psi) :: Cs)))
+           coverageCheckCases (W, Psi, Omega, ((Psi', t, Psi) :: __Cs)))
     (* chatter chlev f = ()
 
        Invariant:

@@ -9,7 +9,7 @@ module type FUNSYN  =
     type nonrec lemma = int
     type __LabelDec =
       | LabelDec of (string * IntSyn.__Dec list * IntSyn.__Dec list) 
-    (* BB ::= l: SOME Theta. Phi  *)
+    (* BB ::= l: Some Theta. Phi  *)
     type __CtxBlock =
       | CtxBlock of (label option * IntSyn.dctx) 
     (* B ::= l : Phi              *)
@@ -25,7 +25,7 @@ module type FUNSYN  =
       | Ex of (IntSyn.__Dec * __For) 
       | True 
       | And of (__For * __For) 
-    (*     | F1 ^ F2              *)
+    (*     | __F1 ^ __F2              *)
     type __Pro =
       | Lam of (__LFDec * __Pro) 
       | Inx of (IntSyn.__Exp * __Pro) 
@@ -47,10 +47,10 @@ module type FUNSYN  =
       | Lemma of (lemma * __Decs) 
       | Left of (int * __Decs) 
       | Right of (int * __Decs) 
-    (*      | xx = pi2 yy, Ds     *)
+    (*      | xx = pi2 yy, __Ds     *)
     type __LemmaDec =
       | LemmaDec of (string list * __Pro * __For) 
-    (* L ::= c:F = P              *)
+    (* __l ::= c:F = P              *)
     (* ??? *)
     type nonrec mctx = __MDec IntSyn.__Ctx
     (* Delta ::= . | Delta, xx : F*)
@@ -164,92 +164,92 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
     let rec listToCtx (Gin) =
       let rec listToCtx' =
         function
-        | (G, nil) -> G
-        | (G, (D)::Ds) -> listToCtx' ((I.Decl (G, D)), Ds) in
+        | (__g, nil) -> __g
+        | (__g, (__d)::__Ds) -> listToCtx' ((I.Decl (__g, __d)), __Ds) in
       listToCtx' (I.Null, Gin)
     let rec ctxToList (Gin) =
       let rec ctxToList' =
         function
-        | (I.Null, G) -> G
-        | (Decl (G, D), G') -> ctxToList' (G, (D :: G')) in
+        | (I.Null, __g) -> __g
+        | (Decl (__g, __d), __g') -> ctxToList' (__g, (__d :: __g')) in
       ctxToList' (Gin, nil)
     let rec union =
       function
-      | (G, I.Null) -> G
-      | (G, Decl (G', D)) -> I.Decl ((union (G, G')), D)
+      | (__g, I.Null) -> __g
+      | (__g, Decl (__g', __d)) -> I.Decl ((union (__g, __g')), __d)
     let rec makectx =
       function
       | I.Null -> I.Null
-      | Decl (G, Prim (D)) -> I.Decl ((makectx G), D)
-      | Decl (G, Block (CtxBlock (l, G'))) -> union ((makectx G), G')
+      | Decl (__g, Prim (__d)) -> I.Decl ((makectx __g), __d)
+      | Decl (__g, Block (CtxBlock (l, __g'))) -> union ((makectx __g), __g')
     let rec lfctxLength =
       function
       | I.Null -> 0
       | Decl (Psi, Prim _) -> (lfctxLength Psi) + 1
-      | Decl (Psi, Block (CtxBlock (_, G))) ->
-          (lfctxLength Psi) + (I.ctxLength G)
+      | Decl (Psi, Block (CtxBlock (_, __g))) ->
+          (lfctxLength Psi) + (I.ctxLength __g)
     let rec lfctxLFDec (Psi, k) =
       let rec lfctxLFDec' =
         function
-        | (Decl (Psi', (Prim (Dec (x, V')) as LD)), 1) -> (LD, (I.Shift k))
+        | (Decl (Psi', (Prim (Dec (x, __v')) as LD)), 1) -> (LD, (I.Shift k))
         | (Decl (Psi', Prim _), k') -> lfctxLFDec' (Psi', (k' - 1))
-        | (Decl (Psi', (Block (CtxBlock (_, G)) as LD)), k') ->
-            let l = I.ctxLength G in
+        | (Decl (Psi', (Block (CtxBlock (_, __g)) as LD)), k') ->
+            let l = I.ctxLength __g in
             if k' <= l
             then (LD, (I.Shift ((k - k') + 1)))
             else lfctxLFDec' (Psi', (k' - l)) in
       lfctxLFDec' (Psi, k)
     let rec dot1n =
-      function | (I.Null, s) -> s | (Decl (G, _), s) -> I.dot1 (dot1n (G, s))
+      function | (I.Null, s) -> s | (Decl (__g, _), s) -> I.dot1 (dot1n (__g, s))
     let rec convFor =
       function
       | ((True, _), (True, _)) -> true__
-      | ((All (Prim (D1), F1), s1), (All (Prim (D2), F2), s2)) ->
+      | ((All (Prim (D1), __F1), s1), (All (Prim (D2), __F2), s2)) ->
           (Conv.convDec ((D1, s1), (D2, s2))) &&
-            (convFor ((F1, (I.dot1 s1)), (F2, (I.dot1 s2))))
-      | ((All (Block (CtxBlock (_, G1)), F1), s1),
-         (All (Block (CtxBlock (_, G2)), F2), s2)) ->
-          convForBlock (((ctxToList G1), F1, s1), ((ctxToList G1), F2, s2))
-      | ((Ex (D1, F1), s1), (Ex (D2, F2), s2)) ->
+            (convFor ((__F1, (I.dot1 s1)), (__F2, (I.dot1 s2))))
+      | ((All (Block (CtxBlock (_, G1)), __F1), s1),
+         (All (Block (CtxBlock (_, G2)), __F2), s2)) ->
+          convForBlock (((ctxToList G1), __F1, s1), ((ctxToList G1), __F2, s2))
+      | ((Ex (D1, __F1), s1), (Ex (D2, __F2), s2)) ->
           (Conv.convDec ((D1, s1), (D2, s2))) &&
-            (convFor ((F1, (I.dot1 s1)), (F2, (I.dot1 s2))))
-      | ((And (F1, F1'), s1), (And (F2, F2'), s2)) ->
-          (convFor ((F1, s1), (F2, s2))) && (convFor ((F1', s1), (F2', s2)))
+            (convFor ((__F1, (I.dot1 s1)), (__F2, (I.dot1 s2))))
+      | ((And (__F1, __F1'), s1), (And (__F2, __F2'), s2)) ->
+          (convFor ((__F1, s1), (__F2, s2))) && (convFor ((__F1', s1), (__F2', s2)))
       | _ -> false__
     let rec convForBlock =
       function
-      | ((nil, F1, s1), (nil, F2, s2)) -> convFor ((F1, s1), (F2, s2))
-      | (((D1)::G1, F1, s1), ((D2)::G2, F2, s2)) ->
+      | ((nil, __F1, s1), (nil, __F2, s2)) -> convFor ((__F1, s1), (__F2, s2))
+      | (((D1)::G1, __F1, s1), ((D2)::G2, __F2, s2)) ->
           (Conv.convDec ((D1, s1), (D2, s2))) &&
-            (convForBlock ((G1, F1, (I.dot1 s1)), (G2, F2, (I.dot1 s2))))
+            (convForBlock ((G1, __F1, (I.dot1 s1)), (G2, __F2, (I.dot1 s2))))
       | _ -> false__
     let rec ctxSub =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = ctxSub (G, s) in
-          ((I.Decl (G', (I.decSub (D, s')))), (I.dot1 s))
+      | (Decl (__g, __d), s) ->
+          let (__g', s') = ctxSub (__g, s) in
+          ((I.Decl (__g', (I.decSub (__d, s')))), (I.dot1 s))
     let rec forSub =
       function
-      | (All (Prim (D), F), s) ->
-          All ((Prim (I.decSub (D, s))), (forSub (F, (I.dot1 s))))
-      | (All (Block (CtxBlock (name, G)), F), s) ->
-          let (G', s') = ctxSub (G, s) in
-          All ((Block (CtxBlock (name, G'))), (forSub (F, s')))
-      | (Ex (D, F), s) -> Ex ((I.decSub (D, s)), (forSub (F, (I.dot1 s))))
+      | (All (Prim (__d), F), s) ->
+          All ((Prim (I.decSub (__d, s))), (forSub (F, (I.dot1 s))))
+      | (All (Block (CtxBlock (name, __g)), F), s) ->
+          let (__g', s') = ctxSub (__g, s) in
+          All ((Block (CtxBlock (name, __g'))), (forSub (F, s')))
+      | (Ex (__d, F), s) -> Ex ((I.decSub (__d, s)), (forSub (F, (I.dot1 s))))
       | (True, s) -> True
-      | (And (F1, F2), s) -> And ((forSub (F1, s)), (forSub (F2, s)))
+      | (And (__F1, __F2), s) -> And ((forSub (__F1, s)), (forSub (__F2, s)))
     let rec mdecSub (MDec (name, F), s) = MDec (name, (forSub (F, s)))
     let rec normalizeFor =
       function
-      | (All (Prim (D), F), s) ->
+      | (All (Prim (__d), F), s) ->
           All
-            ((Prim (Whnf.normalizeDec (D, s))),
+            ((Prim (Whnf.normalizeDec (__d, s))),
               (normalizeFor (F, (I.dot1 s))))
-      | (Ex (D, F), s) ->
-          Ex ((Whnf.normalizeDec (D, s)), (normalizeFor (F, (I.dot1 s))))
-      | (And (F1, F2), s) ->
-          And ((normalizeFor (F1, s)), (normalizeFor (F2, s)))
+      | (Ex (__d, F), s) ->
+          Ex ((Whnf.normalizeDec (__d, s)), (normalizeFor (F, (I.dot1 s))))
+      | (And (__F1, __F2), s) ->
+          And ((normalizeFor (__F1, s)), (normalizeFor (__F2, s)))
       | (True, _) -> True
     let labelLookup = labelLookup
     let labelAdd = labelAdd
@@ -276,7 +276,7 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
 (*! sharing Conv.IntSyn = IntSyn' !*)
 (*! structure IntSyn = IntSyn' !*)
 (* ContextBody                *)
-(* BB ::= l: SOME Theta. Phi  *)
+(* BB ::= l: Some Theta. Phi  *)
 (* ContextBlocks              *)
 (* B ::= l : Phi              *)
 (* Contexts                   *)
@@ -287,41 +287,41 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
 (* F ::= All LD. F            *)
 (*     | Ex  D. F             *)
 (*     | T                    *)
-(*     | F1 ^ F2              *)
+(*     | __F1 ^ __F2              *)
 (* Programs                   *)
 (* P ::= lam LD. P            *)
 (*     | <M, P>               *)
 (*     | <>                   *)
 (*     | mu xx. P             *)
-(*     | let Ds in P          *)
+(*     | let __Ds in P          *)
 (*     | case O               *)
-(*     | <P1, P2>             *)
+(*     | <__P1, __P2>             *)
 (* Option list                *)
 (* O ::= (Psi' |> s |-> P     *)
 (* Meta Declaration:          *)
 (* DD ::= xx : F              *)
 (* Declarations               *)
-(* Ds ::= .                   *)
-(*      | <x, yy> = P, Ds     *)
-(*      | nu B. Ds            *)
-(*      | xx = yy M, Ds       *)
-(*      | xx = yy Phi, Ds     *)
-(*      | xx = cc, Ds         *)
-(*      | xx = pi1 yy, Ds     *)
-(*      | xx = pi2 yy, Ds     *)
+(* __Ds ::= .                   *)
+(*      | <x, yy> = P, __Ds     *)
+(*      | nu B. __Ds            *)
+(*      | xx = yy M, __Ds       *)
+(*      | xx = yy Phi, __Ds     *)
+(*      | xx = cc, __Ds         *)
+(*      | xx = pi1 yy, __Ds     *)
+(*      | xx = pi2 yy, __Ds     *)
 (* Lemmas                     *)
-(* L ::= c:F = P              *)
+(* __l ::= c:F = P              *)
 (* Delta ::= . | Delta, xx : F*)
 (* hack!!! improve !!!! *)
-(* union (G, G') = G''
+(* union (__g, __g') = __g''
 
        Invariant:
-       G'' = G, G'
+       __g'' = __g, __g'
     *)
-(* makectx Psi = G
+(* makectx Psi = __g
 
        Invariant:
-       G is Psi, where the Prim/Block information is discarded.
+       __g is Psi, where the Prim/Block information is discarded.
     *)
 (* lfctxDec (Psi, k) = (LD', w')
        Invariant:
@@ -330,28 +330,28 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
        then    Psi |- k = LD or Psi |- k in LD  (if LD is a contextblock
        then    LD' = LD
        and     Psi |- w' : Psi1, LD\1   (w' is a weakening substitution)
-       and     LD\1 is LD if LD is prim, and LD\1 = x:A if LD = G, x:A
+       and     LD\1 is LD if LD is prim, and LD\1 = x:A if LD = __g, x:A
    *)
 (* lfctxDec' (Null, k')  should not occur by invariant *)
-(* dot1n (G, s) = s'
+(* dot1n (__g, s) = s'
 
        Invariant:
        If   G1 |- s : G2
-       then G1, G |- s' : G2, G
+       then G1, __g |- s' : G2, __g
        where s' = 1.(1.  ...     s) o ^ ) o ^
-                        |G|-times
+                        |__g|-times
     *)
-(* conv ((F1, s1), (F2, s2)) = B
+(* conv ((__F1, s1), (__F2, s2)) = B
 
        Invariant:
-       If   G |- s1 : G1
-       and  G1 |- F1 : formula
-       and  G |- s2 : G2
-       and  G2 |- F2 : formula
-       and  (F1, F2 do not contain abstraction over contextblocks )
-       then B holds iff G |- F1[s1] = F2[s2] formula
+       If   __g |- s1 : G1
+       and  G1 |- __F1 : formula
+       and  __g |- s2 : G2
+       and  G2 |- __F2 : formula
+       and  (__F1, __F2 do not contain abstraction over contextblocks )
+       then B holds iff __g |- __F1[s1] = __F2[s2] formula
     *)
-(* SOME l1 *) (* SOME l2 *)
+(* Some l1 *) (* Some l2 *)
 (* l1 = l2 andalso *)
 (* omission! check that the block numbers are the same!!!! *)
 (* functor FunSyn *)

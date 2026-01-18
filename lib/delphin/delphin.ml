@@ -41,13 +41,13 @@ module Delphin(Delphin:sig
       let _ = chatter 4 (function | () -> "]\n[Translation ...") in
       let P = Trans.transDecs EDs in
       let _ = chatter 4 (function | () -> "]\n[Externalization ...") in
-      let P' = Trans.externalizePrg P in
+      let __P' = Trans.externalizePrg P in
       let _ = chatter 4 (function | () -> "]\n") in
       let _ = chatter 4 (function | () -> "[Operational Semantics ...") in
-      let V = Opsem.topLevel P' in
+      let __v = Opsem.topLevel __P' in
       let _ = chatter 4 (function | () -> "]\n") in
       let _ = chatter 1 (function | () -> ("[Closing file " ^ s2) ^ "]\n") in
-      V
+      __v
     let rec top () = loop ()
     let rec loop () =
       let _ = print prompt in let Ast (ED) = Parse.sparse () in loop ()
@@ -94,28 +94,28 @@ module Delphin(Delphin:sig
                          La), projs), P))
                    ^ "\n") in
             ((Tomega.lemmaDef (hd sels)), F) in
-      let rec checkDec (u, (UDec (Dec (_, V)) as D)) =
-        print "$"; TypeCheck.typeCheck (I.Null, (u, V)) in
+      let rec checkDec (u, (UDec (Dec (_, __v)) as __d)) =
+        print "$"; TypeCheck.typeCheck (I.Null, (u, __v)) in
       let rec makeSpine =
         function
         | ([], F) -> (T.Nil, F)
-        | (x::L, (And (F1, F2) as F')) ->
-            let (S', F') =
+        | (x::__l, (And (__F1, __F2) as __F')) ->
+            let (S', __F') =
               makeSpine
-                (L,
+                (__l,
                   (T.forSub
-                     (F',
+                     (__F',
                        (T.Dot ((T.Exp (I.Root ((I.Def x), I.Nil))), T.id))))) in
-            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), F')
-        | (x::L, All ((D, _), F')) ->
-            let _ = checkDec ((I.Root ((I.Def x), I.Nil)), D) in
-            let (S', F') =
+            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), __F')
+        | (x::__l, All ((__d, _), __F')) ->
+            let _ = checkDec ((I.Root ((I.Def x), I.Nil)), __d) in
+            let (S', __F') =
               makeSpine
-                (L,
+                (__l,
                   (T.forSub
-                     (F',
+                     (__F',
                        (T.Dot ((T.Exp (I.Root ((I.Def x), I.Nil))), T.id))))) in
-            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), F') in
+            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), __F') in
       let _ = Twelf.make sourcesFile in
       let (P, F) = test funcList in
       let _ = print ((TomegaPrint.forToString (I.Null, F)) ^ "\n") in
@@ -124,19 +124,19 @@ module Delphin(Delphin:sig
           (function
            | a -> valOf (Names.constLookup (valOf (Names.stringToQid a))))
           args in
-      let (S', F') = makeSpine (xs, F) in
-      let P' = T.Redex (P, S') in
-      let _ = TomegaTypeCheck.checkPrg (I.Null, (P', F')) in
-      let result = Opsem.evalPrg P' in
+      let (S', __F') = makeSpine (xs, F) in
+      let __P' = T.Redex (P, S') in
+      let _ = TomegaTypeCheck.checkPrg (I.Null, (__P', __F')) in
+      let result = Opsem.evalPrg __P' in
       let _ = TextIO.print "\n\nEOC\n\n" in
       let _ = TextIO.print (TomegaPrint.prgToString (I.Null, result)) in
       let _ = TextIO.print "\n" in ()
-    let rec eval (P) = let V = Opsem.evalPrg P in V
+    let rec eval (P) = let __v = Opsem.evalPrg P in __v
     (* Added by ABP - Temporary to run tests *)
     (*      val _ = print "* Type reconstruction done\n" *)
-    (*      val _ = raise What P'
+    (*      val _ = raise What __P'
         val _ = print "* Externalization done\n" *)
-    (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (P', Tomega.True))
+    (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (__P', Tomega.True))
         val _ = print "* Typechecking done\n"
 *)
     (* was evalPrg --cs Mon Jun 30 12:09:21 2003*)
@@ -150,14 +150,14 @@ module Delphin(Delphin:sig
    *)
     (*           val P = Redundant.convert (Tomega.lemmaDef lemma) *)
     (* val P = Tomega.lemmaDef lemma *)
-    (*        | checkDec (u, D as PDec (_, T.All (D, F')))) = ???  *)
+    (*        | checkDec (u, __d as PDec (_, T.All (__d, __F')))) = ???  *)
     (*      val _ = TextIO.print ("\n" ^ TomegaPrint.funToString (([name], []), P) ^ "\n") *)
-    (*      val P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
+    (*      val __P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
 Nil))) else (T.Redex(P, T.AppExp (I.Root (I.Const x, I.Nil), T.Nil)))
 *)
     (*
         val _ = TextIO.print "\n"
-        val _ = TextIO.print (TomegaPrint.prgToString (I.Null, P'))
+        val _ = TextIO.print (TomegaPrint.prgToString (I.Null, __P'))
         val _ = TextIO.print "\n"
            *)
     (*  T.AppExp (I.Root (I.Def x, I.Nil), T.Nil) *)

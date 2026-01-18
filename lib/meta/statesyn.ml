@@ -88,19 +88,19 @@ module StateSyn(StateSyn:sig
     module I = IntSyn
     let rec orderSub =
       function
-      | (Arg ((U, s1), (V, s2)), s) ->
-          Arg ((U, (I.comp (s1, s))), (V, (I.comp (s2, s))))
-      | (Lex (Os), s) -> Lex (map (function | O -> orderSub (O, s)) Os)
-      | (Simul (Os), s) -> Simul (map (function | O -> orderSub (O, s)) Os)
+      | (Arg ((__u, s1), (__v, s2)), s) ->
+          Arg ((__u, (I.comp (s1, s))), (__v, (I.comp (s2, s))))
+      | (Lex (__Os), s) -> Lex (map (function | O -> orderSub (O, s)) __Os)
+      | (Simul (__Os), s) -> Simul (map (function | O -> orderSub (O, s)) __Os)
     let rec normalizeOrder =
       function
-      | Arg (Us, Vs) ->
-          Arg (((Whnf.normalize Us), I.id), ((Whnf.normalize Vs), I.id))
-      | Lex (Os) -> Lex (map normalizeOrder Os)
-      | Simul (Os) -> Simul (map normalizeOrder Os)
+      | Arg (__Us, __Vs) ->
+          Arg (((Whnf.normalize __Us), I.id), ((Whnf.normalize __Vs), I.id))
+      | Lex (__Os) -> Lex (map normalizeOrder __Os)
+      | Simul (__Os) -> Simul (map normalizeOrder __Os)
     let rec convOrder =
       function
-      | (Arg (Us1, _), Arg (Us2, _)) -> Conv.conv (Us1, Us2)
+      | (Arg (us1, _), Arg (us2, _)) -> Conv.conv (us1, us2)
       | (Lex (Os1), Lex (Os2)) -> convOrders (Os1, Os2)
       | (Simul (Os1), Simul (Os2)) -> convOrders (Os1, Os2)
     let rec convOrders =
@@ -117,26 +117,26 @@ module StateSyn(StateSyn:sig
     (* orderSub (O, s) = O'
 
        Invariant:
-       If   G' |- O order    and    G |- s : G'
-       then G |- O' order
-       and  G |- O' == O[s] order
+       If   __g' |- O order    and    __g |- s : __g'
+       then __g |- O' order
+       and  __g |- O' == O[s] order
     *)
     (* by invariant: no case for All and And *)
     (* normalizeOrder (O) = O'
 
        Invariant:
-       If   G |- O order
-       then G |- O' order
-       and  G |- O = O' order
+       If   __g |- O order
+       then __g |- O' order
+       and  __g |- O = O' order
        and  each sub term of O' is in normal form.
     *)
     (* by invariant: no case for All and And *)
     (* convOrder (O1, O2) = B'
 
        Invariant:
-       If   G |- O1 order
-       and  G |- O2 order
-       then B' holds iff G |- O1 == O2 order
+       If   __g |- O1 order
+       and  __g |- O2 order
+       then B' holds iff __g |- O1 == O2 order
     *)
     (* by invariant: no case for All and And *)
     (* decrease T = T'
@@ -150,9 +150,9 @@ module StateSyn(StateSyn:sig
     (* normalizeTag (T, s) = T'
 
        Invariant:
-       If   G |- T : tag
-            G' |- s : G
-       then G' |- T' = T[s] tag
+       If   __g |- T : tag
+            __g' |- s : __g
+       then __g' |- T' = T[s] tag
     *)
     let orderSub = orderSub
     let decrease = decrease

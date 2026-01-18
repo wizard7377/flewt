@@ -23,11 +23,11 @@ module Init(Init:sig
     module M = MetaSyn
     module I = IntSyn
     let rec init' cid =
-      let (V, _) = M.createAtomConst (I.Null, (I.Const cid)) in
+      let (__v, _) = M.createAtomConst (I.Null, (I.Const cid)) in
       MetaAbstract.abstract
         (M.State
            ((((^) "/" I.conDecName (I.sgnLookup cid)) ^ "/"),
-             (M.Prefix (I.Null, I.Null, I.Null)), V))
+             (M.Prefix (I.Null, I.Null, I.Null)), __v))
     let rec init cidList = map init' cidList
     (* init c = S'
 

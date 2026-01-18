@@ -84,7 +84,7 @@ module type SYNTAX  =
 
 module Syntax : SYNTAX =
   struct
-    module L = Lib
+    module __l = Lib
     type nonrec const = int
     type uni =
       | Type 
@@ -283,12 +283,12 @@ module Syntax : SYNTAX =
       | (ctx, Root ((Const c as con), S), (Arrow (tau1, tau2) as tau)) ->
           let S' = concat ((shift_spine' S), one) in
           (changed := true__;
-           long_exp (ctx, (Lam { var = NONE; body = (Root (con, S')) }), tau))
+           long_exp (ctx, (Lam { var = None; body = (Root (con, S')) }), tau))
       | (ctx, Root (BVar i, S), (Arrow (tau1, tau2) as tau)) ->
           let S' = concat ((shift_spine' S), one) in
           (changed := true__;
            long_exp
-             (ctx, (Lam { var = NONE; body = (Root ((BVar (i + 1)), S')) }),
+             (ctx, (Lam { var = None; body = (Root ((BVar (i + 1)), S')) }),
                tau))
       | (_, exp, skel) ->
           raise (Fail_exp_skel ("long_exp: bad case", exp, skel))

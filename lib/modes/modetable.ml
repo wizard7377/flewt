@@ -38,15 +38,15 @@ module ModeTable(ModeTable:sig
     let rec reset () = Table.clear modeSignature
     let rec modeLookup a =
       match Table.lookup modeSignature a with
-      | SOME (mS::_) -> SOME mS
-      | NONE -> NONE
+      | Some (mS::_) -> Some mS
+      | None -> None
     let rec mmodeLookup a =
-      match Table.lookup modeSignature a with | SOME mSs -> mSs | NONE -> nil
+      match Table.lookup modeSignature a with | Some mSs -> mSs | None -> nil
     let rec installMode (a, mS) = Table.insert modeSignature (a, [mS])
     let rec uninstallMode a =
       match modeLookup a with
-      | NONE -> false__
-      | SOME _ -> (Table.delete modeSignature a; true__)
+      | None -> false__
+      | Some _ -> (Table.delete modeSignature a; true__)
     let rec installMmode (a, mS) =
       let mSs = mmodeLookup a in Table.insert modeSignature (a, (mS :: mSs))
     (* reset () = ()

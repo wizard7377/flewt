@@ -68,89 +68,89 @@ module MTPRecursion(MTPRecursion:sig
     let rec closedCtx =
       function
       | I.Null -> ()
-      | Decl (G, D) ->
-          if Abstract.closedDec (G, (D, I.id))
+      | Decl (__g, __d) ->
+          if Abstract.closedDec (__g, (__d, I.id))
           then raise Domain
-          else closedCtx G
+          else closedCtx __g
     let rec spine =
       function
       | 0 -> I.Nil
       | n -> I.App ((I.Root ((I.BVar n), I.Nil)), (spine (n - 1)))
     let rec someEVars =
       function
-      | (G, nil, s) -> s
-      | (G, (Dec (_, V))::L, s) ->
+      | (__g, nil, s) -> s
+      | (__g, (Dec (_, __v))::__l, s) ->
           someEVars
-            (G, L, (I.Dot ((I.Exp (I.newEVar (G, (I.EClo (V, s))))), s)))
+            (__g, __l, (I.Dot ((I.Exp (I.newEVar (__g, (I.EClo (__v, s))))), s)))
     let rec ctxSub =
       function
       | (nil, s) -> nil
-      | ((D)::G, s) -> (::) (I.decSub (D, s)) ctxSub (G, (I.dot1 s))
+      | ((__d)::__g, s) -> (::) (I.decSub (__d, s)) ctxSub (__g, (I.dot1 s))
     let rec appendCtx =
       function
       | (GB1, T, nil) -> GB1
-      | ((G1, B1), T, (D)::G2) ->
-          appendCtx (((I.Decl (G1, D)), (I.Decl (B1, T))), T, G2)
+      | ((G1, B1), T, (__d)::G2) ->
+          appendCtx (((I.Decl (G1, __d)), (I.Decl (B1, T))), T, G2)
     let rec createCtx =
       function
-      | ((G, B), nil, s) -> ((G, B), s, ((function | AF -> AF)))
-      | ((G, B), n::ll, s) ->
+      | ((__g, B), nil, s) -> ((__g, B), s, ((function | AF -> AF)))
+      | ((__g, B), n::ll, s) ->
           let LabelDec (l, G1, G2) = F.labelLookup n in
-          let t = someEVars (G, G1, I.id) in
+          let t = someEVars (__g, G1, I.id) in
           let G2' = ctxSub (G2, t) in
-          let (G', B') = appendCtx ((G, B), (S.Parameter (SOME n)), G2') in
+          let (__g', B') = appendCtx ((__g, B), (S.Parameter (Some n)), G2') in
           let s' = I.comp (s, (I.Shift (List.length G2'))) in
-          let (GB'', s'', af'') = createCtx ((G', B'), ll, s') in
+          let (GB'', s'', af'') = createCtx ((__g', B'), ll, s') in
           (GB'', s'',
             ((function
-              | AF -> A.Block ((G, t, (List.length G1), G2'), (af'' AF)))))
+              | AF -> A.Block ((__g, t, (List.length G1), G2'), (af'' AF)))))
     let rec createEVars =
       function
-      | (G, I.Null) -> I.Shift (I.ctxLength G)
-      | (G, Decl (G0, Dec (_, V))) ->
-          let s = createEVars (G, G0) in
-          I.Dot ((I.Exp (I.newEVar (G, (I.EClo (V, s))))), s)
+      | (__g, I.Null) -> I.Shift (I.ctxLength __g)
+      | (__g, Decl (G0, Dec (_, __v))) ->
+          let s = createEVars (__g, G0) in
+          I.Dot ((I.Exp (I.newEVar (__g, (I.EClo (__v, s))))), s)
     let rec checkCtx =
       function
-      | (G, nil, (V2, s)) -> false__
-      | (G, (Dec (_, V1) as D)::G2, (V2, s)) ->
+      | (__g, nil, (V2, s)) -> false__
+      | (__g, (Dec (_, V1) as __d)::G2, (V2, s)) ->
           (CSManager.trail
-             (function | () -> Unify.unifiable (G, (V1, I.id), (V2, s))))
-            || (checkCtx ((I.Decl (G, D)), G2, (V2, (I.comp (s, I.shift)))))
-    let rec checkLabels ((G', B'), (V, s), ll, l) =
+             (function | () -> Unify.unifiable (__g, (V1, I.id), (V2, s))))
+            || (checkCtx ((I.Decl (__g, __d)), G2, (V2, (I.comp (s, I.shift)))))
+    let rec checkLabels ((__g', B'), (__v, s), ll, l) =
       if l < 0
-      then NONE
+      then None
       else
         (let LabelDec (name, G1, G2) = F.labelLookup l in
-         let s = someEVars (G', G1, I.id) in
+         let s = someEVars (__g', G1, I.id) in
          let G2' = ctxSub (G2, s) in
-         let t = someEVars (G', G1, I.id) in
+         let t = someEVars (__g', G1, I.id) in
          let G2' = ctxSub (G2, t) in
          if
            (not (List.exists (function | l' -> l = l') ll)) &&
-             (checkCtx (G', G2', (V, s)))
-         then SOME l
-         else checkLabels ((G', B'), (V, s), ll, (l - 1)))
+             (checkCtx (__g', G2', (__v, s)))
+         then Some l
+         else checkLabels ((__g', B'), (__v, s), ll, (l - 1)))
     let rec appendRL =
       function
-      | (nil, Ds) -> Ds
-      | ((Lemma (n, F) as L)::Ds1, Ds2) ->
-          let Ds' = appendRL (Ds1, Ds2) in
+      | (nil, __Ds) -> __Ds
+      | ((Lemma (n, F) as __l)::Ds1, Ds2) ->
+          let __Ds' = appendRL (Ds1, Ds2) in
           if
             List.exists
               (function
-               | Lemma (n', F') ->
-                   (n = n') && (F.convFor ((F, I.id), (F', I.id)))) Ds'
-          then Ds'
-          else L :: Ds'
+               | Lemma (n', __F') ->
+                   (n = n') && (F.convFor ((F, I.id), (__F', I.id)))) __Ds'
+          then __Ds'
+          else __l :: __Ds'
     let rec recursion
       ((nih, Gall, Fex, Oex), (ncurrent, (G0, B0), ll, Ocurrent, H, F)) =
-      let ((G', B'), s', af) = createCtx ((G0, B0), ll, I.id) in
-      let t' = createEVars (G', Gall) in
-      let AF = af (A.Head (G', (Fex, t'), (I.ctxLength Gall))) in
+      let ((__g', B'), s', af) = createCtx ((G0, B0), ll, I.id) in
+      let t' = createEVars (__g', Gall) in
+      let AF = af (A.Head (__g', (Fex, t'), (I.ctxLength Gall))) in
       let Oex' = S.orderSub (Oex, t') in
       let Ocurrent' = S.orderSub (Ocurrent, s') in
-      let rec sc (Ds) =
+      let rec sc (__Ds) =
         let Fnew = A.abstractApproxFor AF in
         if
           List.exists
@@ -158,289 +158,289 @@ module MTPRecursion(MTPRecursion:sig
              | (nhist, Fhist) ->
                  (nih = nhist) && (F.convFor ((Fnew, I.id), (Fhist, I.id))))
             H
-        then Ds
-        else (Lemma (nih, Fnew)) :: Ds in
-      let rec ac ((G', B'), Vs, Ds) =
-        match checkLabels ((G', B'), Vs, ll, ((F.labelSize ()) - 1)) with
-        | NONE -> Ds
-        | SOME l' ->
-            let Ds' =
+        then __Ds
+        else (Lemma (nih, Fnew)) :: __Ds in
+      let rec ac ((__g', B'), __Vs, __Ds) =
+        match checkLabels ((__g', B'), __Vs, ll, ((F.labelSize ()) - 1)) with
+        | None -> __Ds
+        | Some l' ->
+            let __Ds' =
               recursion
                 ((nih, Gall, Fex, Oex),
                   (ncurrent, (G0, B0), (l' :: ll), Ocurrent, H, F)) in
-            appendRL (Ds', Ds) in
+            appendRL (__Ds', __Ds) in
       if ncurrent < nih
-      then ordle ((G', B'), Oex', Ocurrent', sc, ac, nil)
-      else ordlt ((G', B'), Oex', Ocurrent', sc, ac, nil)
+      then ordle ((__g', B'), Oex', Ocurrent', sc, ac, nil)
+      else ordlt ((__g', B'), Oex', Ocurrent', sc, ac, nil)
     let rec set_parameter
-      (((G1, B1) as GB), (EVar (r, _, V, _) as X), k, sc, ac, Ds) =
+      (((G1, B1) as GB), (EVar (r, _, __v, _) as x), k, sc, ac, __Ds) =
       let rec set_parameter' =
         function
-        | ((I.Null, I.Null), _, Ds) -> Ds
-        | ((Decl (G, D), Decl (B, Parameter _)), k, Ds) ->
-            let Dec (_, V') as D' = I.decSub (D, (I.Shift k)) in
-            let Ds' =
+        | ((I.Null, I.Null), _, __Ds) -> __Ds
+        | ((Decl (__g, __d), Decl (B, Parameter _)), k, __Ds) ->
+            let Dec (_, __v') as __d' = I.decSub (__d, (I.Shift k)) in
+            let __Ds' =
               CSManager.trail
                 (function
                  | () ->
                      if
-                       (Unify.unifiable (G1, (V, I.id), (V', I.id))) &&
+                       (Unify.unifiable (G1, (__v, I.id), (__v', I.id))) &&
                          (Unify.unifiable
-                            (G1, (X, I.id),
+                            (G1, (x, I.id),
                               ((I.Root ((I.BVar k), I.Nil)), I.id)))
-                     then sc Ds
-                     else Ds) in
-            set_parameter' ((G, B), (k + 1), Ds')
-        | ((Decl (G, D), Decl (B, _)), k, Ds) ->
-            set_parameter' ((G, B), (k + 1), Ds) in
-      set_parameter' (GB, 1, Ds)
-    let rec ltinit (GB, k, (Us, Vs), UsVs', sc, ac, Ds) =
-      ltinitW (GB, k, (Whnf.whnfEta (Us, Vs)), UsVs', sc, ac, Ds)
+                     then sc __Ds
+                     else __Ds) in
+            set_parameter' ((__g, B), (k + 1), __Ds')
+        | ((Decl (__g, __d), Decl (B, _)), k, __Ds) ->
+            set_parameter' ((__g, B), (k + 1), __Ds) in
+      set_parameter' (GB, 1, __Ds)
+    let rec ltinit (GB, k, (__Us, __Vs), UsVs', sc, ac, __Ds) =
+      ltinitW (GB, k, (Whnf.whnfEta (__Us, __Vs)), UsVs', sc, ac, __Ds)
     let rec ltinitW =
       function
-      | (GB, k, (Us, ((Root _, _) as Vs)), UsVs', sc, ac, Ds) ->
-          lt (GB, k, (Us, Vs), UsVs', sc, ac, Ds)
-      | ((G, B), k, ((Lam (D1, U), s1), (Pi (D2, V), s2)),
-         ((U', s1'), (V', s2')), sc, ac, Ds) ->
+      | (GB, k, (__Us, ((Root _, _) as __Vs)), UsVs', sc, ac, __Ds) ->
+          lt (GB, k, (__Us, __Vs), UsVs', sc, ac, __Ds)
+      | ((__g, B), k, ((Lam (D1, __u), s1), (Pi (D2, __v), s2)),
+         ((__u', s1'), (__v', s2')), sc, ac, __Ds) ->
           ltinit
-            (((I.Decl (G, (I.decSub (D1, s1)))),
-               (I.Decl (B, (S.Parameter NONE)))), (k + 1),
-              ((U, (I.dot1 s1)), (V, (I.dot1 s2))),
-              ((U', (I.comp (s1', I.shift))), (V', (I.comp (s2', I.shift)))),
-              sc, ac, Ds)
-    let rec lt (GB, k, (Us, Vs), (Us', Vs'), sc, ac, Ds) =
-      ltW (GB, k, (Us, Vs), (Whnf.whnfEta (Us', Vs')), sc, ac, Ds)
+            (((I.Decl (__g, (I.decSub (D1, s1)))),
+               (I.Decl (B, (S.Parameter None)))), (k + 1),
+              ((__u, (I.dot1 s1)), (__v, (I.dot1 s2))),
+              ((__u', (I.comp (s1', I.shift))), (__v', (I.comp (s2', I.shift)))),
+              sc, ac, __Ds)
+    let rec lt (GB, k, (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds) =
+      ltW (GB, k, (__Us, __Vs), (Whnf.whnfEta (__Us', __Vs')), sc, ac, __Ds)
     let rec ltW =
       function
-      | (GB, k, (Us, Vs), ((Root (Const c, S'), s'), Vs'), sc, ac, Ds) ->
+      | (GB, k, (__Us, __Vs), ((Root (Const c, S'), s'), __Vs'), sc, ac, __Ds) ->
           ltSpine
-            (GB, k, (Us, Vs), ((S', s'), ((I.constType c), I.id)), sc, ac,
-              Ds)
-      | (((G, B) as GB), k, (Us, Vs), ((Root (BVar n, S'), s'), Vs'), sc, ac,
-         Ds) ->
+            (GB, k, (__Us, __Vs), ((S', s'), ((I.constType c), I.id)), sc, ac,
+              __Ds)
+      | (((__g, B) as GB), k, (__Us, __Vs), ((Root (BVar n, S'), s'), __Vs'), sc, ac,
+         __Ds) ->
           (match I.ctxLookup (B, n) with
            | Parameter _ ->
-               let Dec (_, V') = I.ctxDec (G, n) in
-               ltSpine (GB, k, (Us, Vs), ((S', s'), (V', I.id)), sc, ac, Ds)
-           | Lemma _ -> Ds)
-      | (GB, _, _, ((EVar _, _), _), _, _, Ds) -> Ds
-      | (((G, B) as GB), k, ((U, s1), (V, s2)),
-         ((Lam ((Dec (_, V1') as D), U'), s1'),
-          (Pi ((Dec (_, V2'), _), V'), s2')),
-         sc, ac, Ds) ->
-          let Ds' = Ds in
-          if Subordinate.equiv ((I.targetFam V), (I.targetFam V1'))
+               let Dec (_, __v') = I.ctxDec (__g, n) in
+               ltSpine (GB, k, (__Us, __Vs), ((S', s'), (__v', I.id)), sc, ac, __Ds)
+           | Lemma _ -> __Ds)
+      | (GB, _, _, ((EVar _, _), _), _, _, __Ds) -> __Ds
+      | (((__g, B) as GB), k, ((__u, s1), (__v, s2)),
+         ((Lam ((Dec (_, V1') as __d), __u'), s1'),
+          (Pi ((Dec (_, V2'), _), __v'), s2')),
+         sc, ac, __Ds) ->
+          let __Ds' = __Ds in
+          if Subordinate.equiv ((I.targetFam __v), (I.targetFam V1'))
           then
-            let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+            let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
             let sc' =
-              function | Ds'' -> set_parameter (GB, X, k, sc, ac, Ds'') in
+              function | __Ds'' -> set_parameter (GB, x, k, sc, ac, __Ds'') in
             lt
-              (GB, k, ((U, s1), (V, s2)),
-                ((U', (I.Dot ((I.Exp X), s1'))),
-                  (V', (I.Dot ((I.Exp X), s2')))), sc', ac, Ds')
+              (GB, k, ((__u, s1), (__v, s2)),
+                ((__u', (I.Dot ((I.Exp x), s1'))),
+                  (__v', (I.Dot ((I.Exp x), s2')))), sc', ac, __Ds')
           else
-            if Subordinate.below ((I.targetFam V1'), (I.targetFam V))
+            if Subordinate.below ((I.targetFam V1'), (I.targetFam __v))
             then
-              (let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+              (let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
                lt
-                 (GB, k, ((U, s1), (V, s2)),
-                   ((U', (I.Dot ((I.Exp X), s1'))),
-                     (V', (I.Dot ((I.Exp X), s2')))), sc, ac, Ds'))
-            else Ds'
-    let rec ltSpine (GB, k, (Us, Vs), (Ss', Vs'), sc, ac, Ds) =
-      ltSpineW (GB, k, (Us, Vs), (Ss', (Whnf.whnf Vs')), sc, ac, Ds)
+                 (GB, k, ((__u, s1), (__v, s2)),
+                   ((__u', (I.Dot ((I.Exp x), s1'))),
+                     (__v', (I.Dot ((I.Exp x), s2')))), sc, ac, __Ds'))
+            else __Ds'
+    let rec ltSpine (GB, k, (__Us, __Vs), (__Ss', __Vs'), sc, ac, __Ds) =
+      ltSpineW (GB, k, (__Us, __Vs), (__Ss', (Whnf.whnf __Vs')), sc, ac, __Ds)
     let rec ltSpineW =
       function
-      | (GB, k, (Us, Vs), ((I.Nil, _), _), _, _, Ds) -> Ds
-      | (GB, k, (Us, Vs), ((SClo (S, s'), s''), Vs'), sc, ac, Ds) ->
+      | (GB, k, (__Us, __Vs), ((I.Nil, _), _), _, _, __Ds) -> __Ds
+      | (GB, k, (__Us, __Vs), ((SClo (S, s'), s''), __Vs'), sc, ac, __Ds) ->
           ltSpineW
-            (GB, k, (Us, Vs), ((S, (I.comp (s', s''))), Vs'), sc, ac, Ds)
-      | (GB, k, (Us, Vs),
-         ((App (U', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc, ac,
-         Ds) ->
-          let Ds' = le (GB, k, (Us, Vs), ((U', s1'), (V1', s2')), sc, ac, Ds) in
+            (GB, k, (__Us, __Vs), ((S, (I.comp (s', s''))), __Vs'), sc, ac, __Ds)
+      | (GB, k, (__Us, __Vs),
+         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc, ac,
+         __Ds) ->
+          let __Ds' = le (GB, k, (__Us, __Vs), ((__u', s1'), (V1', s2')), sc, ac, __Ds) in
           ltSpine
-            (GB, k, (Us, Vs),
-              ((S', s1'), (V2', (I.Dot ((I.Exp (I.EClo (U', s1'))), s2')))),
-              sc, ac, Ds')
-    let rec eq ((G, B), (Us, Vs), (Us', Vs'), sc, ac, Ds) =
+            (GB, k, (__Us, __Vs),
+              ((S', s1'), (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))),
+              sc, ac, __Ds')
+    let rec eq ((__g, B), (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds) =
       CSManager.trail
         (function
          | () ->
              if
-               (Unify.unifiable (G, Vs, Vs')) &&
-                 (Unify.unifiable (G, Us, Us'))
-             then sc Ds
-             else Ds)
-    let rec le (GB, k, (Us, Vs), (Us', Vs'), sc, ac, Ds) =
-      let Ds' = eq (GB, (Us, Vs), (Us', Vs'), sc, ac, Ds) in
-      leW (GB, k, (Us, Vs), (Whnf.whnfEta (Us', Vs')), sc, ac, Ds')
+               (Unify.unifiable (__g, __Vs, __Vs')) &&
+                 (Unify.unifiable (__g, __Us, __Us'))
+             then sc __Ds
+             else __Ds)
+    let rec le (GB, k, (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds) =
+      let __Ds' = eq (GB, (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds) in
+      leW (GB, k, (__Us, __Vs), (Whnf.whnfEta (__Us', __Vs')), sc, ac, __Ds')
     let rec leW =
       function
-      | (((G, B) as GB), k, ((U, s1), (V, s2)),
-         ((Lam ((Dec (_, V1') as D), U'), s1'),
-          (Pi ((Dec (_, V2'), _), V'), s2')),
-         sc, ac, Ds) ->
-          let Ds' = ac (GB, (V1', s1'), Ds) in
-          if Subordinate.equiv ((I.targetFam V), (I.targetFam V1'))
+      | (((__g, B) as GB), k, ((__u, s1), (__v, s2)),
+         ((Lam ((Dec (_, V1') as __d), __u'), s1'),
+          (Pi ((Dec (_, V2'), _), __v'), s2')),
+         sc, ac, __Ds) ->
+          let __Ds' = ac (GB, (V1', s1'), __Ds) in
+          if Subordinate.equiv ((I.targetFam __v), (I.targetFam V1'))
           then
-            let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+            let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
             let sc' =
-              function | Ds'' -> set_parameter (GB, X, k, sc, ac, Ds'') in
+              function | __Ds'' -> set_parameter (GB, x, k, sc, ac, __Ds'') in
             le
-              (GB, k, ((U, s1), (V, s2)),
-                ((U', (I.Dot ((I.Exp X), s1'))),
-                  (V', (I.Dot ((I.Exp X), s2')))), sc', ac, Ds')
+              (GB, k, ((__u, s1), (__v, s2)),
+                ((__u', (I.Dot ((I.Exp x), s1'))),
+                  (__v', (I.Dot ((I.Exp x), s2')))), sc', ac, __Ds')
           else
-            if Subordinate.below ((I.targetFam V1'), (I.targetFam V))
+            if Subordinate.below ((I.targetFam V1'), (I.targetFam __v))
             then
-              (let X = I.newEVar (G, (I.EClo (V1', s1'))) in
+              (let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
                let sc' = sc in
-               let Ds'' =
+               let __Ds'' =
                  le
-                   (GB, k, ((U, s1), (V, s2)),
-                     ((U', (I.Dot ((I.Exp X), s1'))),
-                       (V', (I.Dot ((I.Exp X), s2')))), sc', ac, Ds') in
-               Ds'')
-            else Ds'
-      | (GB, k, (Us, Vs), (Us', Vs'), sc, ac, Ds) ->
-          lt (GB, k, (Us, Vs), (Us', Vs'), sc, ac, Ds)
+                   (GB, k, ((__u, s1), (__v, s2)),
+                     ((__u', (I.Dot ((I.Exp x), s1'))),
+                       (__v', (I.Dot ((I.Exp x), s2')))), sc', ac, __Ds') in
+               __Ds'')
+            else __Ds'
+      | (GB, k, (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds) ->
+          lt (GB, k, (__Us, __Vs), (__Us', __Vs'), sc, ac, __Ds)
     let rec ordlt =
       function
-      | (GB, Arg (UsVs), Arg (UsVs'), sc, ac, Ds) ->
-          ltinit (GB, 0, UsVs, UsVs', sc, ac, Ds)
-      | (GB, Lex (L), Lex (L'), sc, ac, Ds) ->
-          ordltLex (GB, L, L', sc, ac, Ds)
-      | (GB, Simul (L), Simul (L'), sc, ac, Ds) ->
-          ordltSimul (GB, L, L', sc, ac, Ds)
+      | (GB, Arg (UsVs), Arg (UsVs'), sc, ac, __Ds) ->
+          ltinit (GB, 0, UsVs, UsVs', sc, ac, __Ds)
+      | (GB, Lex (__l), Lex (__l'), sc, ac, __Ds) ->
+          ordltLex (GB, __l, __l', sc, ac, __Ds)
+      | (GB, Simul (__l), Simul (__l'), sc, ac, __Ds) ->
+          ordltSimul (GB, __l, __l', sc, ac, __Ds)
     let rec ordltLex =
       function
-      | (GB, nil, nil, sc, ac, Ds) -> Ds
-      | (GB, (O)::L, (O')::L', sc, ac, Ds) ->
-          let Ds' =
-            CSManager.trail (function | () -> ordlt (GB, O, O', sc, ac, Ds)) in
+      | (GB, nil, nil, sc, ac, __Ds) -> __Ds
+      | (GB, (O)::__l, (O')::__l', sc, ac, __Ds) ->
+          let __Ds' =
+            CSManager.trail (function | () -> ordlt (GB, O, O', sc, ac, __Ds)) in
           ordeq
             (GB, O, O',
-              (function | Ds'' -> ordltLex (GB, L, L', sc, ac, Ds'')), ac,
-              Ds')
+              (function | __Ds'' -> ordltLex (GB, __l, __l', sc, ac, __Ds'')), ac,
+              __Ds')
     let rec ordltSimul =
       function
-      | (GB, nil, nil, sc, ac, Ds) -> Ds
-      | (GB, (O)::L, (O')::L', sc, ac, Ds) ->
-          let Ds'' =
+      | (GB, nil, nil, sc, ac, __Ds) -> __Ds
+      | (GB, (O)::__l, (O')::__l', sc, ac, __Ds) ->
+          let __Ds'' =
             CSManager.trail
               (function
                | () ->
                    ordlt
                      (GB, O, O',
-                       (function | Ds' -> ordleSimul (GB, L, L', sc, ac, Ds')),
-                       ac, Ds)) in
+                       (function | __Ds' -> ordleSimul (GB, __l, __l', sc, ac, __Ds')),
+                       ac, __Ds)) in
           ordeq
             (GB, O, O',
-              (function | Ds' -> ordltSimul (GB, L, L', sc, ac, Ds')), ac,
-              Ds'')
+              (function | __Ds' -> ordltSimul (GB, __l, __l', sc, ac, __Ds')), ac,
+              __Ds'')
     let rec ordleSimul =
       function
-      | (GB, nil, nil, sc, ac, Ds) -> sc Ds
-      | (GB, (O)::L, (O')::L', sc, ac, Ds) ->
+      | (GB, nil, nil, sc, ac, __Ds) -> sc __Ds
+      | (GB, (O)::__l, (O')::__l', sc, ac, __Ds) ->
           ordle
             (GB, O, O',
-              (function | Ds' -> ordleSimul (GB, L, L', sc, ac, Ds')), ac,
-              Ds)
+              (function | __Ds' -> ordleSimul (GB, __l, __l', sc, ac, __Ds')), ac,
+              __Ds)
     let rec ordeq =
       function
-      | ((G, B), Arg (Us, Vs), Arg (Us', Vs'), sc, ac, Ds) ->
-          if (Unify.unifiable (G, Vs, Vs')) && (Unify.unifiable (G, Us, Us'))
-          then sc Ds
-          else Ds
-      | (GB, Lex (L), Lex (L'), sc, ac, Ds) -> ordeqs (GB, L, L', sc, ac, Ds)
-      | (GB, Simul (L), Simul (L'), sc, ac, Ds) ->
-          ordeqs (GB, L, L', sc, ac, Ds)
+      | ((__g, B), Arg (__Us, __Vs), Arg (__Us', __Vs'), sc, ac, __Ds) ->
+          if (Unify.unifiable (__g, __Vs, __Vs')) && (Unify.unifiable (__g, __Us, __Us'))
+          then sc __Ds
+          else __Ds
+      | (GB, Lex (__l), Lex (__l'), sc, ac, __Ds) -> ordeqs (GB, __l, __l', sc, ac, __Ds)
+      | (GB, Simul (__l), Simul (__l'), sc, ac, __Ds) ->
+          ordeqs (GB, __l, __l', sc, ac, __Ds)
     let rec ordeqs =
       function
-      | (GB, nil, nil, sc, ac, Ds) -> sc Ds
-      | (GB, (O)::L, (O')::L', sc, ac, Ds) ->
+      | (GB, nil, nil, sc, ac, __Ds) -> sc __Ds
+      | (GB, (O)::__l, (O')::__l', sc, ac, __Ds) ->
           ordeq
-            (GB, O, O', (function | Ds' -> ordeqs (GB, L, L', sc, ac, Ds')),
-              ac, Ds)
-    let rec ordle (GB, O, O', sc, ac, Ds) =
-      let Ds' =
-        CSManager.trail (function | () -> ordeq (GB, O, O', sc, ac, Ds)) in
-      ordlt (GB, O, O', sc, ac, Ds')
+            (GB, O, O', (function | __Ds' -> ordeqs (GB, __l, __l', sc, ac, __Ds')),
+              ac, __Ds)
+    let rec ordle (GB, O, O', sc, ac, __Ds) =
+      let __Ds' =
+        CSManager.trail (function | () -> ordeq (GB, O, O', sc, ac, __Ds)) in
+      ordlt (GB, O, O', sc, ac, __Ds')
     let rec skolem =
       function
       | ((du, de), GB, w, F.True, sc) -> (GB, w)
-      | ((du, de), GB, w, All (Prim (D), F), sc) ->
+      | ((du, de), GB, w, All (Prim (__d), F), sc) ->
           skolem
             (((du + 1), de), GB, w, F,
               (function
                | (s, de') ->
-                   let (s', V', F') = sc (s, de') in
+                   let (s', __v', __F') = sc (s, de') in
                    ((I.dot1 s'),
                      ((function
-                       | V ->
-                           V'
+                       | __v ->
+                           __v'
                              (Abstract.piDepend
-                                (((Whnf.normalizeDec (D, s')), I.Meta),
-                                  (Whnf.normalize (V, I.id)))))),
+                                (((Whnf.normalizeDec (__d, s')), I.Meta),
+                                  (Whnf.normalize (__v, I.id)))))),
                      ((function
-                       | F -> F' (F.All ((F.Prim (I.decSub (D, s'))), F)))))))
-      | ((du, de), (G, B), w, Ex (Dec (name, V), F), sc) ->
-          let (s', V', F') = sc (w, de) in
-          let V1 = I.EClo (V, s') in
-          let V2 = Whnf.normalize ((V' V1), I.id) in
-          let F1 = F.Ex ((I.Dec (name, V1)), F.True) in
-          let F2 = F' F1 in
+                       | F -> __F' (F.All ((F.Prim (I.decSub (__d, s'))), F)))))))
+      | ((du, de), (__g, B), w, Ex (Dec (name, __v), F), sc) ->
+          let (s', __v', __F') = sc (w, de) in
+          let V1 = I.EClo (__v, s') in
+          let V2 = Whnf.normalize ((__v' V1), I.id) in
+          let __F1 = F.Ex ((I.Dec (name, V1)), F.True) in
+          let __F2 = __F' __F1 in
           let _ =
-            if !Global.doubleCheck then FunTypeCheck.isFor (G, F2) else () in
-          let D2 = I.Dec (NONE, V2) in
+            if !Global.doubleCheck then FunTypeCheck.isFor (__g, __F2) else () in
+          let D2 = I.Dec (None, V2) in
           let T2 =
-            match F2 with
+            match __F2 with
             | All _ -> S.Lemma S.RL
             | _ -> S.Lemma (S.Splits (!MTPGlobal.maxSplit)) in
           skolem
-            ((du, (de + 1)), ((I.Decl (G, D2)), (I.Decl (B, T2))),
+            ((du, (de + 1)), ((I.Decl (__g, D2)), (I.Decl (B, T2))),
               (I.comp (w, I.shift)), F,
               (function
                | (s, de') ->
-                   let (s', V', F') = sc (s, de') in
+                   let (s', __v', __F') = sc (s, de') in
                    ((I.Dot
                        ((I.Exp
                            (I.Root ((I.BVar (du + (de' - de))), (spine du)))),
-                         s')), V', F')))
+                         s')), __v', __F')))
     let rec updateState =
       function
       | (S, (nil, s)) -> S
-      | ((State (n, (G, B), (IH, OH), d, O, H, F) as S),
-         ((Lemma (n', Frl'))::L, s)) ->
-          let ((G'', B''), s') =
+      | ((State (n, (__g, B), (IH, OH), d, O, H, F) as S),
+         ((Lemma (n', Frl'))::__l, s)) ->
+          let ((__g'', B''), s') =
             skolem
-              ((0, 0), (G, B), I.id, (F.forSub (Frl', s)),
+              ((0, 0), (__g, B), I.id, (F.forSub (Frl', s)),
                 (function
                  | (s', _) ->
-                     (s', ((function | V' -> V')), ((function | F' -> F'))))) in
+                     (s', ((function | __v' -> __v')), ((function | __F' -> __F'))))) in
           let s'' = I.comp (s, s') in
           updateState
             ((S.State
-                (n, (G'', B''), (IH, OH), d, (S.orderSub (O, s')),
+                (n, (__g'', B''), (IH, OH), d, (S.orderSub (O, s')),
                   ((::) (n', (F.forSub (Frl', s''))) map
-                     (function | (n', F') -> (n', (F.forSub (F', s')))) H),
-                  (F.forSub (F, s')))), (L, s''))
+                     (function | (n', __F') -> (n', (F.forSub (__F', s')))) H),
+                  (F.forSub (F, s')))), (__l, s''))
     let rec selectFormula =
       function
-      | (n, (G0, All (Prim (Dec (_, V) as D), F), All (_, O)), S) ->
-          selectFormula (n, ((I.Decl (G0, D)), F, O), S)
-      | (n, (G0, And (F1, F2), And (O1, O2)), S) ->
-          let (n', S') = selectFormula (n, (G0, F1, O1), S) in
-          selectFormula (n, (G0, F2, O2), S')
+      | (n, (G0, All (Prim (Dec (_, __v) as __d), F), All (_, O)), S) ->
+          selectFormula (n, ((I.Decl (G0, __d)), F, O), S)
+      | (n, (G0, And (__F1, __F2), And (O1, O2)), S) ->
+          let (n', S') = selectFormula (n, (G0, __F1, O1), S) in
+          selectFormula (n, (G0, __F2, O2), S')
       | (nih, (Gall, Fex, Oex),
          (State (ncurrent, (G0, B0), (_, _), _, Ocurrent, H, F) as S)) ->
-          let Ds =
+          let __Ds =
             recursion
               ((nih, Gall, Fex, Oex),
                 (ncurrent, (G0, B0), nil, Ocurrent, H, F)) in
-          ((nih + 1), (updateState (S, (Ds, I.id))))
-    let rec expand (State (n, (G, B), (IH, OH), d, O, H, F) as S) =
+          ((nih + 1), (updateState (S, (__Ds, I.id))))
+    let rec expand (State (n, (__g, B), (IH, OH), d, O, H, F) as S) =
       let _ = if !Global.doubleCheck then FunTypeCheck.isState S else () in
       let (_, S') = selectFormula (1, (I.Null, IH, OH), S) in S'
     let rec apply (S) =
@@ -456,96 +456,96 @@ module MTPRecursion(MTPRecursion:sig
         Invariant:
         S' = n;..;1;Nil
      *)
-    (* someEVars (G, G1, s) = s'
+    (* someEVars (__g, G1, s) = s'
 
        Invariant:
-       If  |- G ctx
-       and  G |- s : G
-       then G |- s' : G, G1
+       If  |- __g ctx
+       and  __g |- s : __g
+       then __g |- s' : __g, G1
     *)
-    (* ctxSub (G, s) = G'
+    (* ctxSub (__g, s) = __g'
 
        Invariant:
        If   G2 |- s : G1
-       and  G1 |- G ctx
-       then G2 |- G' = G[s] ctx
+       and  G1 |- __g ctx
+       then G2 |- __g' = __g[s] ctx
 
        NOTE, should go into a different module. Code duplication!
     *)
-    (* appendCtx ((G1, B1), T, G2) = (G', B')
+    (* appendCtx ((G1, B1), T, G2) = (__g', B')
 
        Invariant:
        If   |- G1 ctx
        and  G1 |- B1 tags
        and  T tag
        and  G1 |- G2 ctx
-       then |- G' = G1, G2 ctx
-       and  G' |- B' tags
+       then |- __g' = G1, G2 ctx
+       and  __g' |- B' tags
     *)
-    (* createCtx ((G, B), ll, s) = ((G', B'), s', af')
+    (* createCtx ((__g, B), ll, s) = ((__g', B'), s', af')
 
      Invariant:
-     If   |- G ctx
-     and  G |- B tags
+     If   |- __g ctx
+     and  __g |- B tags
      and  . |- label list
      and  |- G1 ctx
-     and  G |- s : G1
+     and  __g |- s : G1
 
-     then |- G' : ctx
-     and  G' |- B' tags
-     and  G' = G, G''
-     and  G' |- s' : G1
-     and  af : forall . |- AF aux formulas. Ex . |- AF' = {{G''}} AF  auxFor
+     then |- __g' : ctx
+     and  __g' |- B' tags
+     and  __g' = __g, __g''
+     and  __g' |- s' : G1
+     and  af : forall . |- AF aux formulas. Ex . |- AF' = {{__g''}} AF  auxFor
      *)
-    (* G |- s' : G1 *)
-    (* G |- G2' ctx *)
-    (* . |- G' = G, G2' ctx *)
-    (* G' |- s'' : G0 *)
-    (* createEVars' (G, G0) = s'
+    (* __g |- s' : G1 *)
+    (* __g |- G2' ctx *)
+    (* . |- __g' = __g, G2' ctx *)
+    (* __g' |- s'' : G0 *)
+    (* createEVars' (__g, G0) = s'
 
        Invariant :
-       If   |- G ctx
+       If   |- __g ctx
        and  |- G0 ctx
-       then G |- s' : G0
+       then __g |- s' : G0
        and  s' = X1 .. Xn where n = |G0|
     *)
-    (* checkCtx (G, G2, (V, s)) = B'
+    (* checkCtx (__g, G2, (__v, s)) = B'
 
        Invariant:
-       If   |- G = G0, G1 ctx
-       and  G |- G2 ctx
-       and  G |- s : G0
-       and  G0 |- V : L
+       If   |- __g = G0, G1 ctx
+       and  __g |- G2 ctx
+       and  __g |- s : G0
+       and  G0 |- __v : __l
        then B' holds iff
-            G1 = V1 .. Vn and G, G1, V1 .. Vi-1 |- Vi unifies with V [s o ^i] : L
+            G1 = V1 .. Vn and __g, G1, V1 .. Vi-1 |- Vi unifies with __v [s o ^i] : __l
     *)
-    (* checkLabels ((G', B'), V, ll, l) = lopt'
+    (* checkLabels ((__g', B'), __v, ll, l) = lopt'
 
        Invariant:
-       If   |- G' ctx
-       and  G' |- B' ctx
-       and  G' |- s : G0
-       and  G0 |- V : type
+       If   |- __g' ctx
+       and  __g' |- B' ctx
+       and  __g' |- s : G0
+       and  G0 |- __v : type
        and  . |- ll label list
        and  . |- l label number
-       then lopt' = NONE if no context block is applicable
-       or   lopt' = SOME l' if context block l' is applicable
+       then lopt' = None if no context block is applicable
+       or   lopt' = Some l' if context block l' is applicable
 
        NOTE: For this implementation we only pick the first applicable contextblock.
        It is not yet clear what should happen if there are inductive calls where more
        then one contextblocks are introduced --cs
     *)
     (* as nil *)
-    (* G' |- t : G1 *)
-    (* G |- G2' ctx *)
-    (*      | checkLabels _ = NONE   more than one context block is introduced *)
-    (* appendRL (Ds1, Ds2) = Ds'
+    (* __g' |- t : G1 *)
+    (* __g |- G2' ctx *)
+    (*      | checkLabels _ = None   more than one context block is introduced *)
+    (* appendRL (Ds1, Ds2) = __Ds'
 
        Invariant:
        Ds1, Ds2 are a list of residual lemmas
-       Ds' = Ds1 @ Ds2, where all duplicates are removed
+       __Ds' = Ds1 @ Ds2, where all duplicates are removed
     *)
-    (* recursion ((nih, Gall, Fex, Oex), (ncurrent, (G0, B0), ll, Ocurrent, H, F)) = Ds
+    (* recursion ((nih, Gall, Fex, Oex), (ncurrent, (G0, B0), ll, Ocurrent, H, F)) = __Ds
 
        Invariant:
 
@@ -566,229 +566,229 @@ module MTPRecursion(MTPRecursion:sig
        G0 |- F formula
 
        then
-       G0 |- Ds decs
+       G0 |- __Ds decs
     *)
-    (* G' |- s' : G0 *)
-    (* G' |- t' : Gall *)
-    (* set_parameter (GB, X, k, sc, ac, S) = S'
+    (* __g' |- s' : G0 *)
+    (* __g' |- t' : Gall *)
+    (* set_parameter (GB, x, k, sc, ac, S) = S'
 
        Invariant:
        appends a list of recursion operators to S after
-       instantiating X with all possible local parameters (between 1 and k)
+       instantiating x with all possible local parameters (between 1 and k)
     *)
-    (* set_parameter' ((G, B), k, Ds) = Ds'
+    (* set_parameter' ((__g, B), k, __Ds) = __Ds'
 
            Invariant:
-           If    G1, D < G
+           If    G1, __d < __g
         *)
-    (* ltinit (GB, k, ((U1, s1), (V2, s2)), ((U3, s3), (V4, s4)), sc, ac, Ds) = Ds'
+    (* ltinit (GB, k, ((__U1, s1), (V2, s2)), ((__U3, s3), (V4, s4)), sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G = G0, Gp    (G0, global context, Gp, parameter context)
+       If   __g = G0, Gp    (G0, global context, Gp, parameter context)
        and  |Gp| = k
-       and  G |- s1 : G1   G1 |- U1 : V1
-       and  G |- s2 : G2   G2 |- V2 : L
-                G |- s3 : G1   G1 |- U3 : V3
-       and  G |- s4 : G2   G2 |- V4 : L
-       and  G |- V1[s1] == V2 [s2]
-       and  G |- V3[s3] == V4 [s5]
-       and  Ds is a set of all all possible states
+       and  __g |- s1 : G1   G1 |- __U1 : V1
+       and  __g |- s2 : G2   G2 |- V2 : __l
+                __g |- s3 : G1   G1 |- __U3 : V3
+       and  __g |- s4 : G2   G2 |- V4 : __l
+       and  __g |- V1[s1] == V2 [s2]
+       and  __g |- V3[s3] == V4 [s5]
+       and  __Ds is a set of all all possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators
     *)
     (* = I.decSub (D2, s2) *)
-    (* lt (GB, k, ((U, s1), (V, s2)), (U', s'), sc, ac, Ds) = Ds'
+    (* lt (GB, k, ((__u, s1), (__v, s2)), (__u', s'), sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G = G0, Gp    (G0, global context, Gp, parameter context)
+       If   __g = G0, Gp    (G0, global context, Gp, parameter context)
        and  |Gp| = k
-       and  G |- s1 : G1   G1 |- U1 : V1   (U1 [s1] in  whnf)
-       and  G |- s2 : G2   G2 |- V2 : L    (V2 [s2] in  whnf)
-            G |- s3 : G1   G1 |- U3 : V3
-       and  G |- s4 : G2   G2 |- V4 : L
+       and  __g |- s1 : G1   G1 |- __U1 : V1   (__U1 [s1] in  whnf)
+       and  __g |- s2 : G2   G2 |- V2 : __l    (V2 [s2] in  whnf)
+            __g |- s3 : G1   G1 |- __U3 : V3
+       and  __g |- s4 : G2   G2 |- V4 : __l
        and  k is the length of the local context
-       and  G |- V1[s1] == V2 [s2]
-       and  G |- V3[s3] == V4 [s5]
-       and  Ds is a set of already calculuate possible states
+       and  __g |- V1[s1] == V2 [s2]
+       and  __g |- V3[s3] == V4 [s5]
+       and  __Ds is a set of already calculuate possible states
        and  sc is success continuation
-           then Ds' is an extension of Ds, containing all
+           then __Ds' is an extension of __Ds, containing all
                 recursion operators
     *)
-    (* Vs is Root!!! *)
-    (* (Us',Vs') may not be eta-expanded!!! *)
+    (* __Vs is Root!!! *)
+    (* (__Us',__Vs') may not be eta-expanded!!! *)
     (*          if n <= k then   n must be a local variable *)
     (* k might not be needed any more: Check --cs *)
-    (*            else Ds *)
-    (* ctxBlock (GB, I.EClo (V1', s1'), k, sc, ac, Ds) *)
+    (*            else __Ds *)
+    (* ctxBlock (GB, I.EClo (V1', s1'), k, sc, ac, __Ds) *)
     (* == I.targetFam V2' *)
-    (* enforce that X gets only bound to parameters *)
+    (* enforce that x gets only bound to parameters *)
     (* = I.newEVar (I.EClo (V2', s2')) *)
     (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* eq (GB, ((U, s1), (V, s2)), (U', s'), sc, ac, Ds) = Ds'
+    (* eq (GB, ((__u, s1), (__v, s2)), (__u', s'), sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- s1 : G1   G1 |- U1 : V1   (U1 [s1] in  whnf)
-       and  G |- s2 : G2   G2 |- V2 : L    (V2 [s2] in  whnf)
-            G |- s3 : G1   G1 |- U3 : V3
-       and  G |- s4 : G2   G2 |- V4 : L
-       and  G |- V1[s1] == V2 [s2]
-       and  G |- V3[s3] == V4 [s5]
-       and  Ds is a set of already calculuated possible states
+       If   __g |- s1 : G1   G1 |- __U1 : V1   (__U1 [s1] in  whnf)
+       and  __g |- s2 : G2   G2 |- V2 : __l    (V2 [s2] in  whnf)
+            __g |- s3 : G1   G1 |- __U3 : V3
+       and  __g |- s4 : G2   G2 |- V4 : __l
+       and  __g |- V1[s1] == V2 [s2]
+       and  __g |- V3[s3] == V4 [s5]
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
-            recursion operators resulting from U[s1] = U'[s']
+       then __Ds' is an extension of __Ds, containing all
+            recursion operators resulting from __u[s1] = __u'[s']
     *)
-    (* le (G, k, ((U, s1), (V, s2)), (U', s'), sc, ac, Ds) = Ds'
+    (* le (__g, k, ((__u, s1), (__v, s2)), (__u', s'), sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G = G0, Gp    (G0, global context, Gp, parameter context)
+       If   __g = G0, Gp    (G0, global context, Gp, parameter context)
        and  |Gp| = k
-       and  G |- s1 : G1   G1 |- U1 : V1   (U1 [s1] in  whnf)
-       and  G |- s2 : G2   G2 |- V2 : L    (V2 [s2] in  whnf)
-                G |- s3 : G1   G1 |- U3 : V3
-       and  G |- s4 : G2   G2 |- V4 : L
+       and  __g |- s1 : G1   G1 |- __U1 : V1   (__U1 [s1] in  whnf)
+       and  __g |- s2 : G2   G2 |- V2 : __l    (V2 [s2] in  whnf)
+                __g |- s3 : G1   G1 |- __U3 : V3
+       and  __g |- s4 : G2   G2 |- V4 : __l
        and  k is the length of the local context
-       and  G |- V1[s1] == V2 [s2]
-       and  G |- V3[s3] == V4 [s5]
-       and  Ds is a set of already calculuated possible states
+       and  __g |- V1[s1] == V2 [s2]
+       and  __g |- V3[s3] == V4 [s5]
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
-            recursion operators resulting from U[s1] <= U'[s']
+       then __Ds' is an extension of __Ds, containing all
+            recursion operators resulting from __u[s1] <= __u'[s']
     *)
     (* == I.targetFam V2' *)
     (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* enforces that X can only bound to parameter *)
+    (* enforces that x can only bound to parameter *)
     (* = I.newEVar (I.EClo (V2', s2')) *)
-    (*              val sc'' = fn Ds'' => set_parameter (GB, X, k, sc, ac, Ds'')    BUG -cs *)
-    (* ordlt (GB, O1, O2, sc, ac, Ds) = Ds'
+    (*              val sc'' = fn __Ds'' => set_parameter (GB, x, k, sc, ac, __Ds'')    BUG -cs *)
+    (* ordlt (GB, O1, O2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- O1 augmented subterms
-       and  G |- O2 augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- O1 augmented subterms
+       and  __g |- O2 augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. O1 is
             lexicographically smaller than O2
     *)
-    (* ordltLex (GB, L1, L2, sc, ac, Ds) = Ds'
+    (* ordltLex (GB, L1, L2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- L1 list of augmented subterms
+       and  __g |- L2 list of augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. L1 is
             lexicographically less then L2
     *)
-    (* ordltSimul (GB, L1, L2, sc, ac, Ds) = Ds'
+    (* ordltSimul (GB, L1, L2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- L1 list of augmented subterms
+       and  __g |- L2 list of augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. L1 is
             simultaneously smaller than L2
     *)
-    (* ordleSimul (GB, L1, L2, sc, ac, Ds) = Ds'
+    (* ordleSimul (GB, L1, L2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- L1 list of augmented subterms
+       and  __g |- L2 list of augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. L1 is
             simultaneously smaller than or equal to L2
     *)
-    (* ordeq (GB, O1, O2, sc, ac, Ds) = Ds'
+    (* ordeq (GB, O1, O2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- O1 augmented subterms
-       and  G |- O2 augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- O1 augmented subterms
+       and  __g |- O2 augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. O1 is
             convertible to O2
     *)
-    (* ordlteqs (GB, L1, L2, sc, ac, Ds) = Ds'
+    (* ordlteqs (GB, L1, L2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- L1 list of augmented subterms
-       and  G |- L2 list of augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- L1 list of augmented subterms
+       and  __g |- L2 list of augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. L1 is
             convertible to L2
     *)
-    (* ordeq (GB, O1, O2, sc, ac, Ds) = Ds'
+    (* ordeq (GB, O1, O2, sc, ac, __Ds) = __Ds'
 
        Invariant:
-       If   G |- O1 augmented subterms
-       and  G |- O2 augmented subterms
-       and  Ds is a set of already calculuated possible states
+       If   __g |- O1 augmented subterms
+       and  __g |- O2 augmented subterms
+       and  __Ds is a set of already calculuated possible states
        and  sc is success continuation
-       then Ds' is an extension of Ds, containing all
+       then __Ds' is an extension of __Ds, containing all
             recursion operators of all instantiations of EVars s.t. O1 is
             convertible to O2 or smaller than O2
     *)
     (* skolem (n, (du, de), GB, w, F, sc) = (GB', s')
 
        Invariant:
-       If   GB, Ds |- w : GB
-       and  GB, G |- F formula
+       If   GB, __Ds |- w : GB
+       and  GB, __g |- F formula
        and  du = #universal quantifiers in F
        and  de = #existential quantifiers in F
        and  sc is a continuation which
-            for all GB, Ds |- s' : GB
-            returns s''  of type  GB, Ds, G'[...] |- w'' : GB, G
-            and     V''  mapping (GB, Ds, G'[...] |- V  type)  to (GB, Ds |- {G'[...]} V type)
-            and     F''  mapping (GB, Ds, G'[...] |- F) to (GB, Ds |- {{G'[...]}} F formula)
-       then GB' = GB, Ds'
-       and  |Ds'| = de
-       and  each declaration in Ds' corresponds to one existential quantifier in F
+            for all GB, __Ds |- s' : GB
+            returns s''  of type  GB, __Ds, __g'[...] |- w'' : GB, __g
+            and     __v''  mapping (GB, __Ds, __g'[...] |- __v  type)  to (GB, __Ds |- {__g'[...]} __v type)
+            and     __F''  mapping (GB, __Ds, __g'[...] |- F) to (GB, __Ds |- {{__g'[...]}} F formula)
+       then GB' = GB, __Ds'
+       and  |__Ds'| = de
+       and  each declaration in __Ds' corresponds to one existential quantifier in F
        and  GB' |- s' : GB
     *)
-    (* s'  :  GB, Ds |- s : GB   *)
-    (* s'  : GB, Ds, G'[...] |- s' : GB, G *)
-    (* V'  : maps (GB, Ds, G'[...] |- V type) to (GB, Ds |- {G'[...]} V type) *)
-    (* F'  : maps (GB, Ds, G'[...] |- F for) to (GB, Ds |- {{G'[...]}} F for) *)
-    (* _   : GB, Ds, G'[...], D[?] |- _ : GB, G, D *)
-    (* _   : maps (GB, Ds, G'[....], D[?] |- V : type) to  (GB, Ds, |- {G[....], D[?]} V : type) *)
-    (* _   : maps (GB, Ds, G'[....], D[?] |- F : for) to  (GB, Ds, |- {{G[....], D[?]}} F : for) *)
-    (* V   : GB, G |- V type *)
-    (* s'  : GB, Ds, G'[...] |- s' : GB, G *)
-    (* V'  : maps  (GB, Ds, G'[...] |- V : type)   to   (GB, Ds |- {G'[...]} V : type) *)
-    (* F'  : maps  (GB, Ds, G'[...] |- F : for)    to   (GB, Ds |- {{G'[...]}} F : for) *)
-    (* V1  : GB, Ds, G'[...] |- V1 = V [s'] : type *)
-    (* V2  : GB, Ds |- {G'[...]} V2 : type *)
-    (* F1  : GB, Ds, G'[...] |- F1 : for *)
-    (* F2  : GB, Ds |- {{G'[...]}} F2 : for *)
-    (* D2  : GB, Ds |- D2 : type *)
-    (* T2  : GB, Ds |- T2 : tag *)
-    (* s   : GB, Ds, D2 |- s : GB *)
-    (* s'  : GB, Ds, D2, G'[...] |- s' : GB, G *)
-    (* V'  : maps (GB, Ds, D2, G'[...] |- V type) to (GB, Ds, D2 |- {G'[...]} V type) *)
-    (* F'  : maps (GB, Ds, D2, G'[...] |- F for) to (GB, Ds, D2 |- {{G'[...]}} F for) *)
-    (* _ : GB, Ds, D2, G'[...] |- s'' : GB, G, D *)
-    (* updateState (S, (Ds, s))
+    (* s'  :  GB, __Ds |- s : GB   *)
+    (* s'  : GB, __Ds, __g'[...] |- s' : GB, __g *)
+    (* __v'  : maps (GB, __Ds, __g'[...] |- __v type) to (GB, __Ds |- {__g'[...]} __v type) *)
+    (* __F'  : maps (GB, __Ds, __g'[...] |- F for) to (GB, __Ds |- {{__g'[...]}} F for) *)
+    (* _   : GB, __Ds, __g'[...], __d[?] |- _ : GB, __g, __d *)
+    (* _   : maps (GB, __Ds, __g'[....], __d[?] |- __v : type) to  (GB, __Ds, |- {__g[....], __d[?]} __v : type) *)
+    (* _   : maps (GB, __Ds, __g'[....], __d[?] |- F : for) to  (GB, __Ds, |- {{__g[....], __d[?]}} F : for) *)
+    (* __v   : GB, __g |- __v type *)
+    (* s'  : GB, __Ds, __g'[...] |- s' : GB, __g *)
+    (* __v'  : maps  (GB, __Ds, __g'[...] |- __v : type)   to   (GB, __Ds |- {__g'[...]} __v : type) *)
+    (* __F'  : maps  (GB, __Ds, __g'[...] |- F : for)    to   (GB, __Ds |- {{__g'[...]}} F : for) *)
+    (* V1  : GB, __Ds, __g'[...] |- V1 = __v [s'] : type *)
+    (* V2  : GB, __Ds |- {__g'[...]} V2 : type *)
+    (* __F1  : GB, __Ds, __g'[...] |- __F1 : for *)
+    (* __F2  : GB, __Ds |- {{__g'[...]}} __F2 : for *)
+    (* D2  : GB, __Ds |- D2 : type *)
+    (* T2  : GB, __Ds |- T2 : tag *)
+    (* s   : GB, __Ds, D2 |- s : GB *)
+    (* s'  : GB, __Ds, D2, __g'[...] |- s' : GB, __g *)
+    (* __v'  : maps (GB, __Ds, D2, __g'[...] |- __v type) to (GB, __Ds, D2 |- {__g'[...]} __v type) *)
+    (* __F'  : maps (GB, __Ds, D2, __g'[...] |- F for) to (GB, __Ds, D2 |- {{__g'[...]}} F for) *)
+    (* _ : GB, __Ds, D2, __g'[...] |- s'' : GB, __g, __d *)
+    (* updateState (S, (__Ds, s))
 
        Invariant:
-       G context
-       G' |- S state
-       G |- Ds new decs
-       G' |- s : G
+       __g context
+       __g' |- S state
+       __g |- __Ds new decs
+       __g' |- s : __g
     *)
-    (* selectFormula (n, G, (G0, F, O), S) = S'
+    (* selectFormula (n, __g, (G0, F, O), S) = S'
 
        Invariant:
-       If   G |- s : G0  and  G0 |- F formula and  G0 |- O order
+       If   __g |- s : G0  and  G0 |- F formula and  G0 |- O order
        and  S is a state
        then S' is the state with
        sc returns with all addition assumptions/residual lemmas for a certain

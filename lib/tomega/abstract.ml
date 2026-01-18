@@ -40,9 +40,9 @@ module TomegaAbstract(TomegaAbstract:sig
     let rec shiftCtx =
       function
       | (I.Null, t) -> (I.Null, t)
-      | (Decl (G, D), t) ->
-          let (G', t') = shiftCtx (G, t) in
-          ((I.Decl (G', (I.decSub (D, t')))), (I.dot1 t'))
+      | (Decl (__g, __d), t) ->
+          let (__g', t') = shiftCtx (__g, t) in
+          ((I.Decl (__g', (I.decSub (__d, t')))), (I.dot1 t'))
     let rec dotn =
       function | (t, 0) -> t | (t, n) -> I.dot1 (dotn (t, (n - 1)))
     let rec strengthenToSpine =
@@ -61,91 +61,91 @@ module TomegaAbstract(TomegaAbstract:sig
     let rec raiseFor =
       function
       | (B', (T.True, t)) -> T.True
-      | (B', (And (F1, F2), t)) ->
-          let F1' = raiseFor (B', (F1, t)) in
-          let F2' = raiseFor (B', (F2, t)) in T.And (F1', F2')
-      | (B', (Ex ((Dec (x, V), Q), F), t)) ->
-          let w = S.weaken (B', (I.targetFam V)) in
+      | (B', (And (__F1, __F2), t)) ->
+          let __F1' = raiseFor (B', (__F1, t)) in
+          let __F2' = raiseFor (B', (__F2, t)) in T.And (__F1', __F2')
+      | (B', (Ex ((Dec (x, __v), Q), F), t)) ->
+          let w = S.weaken (B', (I.targetFam __v)) in
           let iw = Whnf.invert w in
           let B'' = Whnf.strengthen (iw, B') in
-          let V' = A.raiseType (B'', (I.EClo (V, (I.comp (t, iw))))) in
+          let __v' = A.raiseType (B'', (I.EClo (__v, (I.comp (t, iw))))) in
           let (B''', _) = shiftCtx (B', I.shift) in
           let t'' = dotn (I.shift, (I.ctxLength B')) in
           let t' = I.comp (t, t'') in
           let S = strengthenToSpine (iw, (I.ctxLength B'), (1, I.Nil)) in
-          let U = I.Root ((I.BVar ((I.ctxLength B''') + 1)), S) in
-          let t''' = Whnf.dotEta ((I.Exp U), t') in
-          let F' = raiseFor (B''', (F, t''')) in
-          T.Ex (((I.Dec (x, V')), Q), F')
+          let __u = I.Root ((I.BVar ((I.ctxLength B''') + 1)), S) in
+          let t''' = Whnf.dotEta ((I.Exp __u), t') in
+          let __F' = raiseFor (B''', (F, t''')) in
+          T.Ex (((I.Dec (x, __v')), Q), __F')
       | (_, (All _, _)) -> raise Domain
     let rec raisePrg =
       function
-      | (G, (T.Unit, t), _) -> T.Unit
-      | (G, (PairPrg (P1, P2), t), And (F1, F2)) ->
-          let P1' = raisePrg (G, (P1, t), F1) in
-          let P2' = raisePrg (G, (P2, t), F2) in T.PairPrg (P1', P2')
-      | (G, (PairExp (U, P), t), Ex ((Dec (_, V), _), F)) ->
-          let w = S.weaken (G, (I.targetFam V)) in
+      | (__g, (T.Unit, t), _) -> T.Unit
+      | (__g, (PairPrg (__P1, __P2), t), And (__F1, __F2)) ->
+          let __P1' = raisePrg (__g, (__P1, t), __F1) in
+          let __P2' = raisePrg (__g, (__P2, t), __F2) in T.PairPrg (__P1', __P2')
+      | (__g, (PairExp (__u, P), t), Ex ((Dec (_, __v), _), F)) ->
+          let w = S.weaken (__g, (I.targetFam __v)) in
           let iw = Whnf.invert w in
-          let G' = Whnf.strengthen (iw, G) in
-          let U' = A.raiseTerm (G', (I.EClo (U, (I.comp (t, iw))))) in
-          let P' = raisePrg (G, (P, t), F) in T.PairExp (U', P')
-    let rec raiseP (G, P, F) =
-      let (G', s) = T.deblockify G in
-      let F' = T.forSub (F, s) in
-      let P'' = raisePrg (G', (P, (T.coerceSub s)), F') in P''
-    let rec raiseF (G, (F, t)) =
-      let (G', s) = T.deblockify G in
-      let F' = raiseFor (G', (F, (I.comp (t, (T.coerceSub s))))) in F'
+          let __g' = Whnf.strengthen (iw, __g) in
+          let __u' = A.raiseTerm (__g', (I.EClo (__u, (I.comp (t, iw))))) in
+          let __P' = raisePrg (__g, (P, t), F) in T.PairExp (__u', __P')
+    let rec raiseP (__g, P, F) =
+      let (__g', s) = T.deblockify __g in
+      let __F' = T.forSub (F, s) in
+      let __P'' = raisePrg (__g', (P, (T.coerceSub s)), __F') in __P''
+    let rec raiseF (__g, (F, t)) =
+      let (__g', s) = T.deblockify __g in
+      let __F' = raiseFor (__g', (F, (I.comp (t, (T.coerceSub s))))) in __F'
     (* dotn (t, n) = t'
 
        Invariant:
        If   Psi0 |- t : Psi
-       and  |G| = n   for any G
-       then Psi0, G[t] |- t : Psi, G
+       and  |__g| = n   for any __g
+       then Psi0, __g[t] |- t : Psi, __g
     *)
     (* =0 *)
     (* = 1 *)
-    (* raiseFor (B, (F, t)) = (P', F'))
+    (* raiseFor (B, (F, t)) = (__P', __F'))
 
        Invariant:
-       If   Psi, B, G |-  F for
-       and  Psi, G', B' |- t : Psi, B, G
-       then Psi, G' |-  F' for
-       and  F' = raise (B', F[t])   (using subordination)
+       If   Psi, B, __g |-  F for
+       and  Psi, __g', B' |- t : Psi, B, __g
+       then Psi, __g' |-  __F' for
+       and  __F' = raise (B', F[t])   (using subordination)
     *)
-    (* Psi, G', B' |- V[t] : type *)
-    (* Psi, B, G, x:V |- F for *)
-    (* Psi, G' |- B' ctx  *)
-    (*        val (w, S) = subweaken (B', 1, I.targetFam V, I.Nil)     *)
+    (* Psi, __g', B' |- __v[t] : type *)
+    (* Psi, B, __g, x:__v |- F for *)
+    (* Psi, __g' |- B' ctx  *)
+    (*        val (w, S) = subweaken (B', 1, I.targetFam __v, I.Nil)     *)
     (* B'  |- w  : B''    *)
     (* B'' |- iw : B'     *)
-    (* Psi0, G' |- B'' ctx *)
-    (* Psi0, G' |- V' : type *)
-    (* Psi, G', x: V' |- B''' ctx *)
-    (* Psi, G', x: V', B''' |- t'' :   Psi, G', B' *)
-    (* Psi, G', B' |- t : Psi, B, G  *)
-    (* Psi, G', x:V', B''' |- t' : Psi, B, G *)
-    (* Psi, G', x:V', B''' |- w : Psi,G', x:V', B'''' *)
-    (* Psi, G', x:V', B''' |- S : V' [^|B'''|] >> type  *)
-    (* Psi, G', x:V', B''' |- U : V[t'] *)
-    (* Psi, G', x:V', B''' |- t''' :  Psi, B, G, x:V *)
-    (* Psi, G', x:V' |- F' for*)
-    (* Psi, G', x:V', B''' |- t''' :  Psi, B, G, x:V *)
-    (* raisePrg (G, P, F) = (P', F'))
+    (* Psi0, __g' |- B'' ctx *)
+    (* Psi0, __g' |- __v' : type *)
+    (* Psi, __g', x: __v' |- B''' ctx *)
+    (* Psi, __g', x: __v', B''' |- t'' :   Psi, __g', B' *)
+    (* Psi, __g', B' |- t : Psi, B, __g  *)
+    (* Psi, __g', x:__v', B''' |- t' : Psi, B, __g *)
+    (* Psi, __g', x:__v', B''' |- w : Psi,__g', x:__v', B'''' *)
+    (* Psi, __g', x:__v', B''' |- S : __v' [^|B'''|] >> type  *)
+    (* Psi, __g', x:__v', B''' |- __u : __v[t'] *)
+    (* Psi, __g', x:__v', B''' |- t''' :  Psi, B, __g, x:__v *)
+    (* Psi, __g', x:__v' |- __F' for*)
+    (* Psi, __g', x:__v', B''' |- t''' :  Psi, B, __g, x:__v *)
+    (* raisePrg (__g, P, F) = (__P', __F'))
 
        Invariant:
-       If   Psi, G |- P in F
-       and  Psi |- G : blockctx
-       then Psi |- P' in F'
-       and  P = raise (G, P')   (using subordination)
-       and  F = raise (G, F')   (using subordination)
+       If   Psi, __g |- P in F
+       and  Psi |- __g : blockctx
+       then Psi |- __P' in __F'
+       and  P = raise (__g, __P')   (using subordination)
+       and  F = raise (__g, __F')   (using subordination)
     *)
-    (* G  |- w  : G'    *)
-    (* G' |- iw : G     *)
-    (* Psi0, G' |- B'' ctx *)
-    (*      val P' = T.normalizePrg (P, s)  G' |- P' : F' *)
-    let raisePrg = function | (G, P, F) -> raisePrg (G, (P, I.id), F)
+    (* __g  |- w  : __g'    *)
+    (* __g' |- iw : __g     *)
+    (* Psi0, __g' |- B'' ctx *)
+    (*      val __P' = T.normalizePrg (P, s)  __g' |- __P' : __F' *)
+    let raisePrg = function | (__g, P, F) -> raisePrg (__g, (P, I.id), F)
     let raiseP = raiseP
     let raiseFor = raiseFor
     let raiseF = raiseF

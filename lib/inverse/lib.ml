@@ -229,9 +229,9 @@ module Lib : LIB =
     (* -------------------------------------------------------------------------- *)
     (*  Options                                                                   *)
     (* -------------------------------------------------------------------------- *)
-    let rec is_none = function | NONE -> true__ | SOME _ -> false__
-    let rec is_some = function | NONE -> false__ | SOME _ -> true__
-    let rec the = function | NONE -> raise (Fail "the") | SOME x -> x
+    let rec is_none = function | None -> true__ | Some _ -> false__
+    let rec is_some = function | None -> false__ | Some _ -> true__
+    let rec the = function | None -> raise (Fail "the") | Some x -> x
     (* ------------------------------------------------------------------------- *)
     (*  Refs                                                                     *)
     (* ------------------------------------------------------------------------- *)
@@ -473,16 +473,16 @@ module Lib : LIB =
     let rec find_index p =
       let rec ind arg__0 arg__1 =
         match (arg__0, arg__1) with
-        | (n, []) -> NONE
-        | (n, h::t) -> if p h then SOME n else ind (n + 1) t in
+        | (n, []) -> None
+        | (n, h::t) -> if p h then Some n else ind (n + 1) t in
       ind 0
     let rec index x l = find_index (ceq x) l
     let rec find_last_index p l =
       let n = length l in
       let l' = rev l in
       match find_index p l' with
-      | SOME n' -> SOME ((n - n') - 1)
-      | NONE -> NONE
+      | Some n' -> Some ((n - n') - 1)
+      | None -> None
     let rec last_index x l = find_last_index (ceq x) l
     let rec flatten l = itlist (curry (@)) l []
     let rec chop_list arg__0 arg__1 =
@@ -508,8 +508,8 @@ module Lib : LIB =
     let rec exn_index f l =
       let rec exn_index arg__0 arg__1 arg__2 =
         match (arg__0, arg__1, arg__2) with
-        | (f, [], n) -> NONE
-        | (f, h::t, n) -> if can f h then exn_index f t (n + 1) else SOME n in
+        | (f, [], n) -> None
+        | (f, h::t, n) -> if can f h then exn_index f t (n + 1) else Some n in
       exn_index f l 0
     (* ------------------------------------------------------------------------- *)
     (*  Lists as Sets                                                            *)
@@ -549,16 +549,16 @@ module Lib : LIB =
     (* ------------------------------------------------------------------------- *)
     let rec find arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (p, []) -> NONE
-      | (p, h::t) -> if p h then SOME h else find p t
+      | (p, []) -> None
+      | (p, h::t) -> if p h then Some h else find p t
     let rec assoc x l =
       match find (function | p -> (fst p) = x) l with
-      | SOME (x, y) -> SOME y
-      | NONE -> NONE
+      | Some (x, y) -> Some y
+      | None -> None
     let rec rev_assoc x l =
       match find (function | p -> (snd p) = x) l with
-      | SOME (x, y) -> SOME x
-      | NONE -> NONE
+      | Some (x, y) -> Some x
+      | None -> None
     (* ------------------------------------------------------------------------- *)
     (*  Strings                                                                  *)
     (* ------------------------------------------------------------------------- *)
@@ -603,37 +603,37 @@ module Lib : LIB =
     let rec strip_path c s =
       let n =
         match index c (String.explode s) with
-        | SOME x -> x
-        | NONE -> raise (Fail "strip_path") in
+        | Some x -> x
+        | None -> raise (Fail "strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
     (* abc.def.ghi -> (abc.def,ghi) *)
     let rec rev_strip_path c s =
       let no = last_index c (String.explode s) in
       let n =
-        match no with | SOME x -> x | NONE -> raise (Fail "rev_strip_path") in
+        match no with | Some x -> x | None -> raise (Fail "rev_strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
     (* ------------------------------------------------------------------------- *)
     (*  Options                                                                  *)
     (* ------------------------------------------------------------------------- *)
-    let rec the = function | SOME x -> x | _ -> raise (Fail "the")
-    let rec is_some = function | SOME _ -> true__ | _ -> false__
-    let rec is_none = function | NONE -> true__ | _ -> false__
+    let rec the = function | Some x -> x | _ -> raise (Fail "the")
+    let rec is_some = function | Some _ -> true__ | _ -> false__
+    let rec is_none = function | None -> true__ | _ -> false__
     let rec list_of_opt_list =
       function
       | [] -> []
-      | (NONE)::t -> list_of_opt_list t
-      | (SOME x)::t -> (::) x list_of_opt_list t
+      | (None)::t -> list_of_opt_list t
+      | (Some x)::t -> (::) x list_of_opt_list t
     let rec get_opt arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (SOME x, _) -> x
-      | (NONE, err) -> raise (Fail err)
-    let rec get_list = function | SOME l -> l | NONE -> []
+      | (Some x, _) -> x
+      | (None, err) -> raise (Fail err)
+    let rec get_list = function | Some l -> l | None -> []
     let rec conv_opt arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (f, SOME l) -> SOME (f l)
-      | (f, NONE) -> NONE
+      | (f, Some l) -> Some (f l)
+      | (f, None) -> None
     (* ------------------------------------------------------------------------- *)
     (*  Timing                                                                   *)
     (* ------------------------------------------------------------------------- *)
@@ -670,7 +670,7 @@ module Lib : LIB =
       let str = OS.FileSys.openDir dir in
       let fs = ref [] in
       let f = ref (OS.FileSys.readDir str) in
-      while (!f) <> NONE do (::= fs the (!f); (:=) f OS.FileSys.readDir str)
+      while (!f) <> None do (::= fs the (!f); (:=) f OS.FileSys.readDir str)
         done;
       !fs
   end ;;

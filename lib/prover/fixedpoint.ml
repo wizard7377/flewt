@@ -36,11 +36,11 @@ module FixedPoint(FixedPoint:sig
     exception Error = S.Error
     type nonrec operator = (T.__Prg option ref * T.__Prg)
     let rec expand (Focus (EVar (Psi, r, F, _, TCs, _), W), O) =
-      let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec NONE)) in
-      let D = T.PDec (x, F, NONE, NONE) in
-      let X = T.newEVar ((I.Decl (Psi, D)), (T.forSub (F, (T.Shift 1)))) in
-      (r, (T.Rec (D, X)))
-    let rec apply (r, P) = (:=) r SOME P
+      let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
+      let __d = T.PDec (x, F, None, None) in
+      let x = T.newEVar ((I.Decl (Psi, __d)), (T.forSub (F, (T.Shift 1)))) in
+      (r, (T.Rec (__d, x)))
+    let rec apply (r, P) = (:=) r Some P
     let rec menu _ = "Recursion introduction"
     (* expand S = S'
 
@@ -49,7 +49,7 @@ module FixedPoint(FixedPoint:sig
        and  F does not start with an all quantifier
        then S' = (Psi, xx :: F |> F)
     *)
-    (*        val D = T.PDec (SOME "IH" , F, SOME O, SOME O) *)
+    (*        val __d = T.PDec (Some "IH" , F, Some O, Some O) *)
     (* apply O = S
 
        Invariant:

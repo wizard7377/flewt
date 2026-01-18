@@ -36,8 +36,7 @@
   flit
   msg
  )
- (modules 
-  buildid
+ (modules
   fquery
   frontend
   lexer

@@ -38,44 +38,44 @@ module CSIntWord(CSIntWord:sig
     let plusID = (ref (-1) : cid ref)
     let timesID = (ref (-1) : cid ref)
     let quotID = (ref (-1) : cid ref)
-    let rec plusExp (U, V, W) =
-      Root ((Const (!plusID)), (App (U, (App (V, (App (W, Nil)))))))
-    let rec timesExp (U, V, W) =
-      Root ((Const (!timesID)), (App (U, (App (V, (App (W, Nil)))))))
-    let rec quotExp (U, V, W) =
-      Root ((Const (!quotID)), (App (U, (App (V, (App (W, Nil)))))))
+    let rec plusExp (__u, __v, W) =
+      Root ((Const (!plusID)), (App (__u, (App (__v, (App (W, Nil)))))))
+    let rec timesExp (__u, __v, W) =
+      Root ((Const (!timesID)), (App (__u, (App (__v, (App (W, Nil)))))))
+    let rec quotExp (__u, __v, W) =
+      Root ((Const (!quotID)), (App (__u, (App (__v, (App (W, Nil)))))))
     let provePlusID = (ref (-1) : cid ref)
     let proveTimesID = (ref (-1) : cid ref)
     let proveQuotID = (ref (-1) : cid ref)
     let proofPlusID = (ref (-1) : cid ref)
     let proofTimesID = (ref (-1) : cid ref)
     let proofQuotID = (ref (-1) : cid ref)
-    let rec provePlusExp (U, V, W, P) =
+    let rec provePlusExp (__u, __v, W, P) =
       Root
         ((Const (!provePlusID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
-    let rec proofPlusExp (U, V, W, P) =
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
+    let rec proofPlusExp (__u, __v, W, P) =
       Root
         ((Const (!proofPlusID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
-    let rec proofTimesExp (U, V, W, P) =
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
+    let rec proofTimesExp (__u, __v, W, P) =
       Root
         ((Const (!proofTimesID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
-    let rec proveTimesExp (U, V, W, P) =
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
+    let rec proveTimesExp (__u, __v, W, P) =
       Root
         ((Const (!proveTimesID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
-    let rec proveQuotExp (U, V, W, P) =
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
+    let rec proveQuotExp (__u, __v, W, P) =
       Root
         ((Const (!proveQuotID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
-    let rec proofQuotExp (U, V, W, P) =
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
+    let rec proofQuotExp (__u, __v, W, P) =
       Root
         ((Const (!proofQuotID)),
-          (App (U, (App (V, (App (W, (App (P, Nil)))))))))
+          (App (__u, (App (__v, (App (W, (App (P, Nil)))))))))
     let rec numberConDec d =
-      ConDec ((W.fmt StringCvt.DEC d), NONE, 0, Normal, (word ()), Type)
+      ConDec ((W.fmt StringCvt.DEC d), None, 0, Normal, (word ()), Type)
     let rec numberExp d = Root ((FgnConst ((!myID), (numberConDec d))), Nil)
     let rec scanNumber str =
       let rec check =
@@ -85,17 +85,17 @@ module CSIntWord(CSIntWord:sig
       if check (String.explode str)
       then
         match StringCvt.scanString (W.scan StringCvt.DEC) str with
-        | SOME d -> (if numCheck d then SOME d else NONE)
-        | NONE -> NONE
-      else NONE
+        | Some d -> (if numCheck d then Some d else None)
+        | None -> None
+      else None
     let rec parseNumber string =
       match scanNumber string with
-      | SOME d -> SOME (numberConDec d)
-      | NONE -> NONE
+      | Some d -> Some (numberConDec d)
+      | None -> None
     let rec plusPfConDec (d1, d2) =
       let d3 = W.(+) (d1, d2) in
       ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "+") W.fmt StringCvt.DEC d2), NONE,
+        (((^) ((W.fmt StringCvt.DEC d1) ^ "+") W.fmt StringCvt.DEC d2), None,
           0, Normal,
           (plusExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
     let rec plusPfExp ds =
@@ -103,7 +103,7 @@ module CSIntWord(CSIntWord:sig
     let rec timesPfConDec (d1, d2) =
       let d3 = W.( * ) (d1, d2) in
       ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "*") W.fmt StringCvt.DEC d2), NONE,
+        (((^) ((W.fmt StringCvt.DEC d1) ^ "*") W.fmt StringCvt.DEC d2), None,
           0, Normal,
           (timesExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
     let rec timesPfExp ds =
@@ -111,7 +111,7 @@ module CSIntWord(CSIntWord:sig
     let rec quotPfConDec (d1, d2) =
       let d3 = W.div (d1, d2) in
       ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "/") W.fmt StringCvt.DEC d2), NONE,
+        (((^) ((W.fmt StringCvt.DEC d1) ^ "/") W.fmt StringCvt.DEC d2), None,
           0, Normal,
           (quotExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
     let rec quotPfExp ds =
@@ -123,28 +123,28 @@ module CSIntWord(CSIntWord:sig
           (match ((StringCvt.scanString (W.scan StringCvt.DEC) arg1),
                    (StringCvt.scanString (W.scan StringCvt.DEC) arg2))
            with
-           | (SOME d1, SOME d2) -> SOME (d1, d2)
-           | _ -> NONE)
-      | _ -> NONE
+           | (Some d1, Some d2) -> Some (d1, d2)
+           | _ -> None)
+      | _ -> None
     let rec parseBinopPf oper string =
       match (oper, (scanBinopPf oper string)) with
-      | ('+', SOME ds) -> SOME (plusPfConDec ds)
-      | ('*', SOME ds) -> SOME (timesPfConDec ds)
-      | ('/', SOME ds) -> SOME (quotPfConDec ds)
-      | _ -> NONE
+      | ('+', Some ds) -> Some (plusPfConDec ds)
+      | ('*', Some ds) -> Some (timesPfConDec ds)
+      | ('/', Some ds) -> Some (quotPfConDec ds)
+      | _ -> None
     let parsePlusPf = parseBinopPf '+'
     let parseTimesPf = parseBinopPf '*'
     let parseQuotPf = parseBinopPf '/'
     let rec parseAll string =
       match parseNumber string with
-      | SOME conDec -> SOME conDec
-      | NONE ->
+      | Some conDec -> Some conDec
+      | None ->
           (match parsePlusPf string with
-           | SOME conDec -> SOME conDec
-           | NONE ->
+           | Some conDec -> Some conDec
+           | None ->
                (match parseTimesPf string with
-                | SOME conDec -> SOME conDec
-                | NONE -> parseQuotPf string))
+                | Some conDec -> Some conDec
+                | None -> parseQuotPf string))
     type __FixTerm =
       | Num of W.word 
       | PlusPf of (W.word * W.word) 
@@ -153,37 +153,37 @@ module CSIntWord(CSIntWord:sig
       | Expr of (__Exp * __Sub) 
     let rec fromExpW =
       function
-      | (Root (FgnConst (cs, conDec), _), _) as Us ->
+      | (Root (FgnConst (cs, conDec), _), _) as __Us ->
           if (!) ((=) cs) myID
           then
             let string = conDecName conDec in
             (match scanNumber string with
-             | SOME d -> Num d
-             | NONE ->
+             | Some d -> Num d
+             | None ->
                  (match scanBinopPf '/' string with
-                  | SOME ds -> QuotPf ds
-                  | NONE ->
+                  | Some ds -> QuotPf ds
+                  | None ->
                       (match scanBinopPf '+' string with
-                       | SOME ds -> PlusPf ds
-                       | NONE ->
+                       | Some ds -> PlusPf ds
+                       | None ->
                            (match scanBinopPf '*' string with
-                            | SOME ds -> TimesPf ds
-                            | NONE -> Expr Us))))
-          else Expr Us
-      | (Root (Def d, _), _) as Us -> fromExpW (Whnf.expandDef Us)
-      | Us -> Expr Us
-    let rec fromExp (Us) = fromExpW (Whnf.whnf Us)
+                            | Some ds -> TimesPf ds
+                            | None -> Expr __Us))))
+          else Expr __Us
+      | (Root (Def d, _), _) as __Us -> fromExpW (Whnf.expandDef __Us)
+      | __Us -> Expr __Us
+    let rec fromExp (__Us) = fromExpW (Whnf.whnf __Us)
     let rec toExp =
       function
       | Num d -> numberExp d
       | PlusPf ds -> plusPfExp ds
       | TimesPf ds -> timesPfExp ds
       | QuotPf ds -> quotPfExp ds
-      | Expr (Us) -> EClo Us
-    let rec solveNumber (G, S, k) = SOME (numberExp (W.fromInt k))
+      | Expr (__Us) -> EClo __Us
+    let rec solveNumber (__g, S, k) = Some (numberExp (W.fromInt k))
     let rec fst =
       function
-      | (App (U1, _), s) -> (U1, s)
+      | (App (__U1, _), s) -> (__U1, s)
       | (SClo (S, s'), s) -> fst (S, (comp (s', s)))
     let rec snd =
       function
@@ -197,211 +197,211 @@ module CSIntWord(CSIntWord:sig
       function
       | (App (_, S), s) -> trd (S, s)
       | (SClo (S, s'), s) -> fth (S, (comp (s', s)))
-    let rec toInternalPlus (G, U1, U2, U3) () = [(G, (plusExp (U1, U2, U3)))]
-    let rec awakePlus (G, proof, U1, U2, U3) () =
-      match solvePlus (G, (App (U1, (App (U2, (App (U3, Nil)))))), 0) with
-      | SOME proof' -> Unify.unifiable (G, (proof, id), (proof', id))
-      | NONE -> false__
-    let rec makeCnstrPlus (G, proof, U1, U2, U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepPlus (G, proof, U1, U2, U3)))
+    let rec toInternalPlus (__g, __U1, __U2, __U3) () = [(__g, (plusExp (__U1, __U2, __U3)))]
+    let rec awakePlus (__g, proof, __U1, __U2, __U3) () =
+      match solvePlus (__g, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0) with
+      | Some proof' -> Unify.unifiable (__g, (proof, id), (proof', id))
+      | None -> false__
+    let rec makeCnstrPlus (__g, proof, __U1, __U2, __U3) =
+      FgnCnstr ((!myID), (MyFgnCnstrRepPlus (__g, proof, __U1, __U2, __U3)))
     let rec solvePlus =
       function
-      | (G, S, 0) ->
-          let Us1 = fst (S, id) in
-          let Us2 = snd (S, id) in
-          let Us3 = trd (S, id) in
-          (match ((fromExp Us1), (fromExp Us2), (fromExp Us3)) with
+      | (__g, S, 0) ->
+          let us1 = fst (S, id) in
+          let us2 = snd (S, id) in
+          let us3 = trd (S, id) in
+          (match ((fromExp us1), (fromExp us2), (fromExp us3)) with
            | (Num d1, Num d2, Num d3) ->
                if ((=) d3 W.(+) (d1, d2)) && (plusCheck (d1, d2))
-               then SOME (plusPfExp (d1, d2))
-               else NONE
-           | (Expr (Us1), Num d2, Num d3) ->
+               then Some (plusPfExp (d1, d2))
+               else None
+           | (Expr (us1), Num d2, Num d3) ->
                if
                  (W.(>=) (d3, d2)) &&
                    (Unify.unifiable
-                      (G, Us1, ((numberExp (W.(-) (d3, d2))), id)))
-               then SOME (plusPfExp ((W.(-) (d3, d2)), d2))
-               else NONE
-           | (Num d1, Expr (Us2), Num d3) ->
+                      (__g, us1, ((numberExp (W.(-) (d3, d2))), id)))
+               then Some (plusPfExp ((W.(-) (d3, d2)), d2))
+               else None
+           | (Num d1, Expr (us2), Num d3) ->
                if
                  (W.(>=) (d3, d1)) &&
                    (Unify.unifiable
-                      (G, Us2, ((numberExp (W.(-) (d3, d1))), id)))
-               then SOME (plusPfExp (d1, (W.(-) (d3, d1))))
-               else NONE
-           | (Num d1, Num d2, Expr (Us3)) ->
+                      (__g, us2, ((numberExp (W.(-) (d3, d1))), id)))
+               then Some (plusPfExp (d1, (W.(-) (d3, d1))))
+               else None
+           | (Num d1, Num d2, Expr (us3)) ->
                if
                  (plusCheck (d1, d2)) &&
                    (Unify.unifiable
-                      (G, Us3, ((numberExp (W.(+) (d1, d2))), id)))
-               then SOME (plusPfExp (d1, d2))
-               else NONE
+                      (__g, us3, ((numberExp (W.(+) (d1, d2))), id)))
+               then Some (plusPfExp (d1, d2))
+               else None
            | _ ->
                let proof =
-                 newEVar (G, (plusExp ((EClo Us1), (EClo Us2), (EClo Us3)))) in
+                 newEVar (__g, (plusExp ((EClo us1), (EClo us2), (EClo us3)))) in
                let cnstr =
-                 makeCnstrPlus (G, proof, (EClo Us1), (EClo Us2), (EClo Us3)) in
+                 makeCnstrPlus (__g, proof, (EClo us1), (EClo us2), (EClo us3)) in
                let _ =
-                 List.app (function | Us -> Unify.delay (Us, (ref cnstr)))
-                   [Us1; Us2; Us3] in
-               SOME proof)
-      | (G, S, n) -> NONE
-    let rec toInternalTimes (G, U1, U2, U3) () =
-      [(G, (timesExp (U1, U2, U3)))]
-    let rec awakeTimes (G, proof, U1, U2, U3) () =
-      match solveTimes (G, (App (U1, (App (U2, (App (U3, Nil)))))), 0) with
-      | SOME proof' -> Unify.unifiable (G, (proof, id), (proof', id))
-      | NONE -> false__
-    let rec makeCnstrTimes (G, proof, U1, U2, U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepTimes (G, proof, U1, U2, U3)))
+                 List.app (function | __Us -> Unify.delay (__Us, (ref cnstr)))
+                   [us1; us2; us3] in
+               Some proof)
+      | (__g, S, n) -> None
+    let rec toInternalTimes (__g, __U1, __U2, __U3) () =
+      [(__g, (timesExp (__U1, __U2, __U3)))]
+    let rec awakeTimes (__g, proof, __U1, __U2, __U3) () =
+      match solveTimes (__g, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0) with
+      | Some proof' -> Unify.unifiable (__g, (proof, id), (proof', id))
+      | None -> false__
+    let rec makeCnstrTimes (__g, proof, __U1, __U2, __U3) =
+      FgnCnstr ((!myID), (MyFgnCnstrRepTimes (__g, proof, __U1, __U2, __U3)))
     let rec solveTimes =
       function
-      | (G, S, 0) ->
-          let Us1 = fst (S, id) in
-          let Us2 = snd (S, id) in
-          let Us3 = trd (S, id) in
-          (match ((fromExp Us1), (fromExp Us2), (fromExp Us3)) with
+      | (__g, S, 0) ->
+          let us1 = fst (S, id) in
+          let us2 = snd (S, id) in
+          let us3 = trd (S, id) in
+          (match ((fromExp us1), (fromExp us2), (fromExp us3)) with
            | (Num d1, Num d2, Num d3) ->
                if ((=) d3 W.( * ) (d1, d2)) && (timesCheck (d1, d2))
-               then SOME (timesPfExp (d1, d2))
-               else NONE
-           | (Expr (Us1), Num d2, Num d3) ->
+               then Some (timesPfExp (d1, d2))
+               else None
+           | (Expr (us1), Num d2, Num d3) ->
                if
                  (d3 = zero) &&
-                   (Unify.unifiable (G, Us1, ((numberExp zero), id)))
-               then SOME (timesPfExp (zero, d2))
+                   (Unify.unifiable (__g, us1, ((numberExp zero), id)))
+               then Some (timesPfExp (zero, d2))
                else
                  if
                    (W.(>) (d2, zero)) &&
                      ((W.(>) (d3, zero)) &&
                         (((W.mod__ (d3, d2)) = zero) &&
                            (Unify.unifiable
-                              (G, Us1, ((numberExp (W.div (d3, d2))), id)))))
-                 then SOME (timesPfExp ((W.div (d3, d2)), d2))
-                 else NONE
-           | (Num d1, Expr (Us2), Num d3) ->
+                              (__g, us1, ((numberExp (W.div (d3, d2))), id)))))
+                 then Some (timesPfExp ((W.div (d3, d2)), d2))
+                 else None
+           | (Num d1, Expr (us2), Num d3) ->
                if
                  (d3 = zero) &&
-                   (Unify.unifiable (G, Us2, ((numberExp zero), id)))
-               then SOME (timesPfExp (d1, zero))
+                   (Unify.unifiable (__g, us2, ((numberExp zero), id)))
+               then Some (timesPfExp (d1, zero))
                else
                  if
                    (W.(>) (d1, zero)) &&
                      ((W.(>) (d3, zero)) &&
                         (((W.mod__ (d3, d1)) = zero) &&
                            (Unify.unifiable
-                              (G, Us2, ((numberExp (W.div (d3, d1))), id)))))
-                 then SOME (timesPfExp (d1, (W.div (d3, d1))))
-                 else NONE
-           | (Num d1, Num d2, Expr (Us3)) ->
+                              (__g, us2, ((numberExp (W.div (d3, d1))), id)))))
+                 then Some (timesPfExp (d1, (W.div (d3, d1))))
+                 else None
+           | (Num d1, Num d2, Expr (us3)) ->
                if
                  (timesCheck (d1, d2)) &&
                    (Unify.unifiable
-                      (G, Us3, ((numberExp (W.( * ) (d1, d2))), id)))
-               then SOME (timesPfExp (d1, d2))
-               else NONE
+                      (__g, us3, ((numberExp (W.( * ) (d1, d2))), id)))
+               then Some (timesPfExp (d1, d2))
+               else None
            | _ ->
                let proof =
-                 newEVar (G, (timesExp ((EClo Us1), (EClo Us2), (EClo Us3)))) in
+                 newEVar (__g, (timesExp ((EClo us1), (EClo us2), (EClo us3)))) in
                let cnstr =
                  makeCnstrTimes
-                   (G, proof, (EClo Us1), (EClo Us2), (EClo Us3)) in
+                   (__g, proof, (EClo us1), (EClo us2), (EClo us3)) in
                let _ =
-                 List.app (function | Us -> Unify.delay (Us, (ref cnstr)))
-                   [Us1; Us2; Us3] in
-               SOME proof)
-      | (G, S, n) -> NONE
-    let rec toInternalQuot (G, U1, U2, U3) () = [(G, (quotExp (U1, U2, U3)))]
-    let rec awakeQuot (G, proof, U1, U2, U3) () =
-      match solveQuot (G, (App (U1, (App (U2, (App (U3, Nil)))))), 0) with
-      | SOME proof' -> Unify.unifiable (G, (proof, id), (proof', id))
-      | NONE -> false__
-    let rec makeCnstrQuot (G, proof, U1, U2, U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepQuot (G, proof, U1, U2, U3)))
+                 List.app (function | __Us -> Unify.delay (__Us, (ref cnstr)))
+                   [us1; us2; us3] in
+               Some proof)
+      | (__g, S, n) -> None
+    let rec toInternalQuot (__g, __U1, __U2, __U3) () = [(__g, (quotExp (__U1, __U2, __U3)))]
+    let rec awakeQuot (__g, proof, __U1, __U2, __U3) () =
+      match solveQuot (__g, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0) with
+      | Some proof' -> Unify.unifiable (__g, (proof, id), (proof', id))
+      | None -> false__
+    let rec makeCnstrQuot (__g, proof, __U1, __U2, __U3) =
+      FgnCnstr ((!myID), (MyFgnCnstrRepQuot (__g, proof, __U1, __U2, __U3)))
     let rec solveQuot =
       function
-      | (G, S, 0) ->
-          let Us1 = fst (S, id) in
-          let Us2 = snd (S, id) in
-          let Us3 = trd (S, id) in
-          (match ((fromExp Us1), (fromExp Us2), (fromExp Us3)) with
+      | (__g, S, 0) ->
+          let us1 = fst (S, id) in
+          let us2 = snd (S, id) in
+          let us3 = trd (S, id) in
+          (match ((fromExp us1), (fromExp us2), (fromExp us3)) with
            | (Num d1, Num d2, Num d3) ->
                if (quotCheck (d1, d2)) && ((=) d3 W.div (d1, d2))
-               then SOME (quotPfExp (d1, d2))
-               else NONE
-           | (Num d1, Num d2, Expr (Us3)) ->
+               then Some (quotPfExp (d1, d2))
+               else None
+           | (Num d1, Num d2, Expr (us3)) ->
                if
                  (quotCheck (d1, d2)) &&
                    (Unify.unifiable
-                      (G, Us3, ((numberExp (W.div (d1, d2))), id)))
-               then SOME (quotPfExp (d1, d2))
-               else NONE
+                      (__g, us3, ((numberExp (W.div (d1, d2))), id)))
+               then Some (quotPfExp (d1, d2))
+               else None
            | _ ->
                let proof =
-                 newEVar (G, (quotExp ((EClo Us1), (EClo Us2), (EClo Us3)))) in
+                 newEVar (__g, (quotExp ((EClo us1), (EClo us2), (EClo us3)))) in
                let cnstr =
-                 makeCnstrQuot (G, proof, (EClo Us1), (EClo Us2), (EClo Us3)) in
+                 makeCnstrQuot (__g, proof, (EClo us1), (EClo us2), (EClo us3)) in
                let _ =
-                 List.app (function | Us -> Unify.delay (Us, (ref cnstr)))
-                   [Us1; Us2; Us3] in
-               SOME proof)
-      | (G, S, n) -> NONE
-    let rec solveProvePlus (G, S, k) =
-      let Us1 = fst (S, id) in
-      let Us2 = snd (S, id) in
-      let Us3 = trd (S, id) in
-      let Us4 = fth (S, id) in
+                 List.app (function | __Us -> Unify.delay (__Us, (ref cnstr)))
+                   [us1; us2; us3] in
+               Some proof)
+      | (__g, S, n) -> None
+    let rec solveProvePlus (__g, S, k) =
+      let us1 = fst (S, id) in
+      let us2 = snd (S, id) in
+      let us3 = trd (S, id) in
+      let us4 = fth (S, id) in
       match solvePlus
-              (G,
+              (__g,
                 (App
-                   ((EClo Us1), (App ((EClo Us2), (App ((EClo Us3), Nil)))))),
+                   ((EClo us1), (App ((EClo us2), (App ((EClo us3), Nil)))))),
                 k)
       with
-      | SOME (U) ->
-          if Unify.unifiable (G, Us4, (U, id))
+      | Some (__u) ->
+          if Unify.unifiable (__g, us4, (__u, id))
           then
-            SOME
-              (proofPlusExp ((EClo Us1), (EClo Us2), (EClo Us3), (EClo Us4)))
-          else NONE
-      | NONE -> NONE
-    let rec solveProveTimes (G, S, k) =
-      let Us1 = fst (S, id) in
-      let Us2 = snd (S, id) in
-      let Us3 = trd (S, id) in
-      let Us4 = fth (S, id) in
+            Some
+              (proofPlusExp ((EClo us1), (EClo us2), (EClo us3), (EClo us4)))
+          else None
+      | None -> None
+    let rec solveProveTimes (__g, S, k) =
+      let us1 = fst (S, id) in
+      let us2 = snd (S, id) in
+      let us3 = trd (S, id) in
+      let us4 = fth (S, id) in
       match solveTimes
-              (G,
+              (__g,
                 (App
-                   ((EClo Us1), (App ((EClo Us2), (App ((EClo Us3), Nil)))))),
+                   ((EClo us1), (App ((EClo us2), (App ((EClo us3), Nil)))))),
                 k)
       with
-      | SOME (U) ->
-          if Unify.unifiable (G, Us4, (U, id))
+      | Some (__u) ->
+          if Unify.unifiable (__g, us4, (__u, id))
           then
-            SOME
-              (proofTimesExp ((EClo Us1), (EClo Us2), (EClo Us3), (EClo Us4)))
-          else NONE
-      | NONE -> NONE
-    let rec solveProveQuot (G, S, k) =
-      let Us1 = fst (S, id) in
-      let Us2 = snd (S, id) in
-      let Us3 = trd (S, id) in
-      let Us4 = fth (S, id) in
+            Some
+              (proofTimesExp ((EClo us1), (EClo us2), (EClo us3), (EClo us4)))
+          else None
+      | None -> None
+    let rec solveProveQuot (__g, S, k) =
+      let us1 = fst (S, id) in
+      let us2 = snd (S, id) in
+      let us3 = trd (S, id) in
+      let us4 = fth (S, id) in
       match solveQuot
-              (G,
+              (__g,
                 (App
-                   ((EClo Us1), (App ((EClo Us2), (App ((EClo Us3), Nil)))))),
+                   ((EClo us1), (App ((EClo us2), (App ((EClo us3), Nil)))))),
                 k)
       with
-      | SOME (U) ->
-          if Unify.unifiable (G, Us4, (U, id))
+      | Some (__u) ->
+          if Unify.unifiable (__g, us4, (__u, id))
           then
-            SOME
-              (proofQuotExp ((EClo Us1), (EClo Us2), (EClo Us3), (EClo Us4)))
-          else NONE
-      | NONE -> NONE
-    let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
-    let rec pi (name, U, V) = Pi (((Dec ((SOME name), U)), Maybe), V)
+            Some
+              (proofQuotExp ((EClo us1), (EClo us2), (EClo us3), (EClo us4)))
+          else None
+      | None -> None
+    let rec arrow (__u, __v) = Pi (((Dec (None, __u)), No), __v)
+    let rec pi (name, __u, __v) = Pi (((Dec ((Some name), __u)), Maybe), __v)
     let rec bvar n = Root ((BVar n), Nil)
     let rec installFgnCnstrOps () =
       let csid = !myID in
@@ -409,23 +409,23 @@ module CSIntWord(CSIntWord:sig
         FgnCnstrStd.ToInternal.install
           (csid,
             (function
-             | MyFgnCnstrRepPlus (G, _, U1, U2, U3) ->
-                 toInternalPlus (G, U1, U2, U3)
-             | MyFgnCnstrRepTimes (G, _, U1, U2, U3) ->
-                 toInternalTimes (G, U1, U2, U3)
-             | MyFgnCnstrRepQuot (G, _, U1, U2, U3) ->
-                 toInternalQuot (G, U1, U2, U3)
+             | MyFgnCnstrRepPlus (__g, _, __U1, __U2, __U3) ->
+                 toInternalPlus (__g, __U1, __U2, __U3)
+             | MyFgnCnstrRepTimes (__g, _, __U1, __U2, __U3) ->
+                 toInternalTimes (__g, __U1, __U2, __U3)
+             | MyFgnCnstrRepQuot (__g, _, __U1, __U2, __U3) ->
+                 toInternalQuot (__g, __U1, __U2, __U3)
              | fc -> raise (UnexpectedFgnCnstr fc))) in
       let _ =
         FgnCnstrStd.Awake.install
           (csid,
             (function
-             | MyFgnCnstrRepPlus (G, proof, U1, U2, U3) ->
-                 awakePlus (G, proof, U1, U2, U3)
-             | MyFgnCnstrRepTimes (G, proof, U1, U2, U3) ->
-                 awakeTimes (G, proof, U1, U2, U3)
-             | MyFgnCnstrRepQuot (G, proof, U1, U2, U3) ->
-                 awakeQuot (G, proof, U1, U2, U3)
+             | MyFgnCnstrRepPlus (__g, proof, __U1, __U2, __U3) ->
+                 awakePlus (__g, proof, __U1, __U2, __U3)
+             | MyFgnCnstrRepTimes (__g, proof, __U1, __U2, __U3) ->
+                 awakeTimes (__g, proof, __U1, __U2, __U3)
+             | MyFgnCnstrRepQuot (__g, proof, __U1, __U2, __U3) ->
+                 awakeQuot (__g, proof, __U1, __U2, __U3)
              | fc -> raise (UnexpectedFgnCnstr fc))) in
       let _ =
         FgnCnstrStd.Simplify.install
@@ -440,97 +440,97 @@ module CSIntWord(CSIntWord:sig
       myID := cs;
       (:=) wordID installF
         ((ConDec
-            (((^) "word" Int.toString wordSize'), NONE, 0,
+            (((^) "word" Int.toString wordSize'), None, 0,
               (Constraint ((!myID), solveNumber)), (Uni Type), Kind)),
-          (NONE : FX.fixity option), [MS.Mnil]);
+          (None : FX.fixity option), [MS.Mnil]);
       (:=) plusID installF
         ((ConDec
-            ("+", NONE, 0, (Constraint ((!myID), solvePlus)),
+            ("+", None, 0, (Constraint ((!myID), solvePlus)),
               (arrow
                  ((word ()),
                    (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), NONE,
+              Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Plus, (SOME "X"))),
+             ((MS.Marg (MS.Plus, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Plus, (SOME "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (SOME "Z"))), MS.Mnil)))));
+                  ((MS.Marg (MS.Plus, (Some "y"))),
+                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
           MS.Mapp
-            ((MS.Marg (MS.Plus, (SOME "X"))),
+            ((MS.Marg (MS.Plus, (Some "x"))),
               (MS.Mapp
-                 ((MS.Marg (MS.Minus, (SOME "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (SOME "Z"))), MS.Mnil)))));
+                 ((MS.Marg (MS.Minus, (Some "y"))),
+                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
           MS.Mapp
-            ((MS.Marg (MS.Minus, (SOME "X"))),
+            ((MS.Marg (MS.Minus, (Some "x"))),
               (MS.Mapp
-                 ((MS.Marg (MS.Plus, (SOME "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (SOME "Z"))), MS.Mnil)))))]);
+                 ((MS.Marg (MS.Plus, (Some "y"))),
+                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
       (:=) timesID installF
         ((ConDec
-            ("*", NONE, 0, (Constraint ((!myID), solveTimes)),
+            ("*", None, 0, (Constraint ((!myID), solveTimes)),
               (arrow
                  ((word ()),
                    (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), NONE,
+              Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Plus, (SOME "X"))),
+             ((MS.Marg (MS.Plus, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Plus, (SOME "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (SOME "Z"))), MS.Mnil)))));
+                  ((MS.Marg (MS.Plus, (Some "y"))),
+                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
           MS.Mapp
-            ((MS.Marg (MS.Plus, (SOME "X"))),
+            ((MS.Marg (MS.Plus, (Some "x"))),
               (MS.Mapp
-                 ((MS.Marg (MS.Minus, (SOME "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (SOME "Z"))), MS.Mnil)))));
+                 ((MS.Marg (MS.Minus, (Some "y"))),
+                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
           MS.Mapp
-            ((MS.Marg (MS.Minus, (SOME "X"))),
+            ((MS.Marg (MS.Minus, (Some "x"))),
               (MS.Mapp
-                 ((MS.Marg (MS.Plus, (SOME "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (SOME "Z"))), MS.Mnil)))))]);
+                 ((MS.Marg (MS.Plus, (Some "y"))),
+                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
       (:=) quotID installF
         ((ConDec
-            ("/", NONE, 0, (Constraint ((!myID), solveQuot)),
+            ("/", None, 0, (Constraint ((!myID), solveQuot)),
               (arrow
                  ((word ()),
                    (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), NONE,
+              Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Plus, (SOME "X"))),
+             ((MS.Marg (MS.Plus, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Plus, (SOME "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (SOME "Z"))), MS.Mnil)))));
+                  ((MS.Marg (MS.Plus, (Some "y"))),
+                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
           MS.Mapp
-            ((MS.Marg (MS.Plus, (SOME "X"))),
+            ((MS.Marg (MS.Plus, (Some "x"))),
               (MS.Mapp
-                 ((MS.Marg (MS.Minus, (SOME "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (SOME "Z"))), MS.Mnil)))))]);
+                 ((MS.Marg (MS.Minus, (Some "y"))),
+                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
       (:=) provePlusID installF
         ((ConDec
-            ("prove+", NONE, 0, (Constraint ((!myID), solveProvePlus)),
+            ("prove+", None, 0, (Constraint ((!myID), solveProvePlus)),
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
                                 ("P",
                                   (plusExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), NONE,
+                                  (Uni Type))))))))), Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Star, (SOME "X"))),
+             ((MS.Marg (MS.Star, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Star, (SOME "Y"))),
+                  ((MS.Marg (MS.Star, (Some "y"))),
                     (MS.Mapp
-                       ((MS.Marg (MS.Star, (SOME "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (SOME "P"))), MS.Mnil)))))))]);
+                       ((MS.Marg (MS.Star, (Some "Z"))),
+                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
       (:=) proofPlusID installF
         ((ConDec
-            ("proof+", NONE, 0, Normal,
+            ("proof+", None, 0, Normal,
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
@@ -538,34 +538,34 @@ module CSIntWord(CSIntWord:sig
                                   (plusExp ((bvar 3), (bvar 2), (bvar 1))),
                                   (provePlusExp
                                      ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), NONE, nil);
+              Type)), None, nil);
       (:=) proveTimesID installF
         ((ConDec
-            ("prove*", NONE, 0, (Constraint ((!myID), solveProveTimes)),
+            ("prove*", None, 0, (Constraint ((!myID), solveProveTimes)),
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
                                 ("P",
                                   (timesExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), NONE,
+                                  (Uni Type))))))))), Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Star, (SOME "X"))),
+             ((MS.Marg (MS.Star, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Star, (SOME "Y"))),
+                  ((MS.Marg (MS.Star, (Some "y"))),
                     (MS.Mapp
-                       ((MS.Marg (MS.Star, (SOME "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (SOME "P"))), MS.Mnil)))))))]);
+                       ((MS.Marg (MS.Star, (Some "Z"))),
+                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
       (:=) proofTimesID installF
         ((ConDec
-            ("proof*", NONE, 0, Normal,
+            ("proof*", None, 0, Normal,
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
@@ -573,34 +573,34 @@ module CSIntWord(CSIntWord:sig
                                   (timesExp ((bvar 3), (bvar 2), (bvar 1))),
                                   (proveTimesExp
                                      ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), NONE, nil);
+              Type)), None, nil);
       (:=) proveQuotID installF
         ((ConDec
-            ("prove/", NONE, 0, (Constraint ((!myID), solveProveQuot)),
+            ("prove/", None, 0, (Constraint ((!myID), solveProveQuot)),
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
                                 ("P",
                                   (quotExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), NONE,
+                                  (Uni Type))))))))), Kind)), None,
           [MS.Mapp
-             ((MS.Marg (MS.Star, (SOME "X"))),
+             ((MS.Marg (MS.Star, (Some "x"))),
                (MS.Mapp
-                  ((MS.Marg (MS.Star, (SOME "Y"))),
+                  ((MS.Marg (MS.Star, (Some "y"))),
                     (MS.Mapp
-                       ((MS.Marg (MS.Star, (SOME "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (SOME "P"))), MS.Mnil)))))))]);
+                       ((MS.Marg (MS.Star, (Some "Z"))),
+                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
       (:=) proofQuotID installF
         ((ConDec
-            ("proof/", NONE, 0, Normal,
+            ("proof/", None, 0, Normal,
               (pi
-                 ("X", (word ()),
+                 ("x", (word ()),
                    (pi
-                      ("Y", (word ()),
+                      ("y", (word ()),
                         (pi
                            ("Z", (word ()),
                              (pi
@@ -608,11 +608,11 @@ module CSIntWord(CSIntWord:sig
                                   (quotExp ((bvar 3), (bvar 2), (bvar 1))),
                                   (proveQuotExp
                                      ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), NONE, nil);
+              Type)), None, nil);
       installFgnCnstrOps ();
       ()
     (* CSManager.ModeSyn *)
-    (* FgnCnstr Representation: (G, proof, U1, U2, U3) *)
+    (* FgnCnstr Representation: (__g, proof, __U1, __U2, __U3) *)
     (* numCheck (d) = true iff d <= max *)
     (* plusCheck (d1, d2) = true iff d1 + d2 <= max *)
     (* timesCheck (d1, d2) = true iff d1 * d2 <= max *)
@@ -625,25 +625,25 @@ module CSIntWord(CSIntWord:sig
     (* / : wordXX -> wordXX -> wordXX -> type *)
     (* constant ID's of the proof object generators and their proof objects *)
     (* (these are used as workaround for the lack of sigma types in Twelf)  *)
-    (* prove+ : {U}{V}{W} + U V W -> type *)
-    (* prove* : {U}{V}{W} * U V W -> type *)
-    (* prove/ : {U}{V}{W} / U V W -> type *)
-    (* proof* : {U}{V}{W}{P} prove+ U V W P *)
-    (* proof* : {U}{V}{W}{P} prove* U V W P *)
-    (* proof/ : {U}{V}{W}{P} prove/ U V W P *)
+    (* prove+ : {__u}{__v}{W} + __u __v W -> type *)
+    (* prove* : {__u}{__v}{W} * __u __v W -> type *)
+    (* prove/ : {__u}{__v}{W} / __u __v W -> type *)
+    (* proof* : {__u}{__v}{W}{P} prove+ __u __v W P *)
+    (* proof* : {__u}{__v}{W}{P} prove* __u __v W P *)
+    (* proof/ : {__u}{__v}{W}{P} prove/ __u __v W P *)
     (* scanNumber (str) = numOpt
 
        Invariant:
-         numOpt = SOME(n) if str is the decimal representation of the number n
-                = NONE otherwise
+         numOpt = Some(n) if str is the decimal representation of the number n
+                = None otherwise
     *)
-    (* parseNumber str = SOME(conDec) or NONE
+    (* parseNumber str = Some(conDec) or None
 
        Invariant:
        If str parses to the number n
        then conDec is the (foreign) constant declaration of n
     *)
-    (* parseBinopPf operator string = SOME(conDec) or NONE
+    (* parseBinopPf operator string = Some(conDec) or None
 
        Invariant:
        If string parses to the proof object of n1<operator>n2
@@ -655,46 +655,46 @@ module CSIntWord(CSIntWord:sig
     (*        | n1*n2             *)
     (*        | n1/n2             *)
     (*        | <Expr>            *)
-    (* fromExpW (U, s) = t
+    (* fromExpW (__u, s) = t
 
        Invariant:
-       If   G' |- s : G    G |- U : V    (U,s)  in whnf
-       then t is the internal representation of U[s] as term
+       If   __g' |- s : __g    __g |- __u : __v    (__u,s)  in whnf
+       then t is the internal representation of __u[s] as term
     *)
-    (* fromExp (U, s) = t
+    (* fromExp (__u, s) = t
 
        Invariant:
-       If   G' |- s : G    G |- U : V
-       then t is the internal representation of U[s] as term
+       If   __g' |- s : __g    __g |- __u : __v
+       then t is the internal representation of __u[s] as term
     *)
-    (* toExp t = U
+    (* toExp t = __u
 
        Invariant:
-       G |- U : V and U is the Twelf syntax conversion of t
+       __g |- __u : __v and __u is the Twelf syntax conversion of t
     *)
-    (* fst (S, s) = U1, the first argument in S[s] *)
-    (* snd (S, s) = U2, the second argument in S[s] *)
-    (* trd (S, s) = U1, the third argument in S[s] *)
-    (* fth (S, s) = U1, the fourth argument in S[s] *)
+    (* fst (S, s) = __U1, the first argument in S[s] *)
+    (* snd (S, s) = __U2, the second argument in S[s] *)
+    (* trd (S, s) = __U1, the third argument in S[s] *)
+    (* fth (S, s) = __U1, the fourth argument in S[s] *)
     (* constraint constructor *)
-    (* solvePlus (G, S, n) tries to find the n-th solution to
-          G |- '+' @ S : type
+    (* solvePlus (__g, S, n) tries to find the n-th solution to
+          __g |- '+' @ S : type
     *)
-    (* solveTimes (G, S, n) tries to find the n-th solution to
-         G |- '*' @ S : type
+    (* solveTimes (__g, S, n) tries to find the n-th solution to
+         __g |- '*' @ S : type
     *)
     (* constraint constructor *)
-    (* solveQuot (G, S, n) tries to find the n-th solution to
-         G |- '/' @ S : type
+    (* solveQuot (__g, S, n) tries to find the n-th solution to
+         __g |- '/' @ S : type
     *)
-    (* solveProvePlus (G, S, n) tries to find the n-th solution to
-         G |- prove+ @ S : type
+    (* solveProvePlus (__g, S, n) tries to find the n-th solution to
+         __g |- prove+ @ S : type
     *)
-    (* solveProveTimes (G, S, n) tries to find the n-th solution to
-         G |- prove* @ S : type
+    (* solveProveTimes (__g, S, n) tries to find the n-th solution to
+         __g |- prove* @ S : type
     *)
-    (* solveProveQuot (G, S, n) tries to find the n-th solution to
-         G |- prove/ @ S : type
+    (* solveProveQuot (__g, S, n) tries to find the n-th solution to
+         __g |- prove/ @ S : type
     *)
     (* init (cs, installFunction) = ()
        Initialize the constraint solver.
@@ -705,7 +705,7 @@ module CSIntWord(CSIntWord:sig
         name = ((^) "word" Int.toString wordSize');
         keywords = "numbers,equality";
         needs = ["Unify"];
-        fgnConst = (SOME { parse = parseAll });
+        fgnConst = (Some { parse = parseAll });
         init;
         reset = (function | () -> ());
         mark = (function | () -> ());

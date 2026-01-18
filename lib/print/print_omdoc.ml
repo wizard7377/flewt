@@ -87,57 +87,57 @@ module PrintOMDoc(PrintOMDoc:sig
       | App (_, S) -> 1 + (spineLength S)
     let rec fmtCon =
       function
-      | (G, BVar x) ->
-          let Dec (SOME n, _) = I.ctxDec (G, x) in
+      | (__g, BVar x) ->
+          let Dec (Some n, _) = I.ctxDec (__g, x) in
           sexp
             [Str
                (((^) "<om:OMV name=\"" VarName
-                   ((((I.ctxLength G) - x) + 1), n))
+                   ((((I.ctxLength __g) - x) + 1), n))
                   ^ "\"/>")]
-      | (G, Const cid) ->
+      | (__g, Const cid) ->
           sexp [Str "<om:OMS cd=\"global\" name=\""; Name cid; Str "\"/>"]
-      | (G, Def cid) ->
+      | (__g, Def cid) ->
           sexp [Str "<om:OMS cd=\"global\" name=\""; Name cid; Str "\"/>"]
-      | (G, FgnConst (csid, condec)) -> sexp [Str "FgnConst"]
+      | (__g, FgnConst (csid, condec)) -> sexp [Str "FgnConst"]
     let rec fmtUni =
       function
       | I.Type -> Str "<om:OMS cd=\"twelf\" name=\"type\"/>"
       | I.Kind -> Str "<om:OMS cd=\"twelf\" name=\"kind\"/>"
     let rec fmtExpW =
       function
-      | (G, (Uni (L), s), _) -> sexp [fmtUni L]
-      | (G, (Pi (((Dec (_, V1) as D), P), V2), s), imp) ->
+      | (__g, (Uni (__l), s), _) -> sexp [fmtUni __l]
+      | (__g, (Pi (((Dec (_, V1) as __d), P), V2), s), imp) ->
           (match P with
            | I.Maybe ->
-               let Dec (SOME name, V1') as D' = Names.decLUName (G, D) in
-               let G' = I.Decl (G, D') in
+               let Dec (Some name, V1') as __d' = Names.decLUName (__g, __d) in
+               let __g' = I.Decl (__g, __d') in
                let _ = ind 1 in
                let fmtBody =
-                 fmtExp (G', (V2, (I.dot1 s)), (Int.max (0, (imp - 1)))) in
+                 fmtExp (__g', (V2, (I.dot1 s)), (Int.max (0, (imp - 1)))) in
                let _ = ind 1 in
-               let fmtType = fmtExp (G, (V1', s), 0) in
+               let fmtType = fmtExp (__g, (V1', s), 0) in
                let _ = unind 2 in
                let pi = if imp > 0 then "implicit_Pi" else "Pi" in
-               let id = VarName ((I.ctxLength G'), name) in
+               let id = VarName ((I.ctxLength __g'), name) in
                fmtBinder (pi, name, id, fmtType, fmtBody)
            | I.No ->
-               let G' = I.Decl (G, D) in
+               let __g' = I.Decl (__g, __d) in
                sexp
                  [Str "<om:OMA>";
                  nl_ind ();
                  Str "<om:OMS cd=\"twelf\" name=\"arrow\"/>";
                  nl ();
-                 fmtExp (G, (V1, s), 0);
+                 fmtExp (__g, (V1, s), 0);
                  nl ();
-                 fmtExp (G', (V2, (I.dot1 s)), 0);
+                 fmtExp (__g', (V2, (I.dot1 s)), 0);
                  nl_unind ();
                  Str "</om:OMA>"])
-      | (G, (Root (H, S), s), _) ->
+      | (__g, (Root (H, S), s), _) ->
           let l = spineLength S in
           let out = ref "" in
           let _ =
             if l = 0
-            then (^) ((!) ((:=) out) out) fmtCon (G, H)
+            then (^) ((!) ((:=) out) out) fmtCon (__g, H)
             else
               (let _ = (^) (((!) ((:=) out) out) ^ "<om:OMA>") nl_ind () in
                let (test, cid) =
@@ -159,41 +159,41 @@ module PrintOMDoc(PrintOMDoc:sig
                  if test && (l > args)
                  then (^) (((!) ((:=) out) out) ^ "<om:OMA>") nl_ind ()
                  else () in
-               ((^) ((^) ((!) ((:=) out) out) fmtCon (G, H)) fmtSpine
-                  (G, (S, s), args))
+               ((^) ((^) ((!) ((:=) out) out) fmtCon (__g, H)) fmtSpine
+                  (__g, (S, s), args))
                  ^ "</om:OMA>") in
           !out
-      | (G, (Lam (D, U), s), imp) ->
-          let Dec (SOME name, V) as D' = Names.decLUName (G, D) in
-          let G' = I.Decl (G, D') in
+      | (__g, (Lam (__d, __u), s), imp) ->
+          let Dec (Some name, __v) as __d' = Names.decLUName (__g, __d) in
+          let __g' = I.Decl (__g, __d') in
           let _ = ind 1 in
           let fmtBody =
-            fmtExp (G', (U, (I.dot1 s)), (Int.max (0, (imp - 1)))) in
+            fmtExp (__g', (__u, (I.dot1 s)), (Int.max (0, (imp - 1)))) in
           let _ = ind 1 in
-          let fmtType = fmtExp (G, (V, s), 0) in
+          let fmtType = fmtExp (__g, (__v, s), 0) in
           let _ = unind 2 in
           let lam = if imp > 0 then "implicit_lambda" else "lambda" in
-          let id = VarName ((I.ctxLength G'), name) in
+          let id = VarName ((I.ctxLength __g'), name) in
           fmtBinder (lam, name, id, fmtType, fmtBody)
-      | (G, (FgnExp (csid, F), s), 0) -> sexp [Str "FgnExp"]
-    let rec fmtExp (G, (U, s), imp) = fmtExpW (G, (Whnf.whnf (U, s)), imp)
+      | (__g, (FgnExp (csid, F), s), 0) -> sexp [Str "FgnExp"]
+    let rec fmtExp (__g, (__u, s), imp) = fmtExpW (__g, (Whnf.whnf (__u, s)), imp)
     let rec fmtSpine =
       function
-      | (G, (I.Nil, _), _) -> nl_unind ()
-      | (G, (SClo (S, s'), s), args) ->
-          fmtSpine (G, (S, (I.comp (s', s))), args)
-      | (G, (App (U, S), s), args) ->
-          let out = ref ((^) (nl ()) fmtExp (G, (U, s), 0)) in
+      | (__g, (I.Nil, _), _) -> nl_unind ()
+      | (__g, (SClo (S, s'), s), args) ->
+          fmtSpine (__g, (S, (I.comp (s', s))), args)
+      | (__g, (App (__u, S), s), args) ->
+          let out = ref ((^) (nl ()) fmtExp (__g, (__u, s), 0)) in
           let _ =
             if (args = 1) && ((spineLength S) > 0)
             then ((^) ((!) ((:=) out) out) nl_unind ()) ^ "</om:OMA>"
             else () in
-          (^) (!out) fmtSpine (G, (S, s), (args - 1))
-    let rec fmtExpTop (G, (U, s), imp) =
+          (^) (!out) fmtSpine (__g, (S, s), (args - 1))
+    let rec fmtExpTop (__g, (__u, s), imp) =
       sexp
         [Str "<om:OMOBJ>";
         nl_ind ();
-        fmtExp (G, (U, s), imp);
+        fmtExp (__g, (__u, s), imp);
         nl_unind ();
         Str "</om:OMOBJ>"]
     let rec fmtBinder (binder, varname, varid, typ, body) =
@@ -240,22 +240,22 @@ module PrintOMDoc(PrintOMDoc:sig
               ^ body)
          nl_unind ())
         ^ "</om:OMBIND>"
-    let rec fmtSymbol (name, V, imp) =
+    let rec fmtSymbol (name, __v, imp) =
       ((^) (((^) ((^) ((^) (((^) (("<symbol name=\"" ^ name) ^ "\">") nl_ind
                                ())
                               ^ "<type system=\"twelf\">")
                          nl_ind ())
-                    fmtExpTop (I.Null, (V, I.id), imp))
+                    fmtExpTop (I.Null, (__v, I.id), imp))
                nl_unind ())
               ^ "</type>")
          nl_unind ())
         ^ "</symbol>"
-    let rec fmtDefinition (name, U, imp) =
+    let rec fmtDefinition (name, __u, imp) =
       ((^) ((^) ((^) (((("<definition xml:id=\"" ^ name) ^ ".def\" for=\"#")
                          ^ name)
                         ^ "\">")
                    nl_ind ())
-              fmtExpTop (I.Null, (U, I.id), imp))
+              fmtExpTop (I.Null, (__u, I.id), imp))
          nl_unind ())
         ^ "</definition>"
     let rec fmtPresentation cid =
@@ -320,21 +320,21 @@ module PrintOMDoc(PrintOMDoc:sig
           ^ "</private>"
     let rec fmtConDec =
       function
-      | (cid, ConDec (name, parent, imp, _, V, L)) ->
+      | (cid, ConDec (name, parent, imp, _, __v, __l)) ->
           let _ = Names.varReset IntSyn.Null in
-          let name = Name cid in fmtSymbol (name, V, imp)
-      | (_, SkoDec (name, parent, imp, V, L)) ->
+          let name = Name cid in fmtSymbol (name, __v, imp)
+      | (_, SkoDec (name, parent, imp, __v, __l)) ->
           Str (("<!-- Skipping Skolem constant " ^ name) ^ "-->")
-      | (cid, ConDef (name, parent, imp, U, V, L, _)) ->
+      | (cid, ConDef (name, parent, imp, __u, __v, __l, _)) ->
           let _ = Names.varReset IntSyn.Null in
           let name = Name cid in
-          (^) ((^) (fmtSymbol (name, V, imp)) nl ()) fmtDefinition
-            (name, U, imp)
-      | (cid, AbbrevDef (name, parent, imp, U, V, L)) ->
+          (^) ((^) (fmtSymbol (name, __v, imp)) nl ()) fmtDefinition
+            (name, __u, imp)
+      | (cid, AbbrevDef (name, parent, imp, __u, __v, __l)) ->
           let _ = Names.varReset IntSyn.Null in
           let name = Name cid in
-          (^) ((^) (fmtSymbol (name, V, imp)) nl ()) fmtDefinition
-            (name, U, imp)
+          (^) ((^) (fmtSymbol (name, __v, imp)) nl ()) fmtDefinition
+            (name, __u, imp)
       | (_, BlockDec (name, _, _, _)) ->
           Str (("<!-- Skipping Skolem constant " ^ name) ^ "-->")
     (* The Formatter isn't really helpful for OMDoc output. So the basic functions are reimplemented here.
@@ -350,7 +350,7 @@ module PrintOMDoc(PrintOMDoc:sig
     (* val Str  = F.String
   fun Str0 (s, n) = F.String0 n s
   fun Integer (n) = ("\"" ^ Int.toString n ^ "\"") *)
-    (* fun sexp (fmts) = F.Hbox [F.HVbox fmts] *)
+    (* fun sexp (fmts) = F.hbox [F.hVbox fmts] *)
     (* This is probably defined elsewhere, too. It's needed to check how many arguments there will be in an om:OMA element *)
     (* fmtCon (c) = "c" where the name is assigned according the the Name table
      maintained in the names module.
@@ -358,16 +358,16 @@ module PrintOMDoc(PrintOMDoc:sig
   *)
     (* FIX -cs Fri Jan 28 17:45:35 2005*)
     (* I.Skonst, I.FVar cases should be impossible *)
-    (* fmtUni (L) = "L" *)
-    (* fmtExpW (G, (U, s)) = fmt
+    (* fmtUni (__l) = "__l" *)
+    (* fmtExpW (__g, (__u, s)) = fmt
 
-     format the expression U[s].
+     format the expression __u[s].
 
      Invariants:
-       G is a "printing context" (names in it are unique, but
-            types may be incorrect) approximating G'
-       G'' |- U : V   G' |- s : G''  (so  G' |- U[s] : V[s])
-       (U,s) in whnf
+       __g is a "printing context" (names in it are unique, but
+            types may be incorrect) approximating __g'
+       __g'' |- __u : __v   __g' |- s : __g''  (so  __g' |- __u[s] : __v[s])
+       (__u,s) in whnf
   *)
     (* if Pi is dependent but anonymous, invent name here *)
     (* could sometimes be EName *)
@@ -382,9 +382,9 @@ module PrintOMDoc(PrintOMDoc:sig
     (* temporary indentation *)
     (* FIX -cs Fri Jan 28 17:45:43 2005 *)
     (* I.EClo, I.Redex, I.EVar not possible *)
-    (* fmtSpine (G, (S, s), args) = fmts
+    (* fmtSpine (__g, (S, s), args) = fmts
      format spine S[s] at printing depth d, printing length l, in printing
-     context G which approximates G', where G' |- S[s] is valid
+     context __g which approximates __g', where __g' |- S[s] is valid
      args is the number of arguments after which </om:OMA> must be inserted, no effect if negative
   *)
     (* print first argument, 0 is dummy value *)
@@ -399,15 +399,15 @@ module PrintOMDoc(PrintOMDoc:sig
 
      This function prints the quantifiers and abstractions only if hide = false.
   *)
-    (* In the functions below, G must be a "printing context", that is,
+    (* In the functions below, __g must be a "printing context", that is,
      (a) unique names must be assigned to each declaration which may
          actually applied in the scope (typically, using Names.decName)
      (b) types need not be well-formed, since they are not used
   *)
-    let rec formatExp (G, U, imp) = fmtExp (G, (U, I.id), imp)
-    (*  fun formatSpine (G, S) = sexp (fmtSpine (G, (S, I.id))) *)
+    let rec formatExp (__g, __u, imp) = fmtExp (__g, (__u, I.id), imp)
+    (*  fun formatSpine (__g, S) = sexp (fmtSpine (__g, (S, I.id))) *)
     let rec formatConDec condec = fmtConDec condec
-    (* fun expToString (G, U) = F.makestring_fmt (formatExp (G, U, 0)) *)
+    (* fun expToString (__g, __u) = F.makestring_fmt (formatExp (__g, __u, 0)) *)
     let rec conDecToString condec = formatConDec condec
     let rec fmtConst cid =
       (^) ((^) ((formatConDec (cid, (IntSyn.sgnLookup cid))) ^ "\n")

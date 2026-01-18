@@ -23,7 +23,7 @@ module ParseQuery(ParseQuery:sig
   struct
     (*! structure Parsing = Parsing' !*)
     module ExtQuery = ExtQuery'
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module P = Paths
     let rec returnQuery (optName, (tm, f)) =
@@ -31,13 +31,13 @@ module ParseQuery(ParseQuery:sig
     let rec parseQuery1 =
       function
       | (name, f, Cons ((L.COLON, r), s')) ->
-          returnQuery ((SOME name), (ParseTerm.parseTerm' (LS.expose s')))
-      | (name, f, _) -> returnQuery (NONE, (ParseTerm.parseTerm' f))
+          returnQuery ((Some name), (ParseTerm.parseTerm' (LS.expose s')))
+      | (name, f, _) -> returnQuery (None, (ParseTerm.parseTerm' f))
     let rec parseQuery' =
       function
       | Cons ((ID (L.Upper, name), r), s') as f ->
           parseQuery1 (name, f, (LS.expose s'))
-      | f -> returnQuery (NONE, (ParseTerm.parseTerm' f))
+      | f -> returnQuery (None, (ParseTerm.parseTerm' f))
     let rec parseQuery s = parseQuery' (LS.expose s)
     let rec parseDefine4 (optName, optT, s) =
       let (tm', f') = ParseTerm.parseTerm' (LS.expose s) in
@@ -45,7 +45,7 @@ module ParseQuery(ParseQuery:sig
     let rec parseDefine3 =
       function
       | (optName, (tm, Cons ((L.EQUAL, r), s'))) ->
-          parseDefine4 (optName, (SOME tm), s')
+          parseDefine4 (optName, (Some tm), s')
       | (_, (tm, Cons ((t, r), _))) ->
           Parsing.error (r, ((^) "Expected `=', found " L.toString t))
     let rec parseDefine2 =
@@ -53,14 +53,14 @@ module ParseQuery(ParseQuery:sig
       | (optName, Cons ((L.COLON, r), s')) ->
           parseDefine3 (optName, (ParseTerm.parseTerm' (LS.expose s')))
       | (optName, Cons ((L.EQUAL, r), s')) ->
-          parseDefine4 (optName, NONE, s')
+          parseDefine4 (optName, None, s')
       | (_, Cons ((t, r), _)) ->
           Parsing.error (r, ((^) "Expected `:' or `=', found " L.toString t))
     let rec parseDefine1 =
       function
       | Cons ((ID (idCase, name), r), s') ->
-          parseDefine2 ((SOME name), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseDefine2 (NONE, (LS.expose s'))
+          parseDefine2 ((Some name), (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseDefine2 (None, (LS.expose s'))
       | Cons ((t, r), _) ->
           Parsing.error
             (r, ((^) "Expected identifier or `_', found " L.toString t))
@@ -76,9 +76,9 @@ module ParseQuery(ParseQuery:sig
     let rec parseSolve2 =
       function
       | (defns, Cons ((L.UNDERSCORE, r), s'), r0) ->
-          parseSolve3 (defns, NONE, (LS.expose s'), r0)
+          parseSolve3 (defns, None, (LS.expose s'), r0)
       | (defns, Cons ((ID (_, name), r), s'), r0) ->
-          parseSolve3 (defns, (SOME name), (LS.expose s'), r0)
+          parseSolve3 (defns, (Some name), (LS.expose s'), r0)
       | (_, Cons ((t, r), s'), r0) ->
           Parsing.error
             (r, ((^) "Expected identifier or `_', found " L.toString t))
@@ -93,23 +93,23 @@ module ParseQuery(ParseQuery:sig
           Parsing.error
             (r, ((^) "Expected %define or %solve, found " L.toString t))
     let rec parseSolve' f = parseSolve1 (nil, f)
-    (* parseQuery1 (name, f, f')   ": A" from f' or "V" from f. *)
+    (* parseQuery1 (name, f, f')   ": A" from f' or "__v" from f. *)
     (* parseQuery' : lexResult front -> ExtQuery.query * lexResult front *)
-    (* parseQuery'  "X : A" | "A" *)
-    (* Query parsing is ambiguous, since a term "V" might have the form "U' : V'" *)
-    (* We look for an uppercase variable X followed by a `:'.
-       If we find this, we parse a query of the form "X : A".
+    (* parseQuery'  "x : A" | "A" *)
+    (* Query parsing is ambiguous, since a term "__v" might have the form "__u' : __v'" *)
+    (* We look for an uppercase variable x followed by a `:'.
+       If we find this, we parse a query of the form "x : A".
        Otherwise we parse a query of the form "A".
     *)
     (* parseQuery --- currently not exported *)
     (* parseDefine4 parses the definition body *)
-    (* "U" *)
+    (* "__u" *)
     (* parseDefine3 parses the equal sign in a long form define *)
-    (* "= U" *)
+    (* "= __u" *)
     (* parseDefine2 switches between short and long form *)
-    (* ": V = U" | "= U" *)
+    (* ": __v = __u" | "= __u" *)
     (* parseDefine1 parses the name of the constant to be defined *)
-    (* "c : V = U" | "_ : V = U" | "c = U" | "_ = U" *)
+    (* "c : __v = __u" | "_ : __v = __u" | "c = __u" | "_ = __u" *)
     let parseQuery' = parseQuery'
     let parseSolve' = parseSolve'
   end ;;

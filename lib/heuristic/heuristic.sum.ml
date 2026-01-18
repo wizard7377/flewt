@@ -13,7 +13,7 @@ module Heuristic : HEURISTIC =
                                            1 = recursive *)
     (* Position (left to right) *)
     let rec recToString = function | 0 -> "non-rec = 2" | 1 -> "rec = 1"
-    let rec realFmt r = Real.fmt (StringCvt.FIX (SOME 2)) r
+    let rec realFmt r = Real.fmt (StringCvt.FIX (Some 2)) r
     let rec ratio =
       function
       | (0, 0) -> 1.0
@@ -22,7 +22,7 @@ module Heuristic : HEURISTIC =
     let rec sqr (x : real) = x * x
     let rec sum =
       function
-      | { sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | { sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
           c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
           m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           if c1 = 0
@@ -32,8 +32,8 @@ module Heuristic : HEURISTIC =
           else
             ((sqr (Real.fromInt k1)) + ((-) 1.0 ratio (c1, m1))) +
               (Real.fromInt r1)
-      | { sd = k1; ind = SOME 0; c = c1; m = m1; r = r1; p = p1;
-          ind = SOME 0; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;
+      | { sd = k1; ind = Some 0; c = c1; m = m1; r = r1; p = p1;
+          ind = Some 0; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;
           r = r1; p = p1; m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           if c1 = 0
           then
@@ -43,8 +43,8 @@ module Heuristic : HEURISTIC =
             (((+) (sqr (Real.fromInt k1)) ratio (3, 2)) +
                ((-) 1.0 ratio (c1, m1)))
               + (Real.fromInt r1)
-      | { sd = k1; ind = SOME i1; c = c1; m = m1; r = r1; p = p1;
-          ind = SOME i1; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;
+      | { sd = k1; ind = Some i1; c = c1; m = m1; r = r1; p = p1;
+          ind = Some i1; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;
           r = r1; p = p1; m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           if c1 = 0
           then
@@ -92,7 +92,7 @@ module Heuristic : HEURISTIC =
           (conv { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2 }))
     let rec indexToString =
       function
-      | { sd = s1; ind = NONE; c = c1; m = m1; r = 0; p = p1; ind = NONE;
+      | { sd = s1; ind = None; c = c1; m = m1; r = 0; p = p1; ind = None;
           c = c1; m = m1; r = 0; p = p1; c = c1; m = m1; r = 0; p = p1;
           m = m1; r = 0; p = p1; r = 0; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 3))) ^
@@ -112,9 +112,9 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 2; p = p1 }))
+             (sum { sd = s1; ind = None; c = c1; m = m1; r = 2; p = p1 }))
             ^ " )"
-      | { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1; ind = NONE;
+      | { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1; ind = None;
           c = c1; m = m1; r = 1; p = p1; c = c1; m = m1; r = 1; p = p1;
           m = m1; r = 1; p = p1; r = 1; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 1))) ^
@@ -134,10 +134,10 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1 }))
+             (sum { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1 }))
             ^ " )"
-      | { sd = s1; ind = SOME idx; c = c1; m = m1; r = 0; p = p1;
-          ind = SOME idx; c = c1; m = m1; r = 0; p = p1; c = c1; m = m1;
+      | { sd = s1; ind = Some idx; c = c1; m = m1; r = 0; p = p1;
+          ind = Some idx; c = c1; m = m1; r = 0; p = p1; c = c1; m = m1;
           r = 0; p = p1; m = m1; r = 0; p = p1; r = 0; p = p1; p = p1 } ->
           let i = if idx = 0 then 0.0 else ratio (1, idx) in
           ((^) (((((^) ((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 3)))
@@ -161,10 +161,10 @@ module Heuristic : HEURISTIC =
                   ^ " sum = ")
              realFmt
              (sum
-                { sd = s1; ind = (SOME idx); c = c1; m = m1; r = 2; p = p1 }))
+                { sd = s1; ind = (Some idx); c = c1; m = m1; r = 2; p = p1 }))
             ^ ")"
-      | { sd = s1; ind = SOME idx; c = c1; m = m1; r = 1; p = p1;
-          ind = SOME idx; c = c1; m = m1; r = 1; p = p1; c = c1; m = m1;
+      | { sd = s1; ind = Some idx; c = c1; m = m1; r = 1; p = p1;
+          ind = Some idx; c = c1; m = m1; r = 1; p = p1; c = c1; m = m1;
           r = 1; p = p1; m = m1; r = 1; p = p1; r = 1; p = p1; p = p1 } ->
           let i = if idx = 0 then 0.0 else ratio (1, idx) in
           ((^) ((((((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 1))) ^
@@ -188,7 +188,7 @@ module Heuristic : HEURISTIC =
                   ^ " sum = ")
              realFmt
              (sum
-                { sd = s1; ind = (SOME idx); c = c1; m = m1; r = 1; p = p1 }))
+                { sd = s1; ind = (Some idx); c = c1; m = m1; r = 1; p = p1 }))
             ^ ")"
     (* sum of the parameters k1 + m1/c1 + 1/ind + r1 *)
     (* the higher the sum the more preferred it is;  *)

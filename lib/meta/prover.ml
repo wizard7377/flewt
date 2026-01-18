@@ -29,37 +29,37 @@ module MTProver(MTProver:sig
     let (solvedStates : S.__State list ref) = ref nil
     let rec transformOrder' =
       function
-      | (G, Arg k) ->
-          let k' = ((I.ctxLength G) - k) + 1 in
-          let Dec (_, V) = I.ctxDec (G, k') in
-          S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (V, I.id))
-      | (G, Lex (Os)) ->
-          S.Lex (map (function | O -> transformOrder' (G, O)) Os)
-      | (G, Simul (Os)) ->
-          S.Simul (map (function | O -> transformOrder' (G, O)) Os)
+      | (__g, Arg k) ->
+          let k' = ((I.ctxLength __g) - k) + 1 in
+          let Dec (_, __v) = I.ctxDec (__g, k') in
+          S.Arg (((I.Root ((I.BVar k'), I.Nil)), I.id), (__v, I.id))
+      | (__g, Lex (__Os)) ->
+          S.Lex (map (function | O -> transformOrder' (__g, O)) __Os)
+      | (__g, Simul (__Os)) ->
+          S.Simul (map (function | O -> transformOrder' (__g, O)) __Os)
     let rec transformOrder =
       function
-      | (G, All (Prim (D), F), Os) ->
-          S.All (D, (transformOrder ((I.Decl (G, D)), F, Os)))
-      | (G, And (F1, F2), (O)::Os) ->
-          S.And ((transformOrder (G, F1, [O])), (transformOrder (G, F2, Os)))
-      | (G, Ex _, (O)::[]) -> transformOrder' (G, O)
-      | (G, F.True, (O)::[]) -> transformOrder' (G, O)
+      | (__g, All (Prim (__d), F), __Os) ->
+          S.All (__d, (transformOrder ((I.Decl (__g, __d)), F, __Os)))
+      | (__g, And (__F1, __F2), (O)::__Os) ->
+          S.And ((transformOrder (__g, __F1, [O])), (transformOrder (__g, __F2, __Os)))
+      | (__g, Ex _, (O)::[]) -> transformOrder' (__g, O)
+      | (__g, F.True, (O)::[]) -> transformOrder' (__g, O)
     let rec select c = try Order.selLookup c with | _ -> Order.Lex []
     let rec error s = raise (Error s)
     let rec reset () = openStates := nil; solvedStates := nil
     let rec contains =
       function
       | (nil, _) -> true__
-      | (x::L, L') ->
-          (List.exists (function | x' -> x = x') L') && (contains (L, L'))
+      | (x::__l, __l') ->
+          (List.exists (function | x' -> x = x') __l') && (contains (__l, __l'))
     let rec equiv (L1, L2) = (contains (L1, L2)) && (contains (L2, L1))
     let rec insertState (S) = (openStates := S) :: (!openStates)
     let rec cLToString =
       function
       | nil -> ""
       | c::nil -> I.conDecName (I.sgnLookup c)
-      | c::L -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString L)
+      | c::__l -> ((I.conDecName (I.sgnLookup c)) ^ ", ") ^ (cLToString __l)
     let rec init (k, (c::_ as cL)) =
       let _ = MTPGlobal.maxFill := k in
       let _ = reset () in
@@ -130,10 +130,10 @@ module MTProver(MTProver:sig
        If S is successful prove state, S is stored in solvedStates
        else S is stored in openStates
     *)
-(* cLtoString L = s
+(* cLtoString __l = s
 
        Invariant:
-       If   L is a list of cid,
+       If   __l is a list of cid,
        then s is a string, listing their names
     *)
 (* init (k, cL) = ()

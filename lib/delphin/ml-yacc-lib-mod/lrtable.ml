@@ -38,13 +38,13 @@ module LrTable : LR_TABLE =
       | ERROR 
     exception Goto of (state * nonterm) 
     type nonrec table =
-      <
+      {
         states: int  ;rules: int  ;initialState: state  ;action: ((term,
                                                                    action)
                                                                    pairlist *
                                                                    action)
                                                                    array  ;
-        goto: (nonterm, state) pairlist array   > 
+        goto: (nonterm, state) pairlist array   }
     let numStates = function | ({ states } : table) -> states
     let numRules = function | ({ rules } : table) -> rules
     let describeActions =
@@ -64,8 +64,8 @@ module LrTable : LR_TABLE =
       let rec find =
         function
         | PAIR (NT key, data, r) ->
-            if key < nt then find r else if key = nt then SOME data else NONE
-        | EMPTY -> NONE in
+            if key < nt then find r else if key = nt then Some data else None
+        | EMPTY -> None in
       find row
     let action =
       function
@@ -80,8 +80,8 @@ module LrTable : LR_TABLE =
           (function
            | (STATE state, nonterm) as a ->
                (match findNonterm (nonterm, (goto sub state)) with
-                | SOME state -> state
-                | NONE -> raise (Goto a)))
+                | Some state -> state
+                | None -> raise (Goto a)))
     let initialState = function | ({ initialState } : table) -> initialState
     let mkLrTable =
       function

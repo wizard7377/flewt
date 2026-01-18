@@ -28,26 +28,26 @@ module FunWeaken(FunWeaken:sig
     let rec strengthenPsi =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (Psi, Prim (D)), s) ->
+      | (Decl (Psi, Prim (__d)), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
-          ((I.Decl (Psi', (F.Prim (Weaken.strengthenDec (D, s'))))),
+          ((I.Decl (Psi', (F.Prim (Weaken.strengthenDec (__d, s'))))),
             (I.dot1 s'))
-      | (Decl (Psi, Block (CtxBlock (l, G))), s) ->
+      | (Decl (Psi, Block (CtxBlock (l, __g))), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
-          let (G'', s'') = Weaken.strengthenCtx (G, s') in
-          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, G''))))), s'')
+          let (__g'', s'') = Weaken.strengthenCtx (__g, s') in
+          ((I.Decl (Psi', (F.Block (F.CtxBlock (l, __g''))))), s'')
     let rec strengthenPsi' =
       function
       | (nil, s) -> (nil, s)
-      | ((Prim (D))::Psi, s) ->
-          let D' = Weaken.strengthenDec (D, s) in
+      | ((Prim (__d))::Psi, s) ->
+          let __d' = Weaken.strengthenDec (__d, s) in
           let s' = I.dot1 s in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
-          (((F.Prim D') :: Psi''), s'')
-      | ((Block (CtxBlock (l, G)))::Psi, s) ->
-          let (G', s') = Weaken.strengthenCtx (G, s) in
+          (((F.Prim __d') :: Psi''), s'')
+      | ((Block (CtxBlock (l, __g)))::Psi, s) ->
+          let (__g', s') = Weaken.strengthenCtx (__g, s) in
           let (Psi'', s'') = strengthenPsi' (Psi, s') in
-          (((F.Block (F.CtxBlock (l, G'))) :: Psi''), s'')
+          (((F.Block (F.CtxBlock (l, __g'))) :: Psi''), s'')
     (* strengthenPsi (Psi, s) = (Psi', s')
 
        If   Psi0 |- Psi ctx

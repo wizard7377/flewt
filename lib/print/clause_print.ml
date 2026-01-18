@@ -41,73 +41,73 @@ module ClausePrint(ClausePrint:sig
     let Str = F.String
     let rec Str0 (s, n) = F.String0 n s
     let rec sym s = Str0 (Symbol.sym s)
-    let rec parens fmt = F.Hbox [sym "("; fmt; sym ")"]
+    let rec parens fmt = F.hbox [sym "("; fmt; sym ")"]
     let rec fmtDQuants =
       function
-      | (G, Pi (((Dec (_, V1) as D), I.Maybe), V2)) ->
-          let D' = Names.decEName (G, D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (G, D')) sym "}") ::
+      | (__g, Pi (((Dec (_, V1) as __d), I.Maybe), V2)) ->
+          let __d' = Names.decEName (__g, __d) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (__g, __d')) sym "}") ::
                   F.Break)
-            fmtDQuants ((I.Decl (G, D')), V2)
-      | (G, Pi (((Dec (_, V1) as D), I.Meta), V2)) ->
-          let D' = Names.decEName (G, D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (G, D')) sym "}") ::
+            fmtDQuants ((I.Decl (__g, __d')), V2)
+      | (__g, Pi (((Dec (_, V1) as __d), I.Meta), V2)) ->
+          let __d' = Names.decEName (__g, __d) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (__g, __d')) sym "}") ::
                   F.Break)
-            fmtDQuants ((I.Decl (G, D')), V2)
-      | (G, (Pi _ as V)) -> [F.HOVbox (fmtDSubGoals (G, V, nil))]
-      | (G, V) -> [Print.formatExp (G, V)]
+            fmtDQuants ((I.Decl (__g, __d')), V2)
+      | (__g, (Pi _ as __v)) -> [F.hOVbox (fmtDSubGoals (__g, __v, nil))]
+      | (__g, __v) -> [Print.formatExp (__g, __v)]
     let rec fmtDSubGoals =
       function
-      | (G, Pi (((Dec (_, V1) as D), I.No), V2), acc) ->
+      | (__g, Pi (((Dec (_, V1) as __d), I.No), V2), acc) ->
           fmtDSubGoals
-            ((I.Decl (G, D)), V2,
-              (((::) (((::) F.Break sym "<-") :: F.Space) fmtGparens (G, V1))
+            ((I.Decl (__g, __d)), V2,
+              (((::) (((::) F.Break sym "<-") :: F.space) fmtGparens (__g, V1))
                  :: acc))
-      | (G, (Pi _ as V), acc) ->
-          (parens (F.HVbox (fmtDQuants (G, V)))) :: acc
-      | (G, V, acc) -> (Print.formatExp (G, V)) :: acc
+      | (__g, (Pi _ as __v), acc) ->
+          (parens (F.hVbox (fmtDQuants (__g, __v)))) :: acc
+      | (__g, __v, acc) -> (Print.formatExp (__g, __v)) :: acc
     let rec fmtDparens =
       function
-      | (G, (Pi _ as V)) -> parens (F.HVbox (fmtDQuants (G, V)))
-      | (G, V) -> Print.formatExp (G, V)
+      | (__g, (Pi _ as __v)) -> parens (F.hVbox (fmtDQuants (__g, __v)))
+      | (__g, __v) -> Print.formatExp (__g, __v)
     let rec fmtGparens =
       function
-      | (G, (Pi _ as V)) -> parens (F.HVbox (fmtGQuants (G, V)))
-      | (G, V) -> Print.formatExp (G, V)
+      | (__g, (Pi _ as __v)) -> parens (F.hVbox (fmtGQuants (__g, __v)))
+      | (__g, __v) -> Print.formatExp (__g, __v)
     let rec fmtGQuants =
       function
-      | (G, Pi (((Dec (_, V1) as D), I.Maybe), V2)) ->
-          let D' = Names.decLUName (G, D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (G, D')) sym "}") ::
+      | (__g, Pi (((Dec (_, V1) as __d), I.Maybe), V2)) ->
+          let __d' = Names.decLUName (__g, __d) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (__g, __d')) sym "}") ::
                   F.Break)
-            fmtGQuants ((I.Decl (G, D')), V2)
-      | (G, Pi (((Dec (_, V1) as D), I.Meta), V2)) ->
-          let D' = Names.decLUName (G, D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (G, D')) sym "}") ::
+            fmtGQuants ((I.Decl (__g, __d')), V2)
+      | (__g, Pi (((Dec (_, V1) as __d), I.Meta), V2)) ->
+          let __d' = Names.decLUName (__g, __d) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (__g, __d')) sym "}") ::
                   F.Break)
-            fmtGQuants ((I.Decl (G, D')), V2)
-      | (G, V) -> [F.HOVbox (fmtGHyps (G, V))]
+            fmtGQuants ((I.Decl (__g, __d')), V2)
+      | (__g, __v) -> [F.hOVbox (fmtGHyps (__g, __v))]
     let rec fmtGHyps =
       function
-      | (G, Pi (((Dec (_, V1) as D), I.No), V2)) ->
-          (::) (((::) ((fmtDparens (G, V1)) :: F.Break) sym "->") :: F.Space)
-            fmtGHyps ((I.Decl (G, D)), V2)
-      | (G, (Pi _ as V)) -> [F.HVbox (fmtGQuants (G, V))]
-      | (G, V) -> [Print.formatExp (G, V)]
-    let rec fmtClause (G, V) = F.HVbox (fmtDQuants (G, V))
+      | (__g, Pi (((Dec (_, V1) as __d), I.No), V2)) ->
+          (::) (((::) ((fmtDparens (__g, V1)) :: F.Break) sym "->") :: F.space)
+            fmtGHyps ((I.Decl (__g, __d)), V2)
+      | (__g, (Pi _ as __v)) -> [F.hVbox (fmtGQuants (__g, __v))]
+      | (__g, __v) -> [Print.formatExp (__g, __v)]
+    let rec fmtClause (__g, __v) = F.hVbox (fmtDQuants (__g, __v))
     let rec fmtClauseI =
       function
-      | (0, G, V) -> fmtClause (G, V)
-      | (i, G, Pi ((D, _), V)) ->
-          fmtClauseI ((i - 1), (I.Decl (G, (Names.decEName (G, D)))), V)
+      | (0, __g, __v) -> fmtClause (__g, __v)
+      | (i, __g, Pi ((__d, _), __v)) ->
+          fmtClauseI ((i - 1), (I.Decl (__g, (Names.decEName (__g, __d)))), __v)
     let rec fmtConDec =
       function
-      | ConDec (id, parent, i, _, V, I.Type) ->
+      | ConDec (id, parent, i, _, __v, I.Type) ->
           let _ = Names.varReset IntSyn.Null in
-          let Vfmt = fmtClauseI (i, I.Null, V) in
-          F.HVbox
+          let Vfmt = fmtClauseI (i, I.Null, __v) in
+          F.hVbox
             [Str0 (Symbol.const id);
-            F.Space;
+            F.space;
             sym ":";
             F.Break;
             Vfmt;
@@ -115,18 +115,18 @@ module ClausePrint(ClausePrint:sig
       | condec -> Print.formatConDec condec
     (* assumes NF *)
     (* P = I.No *)
-    (* V = Root _ *)
+    (* __v = Root _ *)
     (* acc <> nil *)
-    (* V = Root _ *)
-    (* V = Root _ *)
-    (* V = Root _ *)
-    (* P = I.No or V = Root _ *)
+    (* __v = Root _ *)
+    (* __v = Root _ *)
+    (* __v = Root _ *)
+    (* P = I.No or __v = Root _ *)
     (* P = I.Maybe *)
-    (* V = Root _ *)
+    (* __v = Root _ *)
     (* type family declaration, definition, or Skolem constant *)
-    let rec formatClause (G, V) = fmtClause (G, V)
+    let rec formatClause (__g, __v) = fmtClause (__g, __v)
     let rec formatConDec condec = fmtConDec condec
-    let rec clauseToString (G, V) = F.makestring_fmt (formatClause (G, V))
+    let rec clauseToString (__g, __v) = F.makestring_fmt (formatClause (__g, __v))
     let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
     let rec printSgn () =
       IntSyn.sgnApp

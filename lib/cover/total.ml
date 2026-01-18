@@ -56,76 +56,76 @@ module Total(Total:sig
     let rec install cid = Table.insert totalTable (cid, ())
     let rec lookup cid = Table.lookup totalTable cid
     let rec uninstall cid = Table.delete totalTable cid
-    (* totalTable (a) = SOME() iff a is total, otherwise NONE *)
+    (* totalTable (a) = Some() iff a is total, otherwise None *)
     let reset = reset
     let install = install
     let uninstall =
       function
       | cid ->
           (match lookup cid with
-           | NONE -> false__
-           | SOME _ -> (uninstall cid; true__))
+           | None -> false__
+           | Some _ -> (uninstall cid; true__))
     let rec total cid =
-      match lookup cid with | NONE -> false__ | SOME _ -> true__(* call only on constants *)
+      match lookup cid with | None -> false__ | Some _ -> true__(* call only on constants *)
     exception Error' of (P.occ * string) 
     (* copied from terminates/reduces.fun *)
     let rec error (c, occ, msg) =
       match Origins.originLookup c with
-      | (fileName, NONE) -> raise (Error ((fileName ^ ":") ^ msg))
-      | (fileName, SOME occDec) ->
+      | (fileName, None) -> raise (Error ((fileName ^ ":") ^ msg))
+      | (fileName, Some occDec) ->
           raise
             (Error
                (P.wrapLoc'
                   ((P.Loc (fileName, (P.occToRegionDec occDec occ))),
                     (Origins.linesInfoLookup fileName), msg)))
-    (* G is unused here *)
+    (* __g is unused here *)
     let rec checkDynOrder =
       function
-      | (G, Vs, 0, occ) ->
+      | (__g, __Vs, 0, occ) ->
           (if (!Global.chatter) >= 5
            then
              print
                "Output coverage: skipping redundant checking of third-order clause\n"
            else ();
            ())
-      | (G, Vs, n, occ) -> checkDynOrderW (G, (Whnf.whnf Vs), n, occ)
+      | (__g, __Vs, n, occ) -> checkDynOrderW (__g, (Whnf.whnf __Vs), n, occ)
       (* n > 0 *)(* Sun Jan  5 12:17:06 2003 -fp *)
       (* Functional calculus now checks this *)(* raise Error' (occ, "Output coverage for clauses of order >= 3 not yet implemented") *)
     let rec checkDynOrderW =
       function
-      | (G, (Root _, s), n, occ) -> ()
-      | (G, (Pi (((Dec (_, V1) as D1), I.No), V2), s), n, occ) ->
-          (checkDynOrder (G, (V1, s), (n - 1), (P.label occ));
+      | (__g, (Root _, s), n, occ) -> ()
+      | (__g, (Pi (((Dec (_, V1)) as D1), I.No), V2), s), n, occ) ->
+          (checkDynOrder (__g, (V1, s), (n - 1), (P.label occ));
            checkDynOrder
-             ((I.Decl (G, D1)), (V2, (I.dot1 s)), n, (P.body occ)))
-      | (G, (Pi ((D1, I.Maybe), V2), s), n, occ) ->
-          checkDynOrder ((I.Decl (G, D1)), (V2, (I.dot1 s)), n, (P.body occ))
+             ((I.Decl (__g, D1)), (V2, (I.dot1 s)), n, (P.body occ)))
+      | (__g, (Pi ((D1, I.Maybe), V2), s), n, occ) ->
+          checkDynOrder ((I.Decl (__g, D1)), (V2, (I.dot1 s)), n, (P.body occ))
       (* static (= dependent) assumption --- consider only body *)
       (* dynamic (= non-dependent) assumption --- calculate dynamic order of V1 *)
       (* atomic subgoal *)
-    (* checkClause (G, (V, s), occ) = ()
-       checkGoal (G, (V, s), occ) = ()
-       iff local output coverage for V is satisfied
-           for clause V[s] or goal V[s], respectively.
+    (* checkClause (__g, (__v, s), occ) = ()
+       checkGoal (__g, (__v, s), occ) = ()
+       iff local output coverage for __v is satisfied
+           for clause __v[s] or goal __v[s], respectively.
        Effect: raises Error' (occ, msg) if coverage is not satisfied at occ.
 
-       Invariants: G |- V[s] : type
+       Invariants: __g |- __v[s] : type
     *)
-    let rec checkClause (G, Vs, occ) = checkClauseW (G, (Whnf.whnf Vs), occ)
+    let rec checkClause (__g, __Vs, occ) = checkClauseW (__g, (Whnf.whnf __Vs), occ)
     let rec checkClauseW =
       function
-      | (G, (Pi ((D1, I.Maybe), V2), s), occ) ->
-          let D1' = N.decEName (G, (I.decSub (D1, s))) in
-          checkClause ((I.Decl (G, D1')), (V2, (I.dot1 s)), (P.body occ))
-      | (G, (Pi (((Dec (_, V1) as D1), I.No), V2), s), occ) ->
+      | (__g, (Pi ((D1, I.Maybe), V2), s), occ) ->
+          let D1' = N.decEName (__g, (I.decSub (D1, s))) in
+          checkClause ((I.Decl (__g, D1')), (V2, (I.dot1 s)), (P.body occ))
+      | (__g, (Pi (((Dec (_, V1) as D1), I.No), V2), s), occ) ->
           let _ =
-            checkClause ((I.Decl (G, D1)), (V2, (I.dot1 s)), (P.body occ)) in
-          checkGoal (G, (V1, s), (P.label occ))
-      | (G, (Root _, s), occ) -> ()(* clause head *)
+            checkClause ((I.Decl (__g, D1)), (V2, (I.dot1 s)), (P.body occ)) in
+          checkGoal (__g, (V1, s), (P.label occ))
+      | (__g, (Root _, s), occ) -> ()(* clause head *)
       (* subgoal *)(* quantifier *)
-    let rec checkGoal (G, Vs, occ) = checkGoalW (G, (Whnf.whnf Vs), occ)
-    let rec checkGoalW (G, (V, s), occ) =
-      let a = I.targetFam V in
+    let rec checkGoal (__g, __Vs, occ) = checkGoalW (__g, (Whnf.whnf __Vs), occ)
+    let rec checkGoalW (__g, (__v, s), occ) =
+      let a = I.targetFam __v in
       let _ =
         if not (total a)
         then
@@ -135,8 +135,8 @@ module Total(Total:sig
                  (((^) "Subgoal " N.qidToString (N.constQid a)) ^
                     " not declared to be total")))
         else () in
-      let _ = checkDynOrderW (G, (V, s), 2, occ) in
-      ((try Cover.checkOut (G, (V, s))
+      let _ = checkDynOrderW (__g, (__v, s), 2, occ) in
+      ((try Cover.checkOut (__g, (__v, s))
         with
         | Error msg ->
             raise
@@ -161,8 +161,8 @@ module Total(Total:sig
                   ^ "All argument modes must be input (+) or output (-)")
                  ^
                  (match xOpt with
-                  | NONE -> ""
-                  | SOME x -> (" but argument " ^ x) ^ " is indefinite (*)")))
+                  | None -> ""
+                  | Some x -> (" but argument " ^ x) ^ " is indefinite (*)")))
       (* Fri Apr  5 19:25:54 2002 -fp *)(* Note: filename and location are missing in this error message *)
     let rec checkOutCover =
       function
@@ -209,7 +209,7 @@ module Total(Total:sig
             print (((^) "Terminates: " N.qidToString (N.constQid a)) ^ "\n")
           else ()
         with | Error msg -> raise (Reduces.Error msg) in
-      let SOME ms = ModeTable.modeLookup a in
+      let Some ms = ModeTable.modeLookup a in
       let _ = checkDefinite (a, ms) in
       let _ =
         try

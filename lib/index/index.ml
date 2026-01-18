@@ -42,8 +42,8 @@ module Index(Index:sig module Global : GLOBAL module Queue : QUEUE end) :
       | _ -> ()
     let rec remove (a, cid) =
       match Queue.deleteEnd (Array.sub (indexArray, a)) with
-      | NONE -> ()
-      | SOME ((Const cid' as c), queue') ->
+      | None -> ()
+      | Some ((Const cid' as c), queue') ->
           if cid = cid' then Array.update (indexArray, a, queue') else ()
     let rec uninstall cid =
       match I.sgnLookup cid with
@@ -62,8 +62,8 @@ module Index(Index:sig module Global : GLOBAL module Queue : QUEUE end) :
     let rec lookup a =
       let rec lk =
         function
-        | (l, NONE) -> l
-        | (l, SOME q') -> (Array.update (indexArray, a, q'); l) in
+        | (l, None) -> l
+        | (l, Some q') -> (Array.update (indexArray, a, q'); l) in
       lk (Queue.toList (Array.sub (indexArray, a)))
     (* Index array
 

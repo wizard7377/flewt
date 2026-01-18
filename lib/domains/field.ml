@@ -12,7 +12,7 @@ module type FIELD  =
     val zero : number
     val one : number
     (* Operators *)
-    val (~) : number -> number
+    val (~-) : number -> number
     val (+) : (number * number) -> number
     val (-) : (number * number) -> number
     val ( * ) : (number * number) -> number

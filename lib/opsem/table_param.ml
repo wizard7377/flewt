@@ -105,7 +105,7 @@ module TableParam(TableParam:sig module Global : GLOBAL end) : TABLEPARAM =
     let rec noAnswers answ =
       ((match List.take ((solutions answ), (lookup answ)) with
         | [] -> true__
-        | L -> false__)
+        | __l -> false__)
       (*solutions(answ) *))
     type nonrec asub = IntSyn.__Exp RBSet.ordSet
     let (aid : unit -> asub) = RBSet.new__
@@ -126,9 +126,9 @@ module TableParam(TableParam:sig module Global : GLOBAL end) : TABLEPARAM =
     let stageCtr = ref 0
     (* term abstraction and ctx abstraction *)
     (* currently not used *)
-    let termDepth = (ref NONE : int option ref)
-    let ctxDepth = (ref NONE : int option ref)
-    let ctxLength = (ref NONE : int option ref)
+    let termDepth = (ref None : int option ref)
+    let ctxDepth = (ref None : int option ref)
+    let ctxLength = (ref None : int option ref)
     (* apply strengthening during abstraction *)
     let strengthen = ref false__
   end ;;

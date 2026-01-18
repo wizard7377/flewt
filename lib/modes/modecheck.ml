@@ -55,8 +55,8 @@ module ModeCheck(ModeCheck:sig
     let checkFree = ref false__
     let rec wrapMsg (c, occ, msg) =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
-      | (fileName, SOME occDec) ->
+      | (fileName, None) -> (fileName ^ ":") ^ msg
+      | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (P.occToRegionClause occDec occ))),
               (Origins.linesInfoLookup fileName),
@@ -76,8 +76,8 @@ module ModeCheck(ModeCheck:sig
       | sMs -> sMs
     let rec nameOf =
       function
-      | Existential (_, NONE) -> "?"
-      | Existential (_, SOME name) -> name
+      | Existential (_, None) -> "?"
+      | Existential (_, Some name) -> name
       | _ -> "?"
     let rec unique =
       function
@@ -98,83 +98,83 @@ module ModeCheck(ModeCheck:sig
       function
       | (Root (BVar k, S), n) ->
           if k > n then (etaSpine (S, n); k - n) else raise Eta
-      | (Lam (D, U), n) -> etaContract (U, (n + 1))
+      | (Lam (__d, __u), n) -> etaContract (__u, (n + 1))
       | _ -> raise Eta
     let rec etaSpine =
       function
       | (I.Nil, 0) -> ()
-      | (App (U, S), n) ->
-          if (etaContract (U, 0)) = n
+      | (App (__u, S), n) ->
+          if (etaContract (__u, 0)) = n
           then etaSpine (S, (n - 1))
           else raise Eta
     let rec checkPattern =
       function
-      | (D, k, args, I.Nil) -> ()
-      | (D, k, args, App (U, S)) ->
-          let k' = etaContract (U, 0) in
+      | (__d, k, args, I.Nil) -> ()
+      | (__d, k, args, App (__u, S)) ->
+          let k' = etaContract (__u, 0) in
           if
             (k > k') &&
-              ((isUniversal (I.ctxLookup (D, k'))) && (unique (k', args)))
-          then checkPattern (D, k, (k' :: args), S)
+              ((isUniversal (I.ctxLookup (__d, k'))) && (unique (k', args)))
+          then checkPattern (__d, k, (k' :: args), S)
           else raise Eta
-    let rec isPattern (D, k, S) =
-      try checkPattern (D, k, nil, S); true__ with | Eta -> false__
+    let rec isPattern (__d, k, S) =
+      try checkPattern (__d, k, nil, S); true__ with | Eta -> false__
     let rec strictExpN =
       function
-      | (D, _, Uni _) -> false__
-      | (D, p, Lam (_, U)) ->
-          strictExpN ((I.Decl (D, Universal)), (p + 1), U)
-      | (D, p, Pi ((D', _), U)) ->
-          (strictDecN (D, p, D')) ||
-            (strictExpN ((I.Decl (D, Universal)), (p + 1), U))
-      | (D, p, Root (H, S)) ->
+      | (__d, _, Uni _) -> false__
+      | (__d, p, Lam (_, __u)) ->
+          strictExpN ((I.Decl (__d, Universal)), (p + 1), __u)
+      | (__d, p, Pi ((__d', _), __u)) ->
+          (strictDecN (__d, p, __d')) ||
+            (strictExpN ((I.Decl (__d, Universal)), (p + 1), __u))
+      | (__d, p, Root (H, S)) ->
           (match H with
            | BVar k' ->
                if k' = p
-               then isPattern (D, k', S)
+               then isPattern (__d, k', S)
                else
-                 if isUniversal (I.ctxLookup (D, k'))
-                 then strictSpineN (D, p, S)
+                 if isUniversal (I.ctxLookup (__d, k'))
+                 then strictSpineN (__d, p, S)
                  else false__
-           | Const c -> strictSpineN (D, p, S)
-           | Def d -> strictSpineN (D, p, S)
-           | FgnConst (cs, conDec) -> strictSpineN (D, p, S))
-      | (D, p, FgnExp (cs, ops)) -> false__
+           | Const c -> strictSpineN (__d, p, S)
+           | Def d -> strictSpineN (__d, p, S)
+           | FgnConst (cs, conDec) -> strictSpineN (__d, p, S))
+      | (__d, p, FgnExp (cs, ops)) -> false__
     let rec strictSpineN =
       function
       | (_, _, I.Nil) -> false__
-      | (D, p, App (U, S)) ->
-          (strictExpN (D, p, U)) || (strictSpineN (D, p, S))
-    let rec strictDecN (D, p, Dec (_, V)) = strictExpN (D, p, V)
+      | (__d, p, App (__u, S)) ->
+          (strictExpN (__d, p, __u)) || (strictSpineN (__d, p, S))
+    let rec strictDecN (__d, p, Dec (_, __v)) = strictExpN (__d, p, __v)
     let rec freeExpN =
       function
-      | (D, d, mode, Root (BVar k, S), occ, strictFun) ->
-          (freeVar (D, d, mode, k, (P.head occ), strictFun);
-           freeSpineN (D, d, mode, S, (1, occ), strictFun))
-      | (D, d, mode, Root (Const _, S), occ, strictFun) ->
-          freeSpineN (D, d, mode, S, (1, occ), strictFun)
-      | (D, d, mode, Root (Def _, S), occ, strictFun) ->
-          freeSpineN (D, d, mode, S, (1, occ), strictFun)
-      | (D, d, mode, Root (FgnConst (cs, conDec), S), occ, strictFun) ->
-          freeSpineN (D, d, mode, S, (1, occ), strictFun)
-      | (D, d, mode, Lam (_, U), occ, strictFun) ->
+      | (__d, d, mode, Root (BVar k, S), occ, strictFun) ->
+          (freeVar (__d, d, mode, k, (P.head occ), strictFun);
+           freeSpineN (__d, d, mode, S, (1, occ), strictFun))
+      | (__d, d, mode, Root (Const _, S), occ, strictFun) ->
+          freeSpineN (__d, d, mode, S, (1, occ), strictFun)
+      | (__d, d, mode, Root (Def _, S), occ, strictFun) ->
+          freeSpineN (__d, d, mode, S, (1, occ), strictFun)
+      | (__d, d, mode, Root (FgnConst (cs, conDec), S), occ, strictFun) ->
+          freeSpineN (__d, d, mode, S, (1, occ), strictFun)
+      | (__d, d, mode, Lam (_, __u), occ, strictFun) ->
           freeExpN
-            ((I.Decl (D, Universal)), (d + 1), mode, U, (P.body occ),
+            ((I.Decl (__d, Universal)), (d + 1), mode, __u, (P.body occ),
               strictFun)
-      | (D, d, mode, FgnExp csfe, occ, strictFun) ->
+      | (__d, d, mode, FgnExp csfe, occ, strictFun) ->
           I.FgnExpStd.App.apply csfe
             (function
-             | U ->
+             | __u ->
                  freeExpN
-                   (D, d, mode, (Whnf.normalize (U, I.id)), occ, strictFun))
+                   (__d, d, mode, (Whnf.normalize (__u, I.id)), occ, strictFun))
     let rec freeSpineN =
       function
-      | (D, d, mode, I.Nil, _, strictFun) -> ()
-      | (D, d, mode, App (U, S), (p, occ), strictFun) ->
-          (freeExpN (D, d, mode, U, (P.arg (p, occ)), strictFun);
-           freeSpineN (D, d, mode, S, ((p + 1), occ), strictFun))
-    let rec freeVar (D, d, mode, k, occ, strictFun) =
-      let status = I.ctxLookup (D, k) in
+      | (__d, d, mode, I.Nil, _, strictFun) -> ()
+      | (__d, d, mode, App (__u, S), (p, occ), strictFun) ->
+          (freeExpN (__d, d, mode, __u, (P.arg (p, occ)), strictFun);
+           freeSpineN (__d, d, mode, S, ((p + 1), occ), strictFun))
+    let rec freeVar (__d, d, mode, k, occ, strictFun) =
+      let status = I.ctxLookup (__d, k) in
       if (isFree status) || ((isUniversal status) || (strictFun (k - d)))
       then ()
       else
@@ -186,130 +186,130 @@ module ModeCheck(ModeCheck:sig
                   ^ " argument not free")))
     let rec nonStrictExpN =
       function
-      | (D, Root (BVar k, S)) -> nonStrictSpineN ((nonStrictVarD (D, k)), S)
-      | (D, Root (Const c, S)) -> nonStrictSpineN (D, S)
-      | (D, Root (Def d, S)) -> nonStrictSpineN (D, S)
-      | (D, Root (FgnConst (cs, conDec), S)) -> nonStrictSpineN (D, S)
-      | (D, Lam (_, U)) ->
-          I.ctxPop (nonStrictExpN ((I.Decl (D, Universal)), U))
-      | (D, FgnExp _) ->
+      | (__d, Root (BVar k, S)) -> nonStrictSpineN ((nonStrictVarD (__d, k)), S)
+      | (__d, Root (Const c, S)) -> nonStrictSpineN (__d, S)
+      | (__d, Root (Def d, S)) -> nonStrictSpineN (__d, S)
+      | (__d, Root (FgnConst (cs, conDec), S)) -> nonStrictSpineN (__d, S)
+      | (__d, Lam (_, __u)) ->
+          I.ctxPop (nonStrictExpN ((I.Decl (__d, Universal)), __u))
+      | (__d, FgnExp _) ->
           raise
             (Error "Foreign expressions not permitted when checking freeness")
     let rec nonStrictSpineN =
       function
-      | (D, I.Nil) -> D
-      | (D, App (U, S)) -> nonStrictSpineN ((nonStrictExpN (D, U)), S)
+      | (__d, I.Nil) -> __d
+      | (__d, App (__u, S)) -> nonStrictSpineN ((nonStrictExpN (__d, __u)), S)
     let rec nonStrictVarD =
       function
-      | (Decl (D, Existential (Free, name)), 1) ->
-          I.Decl (D, (Existential (Unknown, name)))
-      | (D, 1) -> D
-      | (Decl (D, status), k) ->
-          I.Decl ((nonStrictVarD (D, (k - 1))), status)
+      | (Decl (__d, Existential (Free, name)), 1) ->
+          I.Decl (__d, (Existential (Unknown, name)))
+      | (__d, 1) -> __d
+      | (Decl (__d, status), k) ->
+          I.Decl ((nonStrictVarD (__d, (k - 1))), status)
     let rec updateExpN =
       function
-      | (D, Root (BVar k, S), u) ->
-          if isUniversal (I.ctxLookup (D, k))
-          then updateSpineN (D, S, u)
+      | (__d, Root (BVar k, S), u) ->
+          if isUniversal (I.ctxLookup (__d, k))
+          then updateSpineN (__d, S, u)
           else
-            if isPattern (D, k, S)
-            then updateVarD (D, k, u)
+            if isPattern (__d, k, S)
+            then updateVarD (__d, k, u)
             else
               if !checkFree
-              then nonStrictSpineN ((nonStrictVarD (D, k)), S)
-              else D
-      | (D, Root (Const c, S), u) -> updateSpineN (D, S, u)
-      | (D, Root (Def d, S), u) -> updateSpineN (D, S, u)
-      | (D, Root (FgnConst (cs, conDec), S), u) -> updateSpineN (D, S, u)
-      | (D, Lam (_, U), u) ->
-          I.ctxPop (updateExpN ((I.Decl (D, Universal)), U, u))
-      | (D, FgnExp _, u) -> D
+              then nonStrictSpineN ((nonStrictVarD (__d, k)), S)
+              else __d
+      | (__d, Root (Const c, S), u) -> updateSpineN (__d, S, u)
+      | (__d, Root (Def d, S), u) -> updateSpineN (__d, S, u)
+      | (__d, Root (FgnConst (cs, conDec), S), u) -> updateSpineN (__d, S, u)
+      | (__d, Lam (_, __u), u) ->
+          I.ctxPop (updateExpN ((I.Decl (__d, Universal)), __u, u))
+      | (__d, FgnExp _, u) -> __d
     let rec updateSpineN =
       function
-      | (D, I.Nil, u) -> D
-      | (D, App (U, S), u) -> updateSpineN ((updateExpN (D, U, u)), S, u)
+      | (__d, I.Nil, u) -> __d
+      | (__d, App (__u, S), u) -> updateSpineN ((updateExpN (__d, __u, u)), S, u)
     let rec updateVarD =
       function
-      | (Decl (D, Existential (_, name)), 1, u) ->
-          I.Decl (D, (Existential ((Ground u), name)))
-      | (Decl (D, status), k, u) ->
-          I.Decl ((updateVarD (D, (k - 1), u)), status)
+      | (Decl (__d, Existential (_, name)), 1, u) ->
+          I.Decl (__d, (Existential ((Ground u), name)))
+      | (Decl (__d, status), k, u) ->
+          I.Decl ((updateVarD (__d, (k - 1), u)), status)
     let rec updateAtom' =
       function
-      | (D, mode, I.Nil, M.Mnil, _) -> D
-      | (D, M.Plus, App (U, S), Mapp (Marg (M.Plus, _), mS), (p, occ)) ->
+      | (__d, mode, I.Nil, M.Mnil, _) -> __d
+      | (__d, M.Plus, App (__u, S), Mapp (Marg (M.Plus, _), mS), (p, occ)) ->
           updateAtom'
-            ((updateExpN (D, U, Unique)), M.Plus, S, mS, ((p + 1), occ))
-      | (D, M.Minus, App (U, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
+            ((updateExpN (__d, __u, Unique)), M.Plus, S, mS, ((p + 1), occ))
+      | (__d, M.Minus, App (__u, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
           updateAtom'
-            ((updateExpN (D, U, Ambig)), M.Minus, S, mS, ((p + 1), occ))
-      | (D, M.Minus, App (U, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
+            ((updateExpN (__d, __u, Ambig)), M.Minus, S, mS, ((p + 1), occ))
+      | (__d, M.Minus, App (__u, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
           updateAtom'
-            ((updateExpN (D, U, Ambig)), M.Minus, S, mS, ((p + 1), occ))
-      | (D, M.Minus1, App (U, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
+            ((updateExpN (__d, __u, Ambig)), M.Minus, S, mS, ((p + 1), occ))
+      | (__d, M.Minus1, App (__u, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
           updateAtom'
-            ((updateExpN (D, U, Ambig)), M.Minus1, S, mS, ((p + 1), occ))
-      | (D, M.Minus1, App (U, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
+            ((updateExpN (__d, __u, Ambig)), M.Minus1, S, mS, ((p + 1), occ))
+      | (__d, M.Minus1, App (__u, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
           updateAtom'
-            ((updateExpN (D, U, Unique)), M.Minus1, S, mS, ((p + 1), occ))
-      | (D, mode, App (U, S), Mapp (_, mS), (p, occ)) ->
-          updateAtom' (D, mode, S, mS, ((p + 1), occ))
+            ((updateExpN (__d, __u, Unique)), M.Minus1, S, mS, ((p + 1), occ))
+      | (__d, mode, App (__u, S), Mapp (_, mS), (p, occ)) ->
+          updateAtom' (__d, mode, S, mS, ((p + 1), occ))
     let rec freeAtom =
       function
-      | (D, mode, I.Nil, Vs, M.Mnil, _) -> ()
-      | (D, M.Minus, App (U, S), (Pi ((Dec (_, V1), _), V2), s), Mapp
+      | (__d, mode, I.Nil, __Vs, M.Mnil, _) -> ()
+      | (__d, M.Minus, App (__u, S), (Pi ((Dec (_, V1), _), V2), s), Mapp
          (Marg (M.Minus, _), mS), (p, occ)) ->
           (freeExpN
-             (D, 0, M.Minus, U, (P.arg (p, occ)),
-               (function | q -> strictExpN (D, q, (Whnf.normalize (V1, s)))));
+             (__d, 0, M.Minus, __u, (P.arg (p, occ)),
+               (function | q -> strictExpN (__d, q, (Whnf.normalize (V1, s)))));
            freeAtom
-             (D, M.Minus, S,
-               (Whnf.whnfExpandDef (V2, (I.Dot ((I.Exp U), s)))), mS,
+             (__d, M.Minus, S,
+               (Whnf.whnfExpandDef (V2, (I.Dot ((I.Exp __u), s)))), mS,
                ((p + 1), occ)))
-      | (D, mode, App (U, S), (Pi (_, V2), s), Mapp (_, mS), (p, occ)) ->
+      | (__d, mode, App (__u, S), (Pi (_, V2), s), Mapp (_, mS), (p, occ)) ->
           freeAtom
-            (D, mode, S, (Whnf.whnfExpandDef (V2, (I.Dot ((I.Exp U), s)))),
+            (__d, mode, S, (Whnf.whnfExpandDef (V2, (I.Dot ((I.Exp __u), s)))),
               mS, ((p + 1), occ))
-    let rec updateAtom (D, mode, S, a, mS, (p, occ)) =
+    let rec updateAtom (__d, mode, S, a, mS, (p, occ)) =
       let _ =
         if !checkFree
         then
           freeAtom
-            (D, (ambiguate mode), S, ((I.constType a), I.id), mS, (p, occ))
+            (__d, (ambiguate mode), S, ((I.constType a), I.id), mS, (p, occ))
         else () in
-      updateAtom' (D, mode, S, mS, (p, occ))
+      updateAtom' (__d, mode, S, mS, (p, occ))
     let rec groundExpN =
       function
-      | (D, mode, Root (BVar k, S), occ) ->
+      | (__d, mode, Root (BVar k, S), occ) ->
           andUnique
-            ((groundVar (D, mode, k, (P.head occ))),
-              (groundSpineN (D, mode, S, (1, occ))))
-      | (D, mode, Root (Const c, S), occ) ->
-          groundSpineN (D, mode, S, (1, occ))
-      | (D, mode, Root (Def d, S), occ) ->
-          groundSpineN (D, mode, S, (1, occ))
-      | (D, mode, Root (FgnConst (cs, conDec), S), occ) ->
-          groundSpineN (D, mode, S, (1, occ))
-      | (D, mode, Lam (_, U), occ) ->
-          groundExpN ((I.Decl (D, Universal)), mode, U, (P.body occ))
-      | (D, mode, FgnExp csfe, occ) ->
+            ((groundVar (__d, mode, k, (P.head occ))),
+              (groundSpineN (__d, mode, S, (1, occ))))
+      | (__d, mode, Root (Const c, S), occ) ->
+          groundSpineN (__d, mode, S, (1, occ))
+      | (__d, mode, Root (Def d, S), occ) ->
+          groundSpineN (__d, mode, S, (1, occ))
+      | (__d, mode, Root (FgnConst (cs, conDec), S), occ) ->
+          groundSpineN (__d, mode, S, (1, occ))
+      | (__d, mode, Lam (_, __u), occ) ->
+          groundExpN ((I.Decl (__d, Universal)), mode, __u, (P.body occ))
+      | (__d, mode, FgnExp csfe, occ) ->
           I.FgnExpStd.fold csfe
             (function
-             | (U, u) ->
+             | (__u, u) ->
                  andUnique
-                   ((groundExpN (D, mode, (Whnf.normalize (U, I.id)), occ)),
+                   ((groundExpN (__d, mode, (Whnf.normalize (__u, I.id)), occ)),
                      u)) Unique
     let rec groundSpineN =
       function
-      | (D, mode, I.Nil, _) -> Unique
-      | (D, mode, App (U, S), (p, occ)) ->
+      | (__d, mode, I.Nil, _) -> Unique
+      | (__d, mode, App (__u, S), (p, occ)) ->
           andUnique
-            ((groundExpN (D, mode, U, (P.arg (p, occ)))),
-              (groundSpineN (D, mode, S, ((p + 1), occ))))
+            ((groundExpN (__d, mode, __u, (P.arg (p, occ)))),
+              (groundSpineN (__d, mode, S, ((p + 1), occ))))
     let rec groundVar =
       function
-      | (D, M.Minus1, k, occ) ->
-          (match I.ctxLookup (D, k) with
+      | (__d, M.Minus1, k, occ) ->
+          (match I.ctxLookup (__d, k) with
            | Existential (Ground (Unique), _) -> Unique
            | Universal -> Unique
            | Existential (Ground (Ambig), x) as s ->
@@ -327,8 +327,8 @@ module ModeCheck(ModeCheck:sig
                       (((("Occurrence of variable " ^ (nameOf s)) ^ " in ") ^
                           (M.modeToString M.Minus1))
                          ^ " argument not necessarily ground"))))
-      | (D, mode, k, occ) ->
-          let status = I.ctxLookup (D, k) in
+      | (__d, mode, k, occ) ->
+          let status = I.ctxLookup (__d, k) in
           if (isGround status) || (isUniversal status)
           then uniqueness status
           else
@@ -340,114 +340,114 @@ module ModeCheck(ModeCheck:sig
                       ^ " argument not necessarily ground")))
     let rec groundAtom =
       function
-      | (D, _, I.Nil, M.Mnil, _) -> Unique
-      | (D, M.Plus, App (U, S), Mapp (Marg (M.Plus, _), mS), (p, occ)) ->
+      | (__d, _, I.Nil, M.Mnil, _) -> Unique
+      | (__d, M.Plus, App (__u, S), Mapp (Marg (M.Plus, _), mS), (p, occ)) ->
           andUnique
-            ((groundExpN (D, M.Plus, U, (P.arg (p, occ)))),
-              (groundAtom (D, M.Plus, S, mS, ((p + 1), occ))))
-      | (D, M.Minus, App (U, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
-          (groundExpN (D, M.Minus, U, (P.arg (p, occ)));
-           groundAtom (D, M.Minus, S, mS, ((p + 1), occ)))
-      | (D, M.Minus, App (U, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
-          (groundExpN (D, M.Minus1, U, (P.arg (p, occ)));
-           groundAtom (D, M.Minus, S, mS, ((p + 1), occ)))
-      | (D, mode, App (U, S), Mapp (_, mS), (p, occ)) ->
-          groundAtom (D, mode, S, mS, ((p + 1), occ))
-    let rec ctxPush (m, Ds) = List.map (function | D -> I.Decl (D, m)) Ds
-    let rec ctxPop (Ds) = List.map (function | Decl (D, m) -> D) Ds
+            ((groundExpN (__d, M.Plus, __u, (P.arg (p, occ)))),
+              (groundAtom (__d, M.Plus, S, mS, ((p + 1), occ))))
+      | (__d, M.Minus, App (__u, S), Mapp (Marg (M.Minus, _), mS), (p, occ)) ->
+          (groundExpN (__d, M.Minus, __u, (P.arg (p, occ)));
+           groundAtom (__d, M.Minus, S, mS, ((p + 1), occ)))
+      | (__d, M.Minus, App (__u, S), Mapp (Marg (M.Minus1, _), mS), (p, occ)) ->
+          (groundExpN (__d, M.Minus1, __u, (P.arg (p, occ)));
+           groundAtom (__d, M.Minus, S, mS, ((p + 1), occ)))
+      | (__d, mode, App (__u, S), Mapp (_, mS), (p, occ)) ->
+          groundAtom (__d, mode, S, mS, ((p + 1), occ))
+    let rec ctxPush (m, __Ds) = List.map (function | __d -> I.Decl (__d, m)) __Ds
+    let rec ctxPop (__Ds) = List.map (function | Decl (__d, m) -> __d) __Ds
     let rec checkD1 =
       function
-      | (D, Pi ((Dec (name, _), I.Maybe), V), occ, k) ->
+      | (__d, Pi ((Dec (name, _), I.Maybe), __v), occ, k) ->
           checkD1
-            ((I.Decl (D, (Existential (Free, name)))), V, (P.body occ),
-              (function | Decl (D', m) -> ctxPush (m, (k D'))))
-      | (D, Pi ((Dec (name, V1), I.No), V2), occ, k) ->
+            ((I.Decl (__d, (Existential (Free, name)))), __v, (P.body occ),
+              (function | Decl (__d', m) -> ctxPush (m, (k __d'))))
+      | (__d, Pi ((Dec (name, V1), I.No), V2), occ, k) ->
           checkD1
-            ((I.Decl (D, (Existential (Free, name)))), V2, (P.body occ),
+            ((I.Decl (__d, (Existential (Free, name)))), V2, (P.body occ),
               (function
-               | Decl (D', m) ->
-                   ctxPush (m, (checkG1 (D', V1, (P.label occ), k)))))
-      | (D, Root (Const a, S), occ, k) ->
+               | Decl (__d', m) ->
+                   ctxPush (m, (checkG1 (__d', V1, (P.label occ), k)))))
+      | (__d, Root (Const a, S), occ, k) ->
           let rec checkAll =
             function
             | nil -> ()
             | mS::mSs ->
                 let rec checkSome =
                   function
-                  | (D')::[] ->
-                      (groundAtom (D', M.Minus, S, mS, (1, occ));
+                  | (__d')::[] ->
+                      (groundAtom (__d', M.Minus, S, mS, (1, occ));
                        checkAll mSs)
-                  | (D')::Ds ->
-                      ((try groundAtom (D', M.Minus, S, mS, (1, occ)); ()
-                        with | ModeError _ -> checkSome Ds);
+                  | (__d')::__Ds ->
+                      ((try groundAtom (__d', M.Minus, S, mS, (1, occ)); ()
+                        with | ModeError _ -> checkSome __Ds);
                        checkAll mSs) in
-                checkSome (k (updateAtom (D, M.Plus, S, a, mS, (1, occ)))) in
+                checkSome (k (updateAtom (__d, M.Plus, S, a, mS, (1, occ)))) in
           checkAll (lookup (a, occ))
-      | (D, Root (Def d, S), occ, k) ->
+      | (__d, Root (Def d, S), occ, k) ->
           let rec checkAll =
             function
             | nil -> ()
             | mS::mSs ->
                 let rec checkSome =
                   function
-                  | (D')::[] ->
-                      (groundAtom (D', M.Minus, S, mS, (1, occ));
+                  | (__d')::[] ->
+                      (groundAtom (__d', M.Minus, S, mS, (1, occ));
                        checkAll mSs)
-                  | (D')::Ds ->
-                      ((try groundAtom (D', M.Minus, S, mS, (1, occ)); ()
-                        with | ModeError _ -> checkSome Ds);
+                  | (__d')::__Ds ->
+                      ((try groundAtom (__d', M.Minus, S, mS, (1, occ)); ()
+                        with | ModeError _ -> checkSome __Ds);
                        checkAll mSs) in
-                checkSome (k (updateAtom (D, M.Plus, S, d, mS, (1, occ)))) in
+                checkSome (k (updateAtom (__d, M.Plus, S, d, mS, (1, occ)))) in
           checkAll (lookup (d, occ))
     let rec checkG1 =
       function
-      | (D, Pi ((_, I.Maybe), V), occ, k) ->
+      | (__d, Pi ((_, I.Maybe), __v), occ, k) ->
           ctxPop
             (checkG1
-               ((I.Decl (D, Universal)), V, (P.body occ),
-                 (function | Decl (D', m) -> ctxPush (m, (k D')))))
-      | (D, Pi ((Dec (_, V1), I.No), V2), occ, k) ->
+               ((I.Decl (__d, Universal)), __v, (P.body occ),
+                 (function | Decl (__d', m) -> ctxPush (m, (k __d')))))
+      | (__d, Pi ((Dec (_, V1), I.No), V2), occ, k) ->
           ctxPop
-            (checkD1 (D, V1, (P.label occ), (function | D' -> [D']));
+            (checkD1 (__d, V1, (P.label occ), (function | __d' -> [__d']));
              checkG1
-               ((I.Decl (D, Universal)), V2, (P.body occ),
-                 (function | Decl (D', m) -> ctxPush (m, (k D')))))
-      | (D, Root (Const a, S), occ, k) ->
+               ((I.Decl (__d, Universal)), V2, (P.body occ),
+                 (function | Decl (__d', m) -> ctxPush (m, (k __d')))))
+      | (__d, Root (Const a, S), occ, k) ->
           let rec checkList arg__0 arg__1 =
             match (arg__0, arg__1) with
             | (found, nil) -> nil
             | (false__, mS::[]) ->
-                (match groundAtom (D, M.Plus, S, mS, (1, occ)) with
-                 | Unique -> k (updateAtom (D, M.Minus1, S, a, mS, (1, occ)))
-                 | Ambig -> k (updateAtom (D, M.Minus, S, a, mS, (1, occ))))
+                (match groundAtom (__d, M.Plus, S, mS, (1, occ)) with
+                 | Unique -> k (updateAtom (__d, M.Minus1, S, a, mS, (1, occ)))
+                 | Ambig -> k (updateAtom (__d, M.Minus, S, a, mS, (1, occ))))
             | (found, mS::mSs) ->
                 let found' =
-                  try groundAtom (D, M.Plus, S, mS, (1, occ)); true__
+                  try groundAtom (__d, M.Plus, S, mS, (1, occ)); true__
                   with | ModeError _ -> false__ in
-                let Ds' = checkList (found || found') mSs in
+                let __Ds' = checkList (found || found') mSs in
                 if found'
-                then (k (updateAtom (D, M.Minus, S, a, mS, (1, occ)))) @ Ds'
-                else Ds' in
+                then (k (updateAtom (__d, M.Minus, S, a, mS, (1, occ)))) @ __Ds'
+                else __Ds' in
           checkList false__ (lookup (a, occ))
-      | (D, Root (Def d, S), occ, k) ->
+      | (__d, Root (Def d, S), occ, k) ->
           let rec checkList arg__0 arg__1 =
             match (arg__0, arg__1) with
             | (found, nil) -> nil
             | (false__, mS::[]) ->
-                (match groundAtom (D, M.Plus, S, mS, (1, occ)) with
-                 | Unique -> k (updateAtom (D, M.Minus1, S, d, mS, (1, occ)))
-                 | Ambig -> k (updateAtom (D, M.Minus, S, d, mS, (1, occ))))
+                (match groundAtom (__d, M.Plus, S, mS, (1, occ)) with
+                 | Unique -> k (updateAtom (__d, M.Minus1, S, d, mS, (1, occ)))
+                 | Ambig -> k (updateAtom (__d, M.Minus, S, d, mS, (1, occ))))
             | (found, mS::mSs) ->
                 let found' =
-                  try groundAtom (D, M.Plus, S, mS, (1, occ)); true__
+                  try groundAtom (__d, M.Plus, S, mS, (1, occ)); true__
                   with | ModeError _ -> false__ in
-                let Ds' = checkList (found || found') mSs in
+                let __Ds' = checkList (found || found') mSs in
                 if found'
-                then (k (updateAtom (D, M.Minus, S, d, mS, (1, occ)))) @ Ds'
-                else Ds' in
+                then (k (updateAtom (__d, M.Minus, S, d, mS, (1, occ)))) @ __Ds'
+                else __Ds' in
           checkList false__ (lookup (d, occ))
-    let rec checkDlocal (D, V, occ) =
-      try checkD1 (D, V, occ, (function | D' -> [D']))
+    let rec checkDlocal (__d, __v, occ) =
+      try checkD1 (__d, __v, occ, (function | __d' -> [__d']))
       with | ModeError (occ, msg) -> raise (Error' (occ, msg))
     let rec cidFromHead = function | Const a -> a | Def a -> a
     let rec checkD (conDec, fileName, occOpt) =
@@ -459,16 +459,16 @@ module ModeCheck(ModeCheck:sig
              | nil -> false__
              | _ -> true__)
         | Uni _ -> false__
-        | Pi (_, V) -> checkable V in
-      let V = I.conDecType conDec in
-      if checkable V
+        | Pi (_, __v) -> checkable __v in
+      let __v = I.conDecType conDec in
+      if checkable __v
       then
-        try checkDlocal (I.Null, V, P.top)
+        try checkDlocal (I.Null, __v, P.top)
         with
         | Error' (occ, msg) ->
             (match occOpt with
-             | NONE -> raise (Error msg)
-             | SOME occTree ->
+             | None -> raise (Error msg)
+             | Some occTree ->
                  raise
                    (Error
                       (wrapMsg'
@@ -535,14 +535,14 @@ module ModeCheck(ModeCheck:sig
        Ex  for a named existential variable
        Par for a parameter
 
-       Mode context   D ::= . | D, S
+       Mode context   __d ::= . | __d, S
 
-       If D contains Status information for variables in
-       a context G, we write G ~ D
-       We write D' >= D if for all i
-         D(i) par iff D'(i) par
-         D(i) bot implies D'(i) bot or D'(i) top
-         D(i) top implies D'(i) top
+       If __d contains Status information for variables in
+       a context __g, we write __g ~ __d
+       We write __d' >= __d if for all i
+         __d(i) par iff __d'(i) par
+         __d(i) bot implies __d'(i) bot or __d'(i) top
+         __d(i) top implies __d'(i) top
     *)
     (* copied from worldcheck/worldsyn.fun *)
     (* lookup (a, occ) = mSs
@@ -581,23 +581,23 @@ module ModeCheck(ModeCheck:sig
        Invariant:
        b iff S = Ex (B x)
     *)
-    (* etaContract (U, n) = k
+    (* etaContract (__u, n) = k
 
-       if lam V1... lam Vn. U =eta*=> k
+       if lam V1... lam Vn. __u =eta*=> k
        otherwise raise exception Eta
 
-       Invariant: G, V1,..., Vn |- U : V for some G, Vi, V.
-                  U in NF
+       Invariant: __g, V1,..., Vn |- __u : __v for some __g, Vi, V.
+                  __u in NF
     *)
     (* etaSpine (S, n) = ()
        if S =eta*=> n ; n-1 ; ... ; 1 ; Nil
        otherwise raise exception Eta
 
-       Invariant: G |- S : V1 >> V2 for some G, V1, V2
+       Invariant: __g |- S : V1 >> V2 for some __g, V1, V2
                   S in NF
     *)
     (* S[s] should be impossible *)
-    (* isPattern (D, k, mS) = B
+    (* isPattern (__d, k, mS) = B
 
        Invariant:
        B iff k > k' for all k' in mS
@@ -607,123 +607,123 @@ module ModeCheck(ModeCheck:sig
     (* ------------------------------------------- strictness check *)
     (* This repeats some code from ../typecheck/strict.fun *)
     (* Interface here is somewhat different *)
-    (* strictExpN (D, p, U) = B
+    (* strictExpN (__d, p, __u) = B
 
        Invariant:
-       If  D |- U : V
-       and U is in nf (normal form)
-       then B iff U is strict in p
+       If  __d |- __u : __v
+       and __u is in nf (normal form)
+       then B iff __u is strict in p
     *)
-    (* checking D in this case should be redundant -fp *)
-    (* strictDecN (D, p, D) orelse *)
+    (* checking __d in this case should be redundant -fp *)
+    (* strictDecN (__d, p, __d) orelse *)
     (* equivalently: isUniversal .. andalso strictSpineN .. *)
     (* no other cases possible *)
     (* this is a hack - until we investigate this further   -rv *)
     (* no other cases possible *)
-    (* strictSpineN (D, S) = B
+    (* strictSpineN (__d, S) = B
 
        Invariant:
-       If  D |- S : V > W
+       If  __d |- S : __v > W
        and S is in nf (normal form)
        then B iff S is strict in k
     *)
     (*
-    fun strictAtom (D, p, mode, I.Nil, (V, s), M.Mnil) = false
-      | strictAtom (D, p, M.Minus, I.App (U, S), (I.Pi ((I.Dec (_, V1), _), V2), s),
+    fun strictAtom (__d, p, mode, I.Nil, (__v, s), M.Mnil) = false
+      | strictAtom (__d, p, M.Minus, I.App (__u, S), (I.Pi ((I.Dec (_, V1), _), V2), s),
                      M.Mapp (M.Marg (M.Minus, _), mS)) =
-          strictExpN (D, p, Whnf.normalize (V1, s))
-          orelse strictAtom (D, p, M.Minus, S, Whnf.whnfExpandDef (V2, I.Dot (I.Exp U, s)), mS)
-      | strictAtom (D, p, mode, I.App (U, S), (I.Pi (_, V2), s), M.Mapp(_, mS)) =
-          strictAtom (D, p, mode, S, Whnf.whnfExpandDef (V2, I.Dot (I.Exp U, s)), mS)
+          strictExpN (__d, p, Whnf.normalize (V1, s))
+          orelse strictAtom (__d, p, M.Minus, S, Whnf.whnfExpandDef (V2, I.Dot (I.Exp __u, s)), mS)
+      | strictAtom (__d, p, mode, I.App (__u, S), (I.Pi (_, V2), s), M.Mapp(_, mS)) =
+          strictAtom (__d, p, mode, S, Whnf.whnfExpandDef (V2, I.Dot (I.Exp __u, s)), mS)
     *)
     (* ------------------------------------------- freeness check *)
-    (* freeExpN (D, mode, U, occ = ()
+    (* freeExpN (__d, mode, __u, occ = ()
 
-       If G |- U : V  (U in nf)
-       and G ~ D
-       then freeExpN terminates with () if D |- U free
+       If __g |- __u : __v  (__u in nf)
+       and __g ~ __d
+       then freeExpN terminates with () if __d |- __u free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
     (* punting on the occ here  - ak *)
-    (* freeSpineN (D, mode, S, occ, strictFun)  = ()
+    (* freeSpineN (__d, mode, S, occ, strictFun)  = ()
 
-       If   G |- S : V1  > V2   (S in nf)
-       and  G ~ D
-       then freeSpineN terminates with () if  D |- S free
+       If   __g |- S : V1  > V2   (S in nf)
+       and  __g ~ __d
+       then freeSpineN terminates with () if  __d |- S free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
-    (* freeVar (D, mode, k, occ, strictFun)  = ()
+    (* freeVar (__d, mode, k, occ, strictFun)  = ()
 
-       If   G |- k : V1
-       and  G ~ D
-       then freeVar terminates with () if  D |- S free
+       If   __g |- k : V1
+       and  __g ~ __d
+       then freeVar terminates with () if  __d |- S free
        else exception ModeError is raised
 
        (occ and mode are used in error messages)
     *)
     (* -------------------------------- non-strict mode context update *)
-    (* nonStrictExpN (D, U) = D'
+    (* nonStrictExpN (__d, __u) = __d'
 
-       If   G |- U : V     (U in nf)
-       and  D ~ G
-       then D' >= D where D'(k) Unknown for all existential variables k
-            in U that are free in D
+       If   __g |- __u : __v     (__u in nf)
+       and  __d ~ __g
+       then __d' >= __d where __d'(k) Unknown for all existential variables k
+            in __u that are free in __d
     *)
-    (* nonStrictSpineN (D, S) = D'
+    (* nonStrictSpineN (__d, S) = __d'
 
-       If   G |- S : V1 > V2      (S in nf)
-       and  D ~ G
-       then D' >= D' where D'(k) Unkown for all existential variables k
-            in S that are Free in D
+       If   __g |- S : V1 > V2      (S in nf)
+       and  __d ~ __g
+       then __d' >= __d' where __d'(k) Unkown for all existential variables k
+            in S that are Free in __d
     *)
-    (* nonStrictVarD (D, k) = D'
+    (* nonStrictVarD (__d, k) = __d'
 
-       If   G |- k : V
-       and  D ~ G
+       If   __g |- k : __v
+       and  __d ~ __g
        and  k is an existential variable
-       then D' >= D where k is nonStrictd as described in  nonStrictExpN
+       then __d' >= __d where k is nonStrictd as described in  nonStrictExpN
     *)
     (* Universal, or already Unknown or Ground - leave unchanged *)
     (* ------------------------------------------- mode context update *)
-    (* updateExpN (D, U, u) = D'
+    (* updateExpN (__d, __u, u) = __d'
 
-       If   G |- U : V     (U in nf)
-       and  D ~ G
-       then D' >= D where D'(k) Ground for all existential variables k
-            with a strict occurrence in U
-            and D'(k) Unkown for all existential variable k
-            with a non-strict occurrence, but no strict occurrence in U
+       If   __g |- __u : __v     (__u in nf)
+       and  __d ~ __g
+       then __d' >= __d where __d'(k) Ground for all existential variables k
+            with a strict occurrence in __u
+            and __d'(k) Unkown for all existential variable k
+            with a non-strict occurrence, but no strict occurrence in __u
             (if !checkFree is true)
 
        u is the uniqueness property for the new ground assumptions
     *)
     (* no occurrence inside a FgnExp is considered strict *)
-    (* updateSpineN (D, S, u) = D'
+    (* updateSpineN (__d, S, u) = __d'
 
-       If   G |- S : V1 > V2      (S in nf)
-       and  D ~ G
-       then D' >= D' where D'(k) Ground for all existential variables k
+       If   __g |- S : V1 > V2      (S in nf)
+       and  __d ~ __g
+       then __d' >= __d' where __d'(k) Ground for all existential variables k
             with a strict occurrence in S
     *)
-    (* updateVarD (D, k, u) = D'
+    (* updateVarD (__d, k, u) = __d'
 
-       If   G |- k : V
-       and  D ~ G
+       If   __g |- k : __v
+       and  __d ~ __g
        and  k is an existential variable
-       then D' >= D where k is updated as described in  updateExpN
+       then __d' >= __d where k is updated as described in  updateExpN
     *)
     (* ----------------------- mode context update by argument modes *)
-    (* updateAtom (D, m, S, mS, (p,occ)) = D'
+    (* updateAtom (__d, m, S, mS, (p,occ)) = __d'
 
-       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
-       and  D ~ G
+       If   __g |- S : __v > __v'   ( S = __U1 ; .. ; Un)
+       and  __d ~ __g
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode
-       then D' >= D where
+       then __d' >= __d where
             all Ui are updated if mi = m (mod uniqueness)
 
        The new ground variables are marked Unique
@@ -735,41 +735,41 @@ module ModeCheck(ModeCheck:sig
     *)
     (* when checking freeness, all arguments must be input (+) or output (-) *)
     (* therefore, no case for M.Mapp (M.Marg (M.Minus, _), mS) is provided here *)
-    (* freeAtom (D, m, S, (V,s), mS, (p, occ)) = ()
+    (* freeAtom (__d, m, S, (__v,s), mS, (p, occ)) = ()
 
        checks if all output arguments in S according to mS are free.
-       Invariant: G |- S : V[s] >> P for some G and P  (S in nf)
-                  G ~ D
+       Invariant: __g |- S : __v[s] >> P for some __g and P  (S in nf)
+                  __g ~ __d
                   mode = (-) or (+); ( * ) or (-1) are excluded
     *)
-    (* updateAtom (D, m, S, a, mS, (p, occ))
+    (* updateAtom (__d, m, S, a, mS, (p, occ))
        see updateAtom', and performs additional freeness check if required
     *)
     (* ------------------------------------------- groundness check *)
-    (* groundExpN (D, mode, U, occ)  = u
+    (* groundExpN (__d, mode, __u, occ)  = u
 
-       If   G |- U : V    (U in nf)
-       and  G ~ D
+       If   __g |- __u : __v    (__u in nf)
+       and  __g ~ __d
        then if mode = (+) or (-)
-            then groundExpN terminates with u if  D |- U ground
+            then groundExpN terminates with u if  __d |- __u ground
                  else exception ModeError is raised
-            if mode = (-1) then D |- U ground and U unique
+            if mode = (-1) then __d |- __u ground and __u unique
                            else exception ModeError is raised
 
-       u = Unique if all known variables in U are Unique
+       u = Unique if all known variables in __u are Unique
        u = Ambig otherwise
 
        (occ and mode are used in error messages)
     *)
     (* punting on occ here  - ak *)
-    (* groundSpineN (D, mode, S, occ)  = u
+    (* groundSpineN (__d, mode, S, occ)  = u
 
-       If   G |- S : V1  > V2   (S in nf)
-       and  G ~ D
+       If   __g |- S : V1  > V2   (S in nf)
+       and  __g ~ __d
        then if mode = (+) or (-)
-            then groundSpineN terminates with u if  D |- S ground
+            then groundSpineN terminates with u if  __d |- S ground
                  else exception ModeError is raised
-            if mode = (-1) then D |- S ground and S unique
+            if mode = (-1) then __d |- S ground and S unique
                            else exception ModeError is raised
 
        u = Unique if all known variables in S are Unique
@@ -777,14 +777,14 @@ module ModeCheck(ModeCheck:sig
 
        (occ and mode are used in error messages)
     *)
-    (* groundVar (D, mode, k, occ)  = u
+    (* groundVar (__d, mode, k, occ)  = u
 
-       If   G |- k : V1
-       and  G ~ D
+       If   __g |- k : V1
+       and  __g ~ __d
        then if mode = (+) or (-)
-            then groundVar terminates with u if  D |- k ground
+            then groundVar terminates with u if  __d |- k ground
                  else exception ModeError is raised
-            if mode = (-1) then D |- k ground and k unique
+            if mode = (-1) then __d |- k ground and k unique
                            else exception ModeError is raised
 
        u = Unique if k is known to be unique, Ambig otherwise
@@ -793,15 +793,15 @@ module ModeCheck(ModeCheck:sig
     *)
     (* Existential (Free, _) or Existential (Unknown, _) *)
     (* ------------------------------------------- groundness check by polarity *)
-    (* groundAtom (D, m, S, mS, (p,occ))  = u
+    (* groundAtom (__d, m, S, mS, (p,occ))  = u
 
-       If   G |- S : V > V'   ( S = U1 ; .. ; Un)
-       and  D ~ G
+       If   __g |- S : __v > __v'   ( S = __U1 ; .. ; Un)
+       and  __d ~ __g
        and  S ~ mS            (mS = m1 , .. , mn)
        and  m mode = (+) or (-1)
-       then groundAtom returns u if  D |- Ui ground
+       then groundAtom returns u if  __d |- Ui ground
             for all i s.t. mi = m (mod uniqueness)
-            and checks that D |- Ui unique if mi = (-1) and m = (-)
+            and checks that __d |- Ui unique if mi = (-1) and m = (-)
        otherwise exception ModeError is raised
 
        u = Unique if all mi = m (mod uniqueness) are unique,
@@ -812,24 +812,24 @@ module ModeCheck(ModeCheck:sig
     (* ignore uniqueness result here *)
     (* ignore uniqueness result here *)
     (* ------------------------------------------- mode checking first phase *)
-    (* ctxPush (Ds, m) = Ds'
-       raises the contexts Ds prepending m
+    (* ctxPush (__Ds, m) = __Ds'
+       raises the contexts __Ds prepending m
     *)
-    (* ctxPop Ds = Ds'
-       lowers the contexts Ds
+    (* ctxPop __Ds = __Ds'
+       lowers the contexts __Ds
     *)
-    (* checkD1 (D, V, occ, k) = ()
+    (* checkD1 (__d, __v, occ, k) = ()
 
        Invariant:
-         if G |- V : L
-         and  V does not contain Skolem constants
-         and  D ~ G
+         if __g |- __v : __l
+         and  __v does not contain Skolem constants
+         and  __d ~ __g
          then
-            for each  mode mS of the head of V
+            for each  mode mS of the head of __v
               exists  some Di s.t. all (-) evars of mS are ground
-                where  D' ~ G, D' >= D is obtained by updating D
-                  and  k D' = [D1, ..., Di, ..., Dn]
-                  and  Di ~ G, Di >= D' is obtained by mode checking on the subgoals of V
+                where  __d' ~ __g, __d' >= __d is obtained by updating __d
+                  and  k __d' = [D1, ..., Di, ..., Dn]
+                  and  Di ~ __g, Di >= __d' is obtained by mode checking on the subgoals of __v
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
@@ -837,23 +837,23 @@ module ModeCheck(ModeCheck:sig
        (occ used in error messages)
     *)
     (* for a declaration, all modes must be satisfied *)
-    (* D' is the only (last) possibility; on failure, we raise ModeError *)
+    (* __d' is the only (last) possibility; on failure, we raise ModeError *)
     (* ignore return *)
-    (* try D', if it doesn't work, try another context in the Ds *)
+    (* try __d', if it doesn't work, try another context in the __Ds *)
     (* ignore return *)
     (* for a declaration, all modes must be satisfied *)
-    (* D' is the only (last) possibility; on failure, we raise ModeError *)
+    (* __d' is the only (last) possibility; on failure, we raise ModeError *)
     (* ignore return *)
-    (* try D', if it doesn't work, try another context in the Ds *)
+    (* try __d', if it doesn't work, try another context in the __Ds *)
     (* ignore return *)
-    (* checkG1 (D, V, occ, k) = Ds
+    (* checkG1 (__d, __v, occ, k) = __Ds
 
        Invariant:
-         if G |- V : L
-         and  V does not contain Skolem constants
-         and  D ~ G
-         then forall D' >= D that mode checks V, (k D') is a sublist of Ds
-         and for each Di in Ds, Di ~ G and Di >= D'
+         if __g |- __v : __l
+         and  __v does not contain Skolem constants
+         and  __d ~ __g
+         then forall __d' >= __d that mode checks __v, (k __d') is a sublist of __Ds
+         and for each Di in __Ds, Di ~ __g and Di >= __d'
 
        exception ModeError is raised if the expression does not mode check
        exception Error' is raised if the expression contains type families
@@ -866,7 +866,7 @@ module ModeCheck(ModeCheck:sig
                     if the check fails, we don't catch ModeError *)
     (* uniqueness not permitted on multiple modes right now *)
     (* Wed Aug 20 21:52:31 2003 -fp *)
-    (* found' is true iff D satisfies mS *)
+    (* found' is true iff __d satisfies mS *)
     (* handler scope??? -fp *)
     (* compute all other mode contexts *)
     (* for a goal, at least one mode must be satisfied *)
@@ -875,14 +875,14 @@ module ModeCheck(ModeCheck:sig
                     if the check fails, we don't catch ModeError *)
     (* uniqueness not permitted on multiple modes right now *)
     (* Wed Aug 20 21:52:31 2003 -fp *)
-    (* found' is true iff D satisfies mS *)
+    (* found' is true iff __d satisfies mS *)
     (* compute all other mode contexts *)
-    (* checkDlocal (D, V, occ) = ()
+    (* checkDlocal (__d, __v, occ) = ()
 
        Invariant:
-       If   G |- V : L
-       and  D ~ G
-       then checkD terminates with ()  iff V is mode correct.
+       If   __g |- __v : __l
+       and  __d ~ __g
+       then checkD terminates with ()  iff __v is mode correct.
 
        otherwise exception ModeError is raised (occ used in error messages)
     *)

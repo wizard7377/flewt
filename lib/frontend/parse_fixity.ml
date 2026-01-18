@@ -25,7 +25,7 @@ module ParseFixity(ParseFixity:sig
     (*! structure Parsing = Parsing' !*)
     module Names = Names'
     (* some shorthands *)
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module FX = Names.Fixity
     let rec fixToString (Strength p) = Int.toString p

@@ -77,9 +77,9 @@ module ReconConDec(ReconConDec:sig
       [@sml.renamed "blockdef"][@sml.renamed "blockdef"]
       | blockdec of (name * ExtSyn.dec list * ExtSyn.dec list)
       [@sml.renamed "blockdec"][@sml.renamed "blockdec"]
-    (* condecToConDec (condec, r) = (SOME(cd), SOME(ocd))
+    (* condecToConDec (condec, r) = (Some(cd), Some(ocd))
      if condec is a named constant declaration with occurrence tree ocd,
-     NONE if name or occurrence tree is missing
+     None if name or occurrence tree is missing
 
      Free variables in condec are interpreted universally (as FVars)
      then abstracted as implicit parameters.
@@ -93,15 +93,15 @@ module ReconConDec(ReconConDec:sig
       | (condec (name, tm), Loc (fileName, r), abbFlag) ->
           let _ = Names.varReset IntSyn.Null in
           let _ = ExtSyn.resetErrors fileName in
-          let JClass ((V, oc), L) =
+          let JClass ((__v, oc), __l) =
             Timers.time Timers.recon ExtSyn.recon (ExtSyn.jclass tm) in
           let _ = ExtSyn.checkErrors r in
-          let (i, V') =
-            try Timers.time Timers.abstract Abstract.abstractDecImp V
+          let (i, __v') =
+            try Timers.time Timers.abstract Abstract.abstractDecImp __v
             with | Error msg -> raise (Abstract.Error (Paths.wrap (r, msg))) in
           let cd =
             Names.nameConDec
-              (IntSyn.ConDec (name, NONE, i, IntSyn.Normal, V', L)) in
+              (IntSyn.ConDec (name, None, i, IntSyn.Normal, __v', __l)) in
           let ocd = Paths.dec (i, oc) in
           let _ =
             if (!Global.chatter) >= 3
@@ -113,39 +113,39 @@ module ReconConDec(ReconConDec:sig
             if !Global.doubleCheck
             then
               Timers.time Timers.checking TypeCheck.check
-                (V', (IntSyn.Uni L))
+                (__v', (IntSyn.Uni __l))
             else () in
-          ((SOME cd), (SOME ocd))
+          ((Some cd), (Some ocd))
       | (condef (optName, tm1, tm2Opt), Loc (fileName, r), abbFlag) ->
           let _ = Names.varReset IntSyn.Null in
           let _ = ExtSyn.resetErrors fileName in
           let f =
             match tm2Opt with
-            | NONE -> ExtSyn.jterm tm1
-            | SOME tm2 -> ExtSyn.jof (tm1, tm2) in
+            | None -> ExtSyn.jterm tm1
+            | Some tm2 -> ExtSyn.jof (tm1, tm2) in
           let f' = Timers.time Timers.recon ExtSyn.recon f in
-          let ((U, oc1), (V, oc2Opt), L) =
+          let ((__u, oc1), (__v, oc2Opt), __l) =
             match f' with
-            | JTerm ((U, oc1), V, L) -> ((U, oc1), (V, NONE), L)
-            | JOf ((U, oc1), (V, oc2), L) -> ((U, oc1), (V, (SOME oc2)), L) in
+            | JTerm ((__u, oc1), __v, __l) -> ((__u, oc1), (__v, None), __l)
+            | JOf ((__u, oc1), (__v, oc2), __l) -> ((__u, oc1), (__v, (Some oc2)), __l) in
           let _ = ExtSyn.checkErrors r in
-          let (i, (U'', V'')) =
-            try Timers.time Timers.abstract Abstract.abstractDef (U, V)
+          let (i, (__u'', __v'')) =
+            try Timers.time Timers.abstract Abstract.abstractDef (__u, __v)
             with | Error msg -> raise (Abstract.Error (Paths.wrap (r, msg))) in
-          let name = match optName with | NONE -> "_" | SOME name -> name in
+          let name = match optName with | None -> "_" | Some name -> name in
           let ocd = Paths.def (i, oc1, oc2Opt) in
           let cd =
             if abbFlag
             then
               Names.nameConDec
-                (IntSyn.AbbrevDef (name, NONE, i, U'', V'', L))
+                (IntSyn.AbbrevDef (name, None, i, __u'', __v'', __l))
             else
-              (((Strict.check ((U'', V''), (SOME ocd));
+              (((Strict.check ((__u'', __v''), (Some ocd));
                  Names.nameConDec
                    (IntSyn.ConDef
-                      (name, NONE, i, U'', V'', L, (IntSyn.ancestor U'')))))
+                      (name, None, i, __u'', __v'', __l, (IntSyn.ancestor __u'')))))
               (* stricter checking of types according to Chris Richards Fri Jul  2 16:33:46 2004 -fp *)
-              (* (case optName of NONE => () | _ => Strict.checkType ((i, V''), SOME(ocd))); *)) in
+              (* (case optName of None => () | _ => Strict.checkType ((i, __v''), Some(ocd))); *)) in
           let _ =
             if (!Global.chatter) >= 3
             then
@@ -156,25 +156,25 @@ module ReconConDec(ReconConDec:sig
             if !Global.doubleCheck
             then
               (Timers.time Timers.checking TypeCheck.check
-                 (V'', (IntSyn.Uni L));
-               Timers.time Timers.checking TypeCheck.check (U'', V''))
+                 (__v'', (IntSyn.Uni __l));
+               Timers.time Timers.checking TypeCheck.check (__u'', __v''))
             else () in
           let optConDec =
-            match optName with | NONE -> NONE | SOME _ -> SOME cd in
-          (optConDec, (SOME ocd))
+            match optName with | None -> None | Some _ -> Some cd in
+          (optConDec, (Some ocd))
       | (blockdec (name, Lsome, Lblock), Loc (fileName, r), abbFlag) ->
           let rec makectx =
             function
             | nil -> IntSyn.Null
-            | (D)::L -> IntSyn.Decl ((makectx L), D) in
+            | (__d)::__l -> IntSyn.Decl ((makectx __l), __d) in
           let rec ctxToList =
             function
             | (IntSyn.Null, acc) -> acc
-            | (Decl (G, D), acc) -> ctxToList (G, (D :: acc)) in
+            | (Decl (__g, __d), acc) -> ctxToList (__g, (__d :: acc)) in
           let rec ctxAppend =
             function
-            | (G, IntSyn.Null) -> G
-            | (G, Decl (G', D)) -> IntSyn.Decl ((ctxAppend (G, G')), D) in
+            | (__g, IntSyn.Null) -> __g
+            | (__g, Decl (__g', __d)) -> IntSyn.Decl ((ctxAppend (__g, __g')), __d) in
           let rec ctxBlockToString (G0, (G1, G2)) =
             let _ = Names.varReset IntSyn.Null in
             let G0' = Names.ctxName G0 in
@@ -201,8 +201,8 @@ module ReconConDec(ReconConDec:sig
           let (gsome, gblock) = ((makectx Lsome), (makectx Lblock)) in
           let r' =
             match ((ExtSyn.ctxRegion gsome), (ExtSyn.ctxRegion gblock)) with
-            | (SOME r1, SOME r2) -> Paths.join (r1, r2)
-            | (_, SOME r2) -> r2 in
+            | (Some r1, Some r2) -> Paths.join (r1, r2)
+            | (_, Some r2) -> r2 in
           let _ = Names.varReset IntSyn.Null in
           let _ = ExtSyn.resetErrors fileName in
           let j =
@@ -225,14 +225,14 @@ module ReconConDec(ReconConDec:sig
                           Print.cnstrsToString C))) in
           let _ = checkFreevars (G0, (Gsome', Gblock'), r') in
           let bd =
-            IntSyn.BlockDec (name, NONE, Gsome', (ctxToList (Gblock', nil))) in
+            IntSyn.BlockDec (name, None, Gsome', (ctxToList (Gblock', nil))) in
           let _ =
             if (!Global.chatter) >= 3
             then
               Msg.message
                 ((Timers.time Timers.printing Print.conDecToString bd) ^ "\n")
             else () in
-          ((((SOME bd), NONE))(* closed nf *))
+          ((((Some bd), None))(* closed nf *))
       | (blockdef (name, W), Loc (fileName, r), abbFlag) ->
           let W' = List.map Names.Qid W in
           let W'' =
@@ -240,21 +240,21 @@ module ReconConDec(ReconConDec:sig
               (function
                | qid ->
                    (match Names.constLookup qid with
-                    | NONE ->
+                    | None ->
                         raise
                           (Names.Error
                              (((^) "Undeclared label " Names.qidToString
                                  (valOf (Names.constUndef qid)))
                                 ^ "."))
-                    | SOME cid -> cid)) W' in
-          let bd = IntSyn.BlockDef (name, NONE, W'') in
+                    | Some cid -> cid)) W' in
+          let bd = IntSyn.BlockDef (name, None, W'') in
           let _ =
             if (!Global.chatter) >= 3
             then
               Msg.message
                 ((Timers.time Timers.printing Print.conDecToString bd) ^ "\n")
             else () in
-          ((SOME bd), NONE)
+          ((Some bd), None)
     let rec internalInst _ = raise Match
     let rec externalInst _ = raise Match
   end ;;

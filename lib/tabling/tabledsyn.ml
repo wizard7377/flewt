@@ -29,26 +29,26 @@ module TabledSyn(TabledSyn:sig
     (*! structure IntSyn = IntSyn' !*)
     exception Error of string 
     type __Tabled =
-      | yes [@sml.renamed "yes"][@sml.renamed "yes"]
-      | no [@sml.renamed "no"][@sml.renamed "no"]
+      | Yes [@sml.renamed "yes"]
+      | No [@sml.renamed "no"]
     (*  datatype ModeSpine = Mnil | Mapp of Marg * ModeSpine
   and  Marg = Marg of Mode * string option
   *)
     module I = IntSyn
     let (tabledSignature : bool Table.__Table) = Table.new__ 0
     let rec reset () = Table.clear tabledSignature
-    let rec installTabled a = Table.insert tabledSignature (a, false__)
+    let rec installTabled a = Table.insert tabledSignature (a, false)
     let rec installKeepTable a =
       Table.insertShadow tabledSignature (a, true__); ()
     let rec tabledLookup a =
       match Table.lookup tabledSignature a with
-      | NONE -> false__
-      | SOME _ -> true__
+      | None -> false
+      | Some _ -> true__
     let rec keepTable a =
       match Table.lookup tabledSignature a with
-      | NONE -> false__
-      | SOME true__ -> true__
-      | SOME false__ -> false__
+      | None -> false
+      | Some true__ -> true__
+      | Some false -> false
     (* reset () = ()
 
        Effect: Resets tabled array

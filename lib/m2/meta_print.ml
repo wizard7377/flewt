@@ -34,25 +34,25 @@ module MetaPrint(MetaPrint:sig
       let rec fmtPrefix' =
         function
         | (Prefix (I.Null, I.Null, I.Null), Fmt) -> Fmt
-        | (Prefix (Decl (I.Null, D), Decl (I.Null, mode), Decl (I.Null, b)),
+        | (Prefix (Decl (I.Null, __d), Decl (I.Null, mode), Decl (I.Null, b)),
            Fmt) ->
             [F.String (depthToString b);
             F.String (modeToString mode);
-            Print.formatDec (I.Null, D)] @ Fmt
-        | (Prefix (Decl (G, D), Decl (M, mode), Decl (B, b)), Fmt) ->
+            Print.formatDec (I.Null, __d)] @ Fmt
+        | (Prefix (Decl (__g, __d), Decl (M, mode), Decl (B, b)), Fmt) ->
             fmtPrefix'
-              ((M.Prefix (G, M, B)),
+              ((M.Prefix (__g, M, B)),
                 ([F.String ",";
-                 F.Space;
+                 F.space;
                  F.Break;
                  F.String (depthToString b);
                  F.String (modeToString mode);
-                 Print.formatDec (G, D)] @ Fmt)) in
-      F.HVbox (fmtPrefix' (GM, []))
+                 Print.formatDec (__g, __d)] @ Fmt)) in
+      F.hVbox (fmtPrefix' (GM, []))
     let rec prefixToString (GM) = F.makestring_fmt (fmtPrefix GM)
-    let rec stateToString (State (name, (Prefix (G, M, B) as GM), V)) =
+    let rec stateToString (State (name, (Prefix (__g, M, B) as GM), __v)) =
       ((^) (((^) (name ^ ":\n") prefixToString GM) ^ "\n--------------\n")
-         ClausePrint.clauseToString (G, V))
+         ClausePrint.clauseToString (__g, __v))
         ^ "\n\n"
     let rec sgnToString =
       function

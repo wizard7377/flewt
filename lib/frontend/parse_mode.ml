@@ -25,14 +25,14 @@ module ParseMode(ParseMode:sig
   struct
     (*! structure Parsing = Parsing' !*)
     module ExtModes = ExtModes'
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module E = ExtModes
     module P = Paths
     let rec extract (s, i) =
       if (=) i String.size s
-      then NONE
-      else SOME (String.extract (s, i, NONE))
+      then None
+      else Some (String.extract (s, i, None))
     let rec splitModeId (r, id) =
       match String.sub (id, 0) with
       | '*' -> ((E.star r), (extract (id, 1)))
@@ -46,18 +46,18 @@ module ParseMode(ParseMode:sig
             (r, ("Expected mode `+', `-', `*', or `-1'  found " ^ id))
     let rec validateMArg =
       function
-      | (r, ((mode, SOME id) as mId)) ->
+      | (r, ((mode, Some id) as mId)) ->
           if L.isUpper id
           then mId
           else
             Parsing.error
               (r, ("Expected free uppercase variable, found " ^ id))
-      | (r, (_, NONE)) ->
+      | (r, (_, None)) ->
           Parsing.error (r, "Missing variable following mode")
     let rec validateMode =
       function
-      | (r, (mode, NONE)) -> mode
-      | (r, (_, SOME id)) ->
+      | (r, (mode, None)) -> mode
+      | (r, (_, Some id)) ->
           Parsing.error
             (r,
               ("Expected simple mode, found mode followed by identifier " ^
@@ -95,8 +95,8 @@ module ParseMode(ParseMode:sig
                let (f'', r') = stripRBrace f' in
                let dec =
                  match yOpt with
-                 | NONE -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
-                 | SOME y -> ParseTerm.ExtSyn.dec (x, y, (P.join (r, r'))) in
+                 | None -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
+                 | Some y -> ParseTerm.ExtSyn.dec (x, y, (P.join (r, r'))) in
                let (t', f''') = parseFull (f'', r1) in
                ((E.Full.mpi (m, dec, t')), f''')
            | Cons (TS) ->

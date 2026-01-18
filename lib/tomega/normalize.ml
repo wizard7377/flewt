@@ -29,13 +29,13 @@ module Normalize(Normalize:sig
     module T = Tomega'
     let rec normalizeFor =
       function
-      | (All (D, F), t) ->
-          T.All ((T.decSub (D, t)), (normalizeFor (F, (T.dot1 t))))
-      | (Ex (D, F), t) ->
+      | (All (__d, F), t) ->
+          T.All ((T.decSub (__d, t)), (normalizeFor (F, (T.dot1 t))))
+      | (Ex (__d, F), t) ->
           T.Ex
-            ((I.decSub (D, (T.coerceSub t))), (normalizeFor (F, (T.dot1 t))))
-      | (And (F1, F2), t) ->
-          T.And ((normalizeFor (F1, t)), (normalizeFor (F2, t)))
+            ((I.decSub (__d, (T.coerceSub t))), (normalizeFor (F, (T.dot1 t))))
+      | (And (__F1, __F2), t) ->
+          T.And ((normalizeFor (__F1, t)), (normalizeFor (__F2, t)))
       | (FClo (F, t1), t2) -> normalizeFor (F, (T.comp (t1, t2)))
       | (World (W, F), t) -> T.World (W, (normalizeFor (F, t)))
       | (T.True, _) -> T.True
@@ -44,23 +44,23 @@ module Normalize(Normalize:sig
       | ((Root (Const _, _) as P), t) -> P
       | ((Root (Var n, _) as P), t) ->
           normalizePrg (P, (T.Dot ((T.varSub (n, t)), T.id)))
-      | (Lam (D, P'), t) -> T.Lam (D, (normalizePrg (P', (T.dot1 t))))
-      | (PairExp (U, P'), t) ->
+      | (Lam (__d, __P'), t) -> T.Lam (__d, (normalizePrg (__P', (T.dot1 t))))
+      | (PairExp (__u, __P'), t) ->
           T.PairExp
-            ((I.EClo (Whnf.whnf ((U, (T.coerceSub t)) : I.eclo))),
-              (normalizePrg (P', t)))
-      | (PairPrg (P1, P2), t) ->
-          T.PairPrg ((normalizePrg (P1, t)), (normalizePrg (P2, t)))
+            ((I.EClo (Whnf.whnf ((__u, (T.coerceSub t)) : I.eclo))),
+              (normalizePrg (__P', t)))
+      | (PairPrg (__P1, __P2), t) ->
+          T.PairPrg ((normalizePrg (__P1, t)), (normalizePrg (__P2, t)))
       | (T.Unit, _) -> T.Unit
       | (Redex (P, S), t) ->
           T.Redex ((normalizePrg (P, t)), (normalizeSpine S))
-      | (Rec (D, P), t) -> T.Rec (D, (normalizePrg (P, t)))
+      | (Rec (__d, P), t) -> T.Rec (__d, (normalizePrg (P, t)))
       | ((Case _ as P), t) -> P
-      | ((EVar (Psi, ref (SOME (P')), _) as P), t) -> normalizePrg (P', t)
+      | ((EVar (Psi, ref (Some (__P')), _) as P), t) -> normalizePrg (__P', t)
     let rec normalizeSpine =
       function
       | T.Nil -> T.Nil
-      | AppExp (U, S) -> T.AppExp (U, (normalizeSpine S))
+      | AppExp (__u, S) -> T.AppExp (__u, (normalizeSpine S))
       | AppPrg (P, S) ->
           T.AppPrg ((normalizePrg (P, T.id)), (normalizeSpine S))
       | AppBlock (B, S) -> T.AppBlock (B, (normalizeSpine S))
@@ -70,26 +70,26 @@ module Normalize(Normalize:sig
       | Dot (Prg (P), s) ->
           T.Dot ((T.Prg (normalizePrg (P, T.id))), (normalizeSub s))
       | Dot (F, s) -> T.Dot (F, (normalizeSub s))
-    (*      | normalizeFor (T.FVar (G, r))   think about it *)
-    (* normalizePrg (P, t) = (P', t')
+    (*      | normalizeFor (T.FVar (__g, r))   think about it *)
+    (* normalizePrg (P, t) = (__P', t')
 
        Invariant:
        If   Psi' |- P :: F
        and  Psi  |- t :: Psi'
        and  P doesn't contain free EVars
-       then there exists a Psi'', F'
-       s.t. Psi'' |- F' for
-       and  Psi'' |- P' :: F'
+       then there exists a Psi'', __F'
+       s.t. Psi'' |- __F' for
+       and  Psi'' |- __P' :: __F'
        and  Psi |- t' : Psi''
-       and  Psi |- F [t] == F' [t']
-       and  Psi |- P [t] == P' [t'] : F [t]
-       and  Psi |- P' [t'] :nf: F [t]
+       and  Psi |- F [t] == __F' [t']
+       and  Psi |- P [t] == __P' [t'] : F [t]
+       and  Psi |- __P' [t'] :nf: F [t]
     *)
-    (*      | normalizePrg (T.PairBlock (B, P'), t) =
-          T.PairBlock (B, normalizePrg P') *)
+    (*      | normalizePrg (T.PairBlock (B, __P'), t) =
+          T.PairBlock (B, normalizePrg __P') *)
     (* Clearly, the redex should be removed here *)
     (*
-    and normalizeDec (T.UDec D, t) = T.UDec (I.decSub (D, T.coerceSub t))
+    and normalizeDec (T.UDec __d, t) = T.UDec (I.decSub (__d, T.coerceSub t))
       | normalizeDec (T.BDec (k, t1), t2) = *)
     let normalizeFor = normalizeFor
     let normalizePrg = normalizePrg

@@ -42,10 +42,10 @@ module Strict(Strict:sig
     let rec strictExp =
       function
       | (_, _, Uni _) -> false__
-      | (k, p, Lam (D, U)) ->
-          (strictDec (k, p, D)) || (strictExp ((k + 1), (p + 1), U))
-      | (k, p, Pi ((D, _), U)) ->
-          (strictDec (k, p, D)) || (strictExp ((k + 1), (p + 1), U))
+      | (k, p, Lam (__d, __u)) ->
+          (strictDec (k, p, __d)) || (strictExp ((k + 1), (p + 1), __u))
+      | (k, p, Pi ((__d, _), __u)) ->
+          (strictDec (k, p, __d)) || (strictExp ((k + 1), (p + 1), __u))
       | (k, p, Root (H, S)) ->
           (match H with
            | BVar k' ->
@@ -59,24 +59,24 @@ module Strict(Strict:sig
     let rec strictSpine =
       function
       | (_, _, I.Nil) -> false__
-      | (k, p, App (U, S)) ->
-          (strictExp (k, p, U)) || (strictSpine (k, p, S))
-    let rec strictDec (k, p, Dec (_, V)) = strictExp (k, p, V)
+      | (k, p, App (__u, S)) ->
+          (strictExp (k, p, __u)) || (strictSpine (k, p, S))
+    let rec strictDec (k, p, Dec (_, __v)) = strictExp (k, p, __v)
     let rec strictArgParm =
       function
-      | (p, (Root _ as U)) -> strictExp (0, p, U)
-      | (p, (Pi _ as U)) -> strictExp (0, p, U)
-      | (p, (FgnExp _ as U)) -> strictExp (0, p, U)
-      | (p, Lam (D, U)) -> strictArgParm ((p + 1), U)
+      | (p, (Root _ as __u)) -> strictExp (0, p, __u)
+      | (p, (Pi _ as __u)) -> strictExp (0, p, __u)
+      | (p, (FgnExp _ as __u)) -> strictExp (0, p, __u)
+      | (p, Lam (__d, __u)) -> strictArgParm ((p + 1), __u)
     let rec occToString =
       function
-      | (SOME ocd, occ) -> Paths.wrap ((Paths.occToRegionDef1 ocd occ), "")
-      | (NONE, occ) -> "Error: "
+      | (Some ocd, occ) -> Paths.wrap ((Paths.occToRegionDef1 ocd occ), "")
+      | (None, occ) -> "Error: "
     let rec decToVarName =
       function
-      | Dec (NONE, _) -> "implicit variable"
-      | Dec (SOME x, _) -> "variable " ^ x
-    let rec strictTop ((U, V), ocdOpt) =
+      | Dec (None, _) -> "implicit variable"
+      | Dec (Some x, _) -> "variable " ^ x
+    let rec strictTop ((__u, __v), ocdOpt) =
       let rec strictArgParms =
         function
         | (Root (BVar _, _), _, occ) ->
@@ -86,83 +86,83 @@ module Strict(Strict:sig
         | (Root _, _, _) -> ()
         | (Pi _, _, _) -> ()
         | (FgnExp _, _, _) -> ()
-        | (Lam (D, U'), Pi (_, V'), occ) ->
-            if strictArgParm (1, U')
-            then strictArgParms (U', V', (Paths.body occ))
+        | (Lam (__d, __u'), Pi (_, __v'), occ) ->
+            if strictArgParm (1, __u')
+            then strictArgParms (__u', __v', (Paths.body occ))
             else
               raise
                 (Error
                    (((^) ((occToString (ocdOpt, occ)) ^
                             "No strict occurrence of ")
-                       decToVarName D)
+                       decToVarName __d)
                       ^ ", use %abbrev"))
-        | ((Lam _ as U), (Root (Def _, _) as V), occ) ->
+        | ((Lam _ as __u), (Root (Def _, _) as __v), occ) ->
             strictArgParms
-              (U, (Whnf.normalize (Whnf.expandDef (V, I.id))), occ) in
-      strictArgParms (U, V, Paths.top)
-    let rec occursInType ((i, V), ocdOpt) =
+              (__u, (Whnf.normalize (Whnf.expandDef (__v, I.id))), occ) in
+      strictArgParms (__u, __v, Paths.top)
+    let rec occursInType ((i, __v), ocdOpt) =
       let rec oit =
         function
-        | ((0, V), occ) -> ()
-        | ((i, Pi ((D, P), V)), occ) ->
-            (match Abstract.piDepend ((D, P), V) with
-             | Pi ((D', I.Maybe), V) -> oit (((i - 1), V), (Paths.body occ))
+        | ((0, __v), occ) -> ()
+        | ((i, Pi ((__d, P), __v)), occ) ->
+            (match Abstract.piDepend ((__d, P), __v) with
+             | Pi ((__d', I.Maybe), __v) -> oit (((i - 1), __v), (Paths.body occ))
              | _ ->
                  raise
                    (Error
                       (((^) ((occToString (ocdOpt, occ)) ^
                                "No occurrence of ")
-                          decToVarName D)
+                          decToVarName __d)
                          ^ " in type, use %abbrev")))
         | _ -> () in
-      oit ((i, V), Paths.top)
+      oit ((i, __v), Paths.top)
     (* Definition of normal form (nf) --- see lambda/whnf.fun *)
     (* patSpine (k, S) = B
 
        Invariant:
-       If  G, D |- S : V > V', S in nf
-       and |D| = k
+       If  __g, __d |- S : __v > __v', S in nf
+       and |__d| = k
        then B iff S = (k1 ; k2 ;...; kn ; NIL), kn <= k, all ki pairwise distinct
     *)
     (* possibly eta-contract? -fp *)
-    (* strictExp (k, p, U) = B
+    (* strictExp (k, p, __u) = B
 
        Invariant:
-       If  G, D |- U : V
-       and U is in nf (normal form)
-       and |D| = k
-       then B iff U is strict in p
+       If  __g, __d |- __u : __v
+       and __u is in nf (normal form)
+       and |__d| = k
+       then B iff __u is strict in p
     *)
-    (* checking D in this case might be redundant -fp *)
+    (* checking __d in this case might be redundant -fp *)
     (* no other cases possible *)
     (* this is a hack - until we investigate this further   -rv *)
     (* no other cases possible *)
     (* strictSpine (k, S) = B
 
        Invariant:
-       If  G, D |- S : V > W
+       If  __g, __d |- S : __v > W
        and S is in nf (normal form)
-       and |D| = k
+       and |__d| = k
        then B iff S is strict in k
     *)
-    (* strictArgParm (p, U) = B
+    (* strictArgParm (p, __u) = B
 
        Traverses the flexible abstractions in U.
 
        Invariant:
-       If   G |- U : V
-       and  G |- p : V'
-       and  U is in nf
-       then B iff argument parameter p occurs in strict position in U
+       If   __g |- __u : __v
+       and  __g |- p : __v'
+       and  __u is in nf
+       then B iff argument parameter p occurs in strict position in __u
                   which starts with argument parameters
     *)
-    (* strictTop ((U, V), ocdOpt) = ()
+    (* strictTop ((__u, __v), ocdOpt) = ()
 
        Invariant:
-       condec has form c = U : V where . |- U : V
-       and U is in nf (normal form)
-       then function returns () if U every argument parameter of U
-            has at least one strict and rigid occurrence in U
+       condec has form c = __u : __v where . |- __u : __v
+       and __u is in nf (normal form)
+       then function returns () if __u every argument parameter of __u
+            has at least one strict and rigid occurrence in __u
        raises Error otherwise
 
        ocdOpt is an optional occurrence tree for condec for error messages

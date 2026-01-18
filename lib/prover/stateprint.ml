@@ -49,53 +49,53 @@ module StatePrint(StatePrint:sig
     let rec formatCtx =
       function
       | I.Null -> []
-      | Decl (I.Null, UDec (D)) ->
+      | Decl (I.Null, UDec (__d)) ->
           if (!Global.chatter) >= 4
-          then [Fmt.HVbox [Fmt.Break; Print.formatDec (I.Null, D)]]
-          else [Print.formatDec (I.Null, D)]
-      | Decl (I.Null, PDec (SOME s, F, _)) ->
+          then [Fmt.hVbox [Fmt.Break; Print.formatDec (I.Null, __d)]]
+          else [Print.formatDec (I.Null, __d)]
+      | Decl (I.Null, PDec (Some s, F, _)) ->
           if (!Global.chatter) >= 4
           then
-            [Fmt.HVbox
+            [Fmt.hVbox
                [Fmt.Break;
                Fmt.String s;
-               Fmt.Space;
+               Fmt.space;
                Fmt.String "::";
-               Fmt.Space;
+               Fmt.space;
                TomegaPrint.formatFor (I.Null, F)]]
           else
             [Fmt.String s;
-            Fmt.Space;
+            Fmt.space;
             Fmt.String "::";
-            Fmt.Space;
+            Fmt.space;
             TomegaPrint.formatFor (I.Null, F)]
-      | Decl (Psi, UDec (D)) ->
-          let G = T.coerceCtx Psi in
+      | Decl (Psi, UDec (__d)) ->
+          let __g = T.coerceCtx Psi in
           if (!Global.chatter) >= 4
           then
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
-              [Fmt.HVbox [Fmt.Break; Print.formatDec (G, D)]]
+              [Fmt.hVbox [Fmt.Break; Print.formatDec (__g, __d)]]
           else
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break]) @
-              [Fmt.Break; Print.formatDec (G, D)]
-      | Decl (Psi, PDec (SOME s, F, _)) ->
+              [Fmt.Break; Print.formatDec (__g, __d)]
+      | Decl (Psi, PDec (Some s, F, _)) ->
           if (!Global.chatter) >= 4
           then
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break; Fmt.Break]) @
-              [Fmt.HVbox
+              [Fmt.hVbox
                  [Fmt.Break;
                  Fmt.String s;
-                 Fmt.Space;
+                 Fmt.space;
                  Fmt.String "::";
-                 Fmt.Space;
+                 Fmt.space;
                  TomegaPrint.formatFor (Psi, F)]]
           else
             ((formatCtx Psi) @ [Fmt.String ","; Fmt.Break]) @
               [Fmt.Break;
               Fmt.String s;
-              Fmt.Space;
+              Fmt.space;
               Fmt.String "::";
-              Fmt.Space;
+              Fmt.space;
               TomegaPrint.formatFor (Psi, F)]
     let rec formatState (State (W, Psi, P, F, _)) =
       Fmt.Vbox0 0 1
@@ -107,12 +107,12 @@ module StatePrint(StatePrint:sig
     let rec stateToString (S) = Fmt.makestring_fmt (formatState S)
     (*
     fun nameCtx I.Null = I.Null
-      | nameCtx (I.Decl (Psi, T.UDec D)) =
+      | nameCtx (I.Decl (Psi, T.UDec __d)) =
           I.Decl (nameCtx Psi,
-                  T.UDec (Names.decName (T.coerceCtx Psi, D)))
+                  T.UDec (Names.decName (T.coerceCtx Psi, __d)))
       | nameCtx (I.Decl (Psi, T.PDec (_, F, TC))) =
           I.Decl (nameCtx Psi,
-                  T.PDec (SOME "s", F, TC))    to be fixed! --cs *)
+                  T.PDec (Some "s", F, TC))    to be fixed! --cs *)
     (* nameState S = S'
 
        Invariant:
@@ -121,18 +121,18 @@ module StatePrint(StatePrint:sig
        and  |- S = S' state
     *)
     (*
-    fun formatOrder (G, S.Arg (Us, Vs)) =
-          [Print.formatExp (G, I.EClo Us), Fmt.String ":",
-           Print.formatExp (G, I.EClo Vs)]
-      | formatOrder (G, S.Lex Os) =
-          [Fmt.String "{", Fmt.HVbox0 1 0 1 (formatOrders (G, Os)), Fmt.String "}"]
-      | formatOrder (G, S.Simul Os) =
-          [Fmt.String "[", Fmt.HVbox0 1 0 1 (formatOrders (G, Os)), Fmt.String "]"]
+    fun formatOrder (__g, S.Arg (__Us, __Vs)) =
+          [Print.formatExp (__g, I.EClo __Us), Fmt.String ":",
+           Print.formatExp (__g, I.EClo __Vs)]
+      | formatOrder (__g, S.Lex __Os) =
+          [Fmt.String "{", Fmt.hVbox0 1 0 1 (formatOrders (__g, __Os)), Fmt.String "}"]
+      | formatOrder (__g, S.Simul __Os) =
+          [Fmt.String "[", Fmt.hVbox0 1 0 1 (formatOrders (__g, __Os)), Fmt.String "]"]
 
-    and formatOrders (G, nil) = nil
-      | formatOrders (G, O :: nil) = formatOrder (G, O)
-      | formatOrders (G, O :: Os) = formatOrder (G, O) @
-          [Fmt.String ",", Fmt.Break]  @ formatOrders (G, Os)
+    and formatOrders (__g, nil) = nil
+      | formatOrders (__g, O :: nil) = formatOrder (__g, O)
+      | formatOrders (__g, O :: __Os) = formatOrder (__g, O) @
+          [Fmt.String ",", Fmt.Break]  @ formatOrders (__g, __Os)
 
      format T = fmt'
 
@@ -140,7 +140,7 @@ module StatePrint(StatePrint:sig
        If   T is a tag
        then fmt' is a a format descibing the tag T
     *)
-    (*      | formatTag (G, S.Assumption k) = [Fmt.String "<a",
+    (*      | formatTag (__g, S.Assumption k) = [Fmt.String "<a",
                                          Fmt.String (Int.toString k),
                                          Fmt.String ">"] *)
     (* formatCtx (Psi) = fmt'

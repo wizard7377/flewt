@@ -84,13 +84,13 @@ module ReconMode(ReconMode:sig
           let r = P.join (r1, r2) in
           let qid = Names.Qid (ids, id) in
           match Names.constLookup qid with
-          | NONE ->
+          | None ->
               error
                 (r,
                   (((^) "Undeclared identifier " Names.qidToString
                       (valOf (Names.constUndef qid)))
                      ^ " in mode declaration"))
-          | SOME cid -> ((cid, (ModeDec.shortToFull (cid, mS, r))), r)
+          | Some cid -> ((cid, (ModeDec.shortToFull (cid, mS, r))), r)
         let rec toModedec nmS = nmS
       end
     module Full =
@@ -98,33 +98,33 @@ module ReconMode(ReconMode:sig
         type nonrec mterm =
           (T.dec I.__Ctx * M.__Mode I.__Ctx) ->
             ((I.cid * M.__ModeSpine) * P.region)
-        let rec mpi ((m, _), d, t) (g, D) =
-          t ((I.Decl (g, d)), (I.Decl (D, m)))
-        let rec mroot (tm, r) (g, D) =
-          let JWithCtx (G, JOf ((V, _), _, _)) =
+        let rec mpi ((m, _), d, t) (g, __d) =
+          t ((I.Decl (g, d)), (I.Decl (__d, m)))
+        let rec mroot (tm, r) (g, __d) =
+          let JWithCtx (__g, JOf ((__v, _), _, _)) =
             T.recon (T.jwithctx (g, (T.jof (tm, (T.typ r))))) in
           let _ = T.checkErrors r in
           let rec convertSpine =
             function
             | I.Nil -> M.Mnil
-            | App (U, S) ->
+            | App (__u, S) ->
                 let k =
-                  try Whnf.etaContract U
+                  try Whnf.etaContract __u
                   with
                   | Whnf.Eta ->
                       error
                         (r,
-                          (("Argument " ^ (Print.expToString (G, U))) ^
+                          (("Argument " ^ (Print.expToString (__g, __u))) ^
                              " not a variable")) in
-                let Dec (name, _) = I.ctxLookup (G, k) in
-                let mode = I.ctxLookup (D, k) in
+                let Dec (name, _) = I.ctxLookup (__g, k) in
+                let mode = I.ctxLookup (__d, k) in
                 M.Mapp ((M.Marg (mode, name)), (convertSpine S)) in
           let rec convertExp =
             function
             | Root (Const a, S) -> (a, (convertSpine S))
             | Root (Def d, S) -> (d, (convertSpine S))
             | _ -> error (r, "Call pattern not an atomic type") in
-          let (a, mS) = convertExp (Whnf.normalize (V, I.id)) in
+          let (a, mS) = convertExp (Whnf.normalize (__v, I.id)) in
           ModeDec.checkFull (a, mS, r); ((a, mS), r)
         let rec toModedec t =
           let _ = Names.varReset I.Null in let t' = t (I.Null, I.Null) in t'
@@ -133,7 +133,7 @@ module ReconMode(ReconMode:sig
     (* structure Short *)
     (* convert term spine to mode spine *)
     (* Each argument must be contractible to variable *)
-    (* print U? -fp *)
+    (* print __u? -fp *)
     (* yes, print U. -gaw *)
     (* convert root expression to head constant and mode spine *)
     (* error is signalled later in ModeDec.checkFull *)

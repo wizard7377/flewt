@@ -71,13 +71,13 @@ module ReconModule(ReconModule:sig
     let rec strexp (ids, id, r) () =
       let qid = Names.Qid (ids, id) in
       match Names.structLookup qid with
-      | NONE ->
+      | None ->
           error
             (r,
               ((^) "Undeclared structure " Names.qidToString
                  (valOf (Names.structUndef qid))))
-      | SOME mid -> (mid, r)
-    let rec strexpToStrexp (f : strexp) = (fun r -> r.1) (f ())
+      | Some mid -> (mid, r)
+    let rec strexpToStrexp (f : strexp) = (fun (r, _) -> r) (f ())
     type __Inst =
       | External of ExtSyn.term 
       | Internal of IntSyn.cid 
@@ -86,12 +86,12 @@ module ReconModule(ReconModule:sig
     let rec coninst ((ids, id, r1), tm, r2) (ns, eqns) =
       let qid = Names.Qid (ids, id) in
       match Names.constLookupIn (ns, qid) with
-      | NONE ->
+      | None ->
           error
             (r1,
               ((^) "Undeclared identifier " Names.qidToString
                  (valOf (Names.constUndefIn (ns, qid)))))
-      | SOME cid -> (((cid, (External tm), r2) :: eqns)
+      | Some cid -> (((cid, (External tm), r2) :: eqns)
           (* this is wrong because constants in the sig being instantiated might incorrectly appear in tm -kw *))
     let rec addStructEqn (rEqns, r1, r2, ids, mid1, mid2) =
       let ns1 = Names.getComponents mid1 in
@@ -99,43 +99,43 @@ module ReconModule(ReconModule:sig
       let rec push eqn = (rEqns := eqn) :: (!rEqns) in
       let rec doConst (name, cid1) =
         match Names.constLookupIn (ns2, (Names.Qid (nil, name))) with
-        | NONE ->
+        | None ->
             error
               (r1,
                 ((^) "Instantiating structure lacks component "
                    Names.qidToString (Names.Qid ((rev ids), name))))
-        | SOME cid2 -> push (cid1, (Internal cid2), r2) in
+        | Some cid2 -> push (cid1, (Internal cid2), r2) in
       let rec doStruct (name, mid1) =
         match Names.structLookupIn (ns2, (Names.Qid (nil, name))) with
-        | NONE ->
+        | None ->
             error
               (r1,
                 ((^) "Instantiating structure lacks component "
                    Names.qidToString (Names.Qid ((rev ids), name))))
-        | SOME mid2 ->
+        | Some mid2 ->
             addStructEqn (rEqns, r1, r2, (name :: ids), mid1, mid2) in
       Names.appConsts doConst ns1; Names.appStructs doStruct ns1
     let rec strinst ((ids, id, r1), strexp, r3) (ns, eqns) =
       let qid = Names.Qid (ids, id) in
       let mid1 =
         match Names.structLookupIn (ns, qid) with
-        | NONE ->
+        | None ->
             error
               (r1,
                 ((^) "Undeclared structure " Names.qidToString
                    (valOf (Names.structUndefIn (ns, qid)))))
-        | SOME mid1 -> mid1 in
+        | Some mid1 -> mid1 in
       let (mid2, r2) = strexp () in
       let rEqns = ref eqns in
       addStructEqn (rEqns, r2, r3, nil, mid1, mid2); !rEqns
     type nonrec whereclause = Names.namespace -> eqn list
     type nonrec sigexp =
       ModSyn.module__ option -> (ModSyn.module__ * whereclause list)
-    let rec thesig (SOME module__) = (module__, nil)
-    let rec sigid (id, r) (NONE) =
+    let rec thesig (Some module__) = (module__, nil)
+    let rec sigid (id, r) (None) =
       match ModSyn.lookupSigDef id with
-      | NONE -> error (r, ("Undefined signature " ^ id))
-      | SOME module__ -> (module__, nil)
+      | None -> error (r, ("Undefined signature " ^ id))
+      | Some module__ -> (module__, nil)
     let rec wheresig (sigexp, instList) moduleOpt =
       let (module__, wherecls) = sigexp moduleOpt in
       let rec wherecl ns =
@@ -156,7 +156,7 @@ module ReconModule(ReconModule:sig
     let rec structdec (idOpt, sigexp) moduleOpt =
       let (module__, inst) = sigexp moduleOpt in
       StructDec (idOpt, module__, inst)
-    let rec structdef (idOpt, strexp) (NONE) =
+    let rec structdef (idOpt, strexp) (None) =
       let mid = strexpToStrexp strexp in StructDef (idOpt, mid)
     let rec structdecToStructDec (structdec, moduleOpt) = structdec moduleOpt
     type nonrec eqnTable = (__Inst * Paths.region) list ref IntTree.__Table
@@ -165,8 +165,8 @@ module ReconModule(ReconModule:sig
       let (table : eqnTable) = IntTree.new__ 0 in
       let rec add (cid, Inst, r) =
         match IntTree.lookup table cid with
-        | NONE -> IntTree.insert table (cid, (ref [(Inst, r)]))
-        | SOME rl -> (rl := (Inst, r)) :: (!rl) in
+        | None -> IntTree.insert table (cid, (ref [(Inst, r)]))
+        | Some rl -> (rl := (Inst, r)) :: (!rl) in
       let _ = List.app add eqns in
       let rec doInst =
         function
@@ -186,8 +186,8 @@ module ReconModule(ReconModule:sig
             ModSyn.strictify (ExtSyn.externalInst (condec, tm, r)) in
       let rec transformConDec (cid, condec) =
         match IntTree.lookup table cid with
-        | NONE -> condec
-        | SOME (ref l) -> List.foldr doInst condec l in
+        | None -> condec
+        | Some (ref l) -> List.foldr doInst condec l in
       transformConDec
     let rec moduleWhere (module__, wherecl) =
       let (mark, markStruct) = IntSyn.sgnSize () in

@@ -28,7 +28,7 @@ module type SUBORDINATE  =
     val respects : (IntSyn.dctx * IntSyn.eclo) -> unit
     (* respects current subordination? *)
     val respectsN : (IntSyn.dctx * IntSyn.__Exp) -> unit
-    (* respectsN(G, V), V in nf *)
+    (* respectsN(__g, __v), __v in nf *)
     val checkNoDef : IntSyn.cid -> unit
     (* not involved in type-level definition? *)
     val weaken : (IntSyn.dctx * IntSyn.cid) -> IntSyn.__Sub
@@ -94,7 +94,7 @@ module Subordinate(Subordinate:sig
     let fLookup = Table.lookup fTable
     let fInsert = Table.insert fTable
     let rec fGet a =
-      match fLookup a with | SOME frozen -> frozen | NONE -> false__
+      match fLookup a with | Some frozen -> frozen | None -> false__
     let rec fSet (a, frozen) =
       let _ =
         Global.chPrint 5
@@ -128,9 +128,9 @@ module Subordinate(Subordinate:sig
            | SkoDec _ -> a
            | AbbrevDef _ -> IntSyn.targetFam (IntSyn.constDef a))
     let (freezeList : IntSet.intset ref) = ref IntSet.empty
-    let rec freeze (L) =
+    let rec freeze (__l) =
       let _ = freezeList := IntSet.empty in
-      let L' = map expandFamilyAbbrevs L in
+      let __l' = map expandFamilyAbbrevs __l in
       let _ =
         List.app
           (function
@@ -140,11 +140,11 @@ module Subordinate(Subordinate:sig
                   | b ->
                       (fSet (b, true__);
                        (:=) freezeList IntSet.insert (b, (!freezeList)))) a)
-          L' in
+          __l' in
       let cids = IntSet.foldl (::) nil (!freezeList) in cids
-    let rec frozen (L) =
-      let L' = map expandFamilyAbbrevs L in
-      List.exists (function | a -> fGet a) L'
+    let rec frozen (__l) =
+      let __l' = map expandFamilyAbbrevs __l in
+      List.exists (function | a -> fGet a) __l'
     let rec computeBelow (a, b) =
       try
         reachable (b, a);
@@ -154,9 +154,9 @@ module Subordinate(Subordinate:sig
       | Reachable -> (memoInsert ((b, a), (true__, (!memoCounter))); true__)
     let rec below (a, b) =
       match memoLookup (b, a) with
-      | NONE -> computeBelow (a, b)
-      | SOME (true__, c) -> true__
-      | SOME (false__, c) ->
+      | None -> computeBelow (a, b)
+      | Some (true__, c) -> true__
+      | Some (false__, c) ->
           if (!) ((=) c) memoCounter then false__ else computeBelow (a, b)
     let rec belowEq (a, b) = (a = b) || (below (a, b))
     let rec equiv (a, b) = (belowEq (a, b)) && (belowEq (b, a))
@@ -188,11 +188,11 @@ module Subordinate(Subordinate:sig
       !aboveList
     let (defGraph : IntSet.intset Table.__Table) = Table.new__ 32
     let rec occursInDef a =
-      match Table.lookup defGraph a with | NONE -> false__ | SOME _ -> true__
+      match Table.lookup defGraph a with | None -> false__ | Some _ -> true__
     let rec insertNewDef (b, a) =
       match Table.lookup defGraph a with
-      | NONE -> Table.insert defGraph (a, (IntSet.insert (b, IntSet.empty)))
-      | SOME bs -> Table.insert defGraph (a, (IntSet.insert (b, bs)))
+      | None -> Table.insert defGraph (a, (IntSet.insert (b, IntSet.empty)))
+      | Some bs -> Table.insert defGraph (a, (IntSet.insert (b, bs)))
     let rec installConDec =
       function
       | (b, ConDef (_, _, _, A, K, I.Kind, _)) ->
@@ -229,38 +229,38 @@ module Subordinate(Subordinate:sig
       Table.clear defGraph
     let rec installTypeN' =
       function
-      | (Pi (((Dec (_, V1) as D), _), V2), a) ->
+      | (Pi (((Dec (_, V1) as __d), _), V2), a) ->
           (addSubord ((I.targetFam V1), a);
            installTypeN V1;
            installTypeN' (V2, a))
-      | ((Root (Def _, _) as V), a) ->
-          let V' = Whnf.normalize (Whnf.expandDef (V, I.id)) in
-          installTypeN' (V', a)
+      | ((Root (Def _, _) as __v), a) ->
+          let __v' = Whnf.normalize (Whnf.expandDef (__v, I.id)) in
+          installTypeN' (__v', a)
       | (Root _, _) -> ()
-    let rec installTypeN (V) = installTypeN' (V, (I.targetFam V))
+    let rec installTypeN (__v) = installTypeN' (__v, (I.targetFam __v))
     let rec installKindN =
       function
-      | (Uni (L), a) -> ()
+      | (Uni (__l), a) -> ()
       | (Pi ((Dec (_, V1), P), V2), a) ->
           (addSubord ((I.targetFam V1), a);
            installTypeN V1;
            installKindN (V2, a))
     let rec install c =
-      let V = I.constType c in
-      match I.targetFamOpt V with
-      | NONE -> (insertNewFam c; installKindN (V, c))
-      | SOME a ->
+      let __v = I.constType c in
+      match I.targetFamOpt __v with
+      | None -> (insertNewFam c; installKindN (__v, c))
+      | Some a ->
           ((match IntSyn.sgnLookup c with
             | ConDec _ -> checkFreeze (c, a)
             | SkoDec _ -> checkFreeze (c, a)
             | _ -> ());
-           installTypeN' (V, a))
-    let rec installDec (Dec (_, V)) = installTypeN V
+           installTypeN' (__v, a))
+    let rec installDec (Dec (_, __v)) = installTypeN __v
     let rec installSome =
-      function | I.Null -> () | Decl (G, D) -> (installSome G; installDec D)
+      function | I.Null -> () | Decl (__g, __d) -> (installSome __g; installDec __d)
     let rec installBlock b =
-      let BlockDec (_, _, G, Ds) = I.sgnLookup b in
-      installSome G; List.app (function | D -> installDec D) Ds
+      let BlockDec (_, _, __g, __Ds) = I.sgnLookup b in
+      installSome __g; List.app (function | __d -> installDec __d) __Ds
     let rec checkBelow (a, b) =
       if not (below (a, b))
       then
@@ -273,17 +273,17 @@ module Subordinate(Subordinate:sig
       else ()
     let rec respectsTypeN' =
       function
-      | (Pi (((Dec (_, V1) as D), _), V2), a) ->
+      | (Pi (((Dec (_, V1) as __d), _), V2), a) ->
           (checkBelow ((I.targetFam V1), a);
            respectsTypeN V1;
            respectsTypeN' (V2, a))
-      | ((Root (Def _, _) as V), a) ->
-          let V' = Whnf.normalize (Whnf.expandDef (V, I.id)) in
-          respectsTypeN' (V', a)
+      | ((Root (Def _, _) as __v), a) ->
+          let __v' = Whnf.normalize (Whnf.expandDef (__v, I.id)) in
+          respectsTypeN' (__v', a)
       | (Root _, _) -> ()
-    let rec respectsTypeN (V) = respectsTypeN' (V, (I.targetFam V))
-    let rec respects (G, (V, s)) = respectsTypeN (Whnf.normalize (V, s))
-    let rec respectsN (G, V) = respectsTypeN V
+    let rec respectsTypeN (__v) = respectsTypeN' (__v, (I.targetFam __v))
+    let rec respects (__g, (__v, s)) = respectsTypeN (Whnf.normalize (__v, s))
+    let rec respectsN (__g, __v) = respectsTypeN __v
     let rec famsToString (bs, msg) =
       IntSet.foldl
         (function
@@ -298,9 +298,9 @@ module Subordinate(Subordinate:sig
     let rec weaken =
       function
       | (I.Null, a) -> I.id
-      | (Decl (G', (Dec (name, V) as D)), a) ->
-          let w' = weaken (G', a) in
-          if belowEq ((I.targetFam V), a)
+      | (Decl (__g', (Dec (name, __v) as __d)), a) ->
+          let w' = weaken (__g', a) in
+          if belowEq ((I.targetFam __v), a)
           then I.dot1 w'
           else I.comp (w', I.shift)
     let declared = ref 0
@@ -322,14 +322,14 @@ module Subordinate(Subordinate:sig
       maxHeight := 0
     let rec analyzeAnc =
       function
-      | Anc (NONE, _, _) -> incArray 0
+      | Anc (None, _, _) -> incArray 0
       | Anc (_, h, _) -> (incArray h; max h)
     let rec analyze =
       function
-      | ConDec (_, _, _, _, _, L) -> inc declared
-      | ConDef (_, _, _, _, _, L, ancestors) ->
+      | ConDec (_, _, _, _, _, __l) -> inc declared
+      | ConDef (_, _, _, _, _, __l, ancestors) ->
           (inc defined; analyzeAnc ancestors)
-      | AbbrevDef (_, _, _, _, _, L) -> inc abbrev
+      | AbbrevDef (_, _, _, _, _, __l) -> inc abbrev
       | _ -> inc other
     let rec showDef () =
       let _ = reset () in
@@ -349,7 +349,7 @@ module Subordinate(Subordinate:sig
                  (((^) (((^) " Height " Int.toString h) ^ ": ") Int.toString
                      i)
                     ^ " definitions\n"))
-          (ArraySlice.slice (heightArray, 0, (SOME ((!maxHeight) + 1)))) in
+          (ArraySlice.slice (heightArray, 0, (Some ((!maxHeight) + 1)))) in
       ()
     (* Subordination graph
 
@@ -397,7 +397,7 @@ module Subordinate(Subordinate:sig
     (* Sat Mar 12 21:38:58 2005 -fp *)
     (*
     fun checkMakeFrozen (b, otherFrozen) =
-         Is this broken ??? *)
+         __Is this broken ??? *)
     (* Mon Nov 11 16:54:29 2002 -fp *)
     (* Example:
            a : type.
@@ -408,17 +408,17 @@ module Subordinate(Subordinate:sig
         *)
     (* superseded by freeze *)
     (*
-    fun installFrozen (L) =
+    fun installFrozen (__l) =
         let
-          val L = map expandFamilyAbbrevs L
-           val _ = print ("L = " ^ (foldl (fn (c,s) => Names.qidToString (Names.constQid c) ^ s) "\n" L)); *)
-    (* freeze L = ()
-       freezes all families in L, and all families transitively
-       reachable from families in L
+          val __l = map expandFamilyAbbrevs __l
+           val _ = print ("__l = " ^ (foldl (fn (c,s) => Names.qidToString (Names.constQid c) ^ s) "\n" __l)); *)
+    (* freeze __l = ()
+       freezes all families in __l, and all families transitively
+       reachable from families in __l
 
        Intended to be called from programs
     *)
-    (* frozen L = true if one of the families in L is frozen *)
+    (* frozen __l = true if one of the families in __l is frozen *)
     (* a <| b = true iff a is (transitively) subordinate to b
 
        Invariant: a, b families
@@ -487,22 +487,22 @@ module Subordinate(Subordinate:sig
        This takes stronger advantage of the normal form invariant.
        Mon Nov 11 16:59:52 2002  -fp
     *)
-    (* installTypeN' (V, a) = ()
-       installTypeN (V) = ()
-       V nf, V = {x1:A1}...{xn:An} a @ S
+    (* installTypeN' (__v, a) = ()
+       installTypeN (__v) = ()
+       __v nf, __v = {x1:A1}...{xn:An} a @ S
 
-       Effect: add subordination info from V into table
+       Effect: add subordination info from __v into table
     *)
     (* this looks like blatant overkill ... *)
     (* Sun Nov 10 11:15:47 2002 -fp *)
-    (* installKindN (V, a) = ()
-       V nf, a : {x1:A1}...{xn:An} type, V = {xi:Ai}...{xn:An}type
-       Effect: add subordination info from V into table
+    (* installKindN (__v, a) = ()
+       __v nf, a : {x1:A1}...{xn:An} type, __v = {xi:Ai}...{xn:An}type
+       Effect: add subordination info from __v into table
     *)
     (* there are no kind-level definitions *)
     (* install c = ()
 
-       Effect: if c : V, add subordination from V into table
+       Effect: if c : __v, add subordination from __v into table
     *)
     (* FIX: skolem types should probably be created frozen -kw *)
     (* simplified  Tue Mar 27 20:58:31 2001 -fp *)
@@ -515,9 +515,9 @@ module Subordinate(Subordinate:sig
     (* checkBelow (a, b) = () iff a <| b
        Effect: raise Error(msg) otherwise
     *)
-    (* respectsTypeN' (V, a) = () iff V respects current subordination
-       respectsTypeN (V) = ()
-       V nf, V = {x1:A1}...{xn:An} a @ S
+    (* respectsTypeN' (__v, a) = () iff __v respects current subordination
+       respectsTypeN (__v) = ()
+       __v nf, __v = {x1:A1}...{xn:An} a @ S
 
        Effect: raise Error (msg)
     *)
@@ -531,7 +531,7 @@ module Subordinate(Subordinate:sig
     fun famsToString (nil, msg) = msg
       | famsToString (a::AL, msg) = famsToString (AL, Names.qidToString (Names.constQid a) ^ " " ^ msg)
     *)
-    (* weaken (G, a) = (w') *)
+    (* weaken (__g, a) = (w') *)
     (* showDef () = ()
        Effect: print some statistics about constant definitions
     *)

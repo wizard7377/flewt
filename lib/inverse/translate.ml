@@ -12,12 +12,12 @@ module type TRANSLATE  =
 
 module Translate : TRANSLATE =
   struct
-    module L = Lib
+    module __l = Lib
     module I = IntSyn
     module S = Syntax
     module Sig = S.Signat
     module C = ClausePrint
-    module D = Debug
+    module __d = Debug
     (* -------------------------------------------------------------------------- *)
     (*  Exceptions                                                                *)
     (* -------------------------------------------------------------------------- *)
@@ -42,51 +42,51 @@ module Translate : TRANSLATE =
     let rec translate_exp =
       function
       | Uni uni -> S.Uni (translate_uni uni)
-      | Pi ((Dec (name, U1), depend), U2) ->
+      | Pi ((Dec (name, __U1), depend), __U2) ->
           S.Pi
             {
               var = name;
-              arg = (translate_exp U1);
+              arg = (translate_exp __U1);
               depend = (translate_depend depend);
-              body = (translate_exp U2)
+              body = (translate_exp __U2)
             }
       | Root (H, S) -> S.Root ((translate_head H), (translate_spine S))
-      | Lam (Dec (name, _), U) ->
-          S.Lam { var = name; body = (translate_exp U) }
+      | Lam (Dec (name, _), __u) ->
+          S.Lam { var = name; body = (translate_exp __u) }
       | E -> raise (Fail_exp ("translate_exp: bad case", E))
     let rec translate_spine =
       function
       | I.Nil -> S.Nil
-      | App (U, S) -> S.App ((translate_exp U), (translate_spine S))
+      | App (__u, S) -> S.App ((translate_exp __u), (translate_spine S))
       | _ -> raise (Translate "translate_spine: bad case")
     let rec translate_condec =
       function
-      | (cid, ConDec (name, _, _, _, E, U)) ->
+      | (cid, ConDec (name, _, _, _, E, __u)) ->
           S.Decl
             {
               id = cid;
               name;
               exp = (translate_exp E);
-              uni = (translate_uni U)
+              uni = (translate_uni __u)
             }
-      | (cid, ConDef (name, _, _, U, V, I.Type, Anc (ex1, h, exa))) ->
+      | (cid, ConDef (name, _, _, __u, __v, I.Type, Anc (ex1, h, exa))) ->
           S.Def
             {
               id = cid;
               name;
-              exp = (translate_exp V);
-              def = (translate_exp U);
+              exp = (translate_exp __v);
+              def = (translate_exp __u);
               height = h;
               root = (L.the exa);
               uni = S.Type
             }
-      | (cid, AbbrevDef (name, mid, n, U, V, lev)) ->
+      | (cid, AbbrevDef (name, mid, n, __u, __v, lev)) ->
           S.Abbrev
             {
               id = cid;
               name;
-              exp = (translate_exp V);
-              def = (translate_exp U);
+              exp = (translate_exp __v);
+              def = (translate_exp __u);
               uni = (translate_uni lev)
             }
       | cdec -> raise (Trans1 cdec)

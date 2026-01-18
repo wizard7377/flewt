@@ -42,12 +42,12 @@ module Parse =
           ((("(" ^ (termToString t)) ^ " : ") ^ (termToString u)) ^ ")"
       | Omit -> "*"
     let rec vardecToString =
-      function | (v, SOME t) -> (v ^ ":") ^ (termToString t) | (v, NONE) -> v
-    let id = maybe (function | ID s -> SOME s | _ -> NONE)
+      function | (v, Some t) -> (v ^ ":") ^ (termToString t) | (v, None) -> v
+    let id = maybe (function | ID s -> Some s | _ -> None)
     let rec swap (x, y) = (y, x)
     let rec vardec () =
-      (||) ((` ((<<) id) COLON) && (($) term wth SOME)) id wth
-        (function | s -> (s, NONE))
+      (||) ((` ((<<) id) COLON) && (($) term wth Some)) id wth
+        (function | s -> (s, None))
     let rec term () =
       parsefixityadj
         (alt

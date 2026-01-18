@@ -43,34 +43,34 @@ module MTPInit(MTPInit:sig
     let rec init (F, OF) =
       let rec init' =
         function
-        | ((G, B), All (_, O), All (Prim (D), F'), Ss) ->
-            let D' = Names.decName (G, D) in
+        | ((__g, B), All (_, O), All (Prim (__d), __F'), __Ss) ->
+            let __d' = Names.decName (__g, __d) in
             init'
-              (((I.Decl (G, D')),
+              (((I.Decl (__g, __d')),
                  (I.Decl (B, (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
-                O, F', Ss)
-        | (GB, And (O1, O2), And (F1, F2), Ss) ->
-            init' (GB, O1, F1, (init' (GB, O2, F2, Ss)))
-        | (GB, O, (Ex _ as F'), Ss) ->
-            (S.State (((List.length Ss) + 1), GB, (F, OF), 1, O, nil, F')) ::
-              Ss
-        | (GB, O, (F.True as F'), Ss) ->
-            (S.State (((List.length Ss) + 1), GB, (F, OF), 1, O, nil, F')) ::
-              Ss in
+                O, __F', __Ss)
+        | (GB, And (O1, O2), And (__F1, __F2), __Ss) ->
+            init' (GB, O1, __F1, (init' (GB, O2, __F2, __Ss)))
+        | (GB, O, (Ex _ as __F'), __Ss) ->
+            (S.State (((List.length __Ss) + 1), GB, (F, OF), 1, O, nil, __F')) ::
+              __Ss
+        | (GB, O, (F.True as __F'), __Ss) ->
+            (S.State (((List.length __Ss) + 1), GB, (F, OF), 1, O, nil, __F')) ::
+              __Ss in
       Names.varReset I.Null;
       MTPData.maxFill := 0;
       init' ((I.Null, I.Null), OF, F, nil)
-    (* init (F, OF) = Ss'
+    (* init (F, OF) = __Ss'
 
        Invariant:
        If   . |- F formula    and   F in nf
        and  . |- OF order
-       then Ss' is a list of initial states for the theorem prover
+       then __Ss' is a list of initial states for the theorem prover
     *)
     (* it is possible to calculuate
                  index/induction variable information here
                  define occursOrder in StateSyn.fun  --cs *)
-    (*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
+    (*      | init' (__g, B, O, (F.All (F.Block _, F), s)) =
            no such case yet  --cs *)
     (* added in case there are no existentials -fp *)
     let init = init

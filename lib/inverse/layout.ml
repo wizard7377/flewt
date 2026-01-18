@@ -288,7 +288,7 @@ module Layout : LAYOUT =
             [t;
             indent
               ((mayAlign (map (function | t -> seq [str prefix; t]) ts)),
-                (~ (String.size prefix)))]
+                (~- (String.size prefix)))]
     let rec sequence (start, finish, sep) ts =
       seq [str start; mayAlign (separateRight (ts, sep)); str finish]
     let list = sequence ("[", "]", ",")

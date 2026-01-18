@@ -31,17 +31,17 @@ module CSIneqIntegers(CSIneqIntegers:sig
     let one_int = Integers.fromInt 1
     let myID = (ref (-1) : cid ref)
     let geqID = (ref (-1) : cid ref)
-    let rec geq (U, V) = Root ((Const (!geqID)), (App (U, (App (V, Nil)))))
-    let rec geq0 (U) = geq (U, (constant zero_int))
+    let rec geq (__u, __v) = Root ((Const (!geqID)), (App (__u, (App (__v, Nil)))))
+    let rec geq0 (__u) = geq (__u, (constant zero_int))
     let geqAddID = (ref (-1) : cid ref)
-    let rec geqAdd (U1, U2, V, W) =
+    let rec geqAdd (__U1, __U2, __v, W) =
       Root
         ((Const (!geqAddID)),
-          (App (U1, (App (U2, (App (V, (App (W, Nil)))))))))
+          (App (__U1, (App (__U2, (App (__v, (App (W, Nil)))))))))
     let rec geqNConDec d =
       ConDec
         (((^) ((Integers.toString d) ^ ">=") Integers.toString zero_int),
-          NONE, 0, Normal, (geq0 (constant d)), Type)
+          None, 0, Normal, (geq0 (constant d)), Type)
     let rec geqNExp d = Root ((FgnConst ((!myID), (geqNConDec d))), Nil)
     let rec parseGeqN string =
       let suffix = ">=" ^ (toString zero) in
@@ -53,12 +53,12 @@ module CSIneqIntegers(CSIneqIntegers:sig
           ((String.substring (string, numLen, suffixLen)) = suffix)
       then
         match Integers.fromString (String.substring (string, 0, numLen)) with
-        | SOME d ->
+        | Some d ->
             (if Integers.(>=) (d, zero_int)
-             then SOME (geqNConDec d)
-             else NONE)
-        | NONE -> NONE
-      else NONE
+             then Some (geqNConDec d)
+             else None)
+        | None -> None
+      else None
     type __Position =
       | Row of int 
       | Col of int 
@@ -103,7 +103,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
         {
           owner = (Exp (Null, (Sum (zero_int, nil))));
           tag = (ref 0);
-          restr = (ref NONE);
+          restr = (ref None);
           dead = (ref true__)
         } in
       ({
@@ -156,7 +156,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
     let rec label = function | Row i -> rlabel i | Col j -> clabel j
     let rec restriction (l : label) = !((fun r -> r.restr) l)
     let rec restricted (l : label) =
-      match restriction l with | SOME _ -> true__ | NONE -> false__
+      match restriction l with | Some _ -> true__ | None -> false__
     let rec dead (l : label) = !((fun r -> r.dead) l)
     let rec setOwnership (pos, owner, tag) =
       let old = label pos in
@@ -170,9 +170,9 @@ module CSIneqIntegers(CSIneqIntegers:sig
       match pos with
       | Row i -> Array.update (((fun r -> r.rlabels) tableau), i, new__)
       | Col j -> Array.update (((fun r -> r.clabels) tableau), j, new__)
-    let rec ownerContext = function | Var (G, mon) -> G | Exp (G, sum) -> G
+    let rec ownerContext = function | Var (__g, mon) -> __g | Exp (__g, sum) -> __g
     let rec ownerSum =
-      function | Var (G, mon) -> Sum (zero_int, [mon]) | Exp (G, sum) -> sum
+      function | Var (__g, mon) -> Sum (zero_int, [mon]) | Exp (__g, sum) -> sum
     let rec displayPos =
       function
       | Row row -> print (((^) "row " Int.toString row) ^ "\n")
@@ -188,7 +188,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
       let rec printLabel (col, (l : label)) =
         print "\t";
         (match (fun r -> r.owner) l with
-         | Var _ -> print "V"
+         | Var _ -> print "__v"
          | Exp _ -> print "E");
         if restricted l then print ">" else print "*";
         if dead l then print "#" else print "" in
@@ -197,7 +197,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
         let vec =
           Array2.row (((fun r -> r.coeffs) tableau), row, (0, (nCols ()))) in
         (match (fun r -> r.owner) l with
-         | Var _ -> print "V"
+         | Var _ -> print "__v"
          | Exp _ -> print "E");
         if restricted l then print ">" else print "*";
         if dead l then print "#" else print "";
@@ -224,16 +224,16 @@ module CSIneqIntegers(CSIneqIntegers:sig
       let exception Found of int  in
         let rec find (i, (l : label)) =
           match (fun r -> r.owner) l with
-          | Var (G, mon') ->
+          | Var (__g, mon') ->
               if compatibleMon (mon, mon') then raise (Found i) else ()
           | _ -> () in
         try
           Array.app find (((fun r -> r.clabels) tableau), 0, (nCols ()));
           (try
              Array.app find (((fun r -> r.rlabels) tableau), 0, (nRows ()));
-             NONE
-           with | Found i -> SOME (Row i))
-        with | Found j -> SOME (Col j)
+             None
+           with | Found i -> Some (Row i))
+        with | Found j -> Some (Col j)
     let rec findTag t =
       let exception Found of int  in
         let rec find (i, (l : label)) =
@@ -242,9 +242,9 @@ module CSIneqIntegers(CSIneqIntegers:sig
           Array.app find (((fun r -> r.clabels) tableau), 0, (nCols ()));
           (try
              Array.app find (((fun r -> r.rlabels) tableau), 0, (nRows ()));
-             NONE
-           with | Found i -> SOME (Row i))
-        with | Found j -> SOME (Col j)
+             None
+           with | Found i -> Some (Row i))
+        with | Found j -> Some (Col j)
     let rec isConstant row =
       Array.foldl
         (function
@@ -274,8 +274,8 @@ module CSIneqIntegers(CSIneqIntegers:sig
         match Array.foldl filter candidates
                 (((fun r -> r.clabels) tableau), 0, (nCols ()))
         with
-        | nil -> NONE
-        | i::_ -> SOME i in
+        | nil -> None
+        | i::_ -> Some i in
       let rec isSubsumedByCol () =
         if constRow = zero
         then
@@ -290,22 +290,22 @@ module CSIneqIntegers(CSIneqIntegers:sig
                    else rest) nil
               (((fun r -> r.clabels) tableau), 0, (nCols ())) in
           match nonNull with
-          | (j, value)::[] -> (if value = one then SOME j else NONE)
-          | _ -> NONE
-        else NONE in
+          | (j, value)::[] -> (if value = one then Some j else None)
+          | _ -> None
+        else None in
       match isSubsumedByRow () with
-      | SOME i -> SOME (Row i)
-      | NONE ->
+      | Some i -> Some (Row i)
+      | None ->
           (match isSubsumedByCol () with
-           | SOME j -> SOME (Col j)
-           | NONE -> NONE)
+           | Some j -> Some (Col j)
+           | None -> None)
     let rec findPivot row =
       let rec compareScore =
         function
-        | (SOME d, SOME d') -> compare (d, d')
-        | (SOME d, NONE) -> LESS
-        | (NONE, SOME d') -> GREATER
-        | (NONE, NONE) -> EQUAL in
+        | (Some d, Some d') -> compare (d, d')
+        | (Some d, None) -> LESS
+        | (None, Some d') -> GREATER
+        | (None, None) -> EQUAL in
       let rec findPivotCol (j, (l : label), ((score, champs) as result)) =
         let value = coeff (row, j) in
         let rec findPivotRow sgn
@@ -316,7 +316,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
               ((i <> row) &&
                  ((restricted l) && (((fromInt sgn) * value) < zero)))
           then
-            let score' = SOME (abs (( * ) (const i) inverse value)) in
+            let score' = Some (abs (( * ) (const i) inverse value)) in
             match compareScore (score, score') with
             | GREATER -> (score', [(i, j)])
             | EQUAL -> (score, ((i, j) :: champs))
@@ -327,19 +327,19 @@ module CSIneqIntegers(CSIneqIntegers:sig
             ((value <> zero) && ((not (restricted l)) || (value > zero)))
         then
           let (score', champs') as result' =
-            Array.foldl (findPivotRow (sign value)) (NONE, [(row, j)])
+            Array.foldl (findPivotRow (sign value)) (None, [(row, j)])
               (((fun r -> r.rlabels) tableau), 0, (nRows ())) in
           match compareScore (score, score') with
           | GREATER -> result
           | EQUAL -> (score, (champs @ champs'))
           | LESS -> result'
         else result in
-      match Array.foldl findPivotCol ((SOME zero), nil)
+      match Array.foldl findPivotCol ((Some zero), nil)
               (((fun r -> r.clabels) tableau), 0, (nCols ()))
       with
-      | (_, nil) -> NONE
+      | (_, nil) -> None
       | (_, champs) ->
-          SOME (List.nth (champs, (rand (0, (List.length champs)))))
+          Some (List.nth (champs, (rand (0, (List.length champs)))))
     let rec pivot (row, col) =
       let pCoeffInverse = inverse (coeff (row, col)) in
       let pRowVector =
@@ -355,7 +355,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
         (function
          | (i, value) ->
              if i = row
-             then ~ (value * pCoeffInverse)
+             then ~- (value * pCoeffInverse)
              else value - ((( * ) pConst pCol i) * pCoeffInverse))
         (((fun r -> r.consts) tableau), 0, (nRows ()));
       Array2.modify Array2.ColMajor
@@ -363,7 +363,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
          | (i, j, value) ->
              (match ((i = row), (j = col)) with
               | (true__, true__) -> pCoeffInverse
-              | (true__, false__) -> ~ (value * pCoeffInverse)
+              | (true__, false__) -> ~- (value * pCoeffInverse)
               | (false__, true__) -> value * pCoeffInverse
               | (false__, false__) ->
                   value - ((( * ) (pRow j) pCol i) * pCoeffInverse)))
@@ -377,20 +377,20 @@ module CSIneqIntegers(CSIneqIntegers:sig
       Array.update (((fun r -> r.rlabels) tableau), row, pCLabel);
       Array.update (((fun r -> r.clabels) tableau), col, pRLabel)
     let rec delayMon (Mon (n, UsL), cnstr) =
-      List.app (function | Us -> Unify.delay (Us, cnstr)) UsL
-    let rec unifyRestr (Restr (G, proof), proof') =
-      if Unify.unifiable (G, (proof, id), (proof', id))
+      List.app (function | __Us -> Unify.delay (__Us, cnstr)) UsL
+    let rec unifyRestr (Restr (__g, proof), proof') =
+      if Unify.unifiable (__g, (proof, id), (proof', id))
       then ()
       else raise Error
-    let rec unifySum (G, sum, d) =
+    let rec unifySum (__g, sum, d) =
       if
-        (Unify.unify (G, ((toExp sum), id), ((constant (floor d)), id));
+        (Unify.unify (__g, ((toExp sum), id), ((constant (floor d)), id));
          true__)
       then ()
       else raise Error
     type nonrec decomp = (number * (number * __Position) list)
     let rec unaryMinusDecomp (d, wposL) =
-      ((~ d), (List.map (function | (d, pos) -> ((~ d), pos)) wposL))
+      ((~- d), (List.map (function | (d, pos) -> ((~- d), pos)) wposL))
     type __MaximizeResult =
       | Nonnegative of number 
       | Unbounded of int 
@@ -398,17 +398,17 @@ module CSIneqIntegers(CSIneqIntegers:sig
       | BranchSucceed of int option 
       | BranchFail 
       | BranchDivide of (int * __BranchResult * __BranchResult) 
-    let rec decomposeSum (G, Sum (m, monL)) =
+    let rec decomposeSum (__g, Sum (m, monL)) =
       let rec monToWPos (Mon (n, UsL) as mon) =
         match findMon mon with
-        | SOME pos -> ((fromInteger n), pos)
-        | NONE ->
+        | Some pos -> ((fromInteger n), pos)
+        | None ->
             let new__ = incrNCols () in
             let l =
               {
-                owner = (Var (G, (Mon (one_int, UsL))));
+                owner = (Var (__g, (Mon (one_int, UsL))));
                 tag = (ref 0);
-                restr = (ref NONE);
+                restr = (ref None);
                 dead = (ref false__)
               } in
             (Trail.log (((fun r -> r.trail) tableau), (Insert (Col new__)));
@@ -421,14 +421,14 @@ module CSIneqIntegers(CSIneqIntegers:sig
       if value < zero
       then
         match findPivot row with
-        | SOME (i, j) ->
+        | Some (i, j) ->
             (if i <> row
              then
                (Trail.log (((fun r -> r.trail) tableau), (Pivot (i, j)));
                 pivot (i, j);
                 maximizeRow row)
              else Unbounded j)
-        | NONE -> raise Error
+        | None -> raise Error
       else Nonnegative value
     let rec insertDecomp (((d, wposL) as decomp), owner) =
       let new__ = incrNRows () in
@@ -445,30 +445,30 @@ module CSIneqIntegers(CSIneqIntegers:sig
       List.app insertWPos wposL;
       incrArray (((fun r -> r.consts) tableau), new__, d);
       (match isSubsumed new__ with
-       | SOME pos ->
+       | Some pos ->
            (clearArray2Row
               (((fun r -> r.coeffs) tableau), new__, (0, (nCols ())));
             Array.update (((fun r -> r.consts) tableau), new__, zero);
             decrNRows ();
             pos)
-       | NONE ->
+       | None ->
            (setOwnership ((Row new__), owner, (ref 0));
             (:=) (((fun r -> r.dead)) (label (Row new__))) isConstant new__;
             Trail.log (((fun r -> r.trail) tableau), (Insert (Row new__)));
             Row new__))
-    let rec insert (G, Us) =
-      let sum = fromExp Us in
-      insertDecomp ((decomposeSum (G, sum)), (Exp (G, sum)))
+    let rec insert (__g, __Us) =
+      let sum = fromExp __Us in
+      insertDecomp ((decomposeSum (__g, sum)), (Exp (__g, sum)))
     let rec restrict =
       function
       | ((Col col as pos), restr) ->
           let l = label pos in
           if dead l
-          then (unifyRestr (restr, (geqNExp zero_int)); NONE)
+          then (unifyRestr (restr, (geqNExp zero_int)); None)
           else
             (match restriction l with
-             | SOME (Restr (_, proof')) -> (unifyRestr (restr, proof'); NONE)
-             | NONE ->
+             | Some (Restr (_, proof')) -> (unifyRestr (restr, proof'); None)
+             | None ->
                  let nonNull =
                    Array.foldl
                      (function
@@ -488,17 +488,17 @@ module CSIneqIntegers(CSIneqIntegers:sig
                   | nil ->
                       (Trail.log
                          (((fun r -> r.trail) tableau), (Restrict (Col col)));
-                       (:=) (((fun r -> r.restr)) (label (Col col))) SOME
+                       (:=) (((fun r -> r.restr)) (label (Col col))) Some
                          restr;
-                       NONE)))
+                       None)))
       | ((Row row as pos), restr) ->
           let l = label pos in
           if dead l
-          then (unifyRestr (restr, (geqNExp (floor (const row)))); NONE)
+          then (unifyRestr (restr, (geqNExp (floor (const row)))); None)
           else
             (match restriction l with
-             | SOME (Restr (_, proof')) -> (unifyRestr (restr, proof'); NONE)
-             | NONE ->
+             | Some (Restr (_, proof')) -> (unifyRestr (restr, proof'); None)
+             | None ->
                  (match maximizeRow row with
                   | Unbounded col ->
                       (Trail.log
@@ -506,7 +506,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
                        (:=) (((fun r -> r.restr))
                                (Array.sub
                                   (((fun r -> r.rlabels) tableau), row)))
-                         SOME restr;
+                         Some restr;
                        if (const row) < zero
                        then
                          (Trail.log
@@ -514,69 +514,69 @@ module CSIneqIntegers(CSIneqIntegers:sig
                               (Pivot (row, col)));
                           pivot (row, col))
                        else ();
-                       NONE)
+                       None)
                   | Nonnegative value ->
                       (Trail.log
                          (((fun r -> r.trail) tableau), (Restrict (Row row)));
                        (:=) (((fun r -> r.restr))
                                (Array.sub
                                   (((fun r -> r.rlabels) tableau), row)))
-                         SOME restr;
-                       SOME row)))
-    let rec insertEqual (G, pos, sum) =
-      let (m, wposL) = decomposeSum (G, sum) in
-      let decomp' = (m, (((~ one), pos) :: wposL)) in
-      let pos' = insertDecomp (decomp', (Exp (G, (Sum (zero_int, nil))))) in
+                         Some restr;
+                       Some row)))
+    let rec insertEqual (__g, pos, sum) =
+      let (m, wposL) = decomposeSum (__g, sum) in
+      let decomp' = (m, (((~- one), pos) :: wposL)) in
+      let pos' = insertDecomp (decomp', (Exp (__g, (Sum (zero_int, nil))))) in
       let decomp'' = unaryMinusDecomp decomp' in
       let tag'' =
         (fun r -> r.tag)
-          (label (insertDecomp (decomp'', (Exp (G, (Sum (zero_int, nil))))))) in
-      restrictBB (exploreBB (pos', (Restr (G, (geqNExp zero_int)))));
+          (label (insertDecomp (decomp'', (Exp (__g, (Sum (zero_int, nil))))))) in
+      restrictBB (exploreBB (pos', (Restr (__g, (geqNExp zero_int)))));
       (match findTag tag'' with
-       | SOME pos'' ->
-           restrictBB (exploreBB (pos'', (Restr (G, (geqNExp zero_int))))))
-    let rec update (G, pos, sum) =
+       | Some pos'' ->
+           restrictBB (exploreBB (pos'', (Restr (__g, (geqNExp zero_int))))))
+    let rec update (__g, pos, sum) =
       let l = label pos in
       Trail.log
         (((fun r -> r.trail) tableau),
           (UpdateOwner (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-      setOwnership (pos, (Exp (G, sum)), (ref 0));
+      setOwnership (pos, (Exp (__g, sum)), (ref 0));
       if dead l
       then
         (match pos with
          | Row row ->
              if isConstant row
-             then unifySum (G, sum, (const row))
+             then unifySum (__g, sum, (const row))
              else
                (match isSubsumed row with
-                | SOME pos' -> update (G, pos', sum))
-         | Col col -> unifySum (G, sum, zero))
+                | Some pos' -> update (__g, pos', sum))
+         | Col col -> unifySum (__g, sum, zero))
       else
         (let rec isVar =
            function
            | Sum (m, (Mon (n, _) as mon)::[]) ->
-               if (m = zero_int) && (n = one_int) then SOME mon else NONE
-           | sum -> NONE in
+               if (m = zero_int) && (n = one_int) then Some mon else None
+           | sum -> None in
          match isVar sum with
-         | SOME mon ->
+         | Some mon ->
              (match findMon mon with
-              | SOME _ -> insertEqual (G, pos, sum)
-              | NONE ->
+              | Some _ -> insertEqual (__g, pos, sum)
+              | None ->
                   let tag = ref 0 in
                   (Trail.log
                      (((fun r -> r.trail) tableau),
                        (UpdateOwner
                           (pos, ((fun r -> r.owner) l), ((fun r -> r.tag) l))));
-                   setOwnership (pos, (Var (G, mon)), tag);
+                   setOwnership (pos, (Var (__g, mon)), tag);
                    delayMon (mon, (ref (makeCnstr tag)))))
-         | NONE -> insertEqual (G, pos, sum))
+         | None -> insertEqual (__g, pos, sum))
     let rec insertRestrExp (l, UL) =
       match restriction l with
-      | NONE -> UL
-      | SOME (Restr (_, _)) ->
+      | None -> UL
+      | Some (Restr (_, _)) ->
           let owner = (fun r -> r.owner) l in
-          let G = ownerContext owner in
-          let U = toExp (ownerSum owner) in (G, (geq0 U)) :: UL
+          let __g = ownerContext owner in
+          let __u = toExp (ownerSum owner) in (__g, (geq0 __u)) :: UL
     let rec restrictions pos =
       let rec member (x, l) = List.exists (function | y -> x = y) l in
       let rec test l = (restricted l) && (not (dead l)) in
@@ -618,20 +618,20 @@ module CSIneqIntegers(CSIneqIntegers:sig
       let rec restrExp pos =
         let l = label pos in
         let owner = (fun r -> r.owner) l in
-        let G = ownerContext owner in
-        let U = toExp (ownerSum owner) in (G, (geq0 U)) in
+        let __g = ownerContext owner in
+        let __u = toExp (ownerSum owner) in (__g, (geq0 __u)) in
       List.map restrExp (reachable ([pos], nil, nil))
     let rec toInternal tag () =
-      match findTag tag with | NONE -> nil | SOME pos -> restrictions pos
+      match findTag tag with | None -> nil | Some pos -> restrictions pos
     let rec awake tag () =
       try
         match findTag tag with
-        | SOME pos ->
+        | Some pos ->
             let owner = (fun r -> r.owner) (label pos) in
-            let G = ownerContext owner in
+            let __g = ownerContext owner in
             let sum = normalize (ownerSum owner) in
-            (update (G, pos, sum); true__)
-        | NONE -> true__
+            (update (__g, pos, sum); true__)
+        | None -> true__
       with | Error -> false__
     let rec simplify tag () =
       match toInternal tag () with | nil -> true__ | _::_ -> false__
@@ -647,49 +647,49 @@ module CSIneqIntegers(CSIneqIntegers:sig
           else () in
         try
           Array.app find (((fun r -> r.rlabels) tableau), 0, (nRows ()));
-          NONE
-        with | Found i -> SOME i
-    let rec boundLower (G, decomp, d) =
-      let W = newEVar (G, (number ())) in
-      let proof = newEVar (G, (geq0 W)) in
+          None
+        with | Found i -> Some i
+    let rec boundLower (__g, decomp, d) =
+      let W = newEVar (__g, (number ())) in
+      let proof = newEVar (__g, (geq0 W)) in
       let (d', wPosL) = unaryMinusDecomp decomp in
       let pos =
         insertDecomp
-          (((d' + d), wPosL), (Var (G, (Mon (one_int, [(W, id)]))))) in
-      (pos, (Restr (G, proof)))
-    let rec boundUpper (G, decomp, d) =
-      let W = newEVar (G, (number ())) in
-      let proof = newEVar (G, (geq0 W)) in
+          (((d' + d), wPosL), (Var (__g, (Mon (one_int, [(W, id)]))))) in
+      (pos, (Restr (__g, proof)))
+    let rec boundUpper (__g, decomp, d) =
+      let W = newEVar (__g, (number ())) in
+      let proof = newEVar (__g, (geq0 W)) in
       let (d', wPosL) = decomp in
       let pos =
         insertDecomp
-          (((d' - d), wPosL), (Var (G, (Mon (one_int, [(W, id)]))))) in
-      (pos, (Restr (G, proof)))
+          (((d' - d), wPosL), (Var (__g, (Mon (one_int, [(W, id)]))))) in
+      (pos, (Restr (__g, proof)))
     let rec exploreBB (pos, restr) =
       try
         let result = restrict (pos, restr) in
         match isIntegral () with
-        | SOME row ->
+        | Some row ->
             let value = const row in
             let decomp = (zero, [(one, (Row row))]) in
-            let G = ownerContext ((fun r -> r.owner) (label (Row row))) in
+            let __g = ownerContext ((fun r -> r.owner) (label (Row row))) in
             let lower = fromInteger (floor value) in
             let upper = fromInteger (ceiling value) in
-            let rec left () = exploreBB (boundLower (G, decomp, lower)) in
-            let rec right () = exploreBB (boundUpper (G, decomp, upper)) in
+            let rec left () = exploreBB (boundLower (__g, decomp, lower)) in
+            let rec right () = exploreBB (boundUpper (__g, decomp, upper)) in
             (match ((CSM.trail left), (CSM.trail right)) with
              | (BranchFail, BranchFail) -> BranchFail
              | (resultL, resultR) -> BranchDivide (row, resultL, resultR))
-        | NONE -> BranchSucceed result
+        | None -> BranchSucceed result
       with | Error -> BranchFail
     let rec minimizeBB row =
       let rec zeroColumn (j, (l : label)) =
         let decomp = (zero, [(one, (Col j))]) in
-        let G = ownerContext ((fun r -> r.owner) (label (Col j))) in
-        let lower = ~ one in
+        let __g = ownerContext ((fun r -> r.owner) (label (Col j))) in
+        let lower = ~- one in
         let upper = one in
-        let rec left () = exploreBB (boundLower (G, decomp, lower)) in
-        let rec right () = exploreBB (boundUpper (G, decomp, upper)) in
+        let rec left () = exploreBB (boundLower (__g, decomp, lower)) in
+        let rec right () = exploreBB (boundUpper (__g, decomp, upper)) in
         if restricted l
         then (CSM.trail right) = BranchFail
         else
@@ -703,8 +703,8 @@ module CSIneqIntegers(CSIneqIntegers:sig
            ((fun r -> r.dead) (Array.sub (((fun r -> r.clabels) tableau), j)))
              := true__;
            (match restriction l with
-            | SOME restr -> unifyRestr (restr, (geqNExp zero_int))
-            | NONE -> ());
+            | Some restr -> unifyRestr (restr, (geqNExp zero_int))
+            | None -> ());
            (match (fun r -> r.owner) l with
             | Var _ as owner ->
                 unifySum ((ownerContext owner), (ownerSum owner), zero)
@@ -721,11 +721,11 @@ module CSIneqIntegers(CSIneqIntegers:sig
                  (Array.sub (((fun r -> r.rlabels) tableau), i)))
                 := true__;
               (match restriction l with
-               | SOME restr ->
+               | Some restr ->
                    if (denominator (const i)) = one_int
                    then unifyRestr (restr, (geqNExp (floor (const i))))
                    else raise Error
-               | NONE -> ());
+               | None -> ());
               (match (fun r -> r.owner) l with
                | Var _ as owner ->
                    unifySum
@@ -733,21 +733,21 @@ module CSIneqIntegers(CSIneqIntegers:sig
                | _ -> ()))
            else
              (match isSubsumed i with
-              | SOME pos' ->
+              | Some pos' ->
                   let l' = label pos' in
                   (Trail.log (((fun r -> r.trail) tableau), (Kill (Row i)));
                    ((fun r -> r.dead)
                       (Array.sub (((fun r -> r.rlabels) tableau), i)))
                      := true__;
                    (match ((restriction l), (restriction l')) with
-                    | (SOME restr, SOME (Restr (_, proof'))) ->
+                    | (Some restr, Some (Restr (_, proof'))) ->
                         unifyRestr (restr, proof')
-                    | (SOME _, NONE) ->
+                    | (Some _, None) ->
                         (Trail.log
                            (((fun r -> r.trail) tableau), (Restrict pos'));
                          (:=) (((fun r -> r.restr)) l') restriction l)
-                    | (NONE, _) -> ()))
-              | NONE -> ()))
+                    | (None, _) -> ()))
+              | None -> ()))
         else () in
       Array.app killColumn (((fun r -> r.clabels) tableau), 0, (nCols ()));
       Array.app killRow (((fun r -> r.rlabels) tableau), 0, (nRows ()))
@@ -757,17 +757,17 @@ module CSIneqIntegers(CSIneqIntegers:sig
       | BranchDivide (row, resultL, BranchFail) ->
           let value = fromInteger (floor (const row)) in
           let decomp = (zero, [(one, (Row row))]) in
-          let G = ownerContext ((fun r -> r.owner) (label (Row row))) in
-          let _ = restrict (boundLower (G, decomp, value)) in
+          let __g = ownerContext ((fun r -> r.owner) (label (Row row))) in
+          let _ = restrict (boundLower (__g, decomp, value)) in
           restrictBB resultL
       | BranchDivide (row, BranchFail, resultR) ->
           let value = fromInteger (ceiling (const row)) in
           let decomp = (zero, [(one, (Row row))]) in
-          let G = ownerContext ((fun r -> r.owner) (label (Row row))) in
-          let _ = restrict (boundUpper (G, decomp, value)) in
+          let __g = ownerContext ((fun r -> r.owner) (label (Row row))) in
+          let _ = restrict (boundUpper (__g, decomp, value)) in
           restrictBB resultR
       | BranchSucceed result ->
-          (match result with | SOME row -> minimizeBB row | NONE -> ())
+          (match result with | Some row -> minimizeBB row | None -> ())
       | _ -> ()
     let rec undo =
       function
@@ -788,14 +788,14 @@ module CSIneqIntegers(CSIneqIntegers:sig
            decrNCols ())
       | Pivot (row, col) -> pivot (row, col)
       | Kill pos -> ((fun r -> r.dead) (label pos)) := false__
-      | Restrict pos -> ((fun r -> r.restr) (label pos)) := NONE
+      | Restrict pos -> ((fun r -> r.restr) (label pos)) := None
       | UpdateOwner (pos, owner, tag) -> setOwnership (pos, owner, tag)
     let rec reset () =
       let l =
         {
           owner = (Exp (Null, (Sum (zero_int, nil))));
           tag = (ref 0);
-          restr = (ref NONE);
+          restr = (ref None);
           dead = (ref true__)
         } in
       Array.modify (function | _ -> l)
@@ -819,44 +819,44 @@ module CSIneqIntegers(CSIneqIntegers:sig
     let rec unwind () = Trail.unwind (((fun r -> r.trail) tableau), undo)
     let rec fst =
       function
-      | (App (U1, _), s) -> (U1, s)
+      | (App (__U1, _), s) -> (__U1, s)
       | (SClo (S, s'), s) -> fst (S, (comp (s', s)))
     let rec snd =
       function
-      | (App (U1, S), s) -> fst (S, s)
+      | (App (__U1, S), s) -> fst (S, s)
       | (SClo (S, s'), s) -> snd (S, (comp (s', s)))
-    let rec isConstantExp (U) =
-      match fromExp (U, id) with | Sum (m, nil) -> SOME m | _ -> NONE
-    let rec isZeroExp (U) =
-      match isConstantExp U with | SOME d -> d = zero_int | NONE -> false__
+    let rec isConstantExp (__u) =
+      match fromExp (__u, id) with | Sum (m, nil) -> Some m | _ -> None
+    let rec isZeroExp (__u) =
+      match isConstantExp __u with | Some d -> d = zero_int | None -> false__
     let rec solveGeq =
       function
-      | (G, S, 0) ->
+      | (__g, S, 0) ->
           let rec solveGeq0 (W) =
             match isConstantExp W with
-            | SOME d ->
+            | Some d ->
                 if Integers.(>=) (d, zero_int)
                 then geqNExp d
                 else raise Error
-            | NONE ->
-                let proof = newEVar (G, (geq0 W)) in
+            | None ->
+                let proof = newEVar (__g, (geq0 W)) in
                 let _ =
                   restrictBB
-                    (exploreBB ((insert (G, (W, id))), (Restr (G, proof)))) in
+                    (exploreBB ((insert (__g, (W, id))), (Restr (__g, proof)))) in
                 proof in
-          let U1 = EClo (fst (S, id)) in
-          let U2 = EClo (snd (S, id)) in
+          let __U1 = EClo (fst (S, id)) in
+          let __U2 = EClo (snd (S, id)) in
           (try
-             if isZeroExp U2
-             then SOME (solveGeq0 U1)
+             if isZeroExp __U2
+             then Some (solveGeq0 __U1)
              else
-               (let W = minus (U1, U2) in
+               (let W = minus (__U1, __U2) in
                 let proof = solveGeq0 W in
-                SOME (geqAdd (W, (constant zero_int), U2, proof)))
-           with | Error -> NONE)
-      | (G, S, n) -> NONE
-    let rec pi (name, U, V) = Pi (((Dec ((SOME name), U)), Maybe), V)
-    let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
+                Some (geqAdd (W, (constant zero_int), __U2, proof)))
+           with | Error -> None)
+      | (__g, S, n) -> None
+    let rec pi (name, __u, __v) = Pi (((Dec ((Some name), __u)), Maybe), __v)
+    let rec arrow (__u, __v) = Pi (((Dec (None, __u)), No), __v)
     let rec installFgnCnstrOps () =
       let csid = !myID in
       let _ =
@@ -882,19 +882,19 @@ module CSIneqIntegers(CSIneqIntegers:sig
       myID := cs;
       (:=) geqID installF
         ((ConDec
-            (">=", NONE, 0, (Constraint ((!myID), solveGeq)),
+            (">=", None, 0, (Constraint ((!myID), solveGeq)),
               (arrow ((number ()), (arrow ((number ()), (Uni Type))))), Kind)),
-          (SOME (FX.Infix (FX.minPrec, FX.None))),
+          (Some (FX.Infix (FX.minPrec, FX.None))),
           [MS.Mapp
-             ((MS.Marg (MS.Star, NONE)),
-               (MS.Mapp ((MS.Marg (MS.Star, NONE)), MS.Mnil)))]);
+             ((MS.Marg (MS.Star, None)),
+               (MS.Mapp ((MS.Marg (MS.Star, None)), MS.Mnil)))]);
       (:=) geqAddID installF
         ((ConDec
-            ("+>=", NONE, 2, Normal,
+            ("+>=", None, 2, Normal,
               (pi
-                 ("X", (number ()),
+                 ("x", (number ()),
                    (pi
-                      ("Y", (number ()),
+                      ("y", (number ()),
                         (pi
                            ("Z", (number ()),
                              (arrow
@@ -908,7 +908,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
                                        (plus
                                           ((Root ((BVar 3), Nil)),
                                             (Root ((BVar 2), Nil)))))))))))))),
-              Type)), NONE, nil);
+              Type)), None, nil);
       installFgnCnstrOps ();
       ()
     (* CSM.ModeSyn *)
@@ -927,7 +927,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
     (*   - monomial                      *)
     (*   - sum                           *)
     (* Restriction: (proof object)       *)
-    (*   Restr (G, U)                    *)
+    (*   Restr (__g, __u)                    *)
     (* owner of the row/column (if any)  *)
     (* tag: used to keep track of the    *)
     (* position of a tableau entry       *)
@@ -955,7 +955,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
          coeff[i,j] = zero
        for i >= !nrows or j > !ncols, where "vacuous" is the vacuous label:
           #owner(vacuous) = Exp (Null, Sum (zero, nil))
-          #restr(vacuous) = ref NONE
+          #restr(vacuous) = ref None
           #dead(vacuous) = ref true
     *)
     (* little random generation routine taken from Paulson '91 *)
@@ -999,7 +999,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
     (* compute the list of non-null coefficients in the row *)
     (* find the coordinates of the pivot which gives the largest increase in
         const(row) *)
-    (* extend Integers.compare to deal with NONE (= infinity) *)
+    (* extend Integers.compare to deal with None (= infinity) *)
     (* find the best pivot candidates for the given row *)
     (* find the best pivot candidates for the given row and column *)
     (* always choose the smallest *)
@@ -1039,9 +1039,9 @@ module CSIneqIntegers(CSIneqIntegers:sig
                                    positions, so we can restrict it right away
                                 *)
     (* it is an integer *)
-    (* insert the equality Var(pos) = Us as two inequalities:
-         Var(pos) - Us >= zero
-         Us - Var(pos) >= zero
+    (* insert the equality Var(pos) = __Us as two inequalities:
+         Var(pos) - __Us >= zero
+         __Us - Var(pos) >= zero
     *)
     (* the second expression may change position when we
                   restrict the first. We use tags to keep track of it *)
@@ -1063,7 +1063,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
     (* simplify function for tableau constraints *)
     (* create a foreign constraint for the given tag *)
     (* checks if the (primally and dually) feasible solution is an integral solution;
-       returns NONE if it is, otherwise the coordinate of a non-integral component *)
+       returns None if it is, otherwise the coordinate of a non-integral component *)
     (* unbounded component *)
     (* bound the given expression below d *)
     (* bound the given expression above d *)
@@ -1088,11 +1088,11 @@ module CSIneqIntegers(CSIneqIntegers:sig
     (* undo function for trailing tableau operations *)
     (* reset the internal status of the tableau *)
     (* trailing functions *)
-    (* fst (S, s) = U1, the first argument in S[s] *)
-    (* snd (S, s) = U2, the second argument in S[s] *)
+    (* fst (S, s) = __U1, the first argument in S[s] *)
+    (* snd (S, s) = __U2, the second argument in S[s] *)
     (* checks if the given foreign term can be simplified to a constant *)
     (* checks if the given foreign term can be simplified to zero *)
-    (* solveGeq (G, S, n) tries to find the n-th solution to G |- '>=' @ S : type *)
+    (* solveGeq (__g, S, n) tries to find the n-th solution to __g |- '>=' @ S : type *)
     (* constructors for higher-order types *)
     (* install the signature *)
     let solver =
@@ -1100,7 +1100,7 @@ module CSIneqIntegers(CSIneqIntegers:sig
          name = "inequality/integers";
          keywords = "arithmetic,inequality";
          needs = ["Unify"; ((fun r -> r.name)) CSEqIntegers.solver];
-         fgnConst = (SOME { parse = parseGeqN });
+         fgnConst = (Some { parse = parseGeqN });
          init;
          reset;
          mark;

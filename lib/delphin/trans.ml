@@ -20,8 +20,8 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
   struct
     (* : TRANS *)
     module DextSyn = DextSyn'
-    module D = DextSyn'
-    module L = Lexer
+    module __d = DextSyn'
+    module __l = Lexer
     module I = IntSyn
     module LS = Stream
     module T = Tomega
@@ -45,8 +45,8 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       let r2 = checkEOF f' in
       let dec =
         match yOpt with
-        | NONE -> ReconTerm.dec0 (x, r2)
-        | SOME y -> ReconTerm.dec (x, y, r2) in
+        | None -> ReconTerm.dec0 (x, r2)
+        | Some y -> ReconTerm.dec (x, y, r2) in
       dec
     let rec stringToblocks s =
       let f = LS.expose (L.lexStream (TextIO.openString s)) in
@@ -56,18 +56,18 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       let (t, f') = ParseTerm.parseQualIds' f in let r2 = checkEOF f' in t
     let rec closure =
       function
-      | (I.Null, V) -> V
-      | (Decl (G, D), V) -> closure (G, (I.Pi ((D, I.Maybe), V)))
+      | (I.Null, __v) -> __v
+      | (Decl (__g, __d), __v) -> closure (__g, (I.Pi ((__d, I.Maybe), __v)))
     let rec internalizeBlock arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (_, (nil, _)) -> ()
-      | ((n, G, Vb, S), ((Dec (SOME name, V))::L2, s)) ->
+      | ((n, __g, Vb, S), ((Dec (Some name, __v))::L2, s)) ->
           let name' = "o_" ^ name in
-          let V1 = I.EClo (V, s) in
-          let V2 = I.Pi (((I.Dec (NONE, Vb)), I.Maybe), V1) in
-          let V3 = closure (G, V2) in
-          let m = I.ctxLength G in
-          let condec = I.ConDec (name', NONE, m, I.Normal, V3, I.Type) in
+          let V1 = I.EClo (__v, s) in
+          let V2 = I.Pi (((I.Dec (None, Vb)), I.Maybe), V1) in
+          let V3 = closure (__g, V2) in
+          let m = I.ctxLength __g in
+          let condec = I.ConDec (name', None, m, I.Normal, V3, I.Type) in
           let _ = TypeCheck.check (V3, (I.Uni I.Type)) in
           let _ =
             if (!Global.chatter) >= 4
@@ -76,28 +76,28 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
           let cid = I.sgnAdd condec in
           let _ = Names.installConstName cid in
           let _ = Array.update (internal, cid, (Const (m, n))) in
-          internalizeBlock ((n + 1), G, Vb, S)
+          internalizeBlock ((n + 1), __g, Vb, S)
             (L2, (I.Dot ((I.Exp (I.Root ((I.Const cid), S))), s)))
     let rec makeSpine =
       function
       | (_, I.Null, S) -> S
-      | (n, Decl (G, D), S) ->
+      | (n, Decl (__g, __d), S) ->
           makeSpine
-            ((n + 1), G, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
+            ((n + 1), __g, (I.App ((I.Root ((I.BVar (n + 1)), I.Nil)), S)))
     let rec internalizeCondec =
       function
       | (cid, ConDec _) -> ()
       | (cid, ConDef _) -> ()
       | (cid, AbbrevDef _) -> ()
       | (cid, BlockDec (name, _, Gsome, Lpi)) ->
-          let V' = closure (Gsome, (I.Uni I.Type)) in
-          let C = I.ConDec ((name ^ "'"), NONE, 0, I.Normal, V', I.Kind) in
+          let __v' = closure (Gsome, (I.Uni I.Type)) in
+          let C = I.ConDec ((name ^ "'"), None, 0, I.Normal, __v', I.Kind) in
           let a = I.sgnAdd C in
           let _ = Array.update (internal, a, (Type cid)) in
           let _ = Names.installConstName a in
           let S = makeSpine (0, Gsome, I.Nil) in
           let Vb = I.Root ((I.Const a), S) in
-          let S' = makeSpine (0, (I.Decl (Gsome, (I.Dec (NONE, Vb)))), I.Nil) in
+          let S' = makeSpine (0, (I.Decl (Gsome, (I.Dec (None, Vb)))), I.Nil) in
           internalizeBlock (1, Gsome, Vb, S') (Lpi, I.shift)
       | (cid, SkoDec _) -> ()
     let rec internalizeSig () =
@@ -113,12 +113,12 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec makeSub =
       function
       | (I.Nil, s) -> s
-      | (App (U, S), s) -> makeSub (S, (I.Dot ((I.Exp U), s)))
+      | (App (__u, S), s) -> makeSub (S, (I.Dot ((I.Exp __u), s)))
     let rec externalizeExp' =
       function
-      | Uni _ as U -> U
-      | Pi ((D, DP), U) ->
-          I.Pi (((externalizeDec D), DP), (externalizeExp U))
+      | (Uni _ as __u) -> __u
+      | Pi ((__d, DP), __u) ->
+          I.Pi (((externalizeDec __d), DP), (externalizeExp __u))
       | Root ((BVar _ as H), S) -> I.Root (H, (externalizeSpine S))
       | Root ((Const c as H), S) ->
           (match I.constUni c with
@@ -133,15 +133,15 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | Root (NSDef _, _) -> raise Domain
       | Root (FVar _, _) -> raise Domain
       | Root (FgnConst _, _) -> raise Domain
-      | Redex (U, S) -> I.Redex ((externalizeExp U), (externalizeSpine S))
-      | Lam (D, U) -> I.Lam ((externalizeDec D), (externalizeExp U))
-    let rec externalizeExp (U) = externalizeExp' (Whnf.normalize (U, I.id))
+      | Redex (__u, S) -> I.Redex ((externalizeExp __u), (externalizeSpine S))
+      | Lam (__d, __u) -> I.Lam ((externalizeDec __d), (externalizeExp __u))
+    let rec externalizeExp (__u) = externalizeExp' (Whnf.normalize (__u, I.id))
     let rec externalizeBlock (Bidx _ as B) = B
-    let rec externalizeDec (Dec (name, V)) = I.Dec (name, (externalizeExp V))
+    let rec externalizeDec (Dec (name, __v)) = I.Dec (name, (externalizeExp __v))
     let rec externalizeSpine =
       function
       | I.Nil -> I.Nil
-      | App (U, S) -> I.App ((externalizeExp U), (externalizeSpine S))
+      | App (__u, S) -> I.App ((externalizeExp __u), (externalizeSpine S))
     let rec externalizeSub =
       function
       | Shift n as s -> s
@@ -149,20 +149,20 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec externalizeFront =
       function
       | Idx _ as F -> F
-      | Exp (U) -> I.Exp (externalizeExp U)
+      | Exp (__u) -> I.Exp (externalizeExp __u)
       | Block (B) -> I.Block (externalizeBlock B)
       | I.Undef as F -> F
     let rec externalizePrg =
       function
-      | (n, Lam (D, P)) ->
-          T.Lam ((externalizeMDec (n, D)), (externalizePrg ((n + 1), P)))
+      | (n, Lam (__d, P)) ->
+          T.Lam ((externalizeMDec (n, __d)), (externalizePrg ((n + 1), P)))
       | (n, New (P)) -> T.New (externalizePrg (n, P))
       | (n, Box (W, P)) -> T.Box (W, (externalizePrg (n, P)))
       | (n, Choose (P)) -> T.Choose (externalizePrg (n, P))
-      | (n, PairExp (U, P)) ->
-          T.PairExp ((externalizeExp U), (externalizePrg (n, P)))
-      | (n, PairPrg (P1, P2)) ->
-          T.PairPrg ((externalizePrg (n, P1)), (externalizePrg (n, P2)))
+      | (n, PairExp (__u, P)) ->
+          T.PairExp ((externalizeExp __u), (externalizePrg (n, P)))
+      | (n, PairPrg (__P1, __P2)) ->
+          T.PairPrg ((externalizePrg (n, __P1)), (externalizePrg (n, __P2)))
       | (n, PairBlock (B, P)) ->
           T.PairBlock ((externalizeBlock B), (externalizePrg (n, P)))
       | (n, T.Unit) -> T.Unit
@@ -170,41 +170,41 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | (n, Const c) -> T.Const c
       | (n, Redex (P, S)) ->
           T.Redex ((externalizePrg (n, P)), (externalizeMSpine (n, S)))
-      | (n, Rec (D, P)) ->
-          T.Rec ((externalizeMDec (n, D)), (externalizePrg ((n + 1), P)))
+      | (n, Rec (__d, P)) ->
+          T.Rec ((externalizeMDec (n, __d)), (externalizePrg ((n + 1), P)))
       | (n, Case (Cases (O))) -> T.Case (T.Cases (externalizeCases O))
-      | (n, Let (D, P1, P2)) ->
+      | (n, Let (__d, __P1, __P2)) ->
           T.Let
-            ((externalizeMDec (n, D)), (externalizePrg (n, P1)),
-              (externalizePrg ((n + 1), P2)))
+            ((externalizeMDec (n, __d)), (externalizePrg (n, __P1)),
+              (externalizePrg ((n + 1), __P2)))
     let rec externalizeMDec =
       function
-      | (n, UDec (Dec (name, (Root (Const a, S) as V)) as D)) ->
+      | (n, UDec (Dec (name, (Root (Const a, S) as __v)) as __d)) ->
           (match Array.sub (internal, a) with
            | Type a' ->
                T.UDec
                  (I.BDec
                     (name,
                       (a', (makeSub ((externalizeSpine S), (I.Shift n))))))
-           | _ -> T.UDec (externalizeDec D))
-      | (n, UDec (D)) -> T.UDec (externalizeDec D)
+           | _ -> T.UDec (externalizeDec __d))
+      | (n, UDec (__d)) -> T.UDec (externalizeDec __d)
       | (n, PDec (s, F)) -> T.PDec (s, (externalizeFor (n, F)))
     let rec externalizeFor =
       function
       | (n, World (W, F)) -> T.World (W, (externalizeFor (n, F)))
-      | (n, All ((D, Q), F)) ->
+      | (n, All ((__d, Q), F)) ->
           T.All
-            (((externalizeMDec (n, D)), Q), (externalizeFor ((n + 1), F)))
-      | (n, Ex ((D, Q), F)) ->
-          T.Ex (((externalizeDec D), Q), (externalizeFor ((n + 1), F)))
+            (((externalizeMDec (n, __d)), Q), (externalizeFor ((n + 1), F)))
+      | (n, Ex ((__d, Q), F)) ->
+          T.Ex (((externalizeDec __d), Q), (externalizeFor ((n + 1), F)))
       | (n, T.True) -> T.True
-      | (n, And (F1, F2)) ->
-          T.And ((externalizeFor (n, F1)), (externalizeFor (n, F2)))
+      | (n, And (__F1, __F2)) ->
+          T.And ((externalizeFor (n, __F1)), (externalizeFor (n, __F2)))
     let rec externalizeMSpine =
       function
       | (n, T.Nil) -> T.Nil
-      | (n, AppExp (U, S)) ->
-          T.AppExp ((externalizeExp U), (externalizeMSpine (n, S)))
+      | (n, AppExp (__u, S)) ->
+          T.AppExp ((externalizeExp __u), (externalizeMSpine (n, S)))
       | (n, AppBlock (B, S)) ->
           T.AppBlock ((externalizeBlock B), (externalizeMSpine (n, S)))
       | (n, AppPrg (P, S)) ->
@@ -226,15 +226,15 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       function
       | (n, (Idx _ as F)) -> F
       | (n, Prg (P)) -> T.Prg (externalizePrg (n, P))
-      | (n, Exp (U)) -> T.Exp (externalizeExp U)
+      | (n, Exp (__u)) -> T.Exp (externalizeExp __u)
       | (n, Block (B)) -> T.Block (externalizeBlock B)
       | (n, (T.Undef as F)) -> F
     let rec externalizeMCtx =
       function
       | I.Null -> I.Null
-      | Decl (Psi, D) ->
+      | Decl (Psi, __d) ->
           I.Decl
-            ((externalizeMCtx Psi), (externalizeMDec ((I.ctxLength Psi), D)))
+            ((externalizeMCtx Psi), (externalizeMDec ((I.ctxLength Psi), __d)))
     let rec transTerm =
       function
       | Rtarrow (t1, t2) ->
@@ -247,17 +247,17 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | Id s ->
           let qid = Names.Qid (nil, s) in
           (match Names.constLookup qid with
-           | NONE -> (s, nil)
-           | SOME cid ->
+           | None -> (s, nil)
+           | Some cid ->
                (match I.sgnLookup cid with
                 | BlockDec _ -> ((s ^ "'"), nil)
                 | _ -> (s, nil)))
-      | Pi (D, t) ->
-          let (s1, c1) = transDec D in
+      | Pi (__d, t) ->
+          let (s1, c1) = transDec __d in
           let (s2, c2) = transTerm t in
           (((("{" ^ s1) ^ "}") ^ s2), (c1 @ c2))
-      | Fn (D, t) ->
-          let (s1, c1) = transDec D in
+      | Fn (__d, t) ->
+          let (s1, c1) = transDec __d in
           let (s2, c2) = transTerm t in
           (((("[" ^ s1) ^ "]") ^ s2), (c1 @ c2))
       | App (t1, t2) ->
@@ -278,46 +278,46 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
           let qid = Names.Qid (nil, s) in
           let cid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared label " Names.qidToString
                          (valOf (Names.constUndef qid)))
                         ^ "."))
-            | SOME cid -> cid in
+            | Some cid -> cid in
           [cid]
       | Plus (W1, W2) -> (@) (transWorld W1) transWorld W2
       | Concat (W1, W2) -> (@) (transWorld W1) transWorld W2
       | Times (W) -> transWorld W
-    let rec transFor' (Psi, D) =
-      let G = I.Decl (I.Null, D) in
-      let JWithCtx (Decl (I.Null, D'), ReconTerm.JNothing) =
+    let rec transFor' (Psi, __d) =
+      let __g = I.Decl (I.Null, __d) in
+      let JWithCtx (Decl (I.Null, __d'), ReconTerm.JNothing) =
         ReconTerm.reconWithCtx
-          (Psi, (ReconTerm.jwithctx (G, ReconTerm.jnothing))) in
-      D'
+          (Psi, (ReconTerm.jwithctx (__g, ReconTerm.jnothing))) in
+      __d'
     let rec transFor =
       function
       | (Psi, D.True) -> T.True
       | (Psi, And (EF1, EF2)) ->
           T.And ((transFor (Psi, EF1)), (transFor (Psi, EF2)))
-      | (Psi, Forall (D, F)) ->
-          let (D'', nil) = transDec D in
-          let D' = transFor' (Psi, (stringTodec D'')) in
+      | (Psi, Forall (__d, F)) ->
+          let (__d'', nil) = transDec __d in
+          let __d' = transFor' (Psi, (stringTodec __d'')) in
           T.All
-            (((T.UDec D'), T.Explicit), (transFor ((I.Decl (Psi, D')), F)))
-      | (Psi, Exists (D, F)) ->
-          let (D'', nil) = transDec D in
-          let D' = transFor' (Psi, (stringTodec D'')) in
-          T.Ex ((D', T.Explicit), (transFor ((I.Decl (Psi, D')), F)))
-      | (Psi, ForallOmitted (D, F)) ->
-          let (D'', nil) = transDec D in
-          let D' = transFor' (Psi, (stringTodec D'')) in
+            (((T.UDec __d'), T.Explicit), (transFor ((I.Decl (Psi, __d')), F)))
+      | (Psi, Exists (__d, F)) ->
+          let (__d'', nil) = transDec __d in
+          let __d' = transFor' (Psi, (stringTodec __d'')) in
+          T.Ex ((__d', T.Explicit), (transFor ((I.Decl (Psi, __d')), F)))
+      | (Psi, ForallOmitted (__d, F)) ->
+          let (__d'', nil) = transDec __d in
+          let __d' = transFor' (Psi, (stringTodec __d'')) in
           T.All
-            (((T.UDec D'), T.Implicit), (transFor ((I.Decl (Psi, D')), F)))
-      | (Psi, ExistsOmitted (D, F)) ->
-          let (D'', nil) = transDec D in
-          let D' = transFor' (Psi, (stringTodec D'')) in
-          T.Ex ((D', T.Implicit), (transFor ((I.Decl (Psi, D')), F)))
+            (((T.UDec __d'), T.Implicit), (transFor ((I.Decl (Psi, __d')), F)))
+      | (Psi, ExistsOmitted (__d, F)) ->
+          let (__d'', nil) = transDec __d in
+          let __d' = transFor' (Psi, (stringTodec __d'')) in
+          T.Ex ((__d', T.Implicit), (transFor ((I.Decl (Psi, __d')), F)))
       | (Psi, World (W, EF)) ->
           T.World ((T.Worlds (transWorld W)), (transFor (Psi, EF)))
     let rec stringToterm s =
@@ -330,7 +330,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | AppMeta (H, _) -> head H
     let rec lamClosure =
       function
-      | (All ((D, _), F), P) -> T.Lam (D, (lamClosure (F, P)))
+      | (All ((__d, _), F), P) -> T.Lam (__d, (lamClosure (F, P)))
       | (World (_, F), P) -> lamClosure (F, P)
       | (Ex _, P) -> P
     let rec exists =
@@ -351,34 +351,34 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec append =
       function
       | (Psi, I.Null) -> Psi
-      | (Psi, Decl (Psi', D)) -> I.Decl ((append (Psi, Psi')), D)
-    let rec parseTerm (Psi, (s, V)) =
+      | (Psi, Decl (Psi', __d)) -> I.Decl ((append (Psi, Psi')), __d)
+    let rec parseTerm (Psi, (s, __v)) =
       let (term', c) = transTerm s in
       let term = stringToterm term' in
-      let JOf ((U, occ), (_, _), L) =
+      let JOf ((__u, occ), (_, _), __l) =
         ReconTerm.reconWithCtx
-          ((T.coerceCtx Psi), (ReconTerm.jof' (term, V))) in
-      U
+          ((T.coerceCtx Psi), (ReconTerm.jof' (term, __v))) in
+      __u
     let rec parseDec (Psi, s) =
       let (dec', c) = transDec s in
       let dec = stringTodec dec' in
-      let JWithCtx (Decl (I.Null, D), ReconTerm.JNothing) =
+      let JWithCtx (Decl (I.Null, __d), ReconTerm.JNothing) =
         ReconTerm.reconWithCtx
           ((T.coerceCtx Psi),
             (ReconTerm.jwithctx ((I.Decl (I.Null, dec)), ReconTerm.jnothing))) in
-      let Dec (SOME n, _) = D in D
+      let Dec (Some n, _) = __d in __d
     let rec transDecs =
       function
       | (Psi, D.Empty, sc, W) -> sc (Psi, W)
-      | (Psi, FormDecl (FormD, Ds), sc, W) ->
-          transForDec (Psi, FormD, Ds, sc, W)
-      | (Psi, ValDecl (ValD, Ds), sc, W) ->
-          transValDec (Psi, ValD, Ds, sc, W)
-      | (Psi, NewDecl (D, Ds), sc, W) ->
-          let D' = T.UDec (parseDec (Psi, D)) in
+      | (Psi, FormDecl (FormD, __Ds), sc, W) ->
+          transForDec (Psi, FormD, __Ds, sc, W)
+      | (Psi, ValDecl (ValD, __Ds), sc, W) ->
+          transValDec (Psi, ValD, __Ds, sc, W)
+      | (Psi, NewDecl (__d, __Ds), sc, W) ->
+          let __d' = T.UDec (parseDec (Psi, __d)) in
           T.Let
-            ((T.PDec (NONE, T.True)),
-              (T.Lam (D', (transDecs ((I.Decl (Psi, D')), Ds, sc, W)))),
+            ((T.PDec (None, T.True)),
+              (T.Lam (__d', (transDecs ((I.Decl (Psi, __d')), __Ds, sc, W)))),
               (T.Var 1))
       | _ ->
           raise
@@ -387,12 +387,12 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec lookup =
       function
       | (I.Null, n, s) -> raise (Error ("Undeclared constant " ^ s))
-      | (Decl (G, PDec (NONE, _)), n, s) -> lookup (G, (n + 1), s)
-      | (Decl (G, UDec _), n, s) -> lookup (G, (n + 1), s)
-      | (Decl (G, PDec (SOME s', F)), n, s) ->
+      | (Decl (__g, PDec (None, _)), n, s) -> lookup (__g, (n + 1), s)
+      | (Decl (__g, UDec _), n, s) -> lookup (__g, (n + 1), s)
+      | (Decl (__g, PDec (Some s', F)), n, s) ->
           if s = s'
           then (n, (T.forSub (F, (T.Shift n))))
-          else lookup (G, (n + 1), s)
+          else lookup (__g, (n + 1), s)
     let rec transHead =
       function
       | (Psi, Head s, args) ->
@@ -402,48 +402,48 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec transHead' =
       function
       | ((World (_, F), s), S, args) -> transHead' ((F, s), S, args)
-      | ((All ((UDec (Dec (_, V)), T.Implicit), F'), s), S, args) ->
-          let X =
+      | ((All ((UDec (Dec (_, __v)), T.Implicit), __F'), s), S, args) ->
+          let x =
             I.newEVar
-              ((I.Decl (I.Null, I.NDec)), (I.EClo (V, (T.coerceSub s)))) in
-          transHead' ((F', (T.Dot ((T.Exp X), s))), (I.App (X, S)), args)
-      | ((All ((UDec (Dec (_, V)), T.Explicit), F'), s), S, t::args) ->
+              ((I.Decl (I.Null, I.NDec)), (I.EClo (__v, (T.coerceSub s)))) in
+          transHead' ((__F', (T.Dot ((T.Exp x), s))), (I.App (x, S)), args)
+      | ((All ((UDec (Dec (_, __v)), T.Explicit), __F'), s), S, t::args) ->
           let (term', c) = transTerm t in
           let term = stringToterm term' in
-          let JOf ((U, occ), (_, _), L) =
+          let JOf ((__u, occ), (_, _), __l) =
             ReconTerm.reconWithCtx
               (I.Null,
-                (ReconTerm.jof' (term, (I.EClo (V, (T.coerceSub s)))))) in
-          transHead' ((F', (T.Dot ((T.Exp U), s))), (I.App (U, S)), args)
+                (ReconTerm.jof' (term, (I.EClo (__v, (T.coerceSub s)))))) in
+          transHead' ((__F', (T.Dot ((T.Exp __u), s))), (I.App (__u, S)), args)
       | ((F, s), S, nil) -> ((F, s), S)
     let rec spineToSub =
       function
       | ((I.Nil, _), s') -> s'
-      | ((App (U, S), t), s') ->
-          T.Dot ((T.Exp (I.EClo (U, t))), (spineToSub ((S, t), s')))
+      | ((App (__u, S), t), s') ->
+          T.Dot ((T.Exp (I.EClo (__u, t))), (spineToSub ((S, t), s')))
     let rec transPattern =
       function
-      | (p, (Ex ((Dec (_, V), T.Implicit), F'), s)) ->
+      | (p, (Ex ((Dec (_, __v), T.Implicit), __F'), s)) ->
           transPattern
             (p,
-              (F',
+              (__F',
                 (T.Dot
                    ((T.Exp
                        (I.EVar
-                          ((ref NONE), I.Null, (I.EClo (V, (T.coerceSub s))),
+                          ((ref None), I.Null, (I.EClo (__v, (T.coerceSub s))),
                             (ref nil)))), s))))
-      | (PatInx (t, p), (Ex ((Dec (_, V), T.Explicit), F'), s)) ->
+      | (PatInx (t, p), (Ex ((Dec (_, __v), T.Explicit), __F'), s)) ->
           let (term', c) = transTerm t in
           let term = stringToterm term' in
-          let JOf ((U, occ), (_, _), L) =
+          let JOf ((__u, occ), (_, _), __l) =
             ReconTerm.reconWithCtx
               (I.Null,
-                (ReconTerm.jof' (term, (I.EClo (V, (T.coerceSub s)))))) in
-          T.PairExp (U, (transPattern (p, (F', (T.Dot ((T.Exp U), s))))))
+                (ReconTerm.jof' (term, (I.EClo (__v, (T.coerceSub s)))))) in
+          T.PairExp (__u, (transPattern (p, (__F', (T.Dot ((T.Exp __u), s))))))
       | (D.PatUnit, (F, s)) -> T.Unit
     let rec transFun1 =
       function
-      | (Psi, (s', F), FunDecl (Fun (eH, eP), Ds), sc, W) ->
+      | (Psi, (s', F), FunDecl (Fun (eH, eP), __Ds), sc, W) ->
           let s = head eH in
           let _ =
             if s = s'
@@ -453,71 +453,71 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
                 (Error
                    "Function defined is different from function declared.") in
           transFun2
-            (Psi, (s, F), (D.FunDecl ((D.Bar (eH, eP)), Ds)), sc,
-              (function | Cs -> T.Case (T.Cases Cs)), W)
-      | (Psi, (s', F), FunDecl (FunAnd (eH, eP), Ds), sc, W) ->
+            (Psi, (s, F), (D.FunDecl ((D.Bar (eH, eP)), __Ds)), sc,
+              (function | __Cs -> T.Case (T.Cases __Cs)), W)
+      | (Psi, (s', F), FunDecl (FunAnd (eH, eP), __Ds), sc, W) ->
           raise (Error "Mutual recursive functions not yet implemented")
       | _ -> raise (Error "Function declaration expected")
     let rec transFun2 =
       function
-      | (Psi, (s, F), FunDecl (Bar (eH, eP), Ds), sc, k, W) ->
-          transFun3 (Psi, (s, F), eH, eP, Ds, sc, k, W)
-      | (Psi, (s, F), Ds, sc, k, W) ->
-          let D = T.PDec ((SOME s), F) in
-          let P' = T.Rec (D, (lamClosure (F, (k nil)))) in (P', Ds)
-    let rec transFun3 (Psi, (s, F), eH, eP, Ds, sc, k, W) =
+      | (Psi, (s, F), FunDecl (Bar (eH, eP), __Ds), sc, k, W) ->
+          transFun3 (Psi, (s, F), eH, eP, __Ds, sc, k, W)
+      | (Psi, (s, F), __Ds, sc, k, W) ->
+          let __d = T.PDec ((Some s), F) in
+          let __P' = T.Rec (__d, (lamClosure (F, (k nil)))) in (__P', __Ds)
+    let rec transFun3 (Psi, (s, F), eH, eP, __Ds, sc, k, W) =
       let _ =
         if (head eH) <> s
         then raise (Error "Functions don't all have the same name")
         else () in
       let _ = Names.varReset I.Null in
-      let Psi0 = I.Decl (Psi, (T.PDec ((SOME s), F))) in
-      let ((F', t'), S) = transHead (Psi0, eH, nil) in
+      let Psi0 = I.Decl (Psi, (T.PDec ((Some s), F))) in
+      let ((__F', t'), S) = transHead (Psi0, eH, nil) in
       let (Psi', S') = Abstract.abstractSpine (S, I.id) in
       let Psi'' = append (Psi0, (T.embedCtx Psi')) in
       let m0 = I.ctxLength Psi0 in
       let m' = I.ctxLength Psi' in
       let t0 = dotn ((I.Shift m0), m') in
       let t'' = spineToSub ((S', t0), (T.Shift m')) in
-      let P = transProgI (Psi'', eP, (F', t'), W) in
+      let P = transProgI (Psi'', eP, (__F', t'), W) in
       transFun2
-        (Psi, (s, F), Ds, sc, (function | Cs -> k ((Psi'', t'', P) :: Cs)),
+        (Psi, (s, F), __Ds, sc, (function | __Cs -> k ((Psi'', t'', P) :: __Cs)),
           W)
-    let rec transForDec (Psi, Form (s, eF), Ds, sc, W) =
-      let G = Names.ctxName (T.coerceCtx Psi) in
-      let F = transFor (G, eF) in
-      let World (W, F') as F'' = T.forSub (F, T.id) in
-      let _ = TomegaTypeCheck.checkFor (Psi, F'') in
-      let (P, Ds') = transFun1 (Psi, (s, F'), Ds, sc, W) in
-      let D = T.PDec ((SOME s), F'') in
+    let rec transForDec (Psi, Form (s, eF), __Ds, sc, W) =
+      let __g = Names.ctxName (T.coerceCtx Psi) in
+      let F = transFor (__g, eF) in
+      let World (W, __F') as __F'' = T.forSub (F, T.id) in
+      let _ = TomegaTypeCheck.checkFor (Psi, __F'') in
+      let (P, __Ds') = transFun1 (Psi, (s, __F'), __Ds, sc, W) in
+      let __d = T.PDec ((Some s), __F'') in
       T.Let
-        (D, (T.Box (W, P)),
-          (transDecs ((I.Decl (Psi, D)), Ds', (function | P' -> sc P'), W)))
-    let rec transValDec (Psi, Val (EPat, eP, eFopt), Ds, sc, W) =
-      let (P, (F', t')) =
+        (__d, (T.Box (W, P)),
+          (transDecs ((I.Decl (Psi, __d)), __Ds', (function | __P' -> sc __P'), W)))
+    let rec transValDec (Psi, Val (EPat, eP, eFopt), __Ds, sc, W) =
+      let (P, (__F', t')) =
         match eFopt with
-        | NONE -> transProgS (Psi, eP, W, nil)
-        | SOME eF ->
-            let F' = transFor ((T.coerceCtx Psi), eF) in
-            let P' = transProgIN (Psi, eP, F', W) in (P', (F', T.id)) in
-      let F'' = T.forSub (F', t') in
-      let Pat = transPattern (EPat, (F', t')) in
-      let D = T.PDec (NONE, F'') in
+        | None -> transProgS (Psi, eP, W, nil)
+        | Some eF ->
+            let __F' = transFor ((T.coerceCtx Psi), eF) in
+            let __P' = transProgIN (Psi, eP, __F', W) in (__P', (__F', T.id)) in
+      let __F'' = T.forSub (__F', t') in
+      let Pat = transPattern (EPat, (__F', t')) in
+      let __d = T.PDec (None, __F'') in
       let (Psi', Pat') = Abstract.abstractTomegaPrg Pat in
       let m = I.ctxLength Psi' in
       let t = T.Dot ((T.Prg Pat'), (T.Shift m)) in
       let Psi'' = append (Psi, Psi') in
-      let P'' = transDecs (Psi'', Ds, sc, W) in
-      T.Let (D, P, (T.Case (T.Cases [(Psi'', t, P'')])))
+      let __P'' = transDecs (Psi'', __Ds, sc, W) in
+      T.Let (__d, P, (T.Case (T.Cases [(Psi'', t, __P'')])))
     let rec transProgI (Psi, eP, Ft, W) =
       transProgIN (Psi, eP, (T.forSub Ft), W)
     let rec transProgIN =
       function
       | (Psi, D.Unit, T.True, W) -> T.Unit
-      | (Psi, (Inx (s, EP) as P), Ex ((Dec (_, V), T.Explicit), F'), W) ->
-          let U = parseTerm (Psi, (s, V)) in
-          let P' = transProgI (Psi, EP, (F', (T.Dot ((T.Exp U), T.id))), W) in
-          T.PairExp (U, P')
+      | (Psi, (Inx (s, EP) as P), Ex ((Dec (_, __v), T.Explicit), __F'), W) ->
+          let __u = parseTerm (Psi, (s, __v)) in
+          let __P' = transProgI (Psi, EP, (__F', (T.Dot ((T.Exp __u), T.id))), W) in
+          T.PairExp (__u, __P')
       | (Psi, Let (eDs, eP), F, W) ->
           transDecs
             (Psi, eDs,
@@ -529,23 +529,23 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
                          (T.Shift ((-) (I.ctxLength Psi') I.ctxLength Psi))),
                        W')), W)
       | (Psi, Choose (eD, eP), F, W) ->
-          let D' = parseDec (Psi, eD) in
-          let Psi'' = I.Decl (Psi, (T.UDec D')) in
+          let __d' = parseDec (Psi, eD) in
+          let Psi'' = I.Decl (Psi, (T.UDec __d')) in
           T.Choose
             (T.Lam
-               ((T.UDec D'), (transProgI (Psi'', eP, (F, (T.Shift 1)), W))))
+               ((T.UDec __d'), (transProgI (Psi'', eP, (F, (T.Shift 1)), W))))
       | (Psi, New (nil, eP), F, W) -> transProgIN (Psi, eP, F, W)
       | (Psi, New (eD::eDs, eP), F, W) ->
-          let D' = parseDec (Psi, eD) in
-          let Psi'' = I.Decl (Psi, (T.UDec D')) in
+          let __d' = parseDec (Psi, eD) in
+          let Psi'' = I.Decl (Psi, (T.UDec __d')) in
           T.New
             (T.Lam
-               ((T.UDec D'),
+               ((T.UDec __d'),
                  (transProgI
                     (Psi'', (D.New ((eD :: eDs), eP)), (F, (T.Shift 1)), W))))
       | (Psi, (AppTerm (EP, s) as P), F, W) ->
-          let (P', (F', _)) = transProgS (Psi, P, W, nil) in
-          let () = () in P'
+          let (__P', (__F', _)) = transProgS (Psi, P, W, nil) in
+          let () = () in __P'
     let rec transProgS =
       function
       | (Psi, D.Unit, W, args) -> (T.Unit, (T.True, T.id))
@@ -553,41 +553,41 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
           transProgS (Psi, EP, W, (s :: args))
       | (Psi, Const name, W, args) ->
           let (n, F) = lookup (Psi, 1, name) in
-          let (S, Fs') = transProgS' (Psi, (F, T.id), W, args) in
-          ((T.Redex ((T.Var n), S)), Fs')
+          let (S, __Fs') = transProgS' (Psi, (F, T.id), W, args) in
+          ((T.Redex ((T.Var n), S)), __Fs')
       | (Psi, Choose (eD, eP), W, args) ->
-          let D' = parseDec (Psi, eD) in
+          let __d' = parseDec (Psi, eD) in
           let (P, (F, t)) =
-            transProgS ((I.Decl (Psi, (T.UDec D'))), eP, W, args) in
-          ((T.Choose (T.Lam ((T.UDec D'), P))), (F, t))
+            transProgS ((I.Decl (Psi, (T.UDec __d'))), eP, W, args) in
+          ((T.Choose (T.Lam ((T.UDec __d'), P))), (F, t))
       | (Psi, New (nil, eP), W, args) -> transProgS (Psi, eP, W, args)
       | (Psi, New (eD::eDs, eP), W, args) ->
-          let D' = parseDec (Psi, eD) in
+          let __d' = parseDec (Psi, eD) in
           let (P, (F, t)) =
             transProgS
-              ((I.Decl (Psi, (T.UDec D'))), (D.New (eDs, eP)), W, args) in
-          let UDec (D'') = externalizeMDec ((I.ctxLength Psi), (T.UDec D')) in
-          let (B, _) = T.deblockify (I.Decl (I.Null, D'')) in
-          let F' = TA.raiseFor (B, (F, (T.coerceSub t))) in
-          ((T.New (T.Lam ((T.UDec D'), P))), (F', T.id))
+              ((I.Decl (Psi, (T.UDec __d'))), (D.New (eDs, eP)), W, args) in
+          let UDec (__d'') = externalizeMDec ((I.ctxLength Psi), (T.UDec __d')) in
+          let (B, _) = T.deblockify (I.Decl (I.Null, __d'')) in
+          let __F' = TA.raiseFor (B, (F, (T.coerceSub t))) in
+          ((T.New (T.Lam ((T.UDec __d'), P))), (__F', T.id))
     let rec transProgS' =
       function
       | (Psi, (World (_, F), s), W, args) ->
           transProgS' (Psi, (F, s), W, args)
-      | (Psi, (All ((UDec (Dec (_, V)), T.Implicit), F'), s), W, args) ->
-          let G = T.coerceCtx Psi in
-          let X = I.newEVar (G, (I.EClo (V, (T.coerceSub s)))) in
-          let (S, Fs') =
-            transProgS' (Psi, (F', (T.Dot ((T.Exp X), s))), W, args) in
-          ((T.AppExp ((Whnf.normalize (X, I.id)), S)), Fs')
-      | (Psi, (All ((UDec (Dec (_, V)), T.Explicit), F'), s), W, t::args) ->
-          let U = parseTerm (Psi, (t, (I.EClo (V, (T.coerceSub s))))) in
-          let (S, Fs') =
-            transProgS' (Psi, (F', (T.Dot ((T.Exp U), s))), W, args) in
-          ((T.AppExp (U, S)), Fs')
+      | (Psi, (All ((UDec (Dec (_, __v)), T.Implicit), __F'), s), W, args) ->
+          let __g = T.coerceCtx Psi in
+          let x = I.newEVar (__g, (I.EClo (__v, (T.coerceSub s)))) in
+          let (S, __Fs') =
+            transProgS' (Psi, (__F', (T.Dot ((T.Exp x), s))), W, args) in
+          ((T.AppExp ((Whnf.normalize (x, I.id)), S)), __Fs')
+      | (Psi, (All ((UDec (Dec (_, __v)), T.Explicit), __F'), s), W, t::args) ->
+          let __u = parseTerm (Psi, (t, (I.EClo (__v, (T.coerceSub s))))) in
+          let (S, __Fs') =
+            transProgS' (Psi, (__F', (T.Dot ((T.Exp __u), s))), W, args) in
+          ((T.AppExp (__u, S)), __Fs')
       | (Psi, (F, s), _, nil) -> (T.Nil, (F, s))
-    let rec transProgram (Ds) =
-      transDecs (I.Null, Ds, (function | (Psi, W) -> T.Unit), (T.Worlds []))
+    let rec transProgram (__Ds) =
+      transDecs (I.Null, __Ds, (function | (Psi, W) -> T.Unit), (T.Worlds []))
     (* Invariant   for each cid which has been internalize out of a block,
        internal(cid) = Const(n, i), where n is the number of some variables and
        i is the projection index
@@ -621,33 +621,33 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
        then W is the result of parsing it
        otherwise Parsing.error is raised.
     *)
-    (* closure (G, V) = V'
+    (* closure (__g, __v) = __v'
 
        Invariant:
-       {G}V = V'
+       {__g}__v = __v'
     *)
-    (* internalizeBlock  (n, G, Vb, S) (L2, s) = ()
+    (* internalizeBlock  (n, __g, Vb, S) (L2, s) = ()
 
        Invariant:
-       If   |- G ctx                the context of some variables
-       and  G |- Vb :  type         the type of the block
-       and  G |- L1, L2 decs
+       If   |- __g ctx                the context of some variables
+       and  __g |- Vb :  type         the type of the block
+       and  __g |- L1, L2 decs
        and  G1, L1 |- L2 decs       block declarations still to be traversed
-       and  G, b:Vb |- s : G1, L1
+       and  __g, b:Vb |- s : G1, L1
        and  n is the current projection
        then internalizeBlock adds new declarations into the signature that
               correspond to the block declarations.
     *)
-    (* G, B |- V' : type *)
-    (* G |- {B} V' : type *)
-    (* makeSpine (n, G, S) = S'
+    (* __g, B |- __v' : type *)
+    (* __g |- {B} __v' : type *)
+    (* makeSpine (n, __g, S) = S'
 
        Invariant:
-       If  G0 = G, G'
-       and |G'| = n
-       and G0 |- S : V >> V'   for some V, V'
+       If  G0 = __g, __g'
+       and |__g'| = n
+       and G0 |- S : __v >> __v'   for some __v, __v'
        then S' extends S
-       and G0 |- S' : V >> type.
+       and G0 |- S' : __v >> type.
     *)
     (* interalizeCondec condec = ()
 
@@ -658,7 +658,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     (* sigToCtx () = ()
 
        Invariant:
-       G is the internal representation of the global signature
+       __g is the internal representation of the global signature
        It converts every block declaration to a type family (stored in the global
        signature) and a list of declarations.
     *)
@@ -686,11 +686,11 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
        then |- Psi <= ExtDPsi
        and  Psi |- F <= ExtF
     *)
-    (* stringToTerm s = U
+    (* stringToTerm s = __u
 
        Invariant:
        If   s is a string representing an expression,
-       then U is the result of parsing it
+       then __u is the result of parsing it
        otherwise Parsing.error is raised.
     *)
     (* head (dH) = n
@@ -698,22 +698,22 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
        Invariant:
        n is the name of the function head dH
     *)
-    (* lamClosure (F, P) = P'
+    (* lamClosure (F, P) = __P'
 
        Invariant:
        If   . |- F formula
-       and  . |- F = all D1. ... all Dn. F' formula
-         for  . |- F' formula that does not commence with a universal quantifier
-       and . |- P :: F'
-       then P' = lam D1 ... lam Dn P
+       and  . |- F = all D1. ... all Dn. __F' formula
+         for  . |- __F' formula that does not commence with a universal quantifier
+       and . |- P :: __F'
+       then __P' = lam D1 ... lam Dn P
     *)
     (* check that W is at least as large as W' *)
     (* dotn (t, n) = t'
 
        Invariant:
        If   Psi0 |- t : Psi
-       and  |G| = n   for any G
-       then Psi0, G[t] |- t : Psi, G
+       and  |__g| = n   for any __g
+       then Psi0, __g[t] |- t : Psi, __g
     *)
     (* append (Psi1, Psi2) = Psi3
 
@@ -736,14 +736,14 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
             as output: anything.
        then eventually x = ().     --cs
     *)
-    (*          T.Let (T.PDec (NONE, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
+    (*          T.Let (T.PDec (None, T.True), T.Lam (__d', transDecs (I.Decl (Psi, __d'), __Ds, sc, W)), T.Unit) *)
     (* T.True is not right! -- cs Sat Jun 28 11:43:30 2003  *)
-    (* transHead (G, T, S) = (F', t')
+    (* transHead (__g, T, S) = (__F', t')
 
        Invariant:
-       If   G |- T : F
-       and  G |- S : world{W}all{G'}F' >> F'
-       then G |- t' : G'
+       If   __g |- T : F
+       and  __g |- S : world{W}all{__g'}__F' >> __F'
+       then __g |- t' : __g'
     *)
     (* spineToSub ((S, t), s) = s'
 
@@ -787,11 +787,11 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
                             are all variables introduced until this point
             as output: anything.
        and  k is the continuation that expects
-            as input: Cs a list of cases
-            as ouput: A program P that corresponds to the case list Cs
+            as input: __Cs a list of cases
+            as ouput: A program P that corresponds to the case list __Cs
        then eventually x = ().     --cs
     *)
-    (* transFun3 ((Psi, env), s, eH, eP, Ds, sc, k, W) = x
+    (* transFun3 ((Psi, env), s, eH, eP, __Ds, sc, k, W) = x
 
        Invariant:
        If   Psi |- dDs :: Psi'
@@ -800,7 +800,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
        and  eH is the head of the function
        and  eP its body
        and  W is the valid world
-       and  Ds are the remaining declarations
+       and  __Ds are the remaining declarations
        and  sc is the success continuation that expects
             as input: (Psi', env')
                       where Psi' is the context after translating dDs
@@ -808,11 +808,11 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
                             are all variables introduced until this point
             as output: anything.
        and  k is the continuation that expects
-            as input: Cs a list of cases
-            as ouput: A program P that corresponds to the case list Cs
+            as input: __Cs a list of cases
+            as ouput: A program P that corresponds to the case list __Cs
        then eventually x = ().     --cs
     *)
-    (*                val F' = T.forSub (F, t) *)
+    (*                val __F' = T.forSub (F, t) *)
     (* |Psi''| = m0 + m' *)
     (* Psi0, Psi'[^m0] |- t0 : Psi' *)
     (*        val t1 = T.Dot (T.Prg (T.Root (T.Var (m'+1), T.Nil)), T.Shift (m'))    BUG !!!! Wed Jun 25 11:23:13 2003 *)
@@ -836,7 +836,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     *)
     (*        val _ = print s
           val _ = print " :: "
-          val _ = print (TomegaPrint.forToString (T.embedCtx G, F'') ^ "\n") *)
+          val _ = print (TomegaPrint.forToString (T.embedCtx __g, __F'') ^ "\n") *)
     (* transValDec ((Psi, env), dDv, dDs, sc, W) = x
 
        Invariant:
@@ -863,50 +863,50 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
        and  Exists Psi |- F : formula
        then Psi |- P :: F
     *)
-    (* check that F == F' *)
-    (*      | transProgIN ((Psi, env), D.Pair (EP1, EP2), T.And (F1, F2), W) =
+    (* check that F == __F' *)
+    (*      | transProgIN ((Psi, env), D.Pair (EP1, EP2), T.And (__F1, __F2), W) =
         let
-          val P1 = transProgIN ((Psi, env), EP1, F1, W)
-          val P2 = transProgIN ((Psi, env), EP2, F2, W)
+          val __P1 = transProgIN ((Psi, env), EP1, __F1, W)
+          val __P2 = transProgIN ((Psi, env), EP2, __F2, W)
         in
-          T.PairPrg (P1, P2)
+          T.PairPrg (__P1, __P2)
         end
       | transProgIN ((Psi, env), P as D.AppProg (EP1, EP2), F, W) =
         let
-          val (P', (F', _)) = transProgS ((Psi, env), P, W)
-          val ()  = ()    check that F == F' *)
-    (* check that F == F' *)
-    (* check that F == F' *)
+          val (__P', (__F', _)) = transProgS ((Psi, env), P, W)
+          val ()  = ()    check that F == __F' *)
+    (* check that F == __F' *)
+    (* check that F == __F' *)
     (*      | transProgIN (Psi, D.Lam (s, EP)) =
         let
           val dec = stringTodec s
-          val (I.Decl (Psi, (D, _, _)), P, F') = transProgI (I.Decl (ePsi, dec), EP)
+          val (I.Decl (Psi, (__d, _, _)), P, __F') = transProgI (I.Decl (ePsi, dec), EP)
         in
-          (Psi, T.Lam (T.UDec D, P), T.All (D, F'))
+          (Psi, T.Lam (T.UDec __d, P), T.All (__d, __F'))
         end
 *)
     (* is this the right starting point --cs *)
     (*         val lemma = T.lemmaName name
            val F = T.lemmaFor lemma *)
-    (* bug: forgot to raise F[t] to F' --cs Tue Jul  1 10:49:52 2003 *)
-    (*        val X = I.EVar (ref NONE, I.Null, I.EClo (V, T.coerceSub s), ref nil) *)
-    (*        val (F'', s'', _) = checkForWorld (F', T.Dot (T.Exp U, s), W) *)
+    (* bug: forgot to raise F[t] to __F' --cs Tue Jul  1 10:49:52 2003 *)
+    (*        val x = I.EVar (ref None, I.Null, I.EClo (__v, T.coerceSub s), ref nil) *)
+    (*        val (__F'', s'', _) = checkForWorld (__F', T.Dot (T.Exp __u, s), W) *)
     (*
      | transProgS ((Psi, env), D.Pair (EP1, EP2), W) =
         let
-          val (P1, (F1, t1)) = transProgS ((Psi, env), EP1, W)
-          val (P2, (F2, t2)) = transProgS ((Psi, env), EP2, W)
+          val (__P1, (__F1, t1)) = transProgS ((Psi, env), EP1, W)
+          val (__P2, (__F2, t2)) = transProgS ((Psi, env), EP2, W)
         in
-          (T.PairPrg (P1, P2), (T.And (F1, F2), T.comp (t1, t2)))
+          (T.PairPrg (__P1, __P2), (T.And (__F1, __F2), T.comp (t1, t2)))
         end
 
      | transProgS ((Psi, env), D.AppProg (EP1, EP2), W) =
         let
-          val (P1, (T.And (F1, F2), t)) = transProgS ((Psi, env), EP1, W)
-          val P2 = transProgIN ((Psi, env), EP2, T.FClo (F1, t), W)
-          val (F'', t'', W) = checkForWorld (F2, t, W)
+          val (__P1, (T.And (__F1, __F2), t)) = transProgS ((Psi, env), EP1, W)
+          val __P2 = transProgIN ((Psi, env), EP2, T.FClo (__F1, t), W)
+          val (__F'', t'', W) = checkForWorld (__F2, t, W)
         in
-          (T.Redex (P1, T.AppPrg (P2, T.Nil)), (F'', t''))
+          (T.Redex (__P1, T.AppPrg (__P2, T.Nil)), (__F'', t''))
         end
 
 
@@ -915,23 +915,23 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | transProgS ((Psi, env), D.Lam (s, EP), W) =
         let
           val dec = stringTodec s
-          val (I.Decl (Psi', (D, _, _)), P, F) = transProgI (I.Decl (Psi, dec), EP)
-          val (F', t', _) = checkForWorld (F, T.id, W)
+          val (I.Decl (Psi', (__d, _, _)), P, F) = transProgI (I.Decl (Psi, dec), EP)
+          val (__F', t', _) = checkForWorld (F, T.id, W)
         in
-          (T.Lam (T.UDec D, P), (T.All (D, F'), t'))
+          (T.Lam (T.UDec __d, P), (T.All (__d, __F'), t'))
         end
 *)
-    (*        val _ = print (Print.expToString (G, U) ^ "\n") *)
+    (*        val _ = print (Print.expToString (__g, __u) ^ "\n") *)
     (* is this the right starting point --cs *)
-    (* transProgram Ds = P
+    (* transProgram __Ds = P
 
        Invariant:
-       If Ds is a list of declarations then P is
+       If __Ds is a list of declarations then P is
        the translated program, that does not do anything
     *)
-    let transFor = function | F -> let F' = transFor (I.Null, F) in F'
+    let transFor = function | F -> let __F' = transFor (I.Null, F) in __F'
     (*    val makePattern = makePattern *)
-    (*    val transPro = fn P => let val (P', _) = transProgS ((I.Null, []), P, T.Worlds []) in P' end *)
+    (*    val transPro = fn P => let val (__P', _) = transProgS ((I.Null, []), P, T.Worlds []) in __P' end *)
     let transDecs = transProgram
     let internalizeSig = internalizeSig
     let externalizePrg = function | P -> externalizePrg (0, P)

@@ -34,7 +34,7 @@ module ParseTerm(ParseTerm:sig
     (*! structure Parsing = Parsing' !*)
     module ExtSyn = ExtSyn'
     (* some shorthands *)
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module FX = Names.Fixity
     type 'a operator =
@@ -300,14 +300,14 @@ module ParseTerm(ParseTerm:sig
           Parsing.error (r, ("Illegal bound quoted identifier " ^ name))
       | Cons ((ID (idCase, name), r), s') ->
           (match Names.fixityLookup (Names.Qid (nil, name)) with
-           | FX.Nonfix -> parseDec1 ((SOME name), (LS.expose s'))
+           | FX.Nonfix -> parseDec1 ((Some name), (LS.expose s'))
            | Infix _ ->
                Parsing.error (r, ("Cannot bind infix identifier " ^ name))
            | Prefix _ ->
                Parsing.error (r, ("Cannot bind prefix identifier " ^ name))
            | Postfix _ ->
                Parsing.error (r, ("Cannot bind postfix identifier " ^ name)))
-      | Cons ((L.UNDERSCORE, r), s') -> parseDec1 (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseDec1 (None, (LS.expose s'))
       | Cons ((L.EOF, r), s') ->
           Parsing.error (r, "Unexpected end of stream in declaration")
       | Cons ((t, r), s') ->
@@ -316,9 +316,9 @@ module ParseTerm(ParseTerm:sig
     let rec parseDec1 =
       function
       | (x, Cons ((L.COLON, r), s')) ->
-          let (tm, f'') = parseExp (s', nil) in ((x, (SOME tm)), f'')
-      | (x, (Cons ((L.RBRACE, _), _) as f)) -> ((x, NONE), f)
-      | (x, (Cons ((L.RBRACKET, _), _) as f)) -> ((x, NONE), f)
+          let (tm, f'') = parseExp (s', nil) in ((x, (Some tm)), f'')
+      | (x, (Cons ((L.RBRACE, _), _) as f)) -> ((x, None), f)
+      | (x, (Cons ((L.RBRACKET, _), _) as f)) -> ((x, None), f)
       | (x, Cons ((t, r), s')) ->
           Parsing.error
             (r,
@@ -335,8 +335,8 @@ module ParseTerm(ParseTerm:sig
       | (r0, ((x, yOpt), Cons ((L.RBRACE, r), s)), p) ->
           let dec =
             match yOpt with
-            | NONE -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
-            | SOME y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
+            | None -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
+            | Some y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
           let (tm, f') = parseExp (s, nil) in
           parseExp' (f', (P.shiftAtom ((ExtSyn.pi (dec, tm)), p)))
       | (r0, (_, Cons ((_, r), s)), p) ->
@@ -346,8 +346,8 @@ module ParseTerm(ParseTerm:sig
       | (r0, ((x, yOpt), Cons ((L.RBRACKET, r), s)), p) ->
           let dec =
             match yOpt with
-            | NONE -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
-            | SOME y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
+            | None -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
+            | Some y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
           let (tm, f') = parseExp (s, nil) in
           parseExp' (f', (P.shiftAtom ((ExtSyn.lam (dec, tm)), p)))
       | (r0, (dec, Cons ((_, r), s)), p) ->
@@ -362,8 +362,8 @@ module ParseTerm(ParseTerm:sig
       let (f'', r2) = stripRBrace f' in
       let d =
         match yOpt with
-        | NONE -> ExtSyn.dec0 (x, (Paths.join (r, r2)))
-        | SOME y -> ExtSyn.dec (x, y, (Paths.join (r, r2))) in
+        | None -> ExtSyn.dec0 (x, (Paths.join (r, r2)))
+        | Some y -> ExtSyn.dec (x, y, (Paths.join (r, r2))) in
       (d, f'')
     let rec parseCtx =
       function
@@ -444,7 +444,7 @@ module ParseTerm(ParseTerm:sig
     (* for some reason, there's no dot after %define decls -kw *)
     (* possible error recovery: insert DOT *)
     (* cannot happen at present *)
-    (* Parses contexts of the form  G ::= {id:term} | G, {id:term} *)
+    (* Parses contexts of the form  __g ::= {id:term} | __g, {id:term} *)
     (* parseDec "{id:term} | {id}" *)
     (* parseCtx (b, ds, f) = ds'
        if   f is a stream "{x1:V1}...{xn:Vn} s"

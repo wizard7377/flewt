@@ -37,11 +37,11 @@ module ModeDec() : MODEDEC =
     let rec checkName =
       function
       | M.Mnil -> ()
-      | Mapp (Marg (_, SOME name), mS) ->
+      | Mapp (Marg (_, Some name), mS) ->
           let rec checkName' =
             function
             | M.Mnil -> ()
-            | Mapp (Marg (_, SOME name'), mS) ->
+            | Mapp (Marg (_, Some name'), mS) ->
                 if name = name'
                 then
                   raise
@@ -60,10 +60,10 @@ module ModeDec() : MODEDEC =
       | _ -> true__
     let rec empty =
       function
-      | (0, ms, V) -> (ms, V)
-      | (k, ms, Pi (_, V)) ->
+      | (0, ms, __v) -> (ms, __v)
+      | (k, ms, Pi (_, __v)) ->
           empty
-            ((k - 1), (I.Decl (ms, ((M.Marg (M.Star, NONE)), Implicit))), V)
+            ((k - 1), (I.Decl (ms, ((M.Marg (M.Star, None)), Implicit))), __v)
     let rec inferVar =
       function
       | (Decl (ms, (Marg (M.Star, nameOpt), Implicit)), mode, 1) ->
@@ -74,7 +74,7 @@ module ModeDec() : MODEDEC =
           I.Decl (ms, ((M.Marg (M.Minus1, nameOpt)), Implicit))
       | ((Decl (_, (_, Implicit)) as ms), _, 1) -> ms
       | ((Decl (_, (_, Local)) as ms), _, 1) -> ms
-      | ((Decl (_, (Marg (mode', SOME name), Explicit)) as ms), mode, 1) ->
+      | ((Decl (_, (Marg (mode', Some name), Explicit)) as ms), mode, 1) ->
           if modeConsistent (mode', mode)
           then ms
           else
@@ -92,25 +92,25 @@ module ModeDec() : MODEDEC =
       | (ms, mode, Root (Def cid, S)) -> inferSpine (ms, mode, S)
       | (ms, mode, Root (FgnConst (cs, conDec), S)) ->
           inferSpine (ms, mode, S)
-      | (ms, mode, Lam ((Dec (nameOpt, _) as D), U)) ->
+      | (ms, mode, Lam ((Dec (nameOpt, _) as __d), __u)) ->
           I.ctxPop
             (inferExp
                ((I.Decl
-                   ((inferDec (ms, mode, D)),
-                     ((M.Marg (mode, nameOpt)), Local))), mode, U))
-      | (ms, mode, Pi (((Dec (nameOpt, _) as D), _), V)) ->
+                   ((inferDec (ms, mode, __d)),
+                     ((M.Marg (mode, nameOpt)), Local))), mode, __u))
+      | (ms, mode, Pi (((Dec (nameOpt, _) as __d), _), __v)) ->
           I.ctxPop
             (inferExp
                ((I.Decl
-                   ((inferDec (ms, mode, D)),
-                     ((M.Marg (mode, nameOpt)), Local))), mode, V))
+                   ((inferDec (ms, mode, __d)),
+                     ((M.Marg (mode, nameOpt)), Local))), mode, __v))
       | (ms, mode, FgnExp _) -> ms
     let rec inferSpine =
       function
       | (ms, mode, I.Nil) -> ms
-      | (ms, mode, App (U, S)) ->
-          inferSpine ((inferExp (ms, mode, U)), mode, S)
-    let rec inferDec (ms, mode, Dec (_, V)) = inferExp (ms, mode, V)
+      | (ms, mode, App (__u, S)) ->
+          inferSpine ((inferExp (ms, mode, __u)), mode, S)
+    let rec inferDec (ms, mode, Dec (_, __v)) = inferExp (ms, mode, __v)
     let rec inferMode =
       function
       | ((ms, Uni (I.Type)), M.Mnil) -> ms
@@ -134,18 +134,18 @@ module ModeDec() : MODEDEC =
     let rec shortToFull (a, mS, r) =
       let rec calcImplicit' =
         function
-        | ConDec (_, _, k, _, V, _) ->
-            abstractMode ((inferMode ((empty (k, I.Null, V)), mS)), mS)
-        | ConDef (_, _, k, _, V, _, _) ->
-            abstractMode ((inferMode ((empty (k, I.Null, V)), mS)), mS) in
+        | ConDec (_, _, k, _, __v, _) ->
+            abstractMode ((inferMode ((empty (k, I.Null, __v)), mS)), mS)
+        | ConDef (_, _, k, _, __v, _, _) ->
+            abstractMode ((inferMode ((empty (k, I.Null, __v)), mS)), mS) in
       try checkName mS; calcImplicit' (I.sgnLookup a)
       with | Error msg -> error (r, msg)
     let rec checkFull (a, mS, r) =
       try
         checkName mS;
         (match I.sgnLookup a with
-         | ConDec (_, _, _, _, V, _) -> (inferMode ((I.Null, V), mS); ())
-         | ConDef (_, _, _, _, V, _, _) -> (inferMode ((I.Null, V), mS); ()))
+         | ConDec (_, _, _, _, __v, _) -> (inferMode ((I.Null, __v), mS); ())
+         | ConDef (_, _, _, _, __v, _, _) -> (inferMode ((I.Null, __v), mS); ()))
       with | Error msg -> error (r, msg)
     let rec checkPure =
       function
@@ -161,8 +161,8 @@ module ModeDec() : MODEDEC =
 
        M ::= . | M, <Marg, Arg>
 
-       G corresponds to a context. We say M is a mode list for U, if
-       G |- U : V and M assigns modes to parameters in G
+       __g corresponds to a context. We say M is a mode list for __u, if
+       __g |- __u : __v and M assigns modes to parameters in __g
          (and similarly for all other syntactic categories)
 
        The main function of this module is to
@@ -173,15 +173,15 @@ module ModeDec() : MODEDEC =
 
          a : type.
          b : a -> a -> type.
-         c : b X X -> b X Y -> type.
+         c : b x x -> b x y -> type.
 
        Then
 
          %mode c +M -N.
 
-       will infer X to be input and Y to be output
+       will infer x to be input and y to be output
 
-         %mode +{X:a} -{Y:a} +{M:b X Y} -{N:b X Y} (c M N).
+         %mode +{x:a} -{y:a} +{M:b x y} -{N:b x y} (c M N).
 
        Generally, it is inconsistent
        for an unspecified ( * ) or output (-) argument to occur
@@ -196,13 +196,13 @@ module ModeDec() : MODEDEC =
     *)
     (* modeConsistent (m1, m2) = true
        iff it is consistent for a variable x with mode m1
-           to occur as an index object in the type of a variable y:V(x) with mode m2
+           to occur as an index object in the type of a variable y:__v(x) with mode m2
 
        m1\m2 + * - -1
-        +    Y Y Y Y
+        +    y y y y
         *    N y n n
-        -    N y Y n
-        -1   N Y Y Y
+        -    N y y n
+        -1   N y y y
 
        The entries y,n constitute a bug fix, Wed Aug 20 11:50:27 2003 -fp
        The entry n specifies that the type
@@ -213,13 +213,13 @@ module ModeDec() : MODEDEC =
     (* m1 should be M.Plus *)
     (* m1 should be M.Minus1 *)
     (* m1 should be M.Plus *)
-    (* empty (k, ms, V) = (ms', V')
+    (* empty (k, ms, __v) = (ms', __v')
 
        Invariant:
-       If    V = {A_1} .. {A_n} V1   in Sigma
-       and   V has k implicit arguments
-       then  ms' = ms, <( *, NONE), Implicit>  ... <( *, NONE), Implicit>   (k times)
-       and   V' = V1
+       If    __v = {A_1} .. {A_n} V1   in Sigma
+       and   __v has k implicit arguments
+       then  ms' = ms, <( *, None), Implicit>  ... <( *, None), Implicit>   (k times)
+       and   __v' = V1
     *)
     (* inferVar (ms, m, k) = ms'
 
@@ -240,12 +240,12 @@ module ModeDec() : MODEDEC =
         Effect: if the mode mk for k was explicitly declared and inconsistent
                 with m o mk, an error is raised
     *)
-    (* inferExp (ms, m, U) = ms'
+    (* inferExp (ms, m, __u) = ms'
 
        Invariant:
-       If  ms is a mode list for U,   (U in nf)
+       If  ms is a mode list for __u,   (__u in nf)
        and m is a mode
-       then ms' is the mode list consistently updated for all parameters occurring in U,
+       then ms' is the mode list consistently updated for all parameters occurring in __u,
          wrt. to m. (see inferVar)
     *)
     (* cannot make any assumptions on what is inside a foreign object *)
@@ -257,26 +257,26 @@ module ModeDec() : MODEDEC =
        then ms' is the mode list consistently updated for all parameters occurring in S,
          wrt. to m. (see inferVar)
     *)
-    (* inferDec (ms, m, x:V) = ms'
+    (* inferDec (ms, m, x:__v) = ms'
 
        Invariant:
-       If  ms is a mode list for V,   (V in nf)
+       If  ms is a mode list for __v,   (__v in nf)
        and m is a mode
-       then ms' is the mode list consistently updated for all parameters occurring in V,
+       then ms' is the mode list consistently updated for all parameters occurring in __v,
          wrt. to m.   (see inferVar)
     *)
-    (* inferMode ((ms, V), mS) = ms'
+    (* inferMode ((ms, __v), mS) = ms'
 
        Invariant:
-       If  ms is a mode list for V,
+       If  ms is a mode list for __v,
        and mS is a mode spine,
-       then ms' is the mode list for V which is consistent with V.
+       then ms' is the mode list for __v which is consistent with V.
     *)
     (* abstractMode (ms, mS) = mS'
 
        Invariant:
-       If    V = {A1} .. {An} V1  is a type (with n implicit parameter)
-       and   ms is a mode list for V,
+       If    __v = {A1} .. {An} V1  is a type (with n implicit parameter)
+       and   ms is a mode list for __v,
        then  mS' = {m1} .. {mn} mS
        where m1 .. mn are the infered modes for the implicit parameters
     *)

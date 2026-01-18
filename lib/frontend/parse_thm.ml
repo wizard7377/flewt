@@ -40,7 +40,7 @@ module ParseThm(ParseThm:sig
   struct
     (*! structure Parsing = Parsing' !*)
     module ThmExtSyn = ThmExtSyn'
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     module E = ThmExtSyn
     module P = Paths
@@ -56,21 +56,21 @@ module ParseThm(ParseThm:sig
     let rec decideRBrace =
       function
       | (r0, (orders, Cons ((L.RBRACE, r), s'))) ->
-          ((SOME (E.lex (r0, orders))), (LS.expose s'))
+          ((Some (E.lex (r0, orders))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
           Parsing.error
             ((P.join (r0, r)), ((^) "Expected `}', found " L.toString t))
     let rec decideRBracket =
       function
       | (r0, (orders, Cons ((L.RBRACKET, r), s'))) ->
-          ((SOME (E.simul (r0, orders))), (LS.expose s'))
+          ((Some (E.simul (r0, orders))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
           Parsing.error
             ((P.join (r0, r)), ((^) "Expected `]', found " L.toString t))
     let rec decideRParen =
       function
       | (r0, (ids, Cons ((L.RPAREN, r), s'))) ->
-          ((SOME (E.varg (r, ids))), (LS.expose s'))
+          ((Some (E.varg (r, ids))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
           Parsing.error
             ((P.join (r0, r)), ((^) "Expected `)', found " L.toString t))
@@ -86,12 +86,12 @@ module ParseThm(ParseThm:sig
       function
       | Cons ((ID (L.Upper, id), r), s') ->
           let (idOpts, f') = parseArgPat (LS.expose s') in
-          (((SOME id) :: idOpts), f')
+          (((Some id) :: idOpts), f')
       | Cons ((ID (_, id), r), s') ->
           Parsing.error (r, ("Expected upper case identifier, found " ^ id))
       | Cons ((L.UNDERSCORE, r), s') ->
           let (idOpts, f') = parseArgPat (LS.expose s') in
-          ((NONE :: idOpts), f')
+          ((None :: idOpts), f')
       | f -> (nil, f)
     let rec parseCallPat =
       function
@@ -121,19 +121,19 @@ module ParseThm(ParseThm:sig
       | Cons ((L.LBRACKET, r), s') ->
           decideRBracket (r, (parseOrders (LS.expose s')))
       | Cons ((ID (L.Upper, id), r), s') ->
-          ((SOME (E.varg (r, [id]))), (LS.expose s'))
-      | Cons (_, s') as f -> (NONE, f)
+          ((Some (E.varg (r, [id]))), (LS.expose s'))
+      | Cons (_, s') as f -> (None, f)
     let rec parseOrders f = parseOrders' (parseOrderOpt f)
     let rec parseOrders' =
       function
-      | (SOME order, f') ->
+      | (Some order, f') ->
           let (orders, f'') = parseOrders f' in ((order :: orders), f'')
-      | (NONE, f') -> (nil, f')
+      | (None, f') -> (nil, f')
     let rec parseOrder f = parseOrder' (parseOrderOpt f)
     let rec parseOrder' =
       function
-      | (SOME order, f') -> (order, f')
-      | (NONE, Cons ((t, r), s')) ->
+      | (Some order, f') -> (order, f')
+      | (None, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected order, found " L.toString t))
     let rec parseTDecl f =
       let (order, f') = parseOrder f in
@@ -176,8 +176,8 @@ module ParseThm(ParseThm:sig
       let (f'', r2) = stripRBrace f' in
       let dec =
         match yOpt with
-        | NONE -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
-        | SOME y -> E.ExtSyn.dec (x, y, (P.join (r, r2))) in
+        | None -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
+        | Some y -> E.ExtSyn.dec (x, y, (P.join (r, r2))) in
       (dec, f'')
     let rec parseDecs' =
       function
@@ -357,7 +357,7 @@ module ParseThm(ParseThm:sig
                | {order ... order}  lexicgraphic order
                | [order ... order]  simultaneous order
     *)
-    (* parseOrderOpt (f) = (SOME(order), f') or (NONE, f) *)
+    (* parseOrderOpt (f) = (Some(order), f') or (None, f) *)
     (* returns an optional order and front of remaining stream *)
     (* parseOrders (f) = ([order1,...,ordern], f') *)
     (* returns a sequence of orders and remaining front of stream *)

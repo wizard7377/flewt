@@ -36,28 +36,28 @@ module Skolem(Skolem:sig
     exception Error of string 
     module I = IntSyn
     module M = ModeSyn
-    let rec installSkolem (name, imp, (V, mS), L) =
+    let rec installSkolem (name, imp, (__v, mS), __l) =
       let rec spine =
         function
         | 0 -> I.Nil
         | n -> I.App ((I.Root ((I.BVar n), I.Nil)), (spine (n - 1))) in
       let rec installSkolem' =
         function
-        | (d, (Pi ((D, DP), V), mS), s, k) ->
+        | (d, (Pi ((__d, DP), __v), mS), s, k) ->
             (match mS with
              | Mapp (Marg (M.Plus, _), mS') ->
                  installSkolem'
-                   ((d + 1), (V, mS'), (I.dot1 s),
+                   ((d + 1), (__v, mS'), (I.dot1 s),
                      (function
-                      | V ->
+                      | __v ->
                           k
                             (Abstract.piDepend
-                               (((Whnf.normalizeDec (D, s)), I.Meta), V))))
+                               (((Whnf.normalizeDec (__d, s)), I.Meta), __v))))
              | Mapp (Marg (M.Minus, _), mS') ->
-                 let Dec (_, V') = D in
-                 let V'' = k (Whnf.normalize (V', s)) in
+                 let Dec (_, __v') = __d in
+                 let __v'' = k (Whnf.normalize (__v', s)) in
                  let name' = Names.skonstName (name ^ "#") in
-                 let SD = I.SkoDec (name', NONE, imp, V'', L) in
+                 let SD = I.SkoDec (name', None, imp, __v'', __l) in
                  let sk = I.sgnAdd SD in
                  let H = I.Skonst sk in
                  let _ = IndexSkolem.install I.Ordinary H in
@@ -70,24 +70,24 @@ module Skolem(Skolem:sig
                    then TextIO.print ((Print.conDecToString SD) ^ "\n")
                    else () in
                  installSkolem'
-                   (d, (V, mS'), (I.Dot ((I.Exp (I.Root (H, S))), s)), k))
+                   (d, (__v, mS'), (I.Dot ((I.Exp (I.Root (H, S))), s)), k))
         | (_, (Uni _, M.Mnil), _, _) -> () in
-      installSkolem' (0, (V, mS), I.id, (function | V -> V))
+      installSkolem' (0, (__v, mS), I.id, (function | __v -> __v))
     let rec install =
       function
       | nil -> ()
       | a::aL ->
-          let ConDec (name, _, imp, _, V, L) = I.sgnLookup a in
-          let SOME mS = ModeTable.modeLookup a in
-          let _ = installSkolem (name, imp, (V, mS), I.Type) in install aL
+          let ConDec (name, _, imp, _, __v, __l) = I.sgnLookup a in
+          let Some mS = ModeTable.modeLookup a in
+          let _ = installSkolem (name, imp, (__v, mS), I.Type) in install aL
     (*! structure CompSyn = Compile.CompSyn !*)
-    (* installSkolem (name, k, (V, mS), L) =
+    (* installSkolem (name, k, (__v, mS), __l) =
 
        Invariant:
             name is the name of a theorem
        and  imp is the number of implicit arguments
-       and  V is its term together with the mode assignment mS
-       and  L is the level of the declaration
+       and  __v is its term together with the mode assignment mS
+       and  __l is the level of the declaration
 
        Effects: New Skolem constants are generated, named, and indexed
     *)
@@ -96,23 +96,23 @@ module Skolem(Skolem:sig
            Invariant:
            S' = n; n-1; ... 1; Nil
         *)
-    (* installSkolem' ((V, mS), s, k) = ()
+    (* installSkolem' ((__v, mS), s, k) = ()
 
            Invariant:
-                G |- V : type
-           and  G' |- s : G
-           and  |G'| = d
-           and  k is a continuation, mapping a type G' |- V' type
-                to . |- {{G'}} V'
+                __g |- __v : type
+           and  __g' |- s : __g
+           and  |__g'| = d
+           and  k is a continuation, mapping a type __g' |- __v' type
+                to . |- {{__g'}} __v'
 
            Effects: New Skolem constants are generated, named, and indexed
         *)
-    (*                                  fn V => k (I.Pi ((Whnf.normalizeDec (D, s), DP), V))) *)
+    (*                                  fn __v => k (I.Pi ((Whnf.normalizeDec (__d, s), DP), __v))) *)
     (*                  val CompSyn.SClause r = CompSyn.sProgLookup sk *)
-    (* install L = ()
+    (* install __l = ()
 
        Invariant:
-           L is a list of a's (mututal inductive theorems)
+           __l is a list of a's (mututal inductive theorems)
            which have an associated mode declaration
 
        Effect: Skolem constants for all theorems are generated, named, and indexed

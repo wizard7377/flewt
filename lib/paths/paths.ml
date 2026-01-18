@@ -67,19 +67,19 @@ module type PATHS  =
     type nonrec occConDec
     (* occurrence tree for constant declarations *)
     val dec : (int * occExp) -> occConDec
-    (* (#implicit, v) in c : V *)
+    (* (#implicit, v) in c : __v *)
     val def : (int * occExp * occExp option) -> occConDec
-    (* (#implicit, u, v) in c : V = U *)
+    (* (#implicit, u, v) in c : __v = __u *)
     val toRegion : occExp -> region
     val toRegionSpine : (occSpine * region) -> region
     val posToPath : occExp -> int -> __Path
     val occToRegionExp : occExp -> occ -> region
     val occToRegionDec : occConDec -> occ -> region
-    (* into v for c : V *)
+    (* into v for c : __v *)
     val occToRegionDef1 : occConDec -> occ -> region
-    (* into u for c : V = U *)
+    (* into u for c : __v = __u *)
     val occToRegionDef2 : occConDec -> occ -> region
-    (* into v for c : V = U *)
+    (* into v for c : __v = __u *)
     val occToRegionClause : occConDec -> occ -> region
   end;;
 
@@ -122,15 +122,15 @@ module Paths() : PATHS =
         ^ msg
     let rec wrapLoc' =
       function
-      | (Loc (filename, Reg (i, j)), SOME linesInfo, msg) ->
+      | (Loc (filename, Reg (i, j)), Some linesInfo, msg) ->
           let lcfrom = posToLineCol' (linesInfo, i) in
           let lcto = posToLineCol' (linesInfo, j) in
           let regString =
             (^) ((lineColToString lcfrom) ^ "-") lineColToString lcto in
           ((((filename ^ ":") ^ regString) ^ " ") ^ "Error: \n") ^ msg
-      | (loc, NONE, msg) -> wrapLoc0 (loc, msg)
+      | (loc, None, msg) -> wrapLoc0 (loc, msg)
     let rec wrapLoc (loc, msg) =
-      wrapLoc' (loc, (SOME (getLinesInfo ())), msg)
+      wrapLoc' (loc, (Some (getLinesInfo ())), msg)
     type __Path =
       | Label of __Path 
       | Body of __Path 
@@ -138,66 +138,66 @@ module Paths() : PATHS =
       | Arg of (int * __Path) 
       | Here 
     type occ =
-      | top [@sml.renamed "top"][@sml.renamed "top"]
-      | label of occ [@sml.renamed "label"][@sml.renamed "label"]
-      | body of occ [@sml.renamed "body"][@sml.renamed "body"]
-      | head of occ [@sml.renamed "head"][@sml.renamed "head"]
-      | arg of (int * occ) [@sml.renamed "arg"][@sml.renamed "arg"]
+      | Top [@sml.renamed "top"]
+      | Label of occ [@sml.renamed "label"]
+      | Body of occ [@sml.renamed "body"]
+      | Head of occ [@sml.renamed "head"]
+      | Arg of (int * occ) [@sml.renamed "arg"]
     type occExp =
-      | leaf of region [@sml.renamed "leaf"][@sml.renamed "leaf"]
-      | bind of (region * occExp option * occExp)
-      [@sml.renamed "bind"][@sml.renamed "bind"]
-      | root of (region * occExp * int * int * occSpine)
-      [@sml.renamed "root"][@sml.renamed "root"]
+      | Leaf of region [@sml.renamed "leaf"]
+      | Bind of (region * occExp option * occExp)
+      [@sml.renamed "bind"]
+      | Root of (region * occExp * int * int * occSpine)
+      [@sml.renamed "root"]
     and occSpine =
-      | app of (occExp * occSpine) [@sml.renamed "app"][@sml.renamed "app"]
-      | nils [@sml.renamed "nils"][@sml.renamed "nils"]
+      | App of (occExp * occSpine) [@sml.renamed "app"]
+      | Nils [@sml.renamed "nils"]
     let rec occToPath =
       function
-      | (top, path) -> path
-      | (label occ, path) -> occToPath (occ, (Label path))
-      | (body occ, path) -> occToPath (occ, (Body path))
-      | (head occ, path) -> occToPath (occ, Head)
-      | (arg (n, occ), path) -> occToPath (occ, (Arg (n, path)))
+      | (Top, path) -> path
+      | (Label occ, path) -> occToPath (occ, (Label path))
+      | (Body occ, path) -> occToPath (occ, (Body path))
+      | (Head occ, path) -> occToPath (occ, Head)
+      | (Arg (n, occ), path) -> occToPath (occ, (Arg (n, path)))
     type occConDec =
-      | dec of (int * occExp) [@sml.renamed "dec"][@sml.renamed "dec"]
-      | def of (int * occExp * occExp option)
-      [@sml.renamed "def"][@sml.renamed "def"]
+      | Dec of (int * occExp) [@sml.renamed "dec"]
+      | Def of (int * occExp * occExp option)
+      [@sml.renamed "def"]
     let rec posToPath u k =
       let rec inside =
         function
-        | leaf r -> posInRegion (k, r)
-        | bind (r, _, _) -> posInRegion (k, r)
-        | root (r, _, _, _, _) -> posInRegion (k, r) in
+        | Leaf r -> posInRegion (k, r)
+        | Bind (r, _, _) -> posInRegion (k, r)
+        | Root (r, _, _, _, _) -> posInRegion (k, r) in
       let rec toPath =
         function
-        | leaf (Reg (i, j)) -> Here
-        | bind (Reg (i, j), NONE, u) ->
+        | Leaf (Reg (i, j)) -> Here
+        | Bind (Reg (i, j), None, u) ->
             if inside u then Body (toPath u) else Here
-        | bind (Reg (i, j), SOME u1, u2) ->
+        | Bind (Reg (i, j), Some u1, u2) ->
             if inside u1
             then Label (toPath u1)
             else if inside u2 then Body (toPath u2) else Here
-        | root (Reg (i, j), h, imp, actual, s) ->
+        | Root (Reg (i, j), h, imp, actual, s) ->
             if inside h
             then Head
             else
               (match toPathSpine (s, 1) with
-               | NONE -> Here
-               | SOME (n, path) -> Arg ((n + imp), path))
+               | None -> Here
+               | Some (n, path) -> Arg ((n + imp), path))
       and toPathSpine =
         function
-        | (nils, n) -> NONE
+        | (nils, n) -> None
         | (app (u, s), n) ->
             if inside u
-            then SOME (n, (toPath u))
+            then Some (n, (toPath u))
             else toPathSpine (s, (n + 1)) in
       toPath u
     let rec toRegion =
       function
-      | leaf r -> r
-      | bind (r, _, _) -> r
-      | root (r, _, _, _, _) -> r
+      | Leaf r -> r
+      | Bind (r, _, _) -> r
+      | Root (r, _, _, _, _) -> r
     let rec toRegionSpine =
       function
       | (nils, r) -> r
@@ -205,8 +205,8 @@ module Paths() : PATHS =
     let rec pathToRegion =
       function
       | (u, Here) -> toRegion u
-      | (bind (r, NONE, u), Label path) -> r
-      | (bind (r, SOME u1, u2), Label path) -> pathToRegion (u1, path)
+      | (bind (r, None, u), Label path) -> r
+      | (bind (r, Some u1, u2), Label path) -> pathToRegion (u1, path)
       | (bind (r, _, u), Body path) -> pathToRegion (u, path)
       | (root (r, _, _, _, _), Label path) -> r
       | ((root _ as u), Body path) -> pathToRegion (u, path)
@@ -236,9 +236,9 @@ module Paths() : PATHS =
       pathToRegion (u, (skipImplicit (n, (occToPath (occ, Here)))))
     let rec occToRegionDef2 arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (def (n, u, SOME v), occ) ->
+      | (def (n, u, Some v), occ) ->
           pathToRegion (v, (skipImplicit (n, (occToPath (occ, Here)))))
-      | (def (n, u, NONE), occ) -> pathToRegion (u, Here)
+      | (def (n, u, None), occ) -> pathToRegion (u, Here)
     let rec occToRegionClause arg__0 arg__1 =
       match (arg__0, arg__1) with
       | ((dec _ as d), occ) -> occToRegionDec d occ
@@ -271,8 +271,8 @@ module Paths() : PATHS =
 (* Paths, occurrences and occurrence trees only work well for normal forms *)
 (* In the general case, regions only approximate true source location *)
 (* Follow path through a term to obtain subterm *)
-(* [x:#] U or {x:#} V *)
-(* [x:V] # or {x:V} # *)
+(* [x:#] __u or {x:#} __v *)
+(* [x:__v] # or {x:__v} # *)
 (* # @ S, term in normal form *)
 (* C @ S1; ...; #; ...; Sn; Nil *)
 (* #, covers Uni, EVar, Redex(?) *)
@@ -291,8 +291,8 @@ module Paths() : PATHS =
 (* occToPath (occ, p) = p'(p) and occ corresponds to p' *)
 (* path = Here by invariant *)
 (* occurrence tree for constant declarations *)
-(* (#implicit, v) in c : V *)
-(* (#implicit, u, v) in c : V = U *)
+(* (#implicit, v) in c : __v *)
+(* (#implicit, u, v) in c : __v = __u *)
 (* val posToPath : occExp -> pos -> Path *)
 (* posToPath (u, k) = p
      where p is the path to the innermost expression in u enclosing position i.
@@ -332,17 +332,17 @@ module Paths() : PATHS =
 (* addressing body including implicit arguments: approximate by body *)
 (* anything else should be impossible *)
 (* occToRegionDec d occ = r
-     where r is the closest region in v including occ for declaration c : V
+     where r is the closest region in v including occ for declaration c : __v
   *)
 (* occToRegionDef1 d occ = r
-     where r is the closest region in u including occ for declaration c : V = U
+     where r is the closest region in u including occ for declaration c : __v = __u
   *)
 (* occToRegionDef2 d occ = r
-     where r is the closest region in V including occ for declaration c : V = U
+     where r is the closest region in __v including occ for declaration c : __v = __u
   *)
 (* occToRegionClause d occ = r
-     where r is the closest region in V including occ for declaration
-     c : V or c : V = U.
+     where r is the closest region in __v including occ for declaration
+     c : __v or c : __v = U.
   *)
 (* functor Paths *)
 module Paths = (Make_Paths)(struct  end);;

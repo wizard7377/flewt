@@ -45,32 +45,32 @@ module RelFun(RelFun:sig
     let rec ctxSub =
       function
       | (I.Null, s) -> (I.Null, s)
-      | (Decl (G, D), s) ->
-          let (G', s') = ctxSub (G, s) in
-          ((I.Decl (G', (I.decSub (D, s')))), (I.dot1 s))
+      | (Decl (__g, __d), s) ->
+          let (__g', s') = ctxSub (__g, s) in
+          ((I.Decl (__g', (I.decSub (__d, s')))), (I.dot1 s))
     let rec convertOneFor cid =
-      let V =
+      let __v =
         match I.sgnLookup cid with
-        | ConDec (name, _, _, _, V, I.Kind) -> V
+        | ConDec (name, _, _, _, __v, I.Kind) -> __v
         | _ -> raise (Error "Type Constant declaration expected") in
       let mS =
         match ModeTable.modeLookup cid with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
       let rec convertFor' =
         function
-        | (Pi ((D, _), V), Mapp (Marg (M.Plus, _), mS), w1, w2, n) ->
-            let (F', F'') =
+        | (Pi ((__d, _), __v), Mapp (Marg (M.Plus, _), mS), w1, w2, n) ->
+            let (__F', __F'') =
               convertFor'
-                (V, mS, (I.dot1 w1), (I.Dot ((I.Idx n), w2)), (n - 1)) in
+                (__v, mS, (I.dot1 w1), (I.Dot ((I.Idx n), w2)), (n - 1)) in
             (((function
-               | F -> F.All ((F.Prim (Weaken.strengthenDec (D, w1))), (F' F)))),
-              F'')
-        | (Pi ((D, _), V), Mapp (Marg (M.Minus, _), mS), w1, w2, n) ->
-            let (F', F'') =
+               | F -> F.All ((F.Prim (Weaken.strengthenDec (__d, w1))), (__F' F)))),
+              __F'')
+        | (Pi ((__d, _), __v), Mapp (Marg (M.Minus, _), mS), w1, w2, n) ->
+            let (__F', __F'') =
               convertFor'
-                (V, mS, (I.comp (w1, I.shift)), (I.dot1 w2), (n + 1)) in
-            (F', (F.Ex ((I.decSub (D, w2)), F'')))
+                (__v, mS, (I.comp (w1, I.shift)), (I.dot1 w2), (n + 1)) in
+            (__F', (F.Ex ((I.decSub (__d, w2)), __F'')))
         | (Uni (I.Type), M.Mnil, _, _, _) -> (((function | F -> F)), F.True)
         | _ -> raise (Error "type family must be +/- moded") in
       let rec shiftPlus mS =
@@ -81,24 +81,24 @@ module RelFun(RelFun:sig
           | (Mapp (Marg (M.Minus, _), mS'), n) -> shiftPlus' (mS', n) in
         shiftPlus' (mS, 0) in
       let n = shiftPlus mS in
-      let (F, F') = convertFor' (V, mS, I.id, (I.Shift n), n) in F F'
+      let (F, __F') = convertFor' (__v, mS, I.id, (I.Shift n), n) in F __F'
     let rec convertFor =
       function
       | nil -> raise (Error "Empty theorem")
       | a::[] -> convertOneFor a
-      | a::L -> F.And ((convertOneFor a), (convertFor L))
+      | a::__l -> F.And ((convertOneFor a), (convertFor __l))
     let rec occursInExpN =
       function
       | (k, Uni _) -> false__
-      | (k, Pi (DP, V)) ->
-          (occursInDecP (k, DP)) || (occursInExpN ((k + 1), V))
+      | (k, Pi (DP, __v)) ->
+          (occursInDecP (k, DP)) || (occursInExpN ((k + 1), __v))
       | (k, Root (H, S)) -> (occursInHead (k, H)) || (occursInSpine (k, S))
-      | (k, Lam (D, V)) ->
-          (occursInDec (k, D)) || (occursInExpN ((k + 1), V))
+      | (k, Lam (__d, __v)) ->
+          (occursInDec (k, __d)) || (occursInExpN ((k + 1), __v))
       | (k, FgnExp csfe) ->
           I.FgnExpStd.fold csfe
             (function
-             | (U, B) -> B || (occursInExpN (k, (Whnf.normalize (U, I.id)))))
+             | (__u, B) -> B || (occursInExpN (k, (Whnf.normalize (__u, I.id)))))
             false__
     let rec occursInHead =
       function
@@ -109,10 +109,10 @@ module RelFun(RelFun:sig
     let rec occursInSpine =
       function
       | (_, I.Nil) -> false__
-      | (k, App (U, S)) -> (occursInExpN (k, U)) || (occursInSpine (k, S))
-    let rec occursInDec (k, Dec (_, V)) = occursInExpN (k, V)
-    let rec occursInDecP (k, (D, _)) = occursInDec (k, D)
-    let rec occursInExp (k, U) = occursInExpN (k, (Whnf.normalize (U, I.id)))
+      | (k, App (__u, S)) -> (occursInExpN (k, __u)) || (occursInSpine (k, S))
+    let rec occursInDec (k, Dec (_, __v)) = occursInExpN (k, __v)
+    let rec occursInDecP (k, (__d, _)) = occursInDec (k, __d)
+    let rec occursInExp (k, __u) = occursInExpN (k, (Whnf.normalize (__u, I.id)))
     let rec dot1inv w = Weaken.strengthenSub ((I.comp (I.shift, w)), I.shift)
     let rec shiftinv w = Weaken.strengthenSub (w, I.shift)
     let rec eqIdx = function | (Idx n, Idx k) -> n = k | _ -> false__
@@ -122,187 +122,187 @@ module RelFun(RelFun:sig
       function | (0, w) -> w | (n, w) -> peeln ((n - 1), (peel w))
     let rec domain =
       function
-      | (G, Dot (Idx _, s)) -> (domain (G, s)) + 1
+      | (__g, Dot (Idx _, s)) -> (domain (__g, s)) + 1
       | (I.Null, Shift 0) -> 0
-      | ((Decl _ as G), Shift 0) ->
-          domain (G, (I.Dot ((I.Idx 1), (I.Shift 1))))
-      | (Decl (G, _), Shift n) -> domain (G, (I.Shift (n - 1)))
+      | ((Decl _ as __g), Shift 0) ->
+          domain (__g, (I.Dot ((I.Idx 1), (I.Shift 1))))
+      | (Decl (__g, _), Shift n) -> domain (__g, (I.Shift (n - 1)))
     let rec strengthen (Psi, (a, S), w, m) =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
       let rec args =
         function
         | (I.Nil, M.Mnil) -> nil
-        | (App (U, S'), Mapp (Marg (m', _), mS)) ->
-            let L = args (S', mS) in
-            (match M.modeEqual (m, m') with | true__ -> U :: L | false__ -> L) in
+        | (App (__u, S'), Mapp (Marg (m', _), mS)) ->
+            let __l = args (S', mS) in
+            (match M.modeEqual (m, m') with | true__ -> __u :: __l | false__ -> __l) in
       let rec strengthenArgs =
         function
         | (nil, s) -> nil
-        | ((U)::L, s) ->
-            (::) (Weaken.strengthenExp (U, s)) strengthenArgs (L, s) in
+        | ((__u)::__l, s) ->
+            (::) (Weaken.strengthenExp (__u, s)) strengthenArgs (__l, s) in
       let rec occursInArgs =
         function
         | (n, nil) -> false__
-        | (n, (U)::L) -> (occursInExp (n, U)) || (occursInArgs (n, L)) in
+        | (n, (__u)::__l) -> (occursInExp (n, __u)) || (occursInArgs (n, __l)) in
       let rec occursInPsi =
         function
-        | (n, (nil, L)) -> occursInArgs (n, L)
-        | (n, ((Prim (Dec (_, V)))::Psi1, L)) ->
-            (occursInExp (n, V)) || (occursInPsi ((n + 1), (Psi1, L)))
-        | (n, ((Block (CtxBlock (l, G)))::Psi1, L)) ->
-            occursInG (n, G, (function | n' -> occursInPsi (n', (Psi1, L))))
+        | (n, (nil, __l)) -> occursInArgs (n, __l)
+        | (n, ((Prim (Dec (_, __v)))::Psi1, __l)) ->
+            (occursInExp (n, __v)) || (occursInPsi ((n + 1), (Psi1, __l)))
+        | (n, ((Block (CtxBlock (l, __g)))::Psi1, __l)) ->
+            occursInG (n, __g, (function | n' -> occursInPsi (n', (Psi1, __l))))
       and occursInG =
         function
         | (n, I.Null, k) -> k n
-        | (n, Decl (G, Dec (_, V)), k) ->
+        | (n, Decl (__g, Dec (_, __v)), k) ->
             occursInG
-              (n, G,
-                (function | n' -> (occursInExp (n', V)) || (k (n' + 1)))) in
-      let rec occursBlock (G, (Psi2, L)) =
+              (n, __g,
+                (function | n' -> (occursInExp (n', __v)) || (k (n' + 1)))) in
+      let rec occursBlock (__g, (Psi2, __l)) =
         let rec occursBlock =
           function
           | (I.Null, n) -> false__
-          | (Decl (G, D), n) ->
-              (occursInPsi (n, (Psi2, L))) || (occursBlock (G, (n + 1))) in
-        occursBlock (G, 1) in
+          | (Decl (__g, __d), n) ->
+              (occursInPsi (n, (Psi2, __l))) || (occursBlock (__g, (n + 1))) in
+        occursBlock (__g, 1) in
       let rec inBlock =
         function
         | (I.Null, (bw, w1)) -> (bw, w1)
-        | (Decl (G, D), (bw, w1)) ->
+        | (Decl (__g, __d), (bw, w1)) ->
             if eqIdx ((I.bvarSub (1, w1)), (I.Idx 1))
-            then inBlock (G, (true__, (dot1inv w1)))
-            else inBlock (G, (bw, (Weaken.strengthenSub (w1, I.shift)))) in
+            then inBlock (__g, (true__, (dot1inv w1)))
+            else inBlock (__g, (bw, (Weaken.strengthenSub (w1, I.shift)))) in
       let rec blockSub =
         function
         | (I.Null, w) -> (I.Null, w)
-        | (Decl (G, Dec (name, V)), w) ->
-            let (G', w') = blockSub (G, w) in
-            let V' = Weaken.strengthenExp (V, w') in
-            ((I.Decl (G', (I.Dec (name, V')))), (I.dot1 w')) in
+        | (Decl (__g, Dec (name, __v)), w) ->
+            let (__g', w') = blockSub (__g, w) in
+            let __v' = Weaken.strengthenExp (__v, w') in
+            ((I.Decl (__g', (I.Dec (name, __v')))), (I.dot1 w')) in
       let rec strengthen' =
         function
-        | (I.Null, Psi2, L, w1) -> (I.Null, I.id)
-        | (Decl (Psi1, (Prim (Dec (name, V)) as LD)), Psi2, L, w1) ->
+        | (I.Null, Psi2, __l, w1) -> (I.Null, I.id)
+        | (Decl (Psi1, (Prim (Dec (name, __v)) as LD)), Psi2, __l, w1) ->
             let (bw, w1') =
               if eqIdx ((I.bvarSub (1, w1)), (I.Idx 1))
               then (true__, (dot1inv w1))
               else (false__, (Weaken.strengthenSub (w1, I.shift))) in
-            if bw || (occursInPsi (1, (Psi2, L)))
+            if bw || (occursInPsi (1, (Psi2, __l)))
             then
-              let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), L, w1') in
-              let V' = Weaken.strengthenExp (V, w') in
-              ((I.Decl (Psi1', (F.Prim (I.Dec (name, V'))))), (I.dot1 w'))
+              let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), __l, w1') in
+              let __v' = Weaken.strengthenExp (__v, w') in
+              ((I.Decl (Psi1', (F.Prim (I.Dec (name, __v'))))), (I.dot1 w'))
             else
               (let w2 = I.shift in
                let (Psi2', w2') = FunWeaken.strengthenPsi' (Psi2, w2) in
-               let L' = strengthenArgs (L, w2') in
-               let (Psi1'', w') = strengthen' (Psi1, Psi2', L', w1') in
+               let __l' = strengthenArgs (__l, w2') in
+               let (Psi1'', w') = strengthen' (Psi1, Psi2', __l', w1') in
                (Psi1'', (I.comp (w', I.shift))))
-        | (Decl (Psi1, (Block (CtxBlock (name, G)) as LD)), Psi2, L, w1) ->
-            let (bw, w1') = inBlock (G, (false__, w1)) in
-            if bw || (occursBlock (G, (Psi2, L)))
+        | (Decl (Psi1, (Block (CtxBlock (name, __g)) as LD)), Psi2, __l, w1) ->
+            let (bw, w1') = inBlock (__g, (false__, w1)) in
+            if bw || (occursBlock (__g, (Psi2, __l)))
             then
-              let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), L, w1') in
-              let (G'', w'') = blockSub (G, w') in
-              ((I.Decl (Psi1', (F.Block (F.CtxBlock (name, G''))))), w'')
+              let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), __l, w1') in
+              let (__g'', w'') = blockSub (__g, w') in
+              ((I.Decl (Psi1', (F.Block (F.CtxBlock (name, __g''))))), w'')
             else
-              (let w2 = I.Shift (I.ctxLength G) in
+              (let w2 = I.Shift (I.ctxLength __g) in
                let (Psi2', w2') = FunWeaken.strengthenPsi' (Psi2, w2) in
-               let L' = strengthenArgs (L, w2') in
-               strengthen' (Psi1, Psi2', L', w1')) in
+               let __l' = strengthenArgs (__l, w2') in
+               strengthen' (Psi1, Psi2', __l', w1')) in
       strengthen' (Psi, nil, (args (S, mS)), w)
-    let rec recursion (L) =
-      let F = convertFor L in
+    let rec recursion (__l) =
+      let F = convertFor __l in
       let rec name =
         function
         | a::[] -> I.conDecName (I.sgnLookup a)
-        | a::L -> ((I.conDecName (I.sgnLookup a)) ^ "/") ^ (name L) in
-      function | p -> F.Rec ((F.MDec ((SOME (name L)), F)), p)
+        | a::__l -> ((I.conDecName (I.sgnLookup a)) ^ "/") ^ (name __l) in
+      function | p -> F.Rec ((F.MDec ((Some (name __l)), F)), p)
     let rec abstract a =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
-      let V =
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
+      let __v =
         match I.sgnLookup a with
-        | ConDec (name, _, _, _, V, I.Kind) -> V
+        | ConDec (name, _, _, _, __v, I.Kind) -> __v
         | _ -> raise (Error "Type Constant declaration expected") in
       let rec abstract' =
         function
         | ((_, M.Mnil), w) -> (function | p -> p)
-        | ((Pi ((D, _), V2), Mapp (Marg (M.Plus, _), mS)), w) ->
-            let D' = Weaken.strengthenDec (D, w) in
+        | ((Pi ((__d, _), V2), Mapp (Marg (M.Plus, _), mS)), w) ->
+            let __d' = Weaken.strengthenDec (__d, w) in
             let P = abstract' ((V2, mS), (I.dot1 w)) in
-            (function | p -> F.Lam ((F.Prim D'), (P p)))
+            (function | p -> F.Lam ((F.Prim __d'), (P p)))
         | ((Pi (_, V2), Mapp (Marg (M.Minus, _), mS)), w) ->
             abstract' ((V2, mS), (I.comp (w, I.shift))) in
-      abstract' ((V, mS), I.id)
+      abstract' ((__v, mS), I.id)
     let rec transformInit (Psi, (a, S), w1) =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
-      let V =
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
+      let __v =
         match I.sgnLookup a with
-        | ConDec (name, _, _, _, V, I.Kind) -> V
+        | ConDec (name, _, _, _, __v, I.Kind) -> __v
         | _ -> raise (Error "Type Constant declaration expected") in
       let rec transformInit' =
         function
         | ((I.Nil, M.Mnil), Uni (I.Type), (w, s)) -> (w, s)
-        | ((App (U, S), Mapp (Marg (M.Minus, _), mS)), Pi (_, V2), (w, s)) ->
+        | ((App (__u, S), Mapp (Marg (M.Minus, _), mS)), Pi (_, V2), (w, s)) ->
             let w' = I.comp (w, I.shift) in
             let s' = s in transformInit' ((S, mS), V2, (w', s'))
-        | ((App (U, S), Mapp (Marg (M.Plus, _), mS)), Pi
+        | ((App (__u, S), Mapp (Marg (M.Plus, _), mS)), Pi
            ((Dec (name, V1), _), V2), (w, s)) ->
             let V1' = Weaken.strengthenExp (V1, w) in
             let w' = I.dot1 w in
-            let U' = Weaken.strengthenExp (U, w1) in
-            let s' = Whnf.dotEta ((I.Exp U'), s) in
+            let __u' = Weaken.strengthenExp (__u, w1) in
+            let s' = Whnf.dotEta ((I.Exp __u'), s) in
             transformInit' ((S, mS), V2, (w', s')) in
-      transformInit' ((S, mS), V, (I.id, (I.Shift (F.lfctxLength Psi))))
-    let rec transformDec (Ts, (Psi, G0), d, (a, S), w1, w2, t0) =
+      transformInit' ((S, mS), __v, (I.id, (I.Shift (F.lfctxLength Psi))))
+    let rec transformDec (__Ts, (Psi, G0), d, (a, S), w1, w2, t0) =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
-      let V =
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
+      let __v =
         match I.sgnLookup a with
-        | ConDec (name, _, _, _, V, I.Kind) -> V
+        | ConDec (name, _, _, _, __v, I.Kind) -> __v
         | _ -> raise (Error "Type Constant declaration expected") in
-      let rec raiseExp (G, U, a) =
+      let rec raiseExp (__g, __u, a) =
         let rec raiseExp' =
           function
           | I.Null -> (I.id, ((function | x -> x)))
-          | Decl (G, (Dec (_, V) as D)) ->
-              let (w, k) = raiseExp' G in
-              if Subordinate.belowEq ((I.targetFam V), a)
+          | Decl (__g, (Dec (_, __v) as __d)) ->
+              let (w, k) = raiseExp' __g in
+              if Subordinate.belowEq ((I.targetFam __v), a)
               then
                 ((I.dot1 w),
                   ((function
-                    | x -> k (I.Lam ((Weaken.strengthenDec (D, w)), x)))))
+                    | x -> k (I.Lam ((Weaken.strengthenDec (__d, w)), x)))))
               else ((I.comp (w, I.shift)), k) in
-        let (w, k) = raiseExp' G in k (Weaken.strengthenExp (U, w)) in
-      let rec raiseType (G, U, a) =
+        let (w, k) = raiseExp' __g in k (Weaken.strengthenExp (__u, w)) in
+      let rec raiseType (__g, __u, a) =
         let rec raiseType' =
           function
           | (I.Null, n) ->
               (I.id, ((function | x -> x)), ((function | S -> S)))
-          | (Decl (G, (Dec (_, V) as D)), n) ->
-              let (w, k, k') = raiseType' (G, (n + 1)) in
-              if Subordinate.belowEq ((I.targetFam V), a)
+          | (Decl (__g, (Dec (_, __v) as __d)), n) ->
+              let (w, k, k') = raiseType' (__g, (n + 1)) in
+              if Subordinate.belowEq ((I.targetFam __v), a)
               then
                 ((I.dot1 w),
                   ((function
                     | x ->
                         k
-                          (I.Pi (((Weaken.strengthenDec (D, w)), I.Maybe), x)))),
+                          (I.Pi (((Weaken.strengthenDec (__d, w)), I.Maybe), x)))),
                   ((function | S -> I.App ((I.Root ((I.BVar n), I.Nil)), S))))
               else ((I.comp (w, I.shift)), k, k') in
-        let (w, k, k') = raiseType' (G, 2) in
-        ((k (Weaken.strengthenExp (U, w))),
+        let (w, k, k') = raiseType' (__g, 2) in
+        ((k (Weaken.strengthenExp (__u, w))),
           (I.Root ((I.BVar 1), (k' I.Nil)))) in
       let rec exchangeSub (G0) =
         let g0 = I.ctxLength G0 in
@@ -315,9 +315,9 @@ module RelFun(RelFun:sig
         function
         | (d, (I.Nil, M.Mnil), Uni (I.Type), (z1, z2), (w, t)) ->
             (w, t,
-              (d, ((function | (k, Ds) -> Ds k)),
+              (d, ((function | (k, __Ds) -> __Ds k)),
                 ((function | _ -> F.Empty))))
-        | (d, (App (U, S), Mapp (Marg (M.Minus, _), mS)), Pi
+        | (d, (App (__u, S), Mapp (Marg (M.Minus, _), mS)), Pi
            ((Dec (_, V1), DP), V2), (z1, z2), (w, t)) ->
             let g = I.ctxLength G0 in
             let w1' = peeln (g, w1) in
@@ -329,9 +329,9 @@ module RelFun(RelFun:sig
               match DP with
               | I.Maybe -> I.dot1 w
               | I.No -> I.comp (w, I.shift) in
-            let U0 = raiseExp (G0, U, (I.targetFam V1'')) in
-            let U' = Weaken.strengthenExp (U0, w2) in
-            let t' = Whnf.dotEta ((I.Exp U'), t) in
+            let __U0 = raiseExp (G0, __u, (I.targetFam V1'')) in
+            let __u' = Weaken.strengthenExp (__U0, w2) in
+            let t' = Whnf.dotEta ((I.Exp __u'), t) in
             let z1' = I.comp (z1, I.shift) in
             let xc = exchangeSub G0 in
             let z2n = I.comp (z2, (I.comp (I.shift, xc))) in
@@ -341,83 +341,83 @@ module RelFun(RelFun:sig
               transformDec' ((d + 1), (S, mS), V2, (z1', z2'), (w', t')) in
             (w'', t'',
               (d', Dplus, ((function | k -> F.Split (k, (Dminus 1))))))
-        | (d, (App (U, S), Mapp (Marg (M.Plus, _), mS)), Pi
+        | (d, (App (__u, S), Mapp (Marg (M.Plus, _), mS)), Pi
            ((Dec (name, V1), _), V2), (z1, z2), (w, t)) ->
             let V1' = Weaken.strengthenExp (V1, w) in
             let w' = I.dot1 w in
-            let U' = Weaken.strengthenExp (U, w1) in
+            let __u' = Weaken.strengthenExp (__u, w1) in
             let t' = t in
             let z1' = F.dot1n (G0, z1) in
-            let z2' = I.Dot ((I.Exp (I.EClo (U', z1'))), z2) in
+            let z2' = I.Dot ((I.Exp (I.EClo (__u', z1'))), z2) in
             let (w'', t'', (d', Dplus, Dminus)) =
               transformDec' ((d + 1), (S, mS), V2, (z1, z2'), (w', t')) in
             (w'', t'',
               (d',
-                ((function | (k, Ds) -> F.App ((k, U'), (Dplus (1, Ds))))),
+                ((function | (k, __Ds) -> F.App ((k, __u'), (Dplus (1, __Ds))))),
                 Dminus)) in
       let (w'', t'', (d', Dplus, Dminus)) =
         transformDec'
-          (d, (S, mS), V,
+          (d, (S, mS), __v,
             (I.id, (I.Shift ((+) (domain (Psi, t0)) I.ctxLength G0))),
             (I.id, t0)) in
-      let rec varHead (Ts) (w'', t'', (d', Dplus, Dminus)) =
+      let rec varHead (__Ts) (w'', t'', (d', Dplus, Dminus)) =
         let rec head' =
           function
           | (a'::[], d1, k1) -> (d1, k1)
-          | (a'::Ts', d1, k1) ->
+          | (a'::__Ts', d1, k1) ->
               if a = a'
               then ((d1 + 1), ((function | xx -> F.Left (xx, (k1 1)))))
               else
-                (let (d2, k2) = head' (Ts', (d1 + 1), k1) in
+                (let (d2, k2) = head' (__Ts', (d1 + 1), k1) in
                  (d2, (function | xx -> F.Right (xx, (k2 1))))) in
-        let (d2, k2) = head' (Ts, d', (function | xx -> Dplus (xx, Dminus))) in
+        let (d2, k2) = head' (__Ts, d', (function | xx -> Dplus (xx, Dminus))) in
         (d2, w'', t'', (k2 d)) in
       let rec lemmaHead (w'', t'', (d', Dplus, Dminus)) =
         let name = I.conDecName (I.sgnLookup a) in
         let l =
           match FunNames.nameLookup name with
-          | NONE -> raise (Error (("Lemma " ^ name) ^ " not defined"))
-          | SOME lemma -> lemma in
+          | None -> raise (Error (("Lemma " ^ name) ^ " not defined"))
+          | Some lemma -> lemma in
         ((d' + 1), w'', t'', (F.Lemma (l, (Dplus (1, Dminus))))) in
-      if List.exists (function | x -> x = a) Ts
-      then varHead Ts (w'', t'', (d', Dplus, Dminus))
+      if List.exists (function | x -> x = a) __Ts
+      then varHead __Ts (w'', t'', (d', Dplus, Dminus))
       else lemmaHead (w'', t'', (d', Dplus, Dminus))
     let rec transformConc ((a, S), w) =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
-        | SOME mS -> mS in
+        | None -> raise (Error "Mode declaration expected")
+        | Some mS -> mS in
       let rec transformConc' =
         function
         | (I.Nil, M.Mnil) -> F.Unit
-        | (App (U, S'), Mapp (Marg (M.Plus, _), mS')) ->
+        | (App (__u, S'), Mapp (Marg (M.Plus, _), mS')) ->
             transformConc' (S', mS')
-        | (App (U, S'), Mapp (Marg (M.Minus, _), mS')) ->
-            F.Inx ((Weaken.strengthenExp (U, w)), (transformConc' (S', mS'))) in
+        | (App (__u, S'), Mapp (Marg (M.Minus, _), mS')) ->
+            F.Inx ((Weaken.strengthenExp (__u, w)), (transformConc' (S', mS'))) in
       transformConc' (S, mS)
-    let rec traverse (Ts, c) =
+    let rec traverse (__Ts, c) =
       let rec traverseNeg =
         function
-        | (c'', Psi, (Pi (((Dec (_, V1) as D), I.Maybe), V2), v), L) ->
+        | (c'', Psi, (Pi (((Dec (_, V1) as __d), I.Maybe), V2), v), __l) ->
             (match traverseNeg
                      (c'',
-                       (I.Decl (Psi, (F.Prim (Weaken.strengthenDec (D, v))))),
-                       (V2, (I.dot1 v)), L)
+                       (I.Decl (Psi, (F.Prim (Weaken.strengthenDec (__d, v))))),
+                       (V2, (I.dot1 v)), __l)
              with
-             | (SOME (w', d', PQ'), L') -> ((SOME ((peel w'), d', PQ')), L')
-             | (NONE, L') -> (NONE, L'))
-        | (c'', Psi, (Pi (((Dec (_, V1) as D), I.No), V2), v), L) ->
-            (match traverseNeg (c'', Psi, (V2, (I.comp (v, I.shift))), L)
+             | (Some (w', d', PQ'), __l') -> ((Some ((peel w'), d', PQ')), __l')
+             | (None, __l') -> (None, __l'))
+        | (c'', Psi, (Pi (((Dec (_, V1) as __d), I.No), V2), v), __l) ->
+            (match traverseNeg (c'', Psi, (V2, (I.comp (v, I.shift))), __l)
              with
-             | (SOME (w', d', PQ'), L') ->
+             | (Some (w', d', PQ'), __l') ->
                  traversePos
                    (c'', Psi, I.Null, ((Weaken.strengthenExp (V1, v)), I.id),
-                     (SOME (w', d', PQ')), L')
-             | (NONE, L') ->
+                     (Some (w', d', PQ')), __l')
+             | (None, __l') ->
                  traversePos
                    (c'', Psi, I.Null, ((Weaken.strengthenExp (V1, v)), I.id),
-                     NONE, L'))
-        | (c'', Psi, ((Root (Const c', S) as V), v), L) ->
+                     None, __l'))
+        | (c'', Psi, ((Root (Const c', S) as __v), v), __l) ->
             if c = c'
             then
               let S' = Weaken.strengthenSpine (S, v) in
@@ -425,38 +425,38 @@ module RelFun(RelFun:sig
                 strengthen
                   (Psi, (c', S'), (I.Shift (F.lfctxLength Psi)), M.Plus) in
               let (w'', s'') = transformInit (Psi', (c', S'), w') in
-              ((SOME
+              ((Some
                   (w', 1,
                     ((function | p -> (Psi', s'', p)),
-                      (function | wf -> transformConc ((c', S'), wf))))), L)
-            else (NONE, L)
+                      (function | wf -> transformConc ((c', S'), wf))))), __l)
+            else (None, __l)
       and traversePos =
         function
-        | (c'', Psi, G, (Pi (((Dec (_, V1) as D), I.Maybe), V2), v), SOME
-           (w, d, PQ), L) ->
+        | (c'', Psi, __g, (Pi (((Dec (_, V1) as __d), I.Maybe), V2), v), Some
+           (w, d, PQ), __l) ->
             (match traversePos
-                     (c'', Psi, (I.Decl (G, (Weaken.strengthenDec (D, v)))),
-                       (V2, (I.dot1 v)), (SOME ((I.dot1 w), d, PQ)), L)
+                     (c'', Psi, (I.Decl (__g, (Weaken.strengthenDec (__d, v)))),
+                       (V2, (I.dot1 v)), (Some ((I.dot1 w), d, PQ)), __l)
              with
-             | (SOME (w', d', PQ'), L') -> ((SOME (w', d', PQ')), L'))
-        | (c'', Psi, G, (Pi (((Dec (_, V1) as D), I.No), V2), v), SOME
-           (w, d, PQ), L) ->
+             | (Some (w', d', PQ'), __l') -> ((Some (w', d', PQ')), __l'))
+        | (c'', Psi, __g, (Pi (((Dec (_, V1) as __d), I.No), V2), v), Some
+           (w, d, PQ), __l) ->
             (match traversePos
-                     (c'', Psi, G, (V2, (I.comp (v, I.shift))),
-                       (SOME (w, d, PQ)), L)
+                     (c'', Psi, __g, (V2, (I.comp (v, I.shift))),
+                       (Some (w, d, PQ)), __l)
              with
-             | (SOME (w', d', PQ'), L') ->
+             | (Some (w', d', PQ'), __l') ->
                  (match traverseNeg
                           (c'',
-                            (I.Decl (Psi, (F.Block (F.CtxBlock (NONE, G))))),
-                            (V1, v), L')
+                            (I.Decl (Psi, (F.Block (F.CtxBlock (None, __g))))),
+                            (V1, v), __l')
                   with
-                  | (SOME (w'', d'', (P'', Q'')), L'') ->
-                      ((SOME (w', d', PQ')), ((P'' (Q'' w'')) :: L''))
-                  | (NONE, L'') -> ((SOME (w', d', PQ')), L'')))
-        | (c'', Psi, I.Null, (V, v), SOME (w1, d, (P, Q)), L) ->
+                  | (Some (w'', d'', (__P'', Q'')), __l'') ->
+                      ((Some (w', d', PQ')), ((__P'' (Q'' w'')) :: __l''))
+                  | (None, __l'') -> ((Some (w', d', PQ')), __l'')))
+        | (c'', Psi, I.Null, (__v, v), Some (w1, d, (P, Q)), __l) ->
             let Root (Const a', S) =
-              Whnf.normalize ((Weaken.strengthenExp (V, v)), I.id) in
+              Whnf.normalize ((Weaken.strengthenExp (__v, v)), I.id) in
             let (Psi', w2) = strengthen (Psi, (a', S), w1, M.Minus) in
             let _ =
               if !Global.doubleCheck
@@ -465,18 +465,18 @@ module RelFun(RelFun:sig
                   ((F.makectx Psi'), ((I.Uni I.Type), (I.Uni I.Kind)))
               else () in
             let w3 = Weaken.strengthenSub (w1, w2) in
-            let (d4, w4, t4, Ds) =
-              transformDec (Ts, (Psi', I.Null), d, (a', S), w1, w2, w3) in
-            ((SOME
+            let (d4, w4, t4, __Ds) =
+              transformDec (__Ts, (Psi', I.Null), d, (a', S), w1, w2, w3) in
+            ((Some
                 (w2, d4,
                   ((function
-                    | p -> P (F.Let (Ds, (F.Case (F.Opts [(Psi', t4, p)]))))),
-                    Q))), L)
-        | (c'', Psi, G, (V, v), SOME (w1, d, (P, Q)), L) ->
-            let Root (Const a', S) = Weaken.strengthenExp (V, v) in
+                    | p -> P (F.Let (__Ds, (F.Case (F.Opts [(Psi', t4, p)]))))),
+                    Q))), __l)
+        | (c'', Psi, __g, (__v, v), Some (w1, d, (P, Q)), __l) ->
+            let Root (Const a', S) = Weaken.strengthenExp (__v, v) in
             let ((Decl (Psi', Block (CtxBlock (name, G2))) as dummy), w2) =
               strengthen
-                ((I.Decl (Psi, (F.Block (F.CtxBlock (NONE, G))))), (a', S),
+                ((I.Decl (Psi, (F.Block (F.CtxBlock (None, __g))))), (a', S),
                   w1, M.Minus) in
             let _ =
               if !Global.doubleCheck
@@ -484,108 +484,108 @@ module RelFun(RelFun:sig
                 TypeCheck.typeCheck
                   ((F.makectx dummy), ((I.Uni I.Type), (I.Uni I.Kind)))
               else () in
-            let g = I.ctxLength G in
+            let g = I.ctxLength __g in
             let w1' = peeln (g, w1) in
             let w2' = peeln (g, w2) in
-            let (G1, _) = Weaken.strengthenCtx (G, w1') in
+            let (G1, _) = Weaken.strengthenCtx (__g, w1') in
             let w3 = Weaken.strengthenSub (w1', w2') in
-            let (d4, w4, t4, Ds) =
-              transformDec (Ts, (Psi', G), d, (a', S), w1, w2', w3) in
-            ((SOME
+            let (d4, w4, t4, __Ds) =
+              transformDec (__Ts, (Psi', __g), d, (a', S), w1, w2', w3) in
+            ((Some
                 (w2', d4,
                   ((function
                     | p ->
                         P
                           (F.Let
-                             ((F.New ((F.CtxBlock (NONE, G1)), Ds)),
-                               (F.Case (F.Opts [(Psi', t4, p)]))))), Q))), L)
-        | (c'', Psi, G, (Pi (((Dec (_, V1) as D), I.Maybe), V2), v), NONE, L)
+                             ((F.New ((F.CtxBlock (None, G1)), __Ds)),
+                               (F.Case (F.Opts [(Psi', t4, p)]))))), Q))), __l)
+        | (c'', Psi, __g, (Pi (((Dec (_, V1) as __d), I.Maybe), V2), v), None, __l)
             ->
             traversePos
-              (c'', Psi, (I.Decl (G, (Weaken.strengthenDec (D, v)))),
-                (V2, (I.dot1 v)), NONE, L)
-        | (c'', Psi, G, (Pi (((Dec (_, V1) as D), I.No), V2), v), NONE, L) ->
+              (c'', Psi, (I.Decl (__g, (Weaken.strengthenDec (__d, v)))),
+                (V2, (I.dot1 v)), None, __l)
+        | (c'', Psi, __g, (Pi (((Dec (_, V1) as __d), I.No), V2), v), None, __l) ->
             (match traversePos
-                     (c'', Psi, G, (V2, (I.comp (v, I.shift))), NONE, L)
+                     (c'', Psi, __g, (V2, (I.comp (v, I.shift))), None, __l)
              with
-             | (NONE, L') ->
+             | (None, __l') ->
                  (match traverseNeg
                           (c'',
-                            (I.Decl (Psi, (F.Block (F.CtxBlock (NONE, G))))),
-                            (V1, v), L')
+                            (I.Decl (Psi, (F.Block (F.CtxBlock (None, __g))))),
+                            (V1, v), __l')
                   with
-                  | (SOME (w'', d'', (P'', Q'')), L'') ->
-                      (NONE, ((P'' (Q'' w'')) :: L''))
-                  | (NONE, L'') -> (NONE, L'')))
-        | (c'', Psi, G, (V, v), NONE, L) -> (NONE, L) in
-      let rec traverseSig' (c'', L) =
-        if (=) c'' (fun r -> r.1) (I.sgnSize ())
-        then L
+                  | (Some (w'', d'', (__P'', Q'')), __l'') ->
+                      (None, ((__P'' (Q'' w'')) :: __l''))
+                  | (None, __l'') -> (None, __l'')))
+        | (c'', Psi, __g, (__v, v), None, __l) -> (None, __l) in
+      let rec traverseSig' (c'', __l) =
+        if (=) c'' (fun (r, _) -> r) (I.sgnSize ())
+        then __l
         else
           (match I.sgnLookup c'' with
-           | ConDec (name, _, _, _, V, I.Type) ->
-               (match traverseNeg (c'', I.Null, (V, I.id), L) with
-                | (SOME (wf, d', (P', Q')), L') ->
-                    traverseSig' ((c'' + 1), ((P' (Q' wf)) :: L'))
-                | (NONE, L') -> traverseSig' ((c'' + 1), L'))
-           | _ -> traverseSig' ((c'' + 1), L)) in
+           | ConDec (name, _, _, _, __v, I.Type) ->
+               (match traverseNeg (c'', I.Null, (__v, I.id), __l) with
+                | (Some (wf, d', (__P', Q')), __l') ->
+                    traverseSig' ((c'' + 1), ((__P' (Q' wf)) :: __l'))
+                | (None, __l') -> traverseSig' ((c'' + 1), __l'))
+           | _ -> traverseSig' ((c'' + 1), __l)) in
       traverseSig' (0, nil)
-    let rec convertPro (Ts) =
+    let rec convertPro (__Ts) =
       let rec convertOnePro a =
-        let V =
+        let __v =
           match I.sgnLookup a with
-          | ConDec (name, _, _, _, V, I.Kind) -> V
+          | ConDec (name, _, _, _, __v, I.Kind) -> __v
           | _ -> raise (Error "Type Constant declaration expected") in
         let mS =
           match ModeTable.modeLookup a with
-          | NONE -> raise (Error "Mode declaration expected")
-          | SOME mS -> mS in
-        let P = abstract a in P (F.Case (F.Opts (traverse (Ts, a)))) in
+          | None -> raise (Error "Mode declaration expected")
+          | Some mS -> mS in
+        let P = abstract a in P (F.Case (F.Opts (traverse (__Ts, a)))) in
       let rec convertPro' =
         function
         | nil -> raise (Error "Cannot convert Empty program")
         | a::[] -> convertOnePro a
-        | a::Ts' -> F.Pair ((convertOnePro a), (convertPro' Ts')) in
-      let R = recursion Ts in R (convertPro' Ts)
-    (* ctxSub (G, s) = (G', s')
+        | a::__Ts' -> F.Pair ((convertOnePro a), (convertPro' __Ts')) in
+      let R = recursion __Ts in R (convertPro' __Ts)
+    (* ctxSub (__g, s) = (__g', s')
 
        Invariant:
-       if   Psi |- G ctx
+       if   Psi |- __g ctx
        and  Psi' |- s : Psi
-       then Psi' |- G' ctx
-       and  Psi', G' |- s' : G
-       and  G' = G [s],  declarationwise defined
+       then Psi' |- __g' ctx
+       and  Psi', __g' |- s' : __g
+       and  __g' = __g [s],  declarationwise defined
     *)
-    (* convertFor' (V, mS, w1, w2, n) = (F', F'')
+    (* convertFor' (__v, mS, w1, w2, n) = (__F', __F'')
 
            Invariant:
-           If   G |- V = {{G'}} type :kind
-           and  G |- w1 : G+
-           and  G+, G'+, G- |- w2 : G
-           and  G+, G'+, G- |- ^n : G+
-           and  mS is a spine for G'
-           then F'  is a formula excepting a another formula as argument s.t.
-                If G+, G'+ |- F formula,
-                then . |- F' F formula
-           and  G+, G'+ |- F'' formula
+           If   __g |- __v = {{__g'}} type :kind
+           and  __g |- w1 : __g+
+           and  __g+, __g'+, __g- |- w2 : __g
+           and  __g+, __g'+, __g- |- ^n : __g+
+           and  mS is a spine for __g'
+           then __F'  is a formula excepting a another formula as argument s.t.
+                If __g+, __g'+ |- F formula,
+                then . |- __F' F formula
+           and  __g+, __g'+ |- __F'' formula
         *)
     (* shiftPlus (mS) = s'
 
          Invariant:
          s' = ^(# of +'s in mS)
          *)
-    (* convertFor L = F'
+    (* convertFor __l = __F'
 
        Invariant:
-       If   L is a list of type families
-       then F' is the conjunction of the logical interpretation of each
+       If   __l is a list of type families
+       then __F' is the conjunction of the logical interpretation of each
             type family
      *)
-    (* occursInExpN (k, U) = B,
+    (* occursInExpN (k, __u) = B,
 
        Invariant:
-       If    U in nf
-       then  B iff k occurs in U
+       If    __u in nf
+       then  B iff k occurs in __u
     *)
     (* no case for Redex, EVar, EClo *)
     (* no case for FVar *)
@@ -593,14 +593,14 @@ module RelFun(RelFun:sig
     (* dot1inv w = w'
 
        Invariant:
-       If   G, A |- w : G', A
-       then G |- w' : G'
+       If   __g, A |- w : __g', A
+       then __g |- w' : __g'
        and  w = 1.w' o ^
     *)
     (* shiftinv (w) = w'
 
        Invariant:
-       If   G, A |- w : G'
+       If   __g, A |- w : __g'
        and  1 does not occur in w
        then w  = w' o ^
     *)
@@ -624,13 +624,13 @@ module RelFun(RelFun:sig
        and  Psi |- w' : Psi'
        where Psi' extends Psi1
     *)
-    (* testBlock (G, (bw, w1)) = (bw', w')
+    (* testBlock (__g, (bw, w1)) = (bw', w')
 
            Invariant:
-           If   |- G ctx
+           If   |- __g ctx
            and  |- G1 ctx
            and  |- G2 ctx
-           and  G1 |- w1 : G2, G
+           and  G1 |- w1 : G2, __g
            and  bw is a boolean value
            then there ex. a G1'
            s.t. |- G1' ctx
@@ -652,23 +652,23 @@ module RelFun(RelFun:sig
                                        position in S)
         *)
     (* =  I.id *)
-    (* abstract a = P'
+    (* abstract a = __P'
 
        Invariant:
        If   a is a type family
        and  Sigma (a) = {x1:A1}..{xn:An} type
        then for all P s.t.
             +x1:A1, .., +xn:An; . |- P in [[-x1:A1]] .. [[-xn:An]] true
-            . ;. |- (P' P) in [[+x1:A1]] .. [[+xn:An]] [[-x1:A1]] .. [[-xn:An]] true
+            . ;. |- (__P' P) in [[+x1:A1]] .. [[+xn:An]] [[-x1:A1]] .. [[-xn:An]] true
     *)
-    (* abstract' ((V, mS), w) = P'
+    (* abstract' ((__v, mS), w) = __P'
 
            Invariant:
            If  Sigma (a) = {x1:A1} .. {xn:An} type
            and  Psi |- S : m1{x1:A1} .. mn{xn:An} type > type
            and  Gamma= x1:A1, .. x(j-1):A(j-1)
            and  Gamma |- w : Gamma+
-           then P' is a Lam abstraction
+           then __P' is a Lam abstraction
         *)
     (* transformInit (Psi, (a, S), w1) = (w', s')
 
@@ -682,18 +682,18 @@ module RelFun(RelFun:sig
        and  Psi+ |- s' : Gamma+
        and  x1:A1 .. xn:An |- w: Gamma+    (w weakening substitution)
     *)
-    (* transformInit' ((S, mS), V, (w, s)) = (w', s')
+    (* transformInit' ((S, mS), __v, (w, s)) = (w', s')
 
            Invariant:
-           If   Psi |- S : V > type
-           and  x1:A1...x(j-1):A(j-1) |- V = mj{xj:Aj} .. mn{xn:An} type : kind
+           If   Psi |- S : __v > type
+           and  x1:A1...x(j-1):A(j-1) |- __v = mj{xj:Aj} .. mn{xn:An} type : kind
            and  x1:A1...x(j-1):A(j-1) |- w : +x1:A1... +x(j-1):A(j-1)
            and  Psi |- w1 : Psi+
            and  Psi+ |- s : +x1:A1... +x(j-1):A(j-1)
            then x1:A1...xn:An |- w' : +x1:A1... +xn:An
            and  Psi+ |- s' : +x1:A1 .. +xn:An
         *)
-    (* transformDec (c'', (Psi+-, G0), d, (a, S), w1, w2, t) = (d', w', s', t', Ds)
+    (* transformDec (c'', (Psi+-, G0), d, (a, S), w1, w2, t) = (d', w', s', t', __Ds)
 
        Invariant:
        If   |- Psi ctx
@@ -711,61 +711,61 @@ module RelFun(RelFun:sig
        and  Psi+- |- t' : Psi+, -x(k1):{G0} A(k1), ... -x(km):{G0} A(km)
        and  d' = |Delta'|
     *)
-    (* raiseExp (G, U, a) = U'
+    (* raiseExp (__g, __u, a) = __u'
 
            Invariant:
            If   |- Psi ctx         (for some given Psi)
-           and  Psi |- G ctx
-           and  Psi, G |- U : V    (for some V)
-           then Psi, G |- [[G]] U : {{G}} V     (wrt subordination)
+           and  Psi |- __g ctx
+           and  Psi, __g |- __u : __v    (for some __v)
+           then Psi, __g |- [[__g]] __u : {{__g}} __v     (wrt subordination)
         *)
-    (* raiseExp G = (w', k)
+    (* raiseExp __g = (w', k)
 
                Invariant:
                If   |-  Psi ctx
-               and  Psi |- G ctx
-               and  Psi |- G' ctx   which ARE subordinate to a
-               then Psi, G |- w : Psi, G'
+               and  Psi |- __g ctx
+               and  Psi |- __g' ctx   which ARE subordinate to a
+               then Psi, __g |- w : Psi, __g'
                and  k is a continuation calculuting the right exprssion:
-                    for all U, s.t. Psi, G |- U : V
-                    Psi |- [[G']] U : {{G'}} V
+                    for all __u, s.t. Psi, __g |- __u : __v
+                    Psi |- [[__g']] __u : {{__g'}} __v
             *)
-    (* raiseType (G, U, a) = U'
+    (* raiseType (__g, __u, a) = __u'
 
            Invariant:
            If   |- Psi ctx         (for some given Psi)
-           and  Psi |- G ctx
-           and  Psi, G |- U : V    (for some V)
-           then Psi, G |- [[G]] U : {{G}} V     (wrt subordination)
-           and  Psi, G, x:{{G}} V |- x G : V
+           and  Psi |- __g ctx
+           and  Psi, __g |- __u : __v    (for some __v)
+           then Psi, __g |- [[__g]] __u : {{__g}} __v     (wrt subordination)
+           and  Psi, __g, x:{{__g}} __v |- x __g : __v
         *)
-    (* raiseType (G, n) = (w', k, S')
+    (* raiseType (__g, n) = (w', k, S')
 
               Invariant:
               If   |-  Psi ctx
-              and  Psi |- G, Gv ctx
-              and  Psi |- G' ctx   which ARE subordinate to a
+              and  Psi |- __g, Gv ctx
+              and  Psi |- __g' ctx   which ARE subordinate to a
               and  n = |Gv| + 1
-              then Psi, G |- w : Psi, G'
+              then Psi, __g |- w : Psi, __g'
               and  k is a continuation calculating the right exprssion:
-                   for all U, s.t. Psi, G |- U : V
-                   Psi |- [[G']] U : {{G'}} V
+                   for all __u, s.t. Psi, __g |- __u : __v
+                   Psi |- [[__g']] __u : {{__g'}} __v
               and  k' is a continuation calculating the corresponding spine:
-                   for all S, s.t. Psi, G, G0,|- ... refine
+                   for all S, s.t. Psi, __g, G0,|- ... refine
             *)
     (* exchangeSub (G0) = s'
 
            Invariant:
-           For some Psi, some G, some V:
-           Psi, V, G0 |- s' : Psi, G0, V
+           For some Psi, some __g, some __v:
+           Psi, __v, G0 |- s' : Psi, G0, __v
         *)
-    (* transformDec' (d, (S, mS), V, (z1, z2), (w, t)) = (d', w', t', (Ds+, Ds-))
+    (* transformDec' (d, (S, mS), __v, (z1, z2), (w, t)) = (d', w', t', (__Ds+, __Ds-))
 
            Invariant:
-           If   Psi, G0 |- S : V > type
+           If   Psi, G0 |- S : __v > type
            and  S doesn't contain Skolem constants
            and  d = |Delta|
-           and  x1:A1...x(j-1):A(j-1) |- V = mj{xj:Aj} .. mn{xn:An} type : kind
+           and  x1:A1...x(j-1):A(j-1) |- __v = mj{xj:Aj} .. mn{xn:An} type : kind
            and  x1:A1...x(j-1):A(j-1) |- w : +x1:A1... +x(j-1):A(j-1)
            and  Psi, G0 |- w1 : Psi+, G0[w1^-1]
            and  Psi |- w2 : Psi+-
@@ -777,13 +777,13 @@ module RelFun(RelFun:sig
            and  Psi+- |- t' : Psi+, -x1:{{G0}} A1... -xn:{{G0}} An
            and  d' = |Delta'|
         *)
-    (* head Ts (w, t, (d, Dplus, Dminus)) = (d', w', t', P')
+    (* head __Ts (w, t, (d, Dplus, Dminus)) = (d', w', t', __P')
 
              Invariant:
-             If   a not in Ts  then d'= d+1,  P' makes a lemma call
-             If   Ts = [a]     then d'= d     P' used directly the ih.
-             If   Ts = a1 .. ai ... and ai = a
-             then d' = d+i   and P' select ih, and then decomposes is, using
+             If   a not in __Ts  then d'= d+1,  __P' makes a lemma call
+             If   __Ts = [a]     then d'= d     __P' used directly the ih.
+             If   __Ts = a1 .. ai ... and ai = a
+             then d' = d+i   and __P' select ih, and then decomposes is, using
                   (i-1) Rights and 1 Left
           *)
     (* transformConc ((a, S), w) = P
@@ -795,42 +795,42 @@ module RelFun(RelFun:sig
        then P is proof term consisting of all - objects of S,
             defined in PsiAll
     *)
-    (* traverse (Ts, c) = L'
+    (* traverse (__Ts, c) = __l'
 
        Invariant:
-       If   Ts is a list of type families
+       If   __Ts is a list of type families
        and  c is a type family which entries are currently traversed
-       then L' is a list of cases
+       then __l' is a list of cases
     *)
-    (* traverseNeg (c'', Psi, (V, v), L) = ([w', d', PQ'], L')    [] means optional
+    (* traverseNeg (c'', Psi, (__v, v), __l) = ([w', d', PQ'], __l')    [] means optional
 
            Invariant:
-           If   Psi0 |- V : type
+           If   Psi0 |- __v : type
            and  Psi0 |- v : Psi
-           and  V[v^-1] does not contain Skolem constants
+           and  __v[v^-1] does not contain Skolem constants
            and  c'' is the name of the object constant currently considered
-           and  L is a list of cases
-           then L' list of cases and CL' extends CL
+           and  __l is a list of cases
+           then __l' list of cases and CL' extends CL
            and  Psi |- w' : Psi'   (Psi' is the context of all variables considered so far)
            and  d' is the length of Delta
            and  PQ'  is a pair, generating the proof term
         *)
-    (*                                   (Names.decName (F.makectx Psi, Weaken.strengthenDec (D, v)))),
+    (*                                   (Names.decName (F.makectx Psi, Weaken.strengthenDec (__d, v)))),
 *)
     (* Clause head found *)
-    (* traversePos (c, Psi, G, (V, v), [w', d', PQ'], L) =  ([w'', d'', PQ''], L'')
+    (* traversePos (c, Psi, __g, (__v, v), [w', d', PQ'], __l) =  ([w'', d'', PQ''], __l'')
 
            Invariant:
-           If   Psi, G |- V : type
-           and  Psi, G |- v : Psi'       (s.t.  Psi' |- V[v^-1] : type exists)
-           and V[v^-1] does not contain Skolem constants
-           [ and Psi', G |- w' : Psi''
+           If   Psi, __g |- __v : type
+           and  Psi, __g |- v : Psi'       (s.t.  Psi' |- __v[v^-1] : type exists)
+           and __v[v^-1] does not contain Skolem constants
+           [ and Psi', __g |- w' : Psi''
              and |Delta'| = d'    for a Delta'
              and PQ' can generate the proof term so far in Delta'; Psi''
            ]
            and  c is the name of the constant currently considered
-           and  L is a list of cases
-           then L'' list of cases and L'' extends L
+           and  __l is a list of cases
+           then __l'' list of cases and __l'' extends __l
            and  Psi |- w'' : Psi2
            and  |Delta''| = d''  for a Delta'
            and  PQ'' can genreate the proof term so far in Delta''; Psi2
@@ -840,13 +840,13 @@ module RelFun(RelFun:sig
     (* Lemma calls (under a context block) *)
     (* provide typeCheckCtx from typecheck *)
     (* change w1 to w1' and w2 to w2' below *)
-    (* convertPro Ts = P'
+    (* convertPro __Ts = __P'
 
        Invariant:
-       If   Ts is a list of type families
-       then P' is a conjunction of all programs resulting from converting
+       If   __Ts is a list of type families
+       then __P' is a conjunction of all programs resulting from converting
             the relational encoding of the function expressed by each type
-            family in Ts into functional form
+            family in __Ts into functional form
     *)
     let convertFor = convertFor
     let convertPro = convertPro

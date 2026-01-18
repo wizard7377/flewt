@@ -36,11 +36,11 @@ module GrowArray : GROWARRAY =
     module A = Array
     type nonrec 'a growarray = (int * 'a option A.array) ref
     (* start with 16 cells, why not? *)
-    let rec empty () = ref (0, (A.array (16, NONE)))
-    let rec growarray n i = ref (n, (A.array (n, (SOME i))))
+    let rec empty () = ref (0, (A.array (16, None)))
+    let rec growarray n i = ref (n, (A.array (n, (Some i))))
     let rec sub (ref (used, a)) n =
       if (n < used) && (n >= 0)
-      then match A.sub (a, n) with | NONE -> raise Subscript | SOME z -> z
+      then match A.sub (a, n) with | None -> raise Subscript | Some z -> z
       else raise Subscript
     let rec length (ref (l, _)) = l
     (* grow to accomodate at least n elements *)
@@ -52,7 +52,7 @@ module GrowArray : GROWARRAY =
          let ns = nextpower (A.length a) in
          let na =
            A.tabulate
-             (ns, (function | i -> if i < l then A.sub (a, i) else NONE)) in
+             (ns, (function | i -> if i < l then A.sub (a, i) else None)) in
          r := (l, na))
     let rec update r n x =
       if n < 0
@@ -60,12 +60,12 @@ module GrowArray : GROWARRAY =
       else
         (let _ = accomodate r n in
          let (l, a) = !r in
-         ((A.update (a, n, (SOME x));
+         ((A.update (a, n, (Some x));
            if n >= l then r := ((n + 1), a) else ())
            (* also update 'used' *)))
     let rec append (ref (n, _) as r) x =
       let _ = accomodate r (n + 1) in
-      let (_, a) = !r in A.update (a, n, (SOME x)); r := ((n + 1), a)
+      let (_, a) = !r in A.update (a, n, (Some x)); r := ((n + 1), a)
     let rec used arr n =
       try ignore (sub arr n); true__ with | Subscript -> false__
     let rec finalize (ref (n, a)) =
@@ -74,6 +74,6 @@ module GrowArray : GROWARRAY =
           (function
            | x ->
                (match A.sub (a, x) with
-                | NONE -> raise Subscript
-                | SOME z -> z)))
+                | None -> raise Subscript
+                | Some z -> z)))
   end ;;

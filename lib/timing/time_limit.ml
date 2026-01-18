@@ -13,12 +13,12 @@ module TimeLimit :
     exception TimeOut 
     let rec timeLimit arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
-      | (NONE, f, x) -> f x
-      | (SOME t, f, x) ->
+      | (None, f, x) -> f x
+      | (Some t, f, x) ->
           let _ = print (((^) "TIME LIMIT : " Time.toString t) ^ "sec \n") in
           let setitimer = SMLofNJ.IntervalTimer.setIntTimer in
-          let rec timerOn () = ignore (setitimer (SOME t)) in
-          let rec timerOff () = ignore (setitimer NONE) in
+          let rec timerOn () = ignore (setitimer (Some t)) in
+          let rec timerOff () = ignore (setitimer None) in
           let escapeCont =
             SMLofNJ.Cont.callcc
               (function

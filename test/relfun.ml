@@ -17,8 +17,8 @@ let rec test names =
        | x -> valOf (Names.constLookup (valOf (Names.stringToQid x)))) names in
   let name = foldr (^) "" names in
   let _ = Names.varReset IntSyn.Null in
-  let Ss = map Worldify.worldify a in
-  let S = foldr (@) nil Ss in
+  let __Ss = map Worldify.worldify a in
+  let S = foldr (@) nil __Ss in
   let _ = printS S in
   let _ = TextIO.print "[convertPrg " in
   let P = Converter.convertPrg a in

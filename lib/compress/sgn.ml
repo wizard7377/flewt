@@ -45,21 +45,21 @@ module Sgn =
         def: def  ;o_def: def  ;abbreviation: bool   > 
     let sgn_size = 14000
     (* XXX *)
-    let (sigma : sigent option Array.array) = Array.array (sgn_size, NONE)
+    let (sigma : sigent option Array.array) = Array.array (sgn_size, None)
     let (all_modes : mode list option Array.array) =
-      Array.array (sgn_size, NONE)
-    let (all_ps : bool option Array.array) = Array.array (sgn_size, NONE)
+      Array.array (sgn_size, None)
+    let (all_ps : bool option Array.array) = Array.array (sgn_size, None)
     let rec split arg__0 arg__1 =
       match (arg__0, arg__1) with
       | (h::tl, 0) -> ([], h, tl)
       | (h::tl, n) ->
           let (pre, thing, post) = split tl (n - 1) in
           ((h :: pre), thing, post)
-      | ([], n) -> split [NONE] n
+      | ([], n) -> split [None] n
     let rec clear () =
-      Array.modify (function | _ -> NONE) sigma;
-      Array.modify (function | _ -> NONE) all_modes;
-      Array.modify (function | _ -> NONE) all_ps
+      Array.modify (function | _ -> None) sigma;
+      Array.modify (function | _ -> None) all_modes;
+      Array.modify (function | _ -> None) all_ps
     let rec condec (s, a, oa) =
       {
         name = s;
@@ -116,7 +116,7 @@ module Sgn =
       }
     let rec typeOfSigent (e : sigent) =
       Syntax.typeOf ((fun r -> r.classifier) e)
-    let rec setter table (n, x) = Array.update (table, n, (SOME x))
+    let rec setter table (n, x) = Array.update (table, n, (Some x))
     let rec getter table id = Array.sub (table, id)
     let set_modes = setter all_modes
     let get_modes = getter all_modes

@@ -71,13 +71,13 @@ module Solve(Solve:sig
     module ExtQuery = ReconQuery
     (*! structure Paths = ReconQuery.Paths !*)
     module S = Parser.Stream
-    (* evarInstToString Xs = msg
+    (* evarInstToString __Xs = msg
      formats instantiated EVars as a substitution.
      Abbreviate as empty string if chatter level is < 3.
   *)
-    let rec evarInstToString (Xs) =
-      if (!Global.chatter) >= 3 then Print.evarInstToString Xs else ""
-    (* expToString (G, U) = msg
+    let rec evarInstToString (__Xs) =
+      if (!Global.chatter) >= 3 then Print.evarInstToString __Xs else ""
+    (* expToString (__g, __u) = msg
      formats expression as a string.
      Abbreviate as empty string if chatter level is < 3.
   *)
@@ -88,34 +88,34 @@ module Solve(Solve:sig
      or of %solve has no solution.
   *)
     exception AbortQuery of string 
-    (* Bounds SOME(n) for n >= 0, NONE represents positive infinity *)
+    (* Bounds Some(n) for n >= 0, None represents positive infinity *)
     (* Concrete syntax: 0, 1, 2, ..., * *)
     type nonrec bound = int option
     (* exceeds : bound * bound -> bool *)
     let rec exceeds =
       function
-      | (SOME n, SOME m) -> n >= m
-      | (SOME n, NONE) -> false__
-      | (NONE, _) -> true__
+      | (Some n, Some m) -> n >= m
+      | (Some n, None) -> false__
+      | (None, _) -> true__
     (* boundEq : bound * bound -> bool *)
     let rec boundEq =
       function
-      | (SOME n, SOME m) -> n = m
-      | (NONE, NONE) -> true__
+      | (Some n, Some m) -> n = m
+      | (None, None) -> true__
       | _ -> false__
     (* boundToString : bound -> string *)
-    let rec boundToString = function | SOME n -> Int.toString n | NONE -> "*"
+    let rec boundToString = function | Some n -> Int.toString n | None -> "*"
     (* boundMin : bound * bound -> bound *)
     let rec boundMin =
       function
-      | (SOME n, SOME m) -> SOME (Int.min (n, m))
-      | (b, NONE) -> b
-      | (NONE, b) -> b
+      | (Some n, Some m) -> Some (Int.min (n, m))
+      | (b, None) -> b
+      | (None, b) -> b
     (* checkSolutions : bound * bound * int -> unit *)
     (* raises AbortQuery(msg) if the actual solutions do not match *)
     (* the expected number, given the bound on the number of tries *)
     let rec checkSolutions (expected, try__, solutions) =
-      if boundEq ((boundMin (expected, try__)), (SOME solutions))
+      if boundEq ((boundMin (expected, try__)), (Some solutions))
       then ()
       else
         raise
@@ -130,7 +130,7 @@ module Solve(Solve:sig
     (* raises AbortQuery(msg) if the actual #stages do not match *)
     (* the expected number, given the bound on the number of tries *)
     let rec checkStages (try__, stages) =
-      if boundEq (try__, (SOME stages))
+      if boundEq (try__, (Some stages))
       then ()
       else
         raise
@@ -147,7 +147,7 @@ module Solve(Solve:sig
       print "More? ";
       (match String.sub ((Compat.inputLine97 TextIO.stdIn), 0) with
        | 'y' -> true__
-       | 'Y' -> true__
+       | 'y' -> true__
        | ';' -> true__
        | 'q' -> raise (AbortQuery "Query error -- explicit quit")
        | 'Q' -> raise (AbortQuery "Query error -- explicit quit")
@@ -258,11 +258,11 @@ module Solve(Solve:sig
         | Compile.LinearHeads -> solve' args
         | _ -> solve' args)
       (* solves A where program clauses are indexed using substitution trees
-         and reconstructs the proof term X afterwards - bp
+         and reconstructs the proof term x afterwards - bp
        *))
-    (* %query <expected> <try> A or %query <expected> <try> X : A *)
+    (* %query <expected> <try> A or %query <expected> <try> x : A *)
     let rec query' ((expected, try__, quy), Loc (fileName, r)) =
-      let (A, optName, Xs) =
+      let (A, optName, __Xs) =
         ReconQuery.queryToQuery (quy, (Paths.Loc (fileName, r))) in
       let _ =
         if (!Global.chatter) >= 3
@@ -292,11 +292,11 @@ module Solve(Solve:sig
              (((^) "---------- Solution " Int.toString (!solutions)) ^
                 " ----------\n");
            Msg.message
-             ((Timers.time Timers.printing evarInstToString Xs) ^ "\n"))
+             ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n"))
         else if (!Global.chatter) >= 3 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
-         | SOME name ->
+         | None -> ()
+         | Some name ->
              if (!Global.chatter) >= 3
              then
                Msg.message
@@ -305,19 +305,19 @@ module Solve(Solve:sig
              else ());
         ((if (!Global.chatter) >= 3
           then
-            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt Xs
+            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt __Xs
              with
-             | NONE -> ()
-             | SOME str ->
+             | None -> ()
+             | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
         (* Question: should we collect constraints in M? *));
-        if exceeds ((SOME (!solutions)), try__) then raise Done else () in
+        if exceeds ((Some (!solutions)), try__) then raise Done else () in
       let rec search () =
         AbsMachine.solve
           ((g, IntSyn.id), (CompSyn.DProg (IntSyn.Null, IntSyn.Null)),
             scInit) in
-      ((if not (boundEq (try__, (SOME 0)))
+      ((if not (boundEq (try__, (Some 0)))
         then
           (((CSManager.reset ();
              (try
@@ -341,7 +341,7 @@ module Solve(Solve:sig
         if (!Global.chatter) >= 3
         then Msg.message "____________________________________________\n\n"
         else if (!Global.chatter) >= 4 then Msg.message " OK\n" else ())
-        (* optName = SOME(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(x) or None, __Xs = free variables in query excluding x *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
          in the printed query, since the new variables in this query
          may not necessarily have global scope.
@@ -349,16 +349,16 @@ module Solve(Solve:sig
          For the moment, we print only the answer substitution for the
          original variables encountered during parsing.
        *)
-        (* val Xs' = if !Global.chatter >= 3 then Names.namedEVars () else Xs
+        (* val __Xs' = if !Global.chatter >= 3 then Names.namedEVars () else __Xs
        *)
         (* solutions = ref <n> counts the number of solutions found *)
         (* Initial success continuation prints substitution (according to chatter level)
          and raises exception Done if bound has been reached, otherwise it returns
          to search for further solutions
        *))
-    (* %query <expected> <try> A or %query <expected> <try> X : A *)
+    (* %query <expected> <try> A or %query <expected> <try> x : A *)
     let rec querySbt ((expected, try__, quy), Loc (fileName, r)) =
-      let (A, optName, Xs) =
+      let (A, optName, __Xs) =
         ReconQuery.queryToQuery (quy, (Paths.Loc (fileName, r))) in
       let _ =
         if (!Global.chatter) >= 3
@@ -388,11 +388,11 @@ module Solve(Solve:sig
              (((^) "---------- Solution " Int.toString (!solutions)) ^
                 " ----------\n");
            Msg.message
-             ((Timers.time Timers.printing evarInstToString Xs) ^ "\n"))
+             ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n"))
         else if (!Global.chatter) >= 3 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
-         | SOME name ->
+         | None -> ()
+         | Some name ->
              (if (!Global.chatter) > 3
               then
                 (Msg.message "\n pskeleton \n";
@@ -412,19 +412,19 @@ module Solve(Solve:sig
                        else ()))));
         ((if (!Global.chatter) >= 3
           then
-            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt Xs
+            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt __Xs
              with
-             | NONE -> ()
-             | SOME str ->
+             | None -> ()
+             | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
         (* Question: should we collect constraints in M? *));
-        if exceeds ((SOME (!solutions)), try__) then raise Done else () in
+        if exceeds ((Some (!solutions)), try__) then raise Done else () in
       let rec search () =
         AbsMachineSbt.solve
           ((g, IntSyn.id), (CompSyn.DProg (IntSyn.Null, IntSyn.Null)),
             scInit) in
-      ((if not (boundEq (try__, (SOME 0)))
+      ((if not (boundEq (try__, (Some 0)))
         then
           (((CSManager.reset ();
              (try
@@ -449,7 +449,7 @@ module Solve(Solve:sig
         if (!Global.chatter) >= 3
         then Msg.message "____________________________________________\n\n"
         else if (!Global.chatter) >= 4 then Msg.message " OK\n" else ())
-        (* optName = SOME(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(x) or None, __Xs = free variables in query excluding x *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
                in the printed query, since the new variables in this query
                may not necessarily have global scope.
@@ -458,25 +458,25 @@ module Solve(Solve:sig
                original variables encountered during parsing.
              *)
         (*
-                val Xs' = if !Global.chatter >= 3 then Names.namedEVars () else Xs
+                val __Xs' = if !Global.chatter >= 3 then Names.namedEVars () else __Xs
              *)
         (* solutions = ref <n> counts the number of solutions found *)
         (* Initial success continuation prints substitution (according to chatter level)
          and raises exception Done if bound has been reached, otherwise it returns
          to search for further solutions
        *))
-    (* %query <expected> <try> A or %query <expected> <try> X : A  *)
+    (* %query <expected> <try> A or %query <expected> <try> x : A  *)
     let rec query args =
       ((match !Compile.optimize with
         | Compile.Indexing -> querySbt args
         | Compile.LinearHeads -> query' args
         | _ -> query' args)
       (* Execute query where program clauses are
-            indexed using substitution trees -- if we require the proof term X
+            indexed using substitution trees -- if we require the proof term x
             it will be reconstructed after the query A has succeeded - bp
           *))
     (* %querytabled <expected solutions> <max stages tried>  A
-or  %querytabled <expected solutions> <max stages tried>  X : A
+or  %querytabled <expected solutions> <max stages tried>  x : A
   note : %querytabled terminates if we have found the expected number of
   solutions or if we have reached the maximal number of stages *)
     let rec querytabled ((numSol, try__, quy), Loc (fileName, r)) =
@@ -487,7 +487,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             ((^) (((^) "%querytabled " boundToString numSol) ^ " ")
                boundToString try__)
         else () in
-      let (A, optName, Xs) =
+      let (A, optName, __Xs) =
         ReconQuery.queryToQuery (quy, (Paths.Loc (fileName, r))) in
       let _ = if (!Global.chatter) >= 4 then Msg.message " " else () in
       let _ =
@@ -513,11 +513,11 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
              (((^) "\n---------- Solutions " Int.toString (!solutions)) ^
                 " ----------\n");
            Msg.message
-             ((Timers.time Timers.printing evarInstToString Xs) ^ " \n"))
+             ((Timers.time Timers.printing evarInstToString __Xs) ^ " \n"))
         else if (!Global.chatter) >= 1 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
-         | SOME name ->
+         | None -> ()
+         | Some name ->
              (Msg.message ((CompSyn.pskeletonToString O) ^ "\n");
               Timers.time Timers.ptrecon PtRecon.solve
                 (O, (g, IntSyn.id),
@@ -533,10 +533,10 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
                        else ()))));
         ((if (!Global.chatter) >= 3
           then
-            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt Xs
+            (match Timers.time Timers.printing Print.evarCnstrsToStringOpt __Xs
              with
-             | NONE -> ()
-             | SOME str ->
+             | None -> ()
+             | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
         (* Question: should we collect constraints in M? *));
@@ -544,8 +544,8 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
         then Msg.message "More solutions?\n"
         else ();
         (match numSol with
-         | NONE -> ()
-         | SOME n ->
+         | None -> ()
+         | Some n ->
              if (!solutions) = n
              then
                (if (!Global.chatter) >= 1
@@ -554,7 +554,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
                 raise Done)
              else ()) in
       let rec loop () =
-        if exceeds ((SOME ((!stages) - 1)), try__)
+        if exceeds ((Some ((!stages) - 1)), try__)
         then
           (if (!Global.chatter) >= 1
            then
@@ -571,7 +571,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             (((^) "\n ====================== Stage " Int.toString (!stages))
                ^ " finished =================== \n")
         else ();
-        if exceeds ((SOME (!stages)), try__)
+        if exceeds ((Some (!stages)), try__)
         then
           (Msg.message
              (("\n ================= " ^ " Number of tries exceeds stages ")
@@ -597,7 +597,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
           loop ();
           checkStages (try__, (!stages)))
         (* in case Done was raised *)(* next stage until table doesn't change *)) in
-      ((if not (boundEq (try__, (SOME 0)))
+      ((if not (boundEq (try__, (Some 0)))
         then
           (try
              ((CSManager.reset ();
@@ -650,7 +650,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
            Msg.message "\n____________________________________________\n\n")
         else if (!Global.chatter) >= 3 then Msg.message " OK\n" else ();
         Tabled.updateGlobalTable (g, (!status)))
-        (* optName = SOME(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(x) or None, __Xs = free variables in query excluding x *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
         in the printed query, since the new variables in this query
         may not necessarily have global scope.
@@ -658,7 +658,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
         For the moment, we print only the answer substitution for the
         original variables encountered during parsing.
      *)
-        (* val Xs' = if !Global.chatter >= 3 then Names.namedEVars () else Xs *)
+        (* val __Xs' = if !Global.chatter >= 3 then Names.namedEVars () else __Xs *)
         (* solutions = ref <n> counts the number of solutions found *)
         (* stage = ref <n> counts the number of stages found *)(* Initial success continuation prints substitution (according to chatter level)
          and raises exception Done if bound has been reached, otherwise it returns
@@ -673,7 +673,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
       function
       | S.Empty -> true__
       | Cons (query, s') ->
-          let (A, optName, Xs) =
+          let (A, optName, __Xs) =
             ReconQuery.queryToQuery
               (query, (Paths.Loc ("stdIn", (Paths.Reg (0, 0))))) in
           let g =
@@ -682,11 +682,11 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             if (!Global.chatter) >= 1
             then
               Msg.message
-                ((Timers.time Timers.printing evarInstToString Xs) ^ "\n")
+                ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n")
             else ();
             (match optName with
-             | NONE -> ()
-             | SOME name ->
+             | None -> ()
+             | Some name ->
                  if (!Global.chatter) >= 3
                  then
                    Msg.message
@@ -697,10 +697,10 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             ((if (!Global.chatter) >= 3
               then
                 (match Timers.time Timers.printing
-                         Print.evarCnstrsToStringOpt Xs
+                         Print.evarCnstrsToStringOpt __Xs
                  with
-                 | NONE -> ()
-                 | SOME str ->
+                 | None -> ()
+                 | Some str ->
                      Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
               else ())
             (* Question: should we collect constraints from M *));
@@ -726,7 +726,7 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
       | S.Empty -> true__
       | Cons (query, s') ->
           let solExists = ref false__ in
-          let (A, optName, Xs) =
+          let (A, optName, __Xs) =
             ReconQuery.queryToQuery
               (query, (Paths.Loc ("stdIn", (Paths.Reg (0, 0))))) in
           let g =
@@ -736,11 +736,11 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             if (!Global.chatter) >= 1
             then
               Msg.message
-                ((Timers.time Timers.printing evarInstToString Xs) ^ "\n")
+                ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n")
             else ();
             (match optName with
-             | NONE -> ()
-             | SOME name ->
+             | None -> ()
+             | Some name ->
                  if (!Global.chatter) >= 3
                  then
                    Msg.message
@@ -749,10 +749,10 @@ or  %querytabled <expected solutions> <max stages tried>  X : A
             ((if (!Global.chatter) >= 3
               then
                 (match Timers.time Timers.printing
-                         Print.evarCnstrsToStringOpt Xs
+                         Print.evarCnstrsToStringOpt __Xs
                  with
-                 | NONE -> ()
-                 | SOME str ->
+                 | None -> ()
+                 | Some str ->
                      Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
               else ())
             (* Question: should we collect constraints from M? *));

@@ -64,7 +64,7 @@ module CSManager(CSManager:sig
         name = "";
         keywords = "";
         needs = nil;
-        fgnConst = NONE;
+        fgnConst = None;
         init = (function | _ -> ());
         reset = (function | () -> ());
         mark = (function | () -> ());
@@ -75,7 +75,7 @@ module CSManager(CSManager:sig
         name = "Unify";
         keywords = "unification";
         needs = nil;
-        fgnConst = NONE;
+        fgnConst = None;
         init = (function | _ -> ());
         reset = Unify.reset;
         mark = Unify.mark;
@@ -108,7 +108,7 @@ module CSManager(CSManager:sig
          | (cs, Solver (solver, active)) ->
              if !active
              then (active := false__; ((fun r -> r.reset)) solver ())
-             else ()) (ArraySlice.slice (csArray, 0, (SOME (!nextCS))));
+             else ()) (ArraySlice.slice (csArray, 0, (Some (!nextCS))));
       activeKeywords := nil;
       useSolver "Unify"
     let rec useSolver name =
@@ -120,11 +120,11 @@ module CSManager(CSManager:sig
                | (cs, Solver (solver, _)) ->
                    if ((fun r -> r.name) solver) = name
                    then raise (Found cs)
-                   else ()) (ArraySlice.slice (csArray, 0, (SOME (!nextCS))));
-            NONE
-          with | Found cs -> SOME cs in
+                   else ()) (ArraySlice.slice (csArray, 0, (Some (!nextCS))));
+            None
+          with | Found cs -> Some cs in
         match findSolver name with
-        | SOME cs ->
+        | Some cs ->
             let Solver (solver, active) = Array.sub (csArray, cs) in
             if !active
             then ()
@@ -144,24 +144,24 @@ module CSManager(CSManager:sig
                    (!activeKeywords);
                  List.app useSolver ((fun r -> r.needs) solver);
                  ((fun r -> r.init)) solver (cs, (!installFN)))
-        | NONE -> raise (Error (("solver " ^ name) ^ " not found"))
+        | None -> raise (Error (("solver " ^ name) ^ " not found"))
     let rec parse string =
       let exception Parsed of (IntSyn.csid * IntSyn.__ConDec)  in
         let rec parse' (cs, (solver : solver)) =
           match (fun r -> r.fgnConst) solver with
-          | NONE -> ()
-          | SOME fgnConDec ->
+          | None -> ()
+          | Some fgnConDec ->
               (match (fun r -> r.parse) fgnConDec string with
-               | NONE -> ()
-               | SOME conDec -> raise (Parsed (cs, conDec))) in
+               | None -> ()
+               | Some conDec -> raise (Parsed (cs, conDec))) in
         try
           ArraySlice.appi
             (function
              | (cs, Solver (solver, active)) ->
                  if !active then parse' (cs, solver) else ())
-            (ArraySlice.slice (csArray, 0, (SOME (!nextCS))));
-          NONE
-        with | Parsed info -> SOME info
+            (ArraySlice.slice (csArray, 0, (Some (!nextCS))));
+          None
+        with | Parsed info -> Some info
     let markCount = (ref 0 : int ref)
     let rec reset () =
       ArraySlice.appi
@@ -169,14 +169,14 @@ module CSManager(CSManager:sig
          | (_, Solver (solver, active)) ->
              if !active
              then (markCount := 0; ((fun r -> r.reset)) solver ())
-             else ()) (ArraySlice.slice (csArray, 0, (SOME (!nextCS))))
+             else ()) (ArraySlice.slice (csArray, 0, (Some (!nextCS))))
     let rec mark () =
       ((!) ((:=) markCount) markCount) + 1;
       ArraySlice.appi
         (function
          | (_, Solver (solver, active)) ->
              if !active then ((fun r -> r.mark)) solver () else ())
-        (ArraySlice.slice (csArray, 0, (SOME (!nextCS))))
+        (ArraySlice.slice (csArray, 0, (Some (!nextCS))))
     let rec unwind targetCount =
       let rec unwind' =
         function
@@ -186,7 +186,7 @@ module CSManager(CSManager:sig
                (function
                 | (_, Solver (solver, active)) ->
                     if !active then ((fun r -> r.unwind)) solver () else ())
-               (ArraySlice.slice (csArray, 0, (SOME (!nextCS))));
+               (ArraySlice.slice (csArray, 0, (Some (!nextCS))));
              unwind' (k - 1)) in
       unwind' ((!markCount) - targetCount)
     let rec trail f =

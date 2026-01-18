@@ -46,8 +46,8 @@ module NetServer(NetServer:sig
       let (c, a) = SS.position " " (Compat.Substring.full s) in
       ((SS.string c), (SS.string (SS.dropl Char.isSpace a)))
     let rec quote string = ("`" ^ string) ^ "'"
-    let (examplesDir : string option ref) = ref NONE
-    let rec setExamplesDir s = (:=) examplesDir SOME s
+    let (examplesDir : string option ref) = ref None
+    let rec setExamplesDir s = (:=) examplesDir Some s
     exception Error of string 
     let rec error msg = raise (Error msg)
     let rec serveExample e =
@@ -233,7 +233,7 @@ module NetServer(NetServer:sig
             if k = "Content-Length"
             then
               contentLength :=
-                (match Int.fromString v with | NONE -> 0 | SOME n -> n)
+                (match Int.fromString v with | None -> 0 | Some n -> n)
             else () in
           let () = app proc_one headers in parsingHeaders := false__
         with | Bind -> raise EOF in

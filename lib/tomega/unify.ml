@@ -46,18 +46,18 @@ module TomegaUnify(TomegaUnify:sig
     exception Unify of string 
     module I = IntSyn
     module T = Tomega
-    let rec unifyFor (Psi, F1, F2) =
-      unifyForN (Psi, (T.forSub (F1, T.id)), (T.forSub (F2, T.id)))
+    let rec unifyFor (Psi, __F1, __F2) =
+      unifyForN (Psi, (T.forSub (__F1, T.id)), (T.forSub (__F2, T.id)))
     let rec unifyForN =
       function
       | (Psi, T.True, T.True) -> ()
-      | (Psi, Ex ((D1, _), F1), Ex ((D2, _), F2)) ->
+      | (Psi, Ex ((D1, _), __F1), Ex ((D2, _), __F2)) ->
           (unifyDec (Psi, (T.UDec D1), (T.UDec D2));
-           unifyFor ((I.Decl (Psi, (T.UDec D1))), F1, F2))
-      | (Psi, All ((D1, _), F1), All ((D2, _), F2)) ->
-          (unifyDec (Psi, D1, D2); unifyFor ((I.Decl (Psi, D1)), F1, F2))
-      | (Psi, FVar (_, r), F) -> (:=) r SOME F
-      | (Psi, F, FVar (_, r)) -> (:=) r SOME F
+           unifyFor ((I.Decl (Psi, (T.UDec D1))), __F1, __F2))
+      | (Psi, All ((D1, _), __F1), All ((D2, _), __F2)) ->
+          (unifyDec (Psi, D1, D2); unifyFor ((I.Decl (Psi, D1)), __F1, __F2))
+      | (Psi, FVar (_, r), F) -> (:=) r Some F
+      | (Psi, F, FVar (_, r)) -> (:=) r Some F
       | (Psi, _, _) -> raise (Unify "Formula mismatch")
     let rec unifyDec =
       function
@@ -65,15 +65,15 @@ module TomegaUnify(TomegaUnify:sig
           if Conv.convDec ((D1, I.id), (D2, I.id))
           then ()
           else raise (Unify "Declaration mismatch")
-      | (Psi, PDec (_, F1), PDec (_, F2)) -> unifyFor (Psi, F1, F2)
-    (* unifyFor (Psi, F1, F2) = R
+      | (Psi, PDec (_, __F1), PDec (_, __F2)) -> unifyFor (Psi, __F1, __F2)
+    (* unifyFor (Psi, __F1, __F2) = R
 
        Invariant:
-       If   F1, F2 contain free variables X1 ... Xn
-       and  Psi |- F1 for
-       and  Psi |- F2 for
+       If   __F1, __F2 contain free variables X1 ... Xn
+       and  Psi |- __F1 for
+       and  Psi |- __F2 for
        and  there exists an instantiation I for X1 ...Xn such that
-       and  Psi[I] |- F1[I] = F2[I]
+       and  Psi[I] |- __F1[I] = __F2[I]
        then R = ()
        otherwise exception Unify is raised
     *)

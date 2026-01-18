@@ -31,8 +31,8 @@ module Streamm : STREAMM =
     type nonrec 'a stream = 'a str ref
     let rec get =
       function
-      | ref (EVAL t) -> t
-      | ref (UNEVAL f) as s ->
+      | { contents = EVAL t } -> t
+      | ({ contents = UNEVAL f } as s) ->
           let t = ((f ()), (ref (UNEVAL f))) in ((:=) s EVAL t; t)
     let rec streamify f = ref (UNEVAL f)
     let rec cons (a, s) = ref (EVAL (a, s))

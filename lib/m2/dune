@@ -25,9 +25,8 @@
   table
   solvers
  )
- (modules 
+ (modules
   filling
-  global
   init
   lemma
   m2

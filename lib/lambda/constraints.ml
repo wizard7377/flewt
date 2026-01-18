@@ -25,16 +25,16 @@ module Constraints(Constraints:sig
     (*! structure IntSyn = IntSyn' !*)
     exception Error of IntSyn.cnstr list 
     (*
-     Constraints cnstr are of the form (X<I>[s] = U).
+     Constraints cnstr are of the form (x<I>[s] = __u).
      Invariants:
-       G |- s : G'  G' |- X<I> : V
-       G |- U : W
-       G |- V[s] == W : L
-       (X<>,s) is whnf, but X<>[s] is not a pattern
-     If X<I> is uninstantiated, the constraint is inactive.
-     If X<I> is instantiated, the constraint is active.
+       __g |- s : __g'  __g' |- x<I> : __v
+       __g |- __u : W
+       __g |- __v[s] == W : __l
+       (x<>,s) is whnf, but x<>[s] is not a pattern
+     If x<I> is uninstantiated, the constraint is inactive.
+     If x<I> is instantiated, the constraint is active.
 
-     Constraints are attached directly to the EVar X
+     Constraints are attached directly to the EVar x
      or to a descendent  -fp?
   *)
     module I = IntSyn
@@ -42,8 +42,8 @@ module Constraints(Constraints:sig
       function
       | nil -> nil
       | (ref (I.Solved))::cnstrs -> simplify cnstrs
-      | (ref (Eqn (G, U1, U2)) as Eqn)::cnstrs ->
-          if Conv.conv ((U1, I.id), (U2, I.id))
+      | (ref (Eqn (__g, __U1, __U2)) as Eqn)::cnstrs ->
+          if Conv.conv ((__U1, I.id), (__U2, I.id))
           then simplify cnstrs
           else Eqn :: (simplify cnstrs)
       | (ref (FgnCnstr csfc) as FgnCnstr)::cnstrs ->
@@ -61,8 +61,8 @@ module Constraints(Constraints:sig
           print (((^) "Constraints remain on " namesToString names) ^ "\n")
     (* simplify cnstrs = cnstrs'
        Effects: simplifies the constraints in cnstrs by removing constraints
-         of the form U = U' where G |- U == U' : V (mod beta/eta)
-         Neither U nor U' needs to be a pattern
+         of the form __u = __u' where __g |- __u == __u' : __v (mod beta/eta)
+         Neither __u nor __u' needs to be a pattern
          *)
     let simplify = simplify
     let namesToString = namesToString

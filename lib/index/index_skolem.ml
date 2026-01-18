@@ -33,10 +33,10 @@ module IndexSkolem(IndexSkolem:sig
            | _ -> ())
     let rec remove (a, cid) =
       match Queue.deleteEnd (Array.sub (indexArray, a)) with
-      | NONE -> ()
-      | SOME (Const cid', queue') ->
+      | None -> ()
+      | Some (Const cid', queue') ->
           if cid = cid' then Array.update (indexArray, a, queue') else ()
-      | SOME (Skonst cid', queue') ->
+      | Some (Skonst cid', queue') ->
           if cid = cid' then Array.update (indexArray, a, queue') else ()
     let rec uninstall cid =
       match I.sgnLookup cid with
@@ -55,8 +55,8 @@ module IndexSkolem(IndexSkolem:sig
     let rec lookup a =
       let rec lk =
         function
-        | (l, NONE) -> l
-        | (l, SOME q') -> (Array.update (indexArray, a, q'); l) in
+        | (l, None) -> l
+        | (l, Some q') -> (Array.update (indexArray, a, q'); l) in
       lk (Queue.toList (Array.sub (indexArray, a)))
     (* Index array
 

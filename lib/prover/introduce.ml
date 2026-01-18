@@ -38,34 +38,34 @@ module Introduce(Introduce:sig
     type nonrec operator = (T.__Prg * T.__Prg)
     let rec stripTC (TC) = TC
     let rec stripTCOpt =
-      function | NONE -> NONE | SOME (TC) -> SOME (stripTC TC)
+      function | None -> None | Some (TC) -> Some (stripTC TC)
     let rec stripDec =
       function
-      | UDec (D) -> T.UDec D
+      | UDec (__d) -> T.UDec __d
       | PDec (name, F, TC1, TC2) -> T.PDec (name, F, TC1, (stripTCOpt TC2))
     let rec strip =
       function
       | I.Null -> I.Null
-      | Decl (Psi, D) -> I.Decl ((strip Psi), (stripDec D))
+      | Decl (Psi, __d) -> I.Decl ((strip Psi), (stripDec __d))
     let rec expand =
       function
-      | Focus ((EVar (Psi, r, All ((D, _), F), NONE, NONE, _) as R), W) ->
-          let D' = TomegaNames.decName (Psi, D) in
-          SOME (R, (T.Lam (D', (T.newEVar ((I.Decl ((strip Psi), D')), F)))))
+      | Focus ((EVar (Psi, r, All ((__d, _), F), None, None, _) as R), W) ->
+          let __d' = TomegaNames.decName (Psi, __d) in
+          Some (R, (T.Lam (__d', (T.newEVar ((I.Decl ((strip Psi), __d')), F)))))
       | Focus
-          ((EVar (Psi, r, Ex (((Dec (_, V) as D), _), F), NONE, NONE, _) as R),
+          ((EVar (Psi, r, Ex (((Dec (_, __v) as __d), _), F), None, None, _) as R),
            W)
           ->
-          let X = I.newEVar ((T.coerceCtx Psi), V) in
-          let Y = T.newEVar (Psi, (T.forSub (F, (T.Dot ((T.Exp X), T.id))))) in
-          SOME (R, (T.PairExp (X, Y)))
-      | Focus ((EVar (Psi, r, T.True, NONE, NONE, _) as R), W) ->
-          SOME (R, T.Unit)
-      | Focus (EVar (Psi, r, FClo (F, s), TC1, TC2, X), W) ->
+          let x = I.newEVar ((T.coerceCtx Psi), __v) in
+          let y = T.newEVar (Psi, (T.forSub (F, (T.Dot ((T.Exp x), T.id))))) in
+          Some (R, (T.PairExp (x, y)))
+      | Focus ((EVar (Psi, r, T.True, None, None, _) as R), W) ->
+          Some (R, T.Unit)
+      | Focus (EVar (Psi, r, FClo (F, s), TC1, TC2, x), W) ->
           expand
-            (S.Focus ((T.EVar (Psi, r, (T.forSub (F, s)), TC1, TC2, X)), W))
-      | Focus (EVar (Psi, r, _, _, _, _), W) -> NONE
-    let rec apply (EVar (_, r, _, _, _, _), P) = (:=) r SOME P
+            (S.Focus ((T.EVar (Psi, r, (T.forSub (F, s)), TC1, TC2, x)), W))
+      | Focus (EVar (Psi, r, _, _, _, _), W) -> None
+    let rec apply (EVar (_, r, _, _, _, _), P) = (:=) r Some P
     let rec menu (r, P) = (^) "Intro " TomegaPrint.nameEVar r
     (*    fun stripTC (T.Abs (_, TC)) = TC *)
     (* expand S = S'

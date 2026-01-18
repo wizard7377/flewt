@@ -102,7 +102,7 @@ module DextSyn(DextSyn:sig
     module Parsing = Parsing'
     (*  structure Paths = ExtSyn.Paths
   structure Lexer = Lexer' *)
-    module L = Lexer
+    module __l = Lexer
     (*  structure S = Parsing'.Lexer.Stream *)
     module S = Stream
     type __Ast =

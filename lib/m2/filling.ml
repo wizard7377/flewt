@@ -49,12 +49,12 @@ module Filling(Filling:sig
       try search Params with | Error s -> raise (Error s)
     let rec makeAddressInit (S) k = (S, k)
     let rec makeAddressCont makeAddress k = makeAddress (k + 1)
-    let rec operators (G, GE, Vs, abstractAll, abstractEx, makeAddress) =
+    let rec operators (__g, GE, __Vs, abstractAll, abstractEx, makeAddress) =
       operatorsW
-        (G, GE, (Whnf.whnf Vs), abstractAll, abstractEx, makeAddress)
+        (__g, GE, (Whnf.whnf __Vs), abstractAll, abstractEx, makeAddress)
     let rec operatorsW =
       function
-      | (G, GE, ((Root (C, S), _) as Vs), abstractAll, abstractEx,
+      | (__g, GE, ((Root (C, S), _) as __Vs), abstractAll, abstractEx,
          makeAddress) ->
           (nil,
             ((makeAddress 0),
@@ -62,38 +62,38 @@ module Filling(Filling:sig
                  ((function
                    | Params ->
                        (try Search.searchEx Params with | Success (S) -> [S])),
-                   (G, GE, Vs, abstractEx)))))
-      | (G, GE, (Pi (((Dec (_, V1) as D), P), V2), s), abstractAll,
+                   (__g, GE, __Vs, abstractEx)))))
+      | (__g, GE, (Pi (((Dec (_, V1) as __d), P), V2), s), abstractAll,
          abstractEx, makeAddress) ->
           let (GO', O) =
             operators
-              ((I.Decl (G, (I.decSub (D, s)))), GE, (V2, (I.dot1 s)),
+              ((I.Decl (__g, (I.decSub (__d, s)))), GE, (V2, (I.dot1 s)),
                 abstractAll, abstractEx, (makeAddressCont makeAddress)) in
           ((((makeAddress 0),
-              (delay (Search.searchAll, (G, GE, (V1, s), abstractAll)))) ::
+              (delay (Search.searchAll, (__g, GE, (V1, s), abstractAll)))) ::
               GO'), O)
     let rec createEVars =
       function
       | Prefix (I.Null, I.Null, I.Null) ->
           ((M.Prefix (I.Null, I.Null, I.Null)), I.id, nil)
-      | Prefix (Decl (G, D), Decl (M, M.Top), Decl (B, b)) ->
-          let (Prefix (G', M', B'), s', GE') =
-            createEVars (M.Prefix (G, M, B)) in
+      | Prefix (Decl (__g, __d), Decl (M, M.Top), Decl (B, b)) ->
+          let (Prefix (__g', M', B'), s', GE') =
+            createEVars (M.Prefix (__g, M, B)) in
           ((M.Prefix
-              ((I.Decl (G', (I.decSub (D, s')))), (I.Decl (M', M.Top)),
+              ((I.Decl (__g', (I.decSub (__d, s')))), (I.Decl (M', M.Top)),
                 (I.Decl (B', b)))), (I.dot1 s'), GE')
-      | Prefix (Decl (G, Dec (_, V)), Decl (M, M.Bot), Decl (B, _)) ->
-          let (Prefix (G', M', B'), s', GE') =
-            createEVars (M.Prefix (G, M, B)) in
-          let X = I.newEVar (G', (I.EClo (V, s'))) in
-          let X' = Whnf.lowerEVar X in
-          ((M.Prefix (G', M', B')), (I.Dot ((I.Exp X), s')), (X' :: GE'))
-    let rec expand (State (name, Prefix (G, M, B), V) as S) =
-      let (Prefix (G', M', B'), s', GE') = createEVars (M.Prefix (G, M, B)) in
+      | Prefix (Decl (__g, Dec (_, __v)), Decl (M, M.Bot), Decl (B, _)) ->
+          let (Prefix (__g', M', B'), s', GE') =
+            createEVars (M.Prefix (__g, M, B)) in
+          let x = I.newEVar (__g', (I.EClo (__v, s'))) in
+          let x' = Whnf.lowerEVar x in
+          ((M.Prefix (__g', M', B')), (I.Dot ((I.Exp x), s')), (x' :: GE'))
+    let rec expand (State (name, Prefix (__g, M, B), __v) as S) =
+      let (Prefix (__g', M', B'), s', GE') = createEVars (M.Prefix (__g, M, B)) in
       let rec abstractAll acc =
         try
           (MetaAbstract.abstract
-             (M.State (name, (M.Prefix (G', M', B')), (I.EClo (V, s')))))
+             (M.State (name, (M.Prefix (__g', M', B')), (I.EClo (__v, s')))))
             :: acc
         with | Error s -> acc in
       let rec abstractEx () =
@@ -101,57 +101,57 @@ module Filling(Filling:sig
           raise
             (Success
                (MetaAbstract.abstract
-                  (M.State (name, (M.Prefix (G', M', B')), (I.EClo (V, s'))))))
+                  (M.State (name, (M.Prefix (__g', M', B')), (I.EClo (__v, s'))))))
         with | Error s -> () in
       operators
-        (G', GE', (V, s'), abstractAll, abstractEx, (makeAddressInit S))
+        (__g', GE', (__v, s'), abstractAll, abstractEx, (makeAddressInit S))
     let rec apply (_, f) = f ()
-    let rec menu ((State (name, Prefix (G, M, B), V), k), Sl) =
+    let rec menu ((State (name, Prefix (__g, M, B), __v), k), Sl) =
       let rec toString =
         function
-        | (G, Pi ((Dec (_, V), _), _), 0) -> Print.expToString (G, V)
-        | (G, (Root _ as V), 0) -> Print.expToString (G, V)
-        | (G, Pi ((D, _), V), k) -> toString ((I.Decl (G, D)), V, (k - 1)) in
-      (^) "Filling   : " toString (G, V, k)
-    (* operators (G, GE, (V, s), abstract, makeAddress) = (OE', OL')
+        | (__g, Pi ((Dec (_, __v), _), _), 0) -> Print.expToString (__g, __v)
+        | (__g, (Root _ as __v), 0) -> Print.expToString (__g, __v)
+        | (__g, Pi ((__d, _), __v), k) -> toString ((I.Decl (__g, __d)), __v, (k - 1)) in
+      (^) "Filling   : " toString (__g, __v, k)
+    (* operators (__g, GE, (__v, s), abstract, makeAddress) = (OE', OL')
 
        Invariant:
-       If   G |- s : G1   G1 |- V : type
+       If   __g |- s : G1   G1 |- __v : type
        and  abstract is an abstraction continuation
        and  makeAddress is continuation which calculates the correct
          debruijn index of the variable being filled
-       and V = {V1}...{Vn} V'
+       and __v = {V1}...{Vn} __v'
        then OE' is an operator list, OL' is a list with one operator
          where the ith O' in OE' corresponds to a function which generates ALL possible
                                       successor states instantiating - non-index variables
                                       with terms (if possible) in Vi
         and OL' is a list containing one operator which instantiates all - non-index variables
-          in V' with the smallest possible terms.
+          in __v' with the smallest possible terms.
     *)
-    (* createEVars (G, M) = ((G', M'), s', GE')
+    (* createEVars (__g, M) = ((__g', M'), s', GE')
 
        Invariant:
-       If   |- G ctx
-       and  G |- M mtx
-       then |- G' ctx
-       and  G' |- M' mtx
-       and  G' |- s' : G
+       If   |- __g ctx
+       and  __g |- M mtx
+       then |- __g' ctx
+       and  __g' |- M' mtx
+       and  __g' |- s' : __g
        and  GE a list of EVars
 
     *)
-    (* expand' ((G, M), V) = (OE', OL')
+    (* expand' ((__g, M), __v) = (OE', OL')
 
        Invariant:
-       If   |- G ctx
-       and  G |- M mtx
-       and  G |- V type
-       and  V = {V1}...{Vn} V'
+       If   |- __g ctx
+       and  __g |- M mtx
+       and  __g |- __v type
+       and  __v = {V1}...{Vn} __v'
        then OE' is an operator list, OL' is a list with one operator
          where the ith O' in OE' corresponds to a function which generates ALL possible
                                       successor states instantiating - non-index variables
                                       with terms (if possible) in Vi
         and OL' is a list containing one operator which instantiates all - non-index variables
-          in V' with the smallest possible terms.
+          in __v' with the smallest possible terms.
     *)
     (* apply (S, f) = S'
 
@@ -159,7 +159,7 @@ module Filling(Filling:sig
        S is state and f is a function constructing the successor state S'
     *)
     (* no cases for
-              toSTring (G, I.Root _, k) for k <> 0
+              toSTring (__g, I.Root _, k) for k <> 0
             *)
     let expand = expand
     let apply = apply

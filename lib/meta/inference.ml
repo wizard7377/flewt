@@ -49,115 +49,115 @@ module Inference(Inference:sig
     exception Success 
     let rec createEVars =
       function
-      | (G, (Pi ((Dec (_, V), I.Meta), V'), s)) ->
-          let X = I.newEVar (G, (I.EClo (V, s))) in
-          let X' = Whnf.lowerEVar X in
-          let (Xs, FVs') = createEVars (G, (V', (I.Dot ((I.Exp X), s)))) in
-          ((X' :: Xs), FVs')
-      | (G, ((_, s) as FVs)) -> (nil, FVs)
+      | (__g, (Pi ((Dec (_, __v), I.Meta), __v'), s)) ->
+          let x = I.newEVar (__g, (I.EClo (__v, s))) in
+          let x' = Whnf.lowerEVar x in
+          let (__Xs, FVs') = createEVars (__g, (__v', (I.Dot ((I.Exp x), s)))) in
+          ((x' :: __Xs), FVs')
+      | (__g, ((_, s) as FVs)) -> (nil, FVs)
     let rec forward =
       function
-      | (G, B, (Pi ((_, I.Meta), _) as V)) ->
+      | (__g, B, (Pi ((_, I.Meta), _) as __v)) ->
           let _ =
             if !Global.doubleCheck
-            then TypeCheck.typeCheck (G, (V, (I.Uni I.Type)))
+            then TypeCheck.typeCheck (__g, (__v, (I.Uni I.Type)))
             else () in
-          let (Xs, (V', s')) = createEVars (G, (V, I.id)) in
+          let (__Xs, (__v', s')) = createEVars (__g, (__v, I.id)) in
           (try
              match UniqueSearch.searchEx
-                     (2, Xs,
+                     (2, __Xs,
                        (function
-                        | nil -> [Whnf.normalize (V', s')]
+                        | nil -> [Whnf.normalize (__v', s')]
                         | _ ->
                             raise (UniqueSearch.Error "Too many solutions")))
              with
-             | (VF'')::[] -> SOME VF''
-             | [] -> NONE
-           with | Error _ -> NONE)
-      | (G, B, V) -> NONE
+             | (VF'')::[] -> Some VF''
+             | [] -> None
+           with | Error _ -> None)
+      | (__g, B, __v) -> None
     let rec expand' =
       function
       | ((G0, B0), (I.Null, I.Null), n) ->
-          ((I.Null, I.Null), ((function | ((G', B'), w') -> ((G', B'), w'))))
+          ((I.Null, I.Null), ((function | ((__g', B'), w') -> ((__g', B'), w'))))
       | ((G0, B0),
-         (Decl (G, (Dec (_, V) as D)), Decl (B, (Lemma (S.RL) as T))), n) ->
-          let ((G0', B0'), sc') = expand' ((G0, B0), (G, B), (n + 1)) in
+         (Decl (__g, (Dec (_, __v) as __d)), Decl (B, (Lemma (S.RL) as T))), n) ->
+          let ((G0', B0'), sc') = expand' ((G0, B0), (__g, B), (n + 1)) in
           let s = I.Shift (n + 1) in
-          let Vs = Whnf.normalize (V, s) in
-          (match forward (G0, B0, Vs) with
-           | NONE -> (((I.Decl (G0', D)), (I.Decl (B0', T))), sc')
-           | SOME (V') ->
-               (((I.Decl (G0', D)), (I.Decl (B0', (S.Lemma S.RLdone)))),
+          let __Vs = Whnf.normalize (__v, s) in
+          (match forward (G0, B0, __Vs) with
+           | None -> (((I.Decl (G0', __d)), (I.Decl (B0', T))), sc')
+           | Some (__v') ->
+               (((I.Decl (G0', __d)), (I.Decl (B0', (S.Lemma S.RLdone)))),
                  ((function
-                   | ((G', B'), w') ->
-                       let V'' = Whnf.normalize (V', w') in
+                   | ((__g', B'), w') ->
+                       let __v'' = Whnf.normalize (__v', w') in
                        sc'
-                         (((I.Decl (G', (I.Dec (NONE, V'')))),
+                         (((I.Decl (__g', (I.Dec (None, __v'')))),
                             (I.Decl
                                (B',
                                  (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
                            (I.comp (w', I.shift)))))))
-      | (GB0, (Decl (G, D), Decl (B, T)), n) ->
-          let ((G0', B0'), sc') = expand' (GB0, (G, B), (n + 1)) in
-          (((I.Decl (G0', D)), (I.Decl (B0', T))), sc')
-    let rec expand (State (n, (G, B), (IH, OH), d, O, H, F) as S) =
-      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx G else () in
-      let ((Gnew, Bnew), sc) = expand' ((G, B), (G, B), 0) in
+      | (GB0, (Decl (__g, __d), Decl (B, T)), n) ->
+          let ((G0', B0'), sc') = expand' (GB0, (__g, B), (n + 1)) in
+          (((I.Decl (G0', __d)), (I.Decl (B0', T))), sc')
+    let rec expand (State (n, (__g, B), (IH, OH), d, O, H, F) as S) =
+      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx __g else () in
+      let ((Gnew, Bnew), sc) = expand' ((__g, B), (__g, B), 0) in
       let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx Gnew else () in
-      let ((G', B'), w') = sc ((Gnew, Bnew), I.id) in
-      let _ = TypeCheck.typeCheckCtx G' in
+      let ((__g', B'), w') = sc ((Gnew, Bnew), I.id) in
+      let _ = TypeCheck.typeCheckCtx __g' in
       let S' =
         S.State
-          (n, (G', B'), (IH, OH), d, (S.orderSub (O, w')),
-            (map (function | (i, F') -> (i, (F.forSub (F', w')))) H),
+          (n, (__g', B'), (IH, OH), d, (S.orderSub (O, w')),
+            (map (function | (i, __F') -> (i, (F.forSub (__F', w')))) H),
             (F.forSub (F, w'))) in
       let _ = if !Global.doubleCheck then FunTypeCheck.isState S' else () in
       function | () -> S'
     let rec apply f = f ()
     let rec menu _ = "Inference"
-    (* createEVars (G, (F, V, s)) = (Xs', (F', V', s'))
+    (* createEVars (__g, (F, __v, s)) = (__Xs', (__F', __v', s'))
 
        Invariant:
-       If   |- G ctx
-       and  G0 |- F = {{x1:A1}} .. {{xn::An}} F1 formula
-       and  G0 |- V = { x1:A1}  .. {xn:An} V1 : type
-       and  G |- s : G0
-       then Xs' = (X1', .., Xn') a list of EVars
-       and  G |- Xi' : A1 [X1'/x1..X(i-1)'/x(i-1)]          for all i <= n
-       and  G |- s: G'
-       and  G0 |- F' = F1 for
-       and  G0 |- V' = V1 : type
+       If   |- __g ctx
+       and  G0 |- F = {{x1:A1}} .. {{xn::An}} __F1 formula
+       and  G0 |- __v = { x1:A1}  .. {xn:An} V1 : type
+       and  __g |- s : G0
+       then __Xs' = (X1', .., Xn') a list of EVars
+       and  __g |- Xi' : A1 [X1'/x1..X(i-1)'/x(i-1)]          for all i <= n
+       and  __g |- s: __g'
+       and  G0 |- __F' = __F1 for
+       and  G0 |- __v' = V1 : type
     *)
-    (* forward (G, B, (V, F)) = (V', F')  (or none)
+    (* forward (__g, B, (__v, F)) = (__v', __F')  (or none)
 
        Invariant:
-       If   |- G ctx
-       and  G |- B tags
-       and  G |- V type
-       and  G; . |- F : formula
-       then G |- V' type
-       and  G; . |- F' : formula
+       If   |- __g ctx
+       and  __g |- B tags
+       and  __g |- __v type
+       and  __g; . |- F : formula
+       then __g |- __v' type
+       and  __g; . |- __F' : formula
 
     *)
-    (* expand' ((G, B), n) = ((Gnew, Bnew), sc)
+    (* expand' ((__g, B), n) = ((Gnew, Bnew), sc)
 
        Invariant:
        If   |- G0 ctx    G0 |- B0 tags
-       and  |- G ctx     G |- B tags
-       and  G prefix of G0 , and B prefix of B0
-       and  n + |G| = |G0|
+       and  |- __g ctx     __g |- B tags
+       and  __g prefix of G0 , and B prefix of B0
+       and  n + |__g| = |G0|
        then sc is a continutation which maps
-            |- G' ctx
-            and G' |- B' tags
-            and G', B' |- w' : G0, B0
-            to  |- G'' ctx
-            and G'' |- B'' tags
-            and G'', B'' extends G, B
-       and |- Gnew = G ctx
+            |- __g' ctx
+            and __g' |- B' tags
+            and __g', B' |- w' : G0, B0
+            to  |- __g'' ctx
+            and __g'' |- B'' tags
+            and __g'', B'' extends __g, B
+       and |- Gnew = __g ctx
        and Gnew |- Bnew tags
        where Bnew stems from B where all used lemmas (S.RL) are now tagged with (S.RLdone)
     *)
-    (* G' |- V'' : type *)
+    (* __g' |- __v'' : type *)
     (* expand' S = op'
 
        Invariant:

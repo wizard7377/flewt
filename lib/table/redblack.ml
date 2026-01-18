@@ -14,12 +14,12 @@ module RedBlackTree(RedBlackTree:sig
     let rec lookup dict key =
       let rec lk =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' ((key1, datum1), left, right) =
         match compare (key, key1) with
-        | EQUAL -> SOME datum1
+        | EQUAL -> Some datum1
         | LESS -> lk left
         | GREATER -> lk right in
       lk dict
@@ -64,22 +64,22 @@ module RedBlackTree(RedBlackTree:sig
       | Red ((_, _, Red _) as t) -> Black t
       | dict -> dict
     let rec insertShadow (dict, ((key, datum) as entry)) =
-      let oldEntry = ref NONE in
+      let oldEntry = ref None in
       let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
         | Red (((key1, datum1) as entry1), left, right) ->
             (match compare (key, key1) with
-             | EQUAL -> ((:=) oldEntry SOME entry1; Red (entry, left, right))
+             | EQUAL -> ((:=) oldEntry Some entry1; Red (entry, left, right))
              | LESS -> Red (entry1, (ins left), right)
              | GREATER -> Red (entry1, left, (ins right)))
         | Black (((key1, datum1) as entry1), left, right) ->
             (match compare (key, key1) with
              | EQUAL ->
-                 ((:=) oldEntry SOME entry1; Black (entry, left, right))
+                 ((:=) oldEntry Some entry1; Black (entry, left, right))
              | LESS -> restore_left (Black (entry1, (ins left), right))
              | GREATER -> restore_right (Black (entry1, left, (ins right)))) in
-      oldEntry := NONE;
+      oldEntry := None;
       (((match ins dict with
          | Red ((_, Red _, _) as t) -> Black t
          | Red ((_, _, Red _) as t) -> Black t

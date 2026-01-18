@@ -59,16 +59,16 @@ module Traverse(Traverse:sig
     module T = Traverser
     let rec inferConW =
       function
-      | (G, BVar k') ->
-          let Dec (_, V) = I.ctxDec (G, k') in Whnf.whnf (V, I.id)
-      | (G, Const c) -> ((I.constType c), I.id)
-      | (G, Def d) -> ((I.constType d), I.id)
+      | (__g, BVar k') ->
+          let Dec (_, __v) = I.ctxDec (__g, k') in Whnf.whnf (__v, I.id)
+      | (__g, Const c) -> ((I.constType c), I.id)
+      | (__g, Def d) -> ((I.constType d), I.id)
     let rec fromHead =
       function
-      | (G, BVar n) -> T.bvar (Names.bvarName (G, n))
-      | (G, Const cid) ->
+      | (__g, BVar n) -> T.bvar (Names.bvarName (__g, n))
+      | (__g, Const cid) ->
           let Qid (ids, id) = Names.constQid cid in T.const (ids, id)
-      | (G, Def cid) ->
+      | (__g, Def cid) ->
           let Qid (ids, id) = Names.constQid cid in T.def (ids, id)
       | _ -> raise (Error "Head not recognized")
     let rec impCon =
@@ -78,110 +78,110 @@ module Traverse(Traverse:sig
       | _ -> 0
     let rec fromTpW =
       function
-      | (G, (Root (C, S), s)) ->
+      | (__g, (Root (C, S), s)) ->
           T.atom
-            ((fromHead (G, C)),
-              (fromSpine ((impCon C), G, (S, s), (inferConW (G, C)))))
-      | (G, (Pi (((Dec (_, V1) as D), I.No), V2), s)) ->
+            ((fromHead (__g, C)),
+              (fromSpine ((impCon C), __g, (S, s), (inferConW (__g, C)))))
+      | (__g, (Pi (((Dec (_, V1) as __d), I.No), V2), s)) ->
           T.arrow
-            ((fromTp (G, (V1, s))),
-              (fromTp ((I.Decl (G, (I.decSub (D, s)))), (V2, (I.dot1 s)))))
-      | (G, (Pi ((D, I.Maybe), V2), s)) ->
-          let D' = Names.decUName (G, D) in
+            ((fromTp (__g, (V1, s))),
+              (fromTp ((I.Decl (__g, (I.decSub (__d, s)))), (V2, (I.dot1 s)))))
+      | (__g, (Pi ((__d, I.Maybe), V2), s)) ->
+          let __d' = Names.decUName (__g, __d) in
           T.pi
-            ((fromDec (G, (D', s))),
-              (fromTp ((I.Decl (G, (I.decSub (D', s)))), (V2, (I.dot1 s)))))
+            ((fromDec (__g, (__d', s))),
+              (fromTp ((I.Decl (__g, (I.decSub (__d', s)))), (V2, (I.dot1 s)))))
       | _ -> raise (Error "Type not recognized")
-    let rec fromTp (G, Vs) = fromTpW (G, (Whnf.whnf Vs))
+    let rec fromTp (__g, __Vs) = fromTpW (__g, (Whnf.whnf __Vs))
     let rec fromObjW =
       function
-      | (G, (Root (C, S), s), (V, t)) ->
+      | (__g, (Root (C, S), s), (__v, t)) ->
           T.root
-            ((fromHead (G, C)),
-              (fromSpine ((impCon C), G, (S, s), (inferConW (G, C)))),
-              (fromTp (G, (V, t))))
-      | (G, (Lam (D, U), s), (Pi (_, V), t)) ->
-          let D' = Names.decUName (G, D) in
+            ((fromHead (__g, C)),
+              (fromSpine ((impCon C), __g, (S, s), (inferConW (__g, C)))),
+              (fromTp (__g, (__v, t))))
+      | (__g, (Lam (__d, __u), s), (Pi (_, __v), t)) ->
+          let __d' = Names.decUName (__g, __d) in
           T.lam
-            ((fromDec (G, (D', s))),
+            ((fromDec (__g, (__d', s))),
               (fromObj
-                 ((I.Decl (G, (I.decSub (D', s)))), (U, (I.dot1 s)),
-                   (V, (I.dot1 t)))))
+                 ((I.Decl (__g, (I.decSub (__d', s)))), (__u, (I.dot1 s)),
+                   (__v, (I.dot1 t)))))
       | _ -> raise (Error "Object not recognized")
-    let rec fromObj (G, Us, Vt) =
-      fromObjW (G, (Whnf.whnf Us), (Whnf.whnf Vt))
+    let rec fromObj (__g, __Us, Vt) =
+      fromObjW (__g, (Whnf.whnf __Us), (Whnf.whnf Vt))
     let rec fromSpine =
       function
-      | (i, G, (I.Nil, s), Vt) -> T.nils
-      | (i, G, (SClo (S, s'), s), Vt) ->
-          fromSpine (i, G, (S, (I.comp (s', s))), Vt)
-      | (i, G, (App (U, S), s), (Pi ((Dec (_, V1), _), V2), t)) ->
+      | (i, __g, (I.Nil, s), Vt) -> T.nils
+      | (i, __g, (SClo (S, s'), s), Vt) ->
+          fromSpine (i, __g, (S, (I.comp (s', s))), Vt)
+      | (i, __g, (App (__u, S), s), (Pi ((Dec (_, V1), _), V2), t)) ->
           if i > 0
           then
             fromSpine
-              ((i - 1), G, (S, s),
-                (Whnf.whnf (V2, (I.Dot ((I.Exp (I.EClo (U, s))), t)))))
+              ((i - 1), __g, (S, s),
+                (Whnf.whnf (V2, (I.Dot ((I.Exp (I.EClo (__u, s))), t)))))
           else
             T.app
-              ((fromObj (G, (U, s), (V1, t))),
+              ((fromObj (__g, (__u, s), (V1, t))),
                 (fromSpine
-                   (i, G, (S, s),
-                     (Whnf.whnf (V2, (I.Dot ((I.Exp (I.EClo (U, s))), t)))))))
-    let rec fromDec (G, (Dec (SOME x, V), s)) =
-      T.dec (x, (fromTp (G, (V, s))))
+                   (i, __g, (S, s),
+                     (Whnf.whnf (V2, (I.Dot ((I.Exp (I.EClo (__u, s))), t)))))))
+    let rec fromDec (__g, (Dec (Some x, __v), s)) =
+      T.dec (x, (fromTp (__g, (__v, s))))
     let rec fromConDec =
       function
-      | ConDec (c, parent, i, _, V, I.Type) ->
-          SOME (T.objdec (c, (fromTp (I.Null, (V, I.id)))))
-      | _ -> NONE
+      | ConDec (c, parent, i, _, __v, I.Type) ->
+          Some (T.objdec (c, (fromTp (I.Null, (__v, I.id)))))
+      | _ -> None
     (* from typecheck.fun *)
-    (* inferCon (G, C) = V'
+    (* inferCon (__g, C) = __v'
 
      Invariant:
-     If    G |- C : V
+     If    __g |- C : __v
      and  (C  doesn't contain FVars)
-     then  G' |- V' : L      (for some level L)
-     and   G |- V = V' : L
+     then  __g' |- __v' : __l      (for some level __l)
+     and   __g |- __v = __v' : __l
      else exception Error is raised.
   *)
     (* no case for FVar, Skonst *)
-    (* | fromHead (G, I.Skonst (cid)) = T.skonst (Names.constName (cid)) *)
-    (* | fromHead (G, FVar (name, _, _)) = T.fvar (name) *)
+    (* | fromHead (__g, I.Skonst (cid)) = T.skonst (Names.constName (cid)) *)
+    (* | fromHead (__g, FVar (name, _, _)) = T.fvar (name) *)
     (* see also: print.fun *)
     (*| imps (I.Skonst (cid)) = I.constImp (cid) *)
     (* see also: print.fun *)
     (*
   fun dropImp (0, S) = S
-    | dropImp (i, I.App (U, S)) = dropImp (i-1, S)
+    | dropImp (i, I.App (__u, S)) = dropImp (i-1, S)
     | dropImp (i, I.SClo (S, s)) = I.SClo (dropImp (i, S), s)
     | dropImp _ = raise Error ("Missing implicit arguments")
   *)
     (* note: no case for EVars right now *)
     (* drop implicit arg *)
-    (* NONE should not occur because of call to decName *)
+    (* None should not occur because of call to decName *)
     (*
-    | fromDec (G, (I.Dec (NONE, V), s)) =
-        T.dec ("_", fromTp (G, (V, s)))
+    | fromDec (__g, (I.Dec (None, __v), s)) =
+        T.dec ("_", fromTp (__g, (__v, s)))
     *)
     (* ignore a : K, d : A = M, b : K = A, and skolem constants *)
     let fromConDec = fromConDec
     let rec const name =
       let qid =
         match Names.stringToQid name with
-        | NONE -> raise (Error ("Malformed qualified identifier " ^ name))
-        | SOME qid -> qid in
+        | None -> raise (Error ("Malformed qualified identifier " ^ name))
+        | Some qid -> qid in
       let cidOpt = Names.constLookup qid in
       let rec getConDec =
         function
-        | NONE ->
+        | None ->
             raise
               (Error ((^) "Undeclared identifier " Names.qidToString qid))
-        | SOME cid -> IntSyn.sgnLookup cid in
+        | Some cid -> IntSyn.sgnLookup cid in
       let conDec = getConDec cidOpt in
       let _ = Names.varReset IntSyn.Null in
       let rec result =
         function
-        | NONE -> raise (Error "Wrong kind of declaration")
-        | SOME r -> r in
+        | None -> raise (Error "Wrong kind of declaration")
+        | Some r -> r in
       result (fromConDec conDec)
   end ;;

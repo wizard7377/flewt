@@ -52,21 +52,21 @@ module StrategyFRS(StrategyFRS:sig
       if (!Global.chatter) > 3 then print "[QED]\n" else ()
     let rec findMin =
       function
-      | nil -> NONE
-      | (O)::L ->
+      | nil -> None
+      | (O)::__l ->
           let rec findMin' =
             function
             | (nil, k, result) -> result
-            | ((O')::L', k, result) ->
+            | ((O')::__l', k, result) ->
                 let k' = Splitting.index O' in
                 if (Splitting.index O') < k
-                then findMin' (L', k', (SOME O'))
-                else findMin' (L', k, result) in
-          findMin' (L, (Splitting.index O), (SOME O))
+                then findMin' (__l', k', (Some O'))
+                else findMin' (__l', k, result) in
+          findMin' (__l, (Splitting.index O), (Some O))
     let rec split ((S)::givenStates, ((openStates, solvedStates) as os)) =
       match findMin (Timers.time Timers.splitting Splitting.expand S) with
-      | NONE -> fill (givenStates, ((S :: openStates), solvedStates))
-      | SOME splitOp ->
+      | None -> fill (givenStates, ((S :: openStates), solvedStates))
+      | Some splitOp ->
           let _ = printSplitting () in
           let SL = Timers.time Timers.splitting Splitting.apply splitOp in
           let _ = printCloseBracket () in
@@ -152,21 +152,21 @@ module StrategyRFS(StrategyRFS:sig
       if (!Global.chatter) > 3 then print "[QED]\n" else ()
     let rec findMin =
       function
-      | nil -> NONE
-      | (O)::L ->
+      | nil -> None
+      | (O)::__l ->
           let rec findMin' =
             function
             | (nil, k, result) -> result
-            | ((O')::L', k, result) ->
+            | ((O')::__l', k, result) ->
                 let k' = Splitting.index O' in
                 if (Splitting.index O') < k
-                then findMin' (L', k', (SOME O'))
-                else findMin' (L', k, result) in
-          findMin' (L, (Splitting.index O), (SOME O))
+                then findMin' (__l', k', (Some O'))
+                else findMin' (__l', k, result) in
+          findMin' (__l, (Splitting.index O), (Some O))
     let rec split ((S)::givenStates, ((openStates, solvedStates) as os)) =
       match findMin (Timers.time Timers.splitting Splitting.expand S) with
-      | NONE -> recurse (givenStates, ((S :: openStates), solvedStates))
-      | SOME splitOp ->
+      | None -> recurse (givenStates, ((S :: openStates), solvedStates))
+      | Some splitOp ->
           let _ = printSplitting () in
           let SL = Timers.time Timers.splitting Splitting.apply splitOp in
           let _ = printCloseBracket () in
@@ -212,13 +212,13 @@ module StrategyRFS(StrategyRFS:sig
     let run = run
   end  (* Strategy *)
 (* Author: Carsten Schuermann *)
-(* findMin L = Sopt
+(* findMin __l = Sopt
 
        Invariant:
 
-       If   L be a set of splitting operators
-       then Sopt = NONE if L = []
-       else Sopt = SOME S, s.t. index S is minimal among all elements in L
+       If   __l be a set of splitting operators
+       then Sopt = None if __l = []
+       else Sopt = Some S, s.t. index S is minimal among all elements in __l
     *)
 (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
        recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
@@ -241,13 +241,13 @@ module StrategyRFS(StrategyRFS:sig
          solved using Filling, Recursion, and Splitting
      *)
 (* local *) (* functor StrategyFRS *)
-(* findMin L = Sopt
+(* findMin __l = Sopt
 
        Invariant:
 
-       If   L be a set of splitting operators
-       then Sopt = NONE if L = []
-       else Sopt = SOME S, s.t. index S is minimal among all elements in L
+       If   __l be a set of splitting operators
+       then Sopt = None if __l = []
+       else Sopt = Some S, s.t. index S is minimal among all elements in __l
     *)
 (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
        recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')

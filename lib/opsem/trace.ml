@@ -65,36 +65,36 @@ module Trace(Trace:sig
     (* Printing Utilities *)
     let rec headToString =
       function
-      | (G, Const c) -> N.qidToString (N.constQid c)
-      | (G, Def d) -> N.qidToString (N.constQid d)
-      | (G, BVar k) -> N.bvarName (G, k)
+      | (__g, Const c) -> N.qidToString (N.constQid c)
+      | (__g, Def d) -> N.qidToString (N.constQid d)
+      | (__g, BVar k) -> N.bvarName (__g, k)
     let rec expToString (GU) = (P.expToString GU) ^ ". "
     let rec decToString (GD) = (P.decToString GD) ^ ". "
-    let rec eqnToString (G, U1, U2) =
-      ((^) ((P.expToString (G, U1)) ^ " = ") P.expToString (G, U2)) ^ ". "
+    let rec eqnToString (__g, __U1, __U2) =
+      ((^) ((P.expToString (__g, __U1)) ^ " = ") P.expToString (__g, __U2)) ^ ". "
     let rec newline () = print "\n"
     let rec printCtx =
       function
       | I.Null -> print "No hypotheses or parameters. "
-      | Decl (I.Null, D) -> print (decToString (I.Null, D))
-      | Decl (G, D) -> (printCtx G; newline (); print (decToString (G, D)))
+      | Decl (I.Null, __d) -> print (decToString (I.Null, __d))
+      | Decl (__g, __d) -> (printCtx __g; newline (); print (decToString (__g, __d)))
     let rec evarsToString (Xnames) =
       let inst = P.evarInstToString Xnames in
       let constrOpt = P.evarCnstrsToStringOpt Xnames in
       match constrOpt with
-      | NONE -> inst
-      | SOME constr -> (inst ^ "\nConstraints:\n") ^ constr
+      | None -> inst
+      | Some constr -> (inst ^ "\nConstraints:\n") ^ constr
     let rec varsToEVarInst =
       function
       | nil -> nil
       | name::names ->
           (match N.getEVarOpt name with
-           | NONE ->
+           | None ->
                (print
                   (("Trace warning: ignoring unknown variable " ^ name) ^
                      "\n");
                 varsToEVarInst names)
-           | SOME (X) -> (::) (X, name) varsToEVarInst names)
+           | Some (x) -> (x, name) :: varsToEVarInst names)
     let rec printVars names = print (evarsToString (varsToEVarInst names))
     let rec printVarstring line =
       printVars (List.tl (String.tokens Char.isSpace line))
@@ -117,8 +117,8 @@ module Trace(Trace:sig
     let detail = ref 1
     let rec setDetail =
       function
-      | NONE -> print "Trace warning: detail is not a valid integer\n"
-      | SOME n ->
+      | None -> print "Trace warning: detail is not a valid integer\n"
+      | Some n ->
           ((if 0 <= n
             then detail := n
             else print "Trace warning: detail must be positive\n")
@@ -130,21 +130,21 @@ module Trace(Trace:sig
       | nil -> nil
       | name::names ->
           (match N.stringToQid name with
-           | NONE ->
+           | None ->
                (print
                   (("Trace warning: ignoring malformed qualified identifier "
                       ^ name)
                      ^ "\n");
                 toCids names)
-           | SOME qid ->
+           | Some qid ->
                (match N.constLookup qid with
-                | NONE ->
+                | None ->
                     (print
                        (((^) "Trace warning: ignoring undeclared constant "
                            N.qidToString qid)
                           ^ "\n");
                      toCids names)
-                | SOME cid -> (::) cid toCids names))
+                | Some cid -> cid :: toCids names))
     let rec initTrace =
       function
       | None -> traceTSpec := None
@@ -161,29 +161,29 @@ module Trace(Trace:sig
     let (currentGoal : (I.dctx * I.__Exp) ref) = ref (I.Null, (I.Uni I.Type))
     (* dummy initialization *)
     let (currentEVarInst : (I.__Exp * string) list ref) = ref nil
-    let rec setEVarInst (Xs) =
+    let rec setEVarInst (__Xs) =
       (:=) currentEVarInst List.map
-        (function | X -> (X, (N.evarName (I.Null, X)))) Xs
-    let rec setGoal (G, V) =
-      currentGoal := (G, V);
-      setEVarInst (Abstract.collectEVars (G, (V, I.id), nil))
+        (function | x -> (x, (N.evarName (I.Null, x)))) __Xs
+    let rec setGoal (__g, __v) =
+      currentGoal := (__g, __v);
+      setEVarInst (Abstract.collectEVars (__g, (__v, I.id), nil))
     type nonrec goalTag = int option
-    let (tag : goalTag ref) = ref NONE
+    let (tag : goalTag ref) = ref None
     let rec tagGoal () =
       match !tag with
-      | NONE -> NONE
-      | SOME n -> ((:=) tag SOME (n + 1); !tag)
-    let (watchForTag : goalTag ref) = ref NONE
+      | None -> None
+      | Some n -> ((:=) tag Some (n + 1); !tag)
+    let (watchForTag : goalTag ref) = ref None
     let rec initTag () =
-      watchForTag := NONE;
+      watchForTag := None;
       (match ((!traceTSpec), (!breakTSpec)) with
-       | (None, None) -> tag := NONE
-       | _ -> (:=) tag SOME 0)
+       | (None, None) -> tag := None
+       | _ -> (:=) tag Some 0)
     let rec setWatchForTag =
       function
-      | NONE -> (!) ((:=) watchForTag) tag
-      | SOME n -> (:=) watchForTag SOME n
-    let rec breakAction (G) =
+      | None -> (!) ((:=) watchForTag) tag
+      | Some n -> (:=) watchForTag Some n
+    let rec breakAction (__g) =
       let _ = print " " in
       let line = Compat.inputLine97 TextIO.stdIn in
       match String.sub (line, 0) with
@@ -191,21 +191,21 @@ module Trace(Trace:sig
       | 'n' -> breakTSpec := All
       | 'r' -> breakTSpec := None
       | 's' ->
-          setWatchForTag (Int.fromString (String.extract (line, 1, NONE)))
-      | 't' -> (traceTSpec := All; print "% Now tracing all"; breakAction G)
+          setWatchForTag (Int.fromString (String.extract (line, 1, None)))
+      | 't' -> (traceTSpec := All; print "% Now tracing all"; breakAction __g)
       | 'u' ->
-          (traceTSpec := None; print "% Now tracing none"; breakAction G)
+          (traceTSpec := None; print "% Now tracing none"; breakAction __g)
       | 'd' ->
-          (setDetail (Int.fromString (String.extract (line, 1, NONE)));
+          (setDetail (Int.fromString (String.extract (line, 1, None)));
            print ((^) "% Trace detail now " Int.toString (!detail));
-           breakAction G)
-      | 'h' -> (printCtx G; breakAction G)
-      | 'g' -> (print (expToString (!currentGoal)); breakAction G)
+           breakAction __g)
+      | 'h' -> (printCtx __g; breakAction __g)
+      | 'g' -> (print (expToString (!currentGoal)); breakAction __g)
       | 'i' ->
-          (print (evarsToString (List.rev (!currentEVarInst))); breakAction G)
-      | 'v' -> (printVarstring line; breakAction G)
-      | '?' -> (printHelp (); breakAction G)
-      | _ -> (print "unrecognized command (? for help)"; breakAction G)
+          (print (evarsToString (List.rev (!currentEVarInst))); breakAction __g)
+      | 'v' -> (printVarstring line; breakAction __g)
+      | '?' -> (printHelp (); breakAction __g)
+      | _ -> (print "unrecognized command (? for help)"; breakAction __g)
     let rec init () =
       initTrace (!traceSpec); initBreak (!breakSpec); initTag ()
     type __Event =
@@ -229,44 +229,44 @@ module Trace(Trace:sig
     (* failure message *)
     let rec eventToString =
       function
-      | (G, IntroHyp (_, D)) ->
-          (^) "% Introducing hypothesis\n" decToString (G, D)
-      | (G, DischargeHyp (_, Dec (SOME x, _))) ->
+      | (__g, IntroHyp (_, __d)) ->
+          (^) "% Introducing hypothesis\n" decToString (__g, __d)
+      | (__g, DischargeHyp (_, Dec (Some x, _))) ->
           "% Discharging hypothesis " ^ x
-      | (G, IntroParm (_, D)) ->
-          (^) "% Introducing parameter\n" decToString (G, D)
-      | (G, DischargeParm (_, Dec (SOME x, _))) ->
+      | (__g, IntroParm (_, __d)) ->
+          (^) "% Introducing parameter\n" decToString (__g, __d)
+      | (__g, DischargeParm (_, Dec (Some x, _))) ->
           "% Discharging parameter " ^ x
-      | (G, Resolved (Hc, Ha)) ->
-          (^) (((^) "% Resolved with clause " headToString (G, Hc)) ^ "\n")
+      | (__g, Resolved (Hc, Ha)) ->
+          (^) (((^) "% Resolved with clause " headToString (__g, Hc)) ^ "\n")
             evarsToString (List.rev (!currentEVarInst))
-      | (G, Subgoal ((Hc, Ha), msg)) ->
+      | (__g, Subgoal ((Hc, Ha), msg)) ->
           (^) (((^) "% Solving subgoal (" Int.toString (msg ())) ^
                  ") of clause ")
-            headToString (G, Hc)
-      | (G, SolveGoal (SOME tag, _, V)) ->
-          (^) (((^) "% Goal " Int.toString tag) ^ ":\n") expToString (G, V)
-      | (G, SucceedGoal (SOME tag, _, V)) ->
+            headToString (__g, Hc)
+      | (__g, SolveGoal (Some tag, _, __v)) ->
+          (^) (((^) "% Goal " Int.toString tag) ^ ":\n") expToString (__g, __v)
+      | (__g, SucceedGoal (Some tag, _, __v)) ->
           ((^) "% Goal " Int.toString tag) ^ " succeeded"
-      | (G, CommitGoal (SOME tag, _, V)) ->
+      | (__g, CommitGoal (Some tag, _, __v)) ->
           ((^) "% Goal " Int.toString tag) ^ " committed to first solution"
-      | (G, RetryGoal (SOME tag, (Hc, Ha), V)) ->
-          (^) (((^) ((((^) "% Backtracking from clause " headToString (G, Hc))
+      | (__g, RetryGoal (Some tag, (Hc, Ha), __v)) ->
+          (^) (((^) ((((^) "% Backtracking from clause " headToString (__g, Hc))
                         ^ "\n")
                        ^ "% Retrying goal ")
                   Int.toString tag)
                  ^ ":\n")
-            expToString (G, V)
-      | (G, FailGoal (SOME tag, _, V)) ->
+            expToString (__g, __v)
+      | (__g, FailGoal (Some tag, _, __v)) ->
           (^) "% Failed goal " Int.toString tag
-      | (G, Unify ((Hc, Ha), Q, P)) ->
-          (^) (((^) "% Trying clause " headToString (G, Hc)) ^ "\n")
-            eqnToString (G, Q, P)
-      | (G, FailUnify ((Hc, Ha), msg)) ->
-          (((^) "% Unification failed with clause " headToString (G, Hc)) ^
+      | (__g, Unify ((Hc, Ha), Q, P)) ->
+          (^) (((^) "% Trying clause " headToString (__g, Hc)) ^ "\n")
+            eqnToString (__g, Q, P)
+      | (__g, FailUnify ((Hc, Ha), msg)) ->
+          (((^) "% Unification failed with clause " headToString (__g, Hc)) ^
              ":\n")
             ^ msg
-    let rec traceEvent (G, e) = print (eventToString (G, e))
+    let rec traceEvent (__g, e) = print (eventToString (__g, e))
     let rec monitorHead =
       function
       | (cids, Const c) -> List.exists (function | c' -> c = c') cids
@@ -280,7 +280,7 @@ module Trace(Trace:sig
       | (cids, DischargeHyp (H, _)) -> monitorHead (cids, H)
       | (cids, IntroParm (H, _)) -> monitorHead (cids, H)
       | (cids, DischargeParm (H, _)) -> monitorHead (cids, H)
-      | (cids, SolveGoal (_, H, V)) -> monitorHead (cids, H)
+      | (cids, SolveGoal (_, H, __v)) -> monitorHead (cids, H)
       | (cids, SucceedGoal (_, (Hc, Ha), _)) -> monitorHeads (cids, (Hc, Ha))
       | (cids, CommitGoal (_, (Hc, Ha), _)) -> monitorHeads (cids, (Hc, Ha))
       | (cids, RetryGoal (_, (Hc, Ha), _)) -> monitorHeads (cids, (Hc, Ha))
@@ -299,57 +299,57 @@ module Trace(Trace:sig
     (* may not be sufficient for some information *)
     let rec maintain =
       function
-      | (G, SolveGoal (_, _, V)) -> setGoal (G, V)
-      | (G, RetryGoal (_, _, V)) -> setGoal (G, V)
-      | (G, FailGoal (_, _, V)) -> setGoal (G, V)
-      | (G, Unify (_, Q, P)) ->
+      | (__g, SolveGoal (_, _, __v)) -> setGoal (__g, __v)
+      | (__g, RetryGoal (_, _, __v)) -> setGoal (__g, __v)
+      | (__g, FailGoal (_, _, __v)) -> setGoal (__g, __v)
+      | (__g, Unify (_, Q, P)) ->
           setEVarInst
             (Abstract.collectEVars
-               (G, (P, I.id), (Abstract.collectEVars (G, (Q, I.id), nil))))
+               (__g, (P, I.id), (Abstract.collectEVars (__g, (Q, I.id), nil))))
       | _ -> ()(* show substitution for variables in clause head if tracing unification *)
     let rec monitorBreak =
       function
-      | (None, G, e) -> false__
-      | (Some cids, G, e) ->
+      | (None, __g, e) -> false__
+      | (Some cids, __g, e) ->
           if monitorEvent (cids, e)
-          then (maintain (G, e); traceEvent (G, e); breakAction G; true__)
+          then (maintain (__g, e); traceEvent (__g, e); breakAction __g; true__)
           else false__
-      | (All, G, e) ->
-          (maintain (G, e); traceEvent (G, e); breakAction G; true__)
+      | (All, __g, e) ->
+          (maintain (__g, e); traceEvent (__g, e); breakAction __g; true__)
     let rec monitorTrace =
       function
-      | (None, G, e) -> false__
-      | (Some cids, G, e) ->
+      | (None, __g, e) -> false__
+      | (Some cids, __g, e) ->
           if monitorEvent (cids, e)
-          then (maintain (G, e); traceEvent (G, e); newline (); true__)
+          then (maintain (__g, e); traceEvent (__g, e); newline (); true__)
           else false__
-      | (All, G, e) ->
-          (maintain (G, e); traceEvent (G, e); newline (); true__)
+      | (All, __g, e) ->
+          (maintain (__g, e); traceEvent (__g, e); newline (); true__)
     let rec watchFor e =
       match !watchForTag with
-      | NONE -> false__
-      | SOME t ->
+      | None -> false__
+      | Some t ->
           (match e with
-           | SolveGoal (SOME t', _, _) -> t' = t
-           | SucceedGoal (SOME t', _, _) -> t' = t
-           | CommitGoal (SOME t', _, _) -> t' = t
-           | RetryGoal (SOME t', _, _) -> t' = t
-           | FailGoal (SOME t', _, _) -> t' = t
+           | SolveGoal (Some t', _, _) -> t' = t
+           | SucceedGoal (Some t', _, _) -> t' = t
+           | CommitGoal (Some t', _, _) -> t' = t
+           | RetryGoal (Some t', _, _) -> t' = t
+           | FailGoal (Some t', _, _) -> t' = t
            | _ -> false__)
     let rec skipping () =
-      match !watchForTag with | NONE -> false__ | SOME _ -> true__
-    let rec signal (G, e) =
+      match !watchForTag with | None -> false__ | Some _ -> true__
+    let rec signal (__g, e) =
       ((if monitorDetail e
         then
           (if skipping ()
            then
              (if watchFor e
-              then (watchForTag := NONE; signal (G, e))
-              else (monitorTrace ((!traceTSpec), G, e); ()))
+              then (watchForTag := None; signal (__g, e))
+              else (monitorTrace ((!traceTSpec), __g, e); ()))
            else
-             ((if monitorBreak ((!breakTSpec), G, e)
+             ((if monitorBreak ((!breakTSpec), __g, e)
                then ()
-               else (monitorTrace ((!traceTSpec), G, e); ()))
+               else (monitorTrace ((!traceTSpec), __g, e); ()))
              (* stops, continues after input *)))
         else ())
       (* prints trace, continues *))

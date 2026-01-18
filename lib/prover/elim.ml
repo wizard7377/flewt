@@ -49,56 +49,56 @@ module Elim(Elim:sig
     exception Success of int 
     let rec stripTC (TC) = TC
     let rec stripTCOpt =
-      function | NONE -> NONE | SOME (TC) -> SOME (stripTC TC)
+      function | None -> None | Some (TC) -> Some (stripTC TC)
     let rec stripDec =
       function
-      | UDec (D) -> T.UDec D
+      | UDec (__d) -> T.UDec __d
       | PDec (name, F, TC1, TC2) -> T.PDec (name, F, TC1, (stripTCOpt TC2))
     let rec strip =
       function
       | I.Null -> I.Null
-      | Decl (Psi, D) -> I.Decl ((strip Psi), (stripDec D))
-    let rec expand (Focus ((EVar (Psi, r, G, V, _, _) as Y), W)) =
+      | Decl (Psi, __d) -> I.Decl ((strip Psi), (stripDec __d))
+    let rec expand (Focus ((EVar (Psi, r, __g, __v, _, _) as y), W)) =
       let rec matchCtx =
         function
-        | (I.Null, _, Fs) -> Fs
-        | (Decl (G, PDec (x, F, _, _)), n, Fs) ->
-            matchCtx (G, (n + 1), ((Local (Y, n)) :: Fs))
-        | (Decl (G, UDec _), n, Fs) -> matchCtx (G, (n + 1), Fs) in
+        | (I.Null, _, __Fs) -> __Fs
+        | (Decl (__g, PDec (x, F, _, _)), n, __Fs) ->
+            matchCtx (__g, (n + 1), ((Local (y, n)) :: __Fs))
+        | (Decl (__g, UDec _), n, __Fs) -> matchCtx (__g, (n + 1), __Fs) in
       matchCtx (Psi, 1, nil)
     let rec apply =
       function
-      | Local ((EVar (Psi, r, G, NONE, NONE, _) as R), n) ->
-          let PDec (_, F0, _, _) = T.ctxDec (Psi, n) in
-          (match F0 with
-           | All ((UDec (Dec (_, V)), _), F) ->
-               let X = I.newEVar ((T.coerceCtx (strip Psi)), V) in
-               let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec NONE)) in
-               let D =
+      | Local ((EVar (Psi, r, __g, None, None, _) as R), n) ->
+          let PDec (_, __F0, _, _) = T.ctxDec (Psi, n) in
+          (match __F0 with
+           | All ((UDec (Dec (_, __v)), _), F) ->
+               let x = I.newEVar ((T.coerceCtx (strip Psi)), __v) in
+               let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
+               let __d =
                  T.PDec
-                   (x, (T.forSub (F, (T.Dot ((T.Exp X), T.id)))), NONE, NONE) in
-               let Psi' = I.Decl (Psi, D) in
-               let Y = T.newEVar ((strip Psi'), (T.forSub (G, T.shift))) in
-               (:=) r SOME
-                 (T.Let (D, (T.Redex ((T.Var n), (T.AppExp (X, T.Nil)))), Y))
+                   (x, (T.forSub (F, (T.Dot ((T.Exp x), T.id)))), None, None) in
+               let Psi' = I.Decl (Psi, __d) in
+               let y = T.newEVar ((strip Psi'), (T.forSub (__g, T.shift))) in
+               (:=) r Some
+                 (T.Let (__d, (T.Redex ((T.Var n), (T.AppExp (x, T.Nil)))), y))
            | Ex ((D1, _), F) ->
                let D1' = Names.decName ((T.coerceCtx Psi), D1) in
                let Psi' = I.Decl (Psi, (T.UDec D1')) in
-               let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec NONE)) in
-               let D2 = T.PDec (x, F, NONE, NONE) in
+               let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec None)) in
+               let D2 = T.PDec (x, F, None, None) in
                let Psi'' = I.Decl (Psi', D2) in
-               let Y = T.newEVar ((strip Psi''), (T.forSub (G, (T.Shift 2)))) in
-               (:=) r SOME (T.LetPairExp (D1', D2, (T.Var n), Y))
+               let y = T.newEVar ((strip Psi''), (T.forSub (__g, (T.Shift 2)))) in
+               (:=) r Some (T.LetPairExp (D1', D2, (T.Var n), y))
            | T.True ->
-               let Y = T.newEVar ((strip Psi), G) in
-               (:=) r SOME (T.LetUnit ((T.Var n), Y)))
-      | Local (EVar (Psi, r, FClo (F, s), TC1, TC2, X), n) ->
+               let y = T.newEVar ((strip Psi), __g) in
+               (:=) r Some (T.LetUnit ((T.Var n), y)))
+      | Local (EVar (Psi, r, FClo (F, s), TC1, TC2, x), n) ->
           apply
-            (Local ((T.EVar (Psi, r, (T.forSub (F, s)), TC1, TC2, X)), n))
-    let rec menu (Local ((EVar (Psi, _, _, _, _, _) as X), n)) =
+            (Local ((T.EVar (Psi, r, (T.forSub (F, s)), TC1, TC2, x)), n))
+    let rec menu (Local ((EVar (Psi, _, _, _, _, _) as x), n)) =
       match I.ctxLookup (Psi, n) with
-      | PDec (SOME x, _, _, _) ->
-          (((^) "Elim " TomegaPrint.nameEVar X) ^ " with variable ") ^ x
+      | PDec (Some x, _, _, _) ->
+          (((^) "Elim " TomegaPrint.nameEVar x) ^ " with variable ") ^ x
     (* These lines need to move *)
     (* fun stripTC (T.Abs (_, TC)) = TC *)
     (* expand' S = op'
@@ -107,14 +107,14 @@ module Elim(Elim:sig
        If   |- S state
        then op' is an operator which performs the filling operation
     *)
-    (* Y is lowered *)
+    (* y is lowered *)
     (* apply op = B'
 
        Invariant:
        If op is a filling operator
        then B' holds iff the filling operation was successful
     *)
-    (* the NONE, NONE may breach an invariant *)
+    (* the None, None may breach an invariant *)
     (* revisit when we add subterm orderings *)
     (* menu op = s'
 

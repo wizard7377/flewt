@@ -42,14 +42,14 @@ module Syntax =
     and evar = (term option ref * tp)
     (* special hack for type functions used only in tp_reduce *)
     type tpfn =
-      | tpfnType of tp [@sml.renamed "tpfnType"][@sml.renamed "tpfnType"]
-      | tpfnLam of tpfn [@sml.renamed "tpfnLam"][@sml.renamed "tpfnLam"]
+      | TpfnType of tp [@sml.renamed "tpfnType"]
+      | TpfnLam of tpfn [@sml.renamed "tpfnLam"]
     let rec EVarDotId ev = EVarDot (ev, [], Id)
     (*	type decl = string * Parse.term *)
     (*	type ctx = decl list *)
     type class__ =
-      | kclass of knd [@sml.renamed "kclass"][@sml.renamed "kclass"]
-      | tclass of tp [@sml.renamed "tclass"][@sml.renamed "tclass"]
+      | Kclass of knd [@sml.renamed "kclass"]
+      | Tclass of tp [@sml.renamed "tclass"]
     (* termof elm
         returns the term part of the spine element elm *)
     let rec termof =
@@ -62,10 +62,10 @@ module Syntax =
             (Syntax
                "invariant violated: arguments to variables cannot be omitted")
     type subst_result =
-      | srVar of int [@sml.renamed "srVar"][@sml.renamed "srVar"]
-      | srTerm of (term * tp) [@sml.renamed "srTerm"][@sml.renamed "srTerm"]
+      | srVar of int [@sml.renamed "srVar"]
+      | srTerm of (term * tp) [@sml.renamed "srTerm"]
       | srEVar of (evar * subst list)
-      [@sml.renamed "srEVar"][@sml.renamed "srEVar"]
+      [@sml.renamed "srEVar"]
     exception Debugs of (subst_result * spinelt list) 
     let rec curryfoldr sf sl x = foldr (function | (s, x') -> sf s x') x sl
     (* lower (a, sp)
@@ -105,7 +105,7 @@ module Syntax =
       | (Shift (n, m), n') -> if n' >= n then srVar (n' + m) else srVar n'
       | (VarOptDot (no, s), n') ->
           if n' = 0
-          then (match no with | SOME n -> srVar n | NONE -> raise MissingVar)
+          then (match no with | Some n -> srVar n | None -> raise MissingVar)
           else substNth (s, (n' - 1))
       | (Compose [], n) -> srVar n
       | (Compose (h::tl), n) -> subst_sr h (substNth ((Compose tl), n))
@@ -136,7 +136,7 @@ module Syntax =
           ATerm (ARoot ((Const n), (subst_spine s sp)))
       | (s, ARoot (Var n, sp)) ->
           reduce ((substNth (s, n)), (subst_spine s sp))
-      | (s, ERoot (((ref (NONE), _) as ev), sl)) ->
+      | (s, ERoot (((ref (None), _) as ev), sl)) ->
           ATerm (ERoot (ev, (subst_compose (s, sl))))
       | (s, (ERoot _ as t)) -> subst_term s (eroot_elim t)(* XXX right??? *)
     let rec subst_aterm_plus arg__0 arg__1 =
@@ -145,7 +145,7 @@ module Syntax =
           AElt (ARoot ((Const n), (subst_spine s sp)))
       | (s, ARoot (Var n, sp)) ->
           reduce_plus ((substNth (s, n)), (subst_spine s sp))
-      | (s, ERoot (((ref (NONE), _) as ev), sl)) ->
+      | (s, ERoot (((ref (None), _) as ev), sl)) ->
           AElt (ERoot (ev, (subst_compose (s, sl))))
       | (s, (ERoot _ as t)) -> subst_spinelt s (eroot_elim_plus t)
     let rec subst_tp arg__0 arg__1 =
@@ -167,9 +167,9 @@ module Syntax =
           let b' = subst_tp s b in reduce ((srTerm (n', b')), sp)
       | (srTerm ((NTerm (NRoot (h, sp)) as t), a), []) -> t
       | (srTerm ((ATerm (ARoot (h, sp)) as t), a), []) -> t
-      | (srTerm (ATerm (ERoot ((ref (SOME _), _), _) as t), a), []) ->
+      | (srTerm (ATerm (ERoot ((ref (Some _), _), _) as t), a), []) ->
           reduce ((srTerm ((eroot_elim t), a)), [])
-      | (srTerm (ATerm (ERoot ((ref (NONE), _), _) as t), a), []) -> ATerm t
+      | (srTerm (ATerm (ERoot ((ref (None), _), _) as t), a), []) -> ATerm t
       | (srEVar ((x, a), sl), sp) ->
           let (a', subst) = lower (substs_comp sl) (a, sp) in
           ATerm (ERoot ((x, a'), subst))
@@ -183,9 +183,9 @@ module Syntax =
           let b' = subst_tp s b in reduce_plus ((srTerm (n', b')), sp)
       | (srTerm (NTerm (NRoot (h, sp) as t), a), []) -> Ascribe (t, a)
       | (srTerm (ATerm (ARoot (h, sp) as t), a), []) -> AElt t
-      | (srTerm (ATerm (ERoot ((ref (SOME _), _), _) as t), a), []) ->
+      | (srTerm (ATerm (ERoot ((ref (Some _), _), _) as t), a), []) ->
           reduce_plus ((srTerm ((eroot_elim t), a)), [])
-      | (srTerm (ATerm (ERoot ((ref (NONE), _), _) as t), a), []) -> AElt t
+      | (srTerm (ATerm (ERoot ((ref (None), _), _) as t), a), []) -> AElt t
       | (srEVar ((x, a), sl), sp) ->
           let (a', subst) = lower (substs_comp sl) (a, sp) in
           AElt (ERoot ((x, a'), subst))
@@ -214,11 +214,11 @@ module Syntax =
     let rec substs_tp x = curryfoldr subst_tp x
     let rec eroot_elim =
       function
-      | ERoot ((ref (SOME t), a), subst) -> subst_term subst t
+      | ERoot ((ref (Some t), a), subst) -> subst_term subst t
       | x -> ATerm x
     let rec eroot_elim_plus =
       function
-      | ERoot ((ref (SOME t), a), subst) ->
+      | ERoot ((ref (Some t), a), subst) ->
           let newt = subst_term subst t in
           (match newt with
            | ATerm t -> AElt t
@@ -227,7 +227,7 @@ module Syntax =
     let rec composeNth (s, n, s') =
       let s'' = subst_compose (s, s') in
       match substNth (s, n) with
-      | srVar n' -> VarOptDot ((SOME n'), s'')
+      | srVar n' -> VarOptDot ((Some n'), s'')
       | srTerm (t, a) -> TermDot (t, a, s'')
       | srEVar (ev, sl) -> EVarDot (ev, sl, s'')
     let rec subst_compose =
@@ -264,8 +264,8 @@ module Syntax =
           EVarDot (ev, (s :: sl), (subst_compose (s, s')))
       | (s, VarOptDot (no, s')) ->
           (match no with
-           | NONE -> VarOptDot (NONE, (subst_compose (s, s')))
-           | SOME n -> composeNth (s, n, s'))(* ZeroDotShift (Shift (n-1,m)) = Shift(n,m) but the former is 'smaller' *)
+           | None -> VarOptDot (None, (subst_compose (s, s')))
+           | Some n -> composeNth (s, n, s'))(* ZeroDotShift (Shift (n-1,m)) = Shift(n,m) but the former is 'smaller' *)
     let rec shift t = shift_term 0 t
     let rec shift_nterm arg__0 arg__1 =
       match (arg__0, arg__1) with
@@ -305,8 +305,8 @@ module Syntax =
       | x -> x
     let rec ntm_eroot_elim =
       function | Lam (ATerm t) -> Lam (eroot_elim t) | x -> x
-    let rec ctxLookup (G, n) =
-      subst_tp (Shift (0, (n + 1))) (List.nth (G, n))
+    let rec ctxLookup (__g, n) =
+      subst_tp (Shift (0, (n + 1))) (List.nth (__g, n))
     let rec typeOf (tclass a) = a
     let rec kindOf (kclass k) = k
     let sum = foldl (+) 0

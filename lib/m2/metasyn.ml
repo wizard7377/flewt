@@ -10,18 +10,18 @@ module type METASYN  =
     (*     | Top                  *)
     type __Prefix =
       | Prefix of (IntSyn.dctx * __Mode IntSyn.__Ctx * int IntSyn.__Ctx) 
-    (* G   declarations           *)
+    (* __g   declarations           *)
     (* Mtx modes                  *)
     (* Btx splitting depths       *)
     type __State =
       | State of (string * __Prefix * IntSyn.__Exp) 
     (*             [name]         *)
-    (*             G; Mtx; Btx    *)
-    (*             |- V           *)
+    (*             __g; Mtx; Btx    *)
+    (*             |- __v           *)
     type __Sgn =
       | SgnEmpty 
       | ConDec of (IntSyn.__ConDec * __Sgn) 
-    (*      | c:V, IS             *)
+    (*      | c:__v, IS             *)
     val createAtomConst :
       (IntSyn.dctx * IntSyn.__Head) -> (IntSyn.__Exp * IntSyn.eclo)
     val createAtomBVar : (IntSyn.dctx * int) -> (IntSyn.__Exp * IntSyn.eclo)
@@ -47,61 +47,61 @@ module MetaSyn(MetaSyn:sig
     (*     | Top                  *)
     type __Prefix =
       | Prefix of (IntSyn.dctx * __Mode IntSyn.__Ctx * int IntSyn.__Ctx) 
-    (* G   declarations           *)
+    (* __g   declarations           *)
     (* Mtx modes                  *)
     (* Btx splitting depths       *)
     type __State =
       | State of (string * __Prefix * IntSyn.__Exp) 
     (*             [name]         *)
-    (*             G; Mtx; Btx    *)
-    (*             |- V           *)
+    (*             __g; Mtx; Btx    *)
+    (*             |- __v           *)
     type __Sgn =
       | SgnEmpty 
       | ConDec of (IntSyn.__ConDec * __Sgn) 
-    (*      | c:V, IS             *)
+    (*      | c:__v, IS             *)
     module I = IntSyn
-    let rec createEVarSpine (G, Vs) = createEVarSpineW (G, (Whnf.whnf Vs))
+    let rec createEVarSpine (__g, __Vs) = createEVarSpineW (__g, (Whnf.whnf __Vs))
     let rec createEVarSpineW =
       function
-      | (G, ((Uni (I.Type), s) as Vs)) -> (I.Nil, Vs)
-      | (G, ((Root _, s) as Vs)) -> (I.Nil, Vs)
-      | (G, (Pi (((Dec (_, V1) as D), _), V2), s)) ->
-          let X = I.newEVar (G, (I.EClo (V1, s))) in
-          let (S, Vs) = createEVarSpine (G, (V2, (I.Dot ((I.Exp X), s)))) in
-          ((I.App (X, S)), Vs)
-    let rec createAtomConst (G, H) =
+      | (__g, ((Uni (I.Type), s) as __Vs)) -> (I.Nil, __Vs)
+      | (__g, ((Root _, s) as __Vs)) -> (I.Nil, __Vs)
+      | (__g, (Pi (((Dec (_, V1) as __d), _), V2), s)) ->
+          let x = I.newEVar (__g, (I.EClo (V1, s))) in
+          let (S, __Vs) = createEVarSpine (__g, (V2, (I.Dot ((I.Exp x), s)))) in
+          ((I.App (x, S)), __Vs)
+    let rec createAtomConst (__g, H) =
       let cid = match H with | Const cid -> cid | Skonst cid -> cid in
-      let V = I.constType cid in
-      let (S, Vs) = createEVarSpine (G, (V, I.id)) in ((I.Root (H, S)), Vs)
-    let rec createAtomBVar (G, k) =
-      let Dec (_, V) = I.ctxDec (G, k) in
-      let (S, Vs) = createEVarSpine (G, (V, I.id)) in
-      ((I.Root ((I.BVar k), S)), Vs)
-    (* createEVarSpineW (G, (V, s)) = ((V', s') , S')
+      let __v = I.constType cid in
+      let (S, __Vs) = createEVarSpine (__g, (__v, I.id)) in ((I.Root (H, S)), __Vs)
+    let rec createAtomBVar (__g, k) =
+      let Dec (_, __v) = I.ctxDec (__g, k) in
+      let (S, __Vs) = createEVarSpine (__g, (__v, I.id)) in
+      ((I.Root ((I.BVar k), S)), __Vs)
+    (* createEVarSpineW (__g, (__v, s)) = ((__v', s') , S')
 
        Invariant:
-       If   G |- s : G1   and  G1 |- V = Pi {V1 .. Vn}. W : L
+       If   __g |- s : G1   and  G1 |- __v = Pi {V1 .. Vn}. W : __l
        and  G1, V1 .. Vn |- W atomic
-       then G |- s' : G2  and  G2 |- V' : L
+       then __g |- s' : G2  and  G2 |- __v' : __l
        and  S = X1; ...; Xn; Nil
-       and  G |- W [1.2...n. s o ^n] = V' [s']
-       and  G |- S : V [s] >  V' [s']
+       and  __g |- W [1.2...n. s o ^n] = __v' [s']
+       and  __g |- S : __v [s] >  __v' [s']
     *)
     (* s = id *)
     (* s = id *)
-    (* createAtomConst (G, c) = (U', (V', s'))
+    (* createAtomConst (__g, c) = (__u', (__v', s'))
 
        Invariant:
-       If   S |- c : Pi {V1 .. Vn}. V
-       then . |- U' = c @ (Xn; .. Xn; Nil)
-       and  . |- U' : V' [s']
+       If   S |- c : Pi {V1 .. Vn}. __v
+       then . |- __u' = c @ (Xn; .. Xn; Nil)
+       and  . |- __u' : __v' [s']
     *)
-    (* createAtomBVar (G, k) = (U', (V', s'))
+    (* createAtomBVar (__g, k) = (__u', (__v', s'))
 
        Invariant:
-       If   G |- k : Pi {V1 .. Vn}. V
-       then . |- U' = k @ (Xn; .. Xn; Nil)
-       and  . |- U' : V' [s']
+       If   __g |- k : Pi {V1 .. Vn}. __v
+       then . |- __u' = k @ (Xn; .. Xn; Nil)
+       and  . |- __u' : __v' [s']
     *)
     let createAtomConst = createAtomConst
     let createAtomBVar = createAtomBVar

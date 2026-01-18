@@ -148,8 +148,8 @@ module Reductio =
       | VarOptDot (no, s) ->
           let (vs, shift) = pp_normalize' s in
           (match no with
-           | SOME n -> ((n :: vs), shift)
-           | NONE -> raise (Error "??? I'm not sure this is really wrong"))
+           | Some n -> ((n :: vs), shift)
+           | None -> raise (Error "??? I'm not sure this is really wrong"))
       | Compose sl -> prepattern (substs_comp sl)(* XXX: Correct??? *)
       (* using the fact that Shift (n+1) m = ZeroDotShift (Shift n m) *)
     let rec prepattern (s : subst) = pp_normalize s
@@ -174,8 +174,8 @@ module Reductio =
       let inds = List.tabulate (shift, (function | x -> x)) in
       let rec search arg__0 arg__1 arg__2 =
         match (arg__0, arg__1, arg__2) with
-        | (n, [], (x : int)) -> NONE
-        | (n, h::tl, x) -> if x = h then SOME n else search (n + 1) tl x in
+        | (n, [], (x : int)) -> None
+        | (n, h::tl, x) -> if x = h then Some n else search (n + 1) tl x in
       makesubst ((map (search 0 vs) inds), (length vs))
     (* Here begins all the matching code.
            flex_left takes an uninstantiated evar, a substitution, and a right-hand-side of an equation.
@@ -188,12 +188,12 @@ module Reductio =
            If RHS is not in the range of sl, then MissingVar is raised by substitution *)
     let rec flex_left =
       function
-      | (((ref (NONE) as r), a), (s : subst), rhs) ->
+      | (((ref (None) as r), a), (s : subst), rhs) ->
           let pps = try prepattern s with | Domain -> raise NonPattern in
           let _ = if pp_ispat pps then () else raise NonPattern in
           let ppsi = pp_invert pps in
           let rhs' = subst_term ppsi (termof rhs) in
-          let _ = (:=) r SOME rhs' in ()
+          let _ = (:=) r Some rhs' in ()
       | _ -> raise (Error "evar invariant violated")
     (* match_one' takes an equation (which by invariant does not
            have an instantiated evar on the left, and is ground on the
@@ -289,13 +289,13 @@ module Reductio =
              with | NonPattern -> matching' (p, (c :: p')))
         | ([], p') -> p' in
       matching' (p, [])
-    (*	fun ctxcons (a, G) = map (shift_tp 0) (a::G) *)
-    let rec ctxcons (a, G) = a :: G
+    (*	fun ctxcons (a, __g) = map (shift_tp 0) (a::__g) *)
+    let rec ctxcons (a, __g) = a :: __g
     type cg_mode =
       | CG_SYNTH 
       | CG_CHECK of tp 
     (* 	val constraint_gen : tp list -> spine * tp * cg_mode -> eq_c list * tp_c list
-        fun constraint_gen G (s, z, c) = (p, q, aopt) *)
+        fun constraint_gen __g (s, z, c) = (p, q, aopt) *)
     (* invariants: 
 	   s is ground
 	   if c is CG_CHECK c', then c' is ground 
@@ -303,111 +303,111 @@ module Reductio =
            left-hand sides of p,q and z may involve evars
            
            the returned aopt...
-           ... is SOME of a type if c was CG_SYNTH
-           ... is NONE           if c was CG_CHECK of something *)
-    let rec constraint_gen (G) (s, z, c) = constraint_gen' G (s, z, c)
+           ... is Some of a type if c was CG_SYNTH
+           ... is None           if c was CG_CHECK of something *)
+    let rec constraint_gen (__g) (s, z, c) = constraint_gen' __g (s, z, c)
     let rec constraint_gen' arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, ([], (TRoot _ as a), CG_CHECK (TRoot _ as a'))) ->
-          ([TypeC (a, a')], [], NONE)
-      | (G, ([], TRoot (n, s), CG_SYNTH)) -> ([], [], (SOME (TRoot (n, s))))
-      | (G, ((Omit)::s, TPi (OMIT, a, z), c)) ->
-          let (ev : evar) = ((ref NONE), a) in
+      | (__g, ([], (TRoot _ as a), CG_CHECK (TRoot _ as a'))) ->
+          ([TypeC (a, a')], [], None)
+      | (__g, ([], TRoot (n, s), CG_SYNTH)) -> ([], [], (Some (TRoot (n, s))))
+      | (__g, ((Omit)::s, TPi (OMIT, a, z), c)) ->
+          let (ev : evar) = ((ref None), a) in
           let z' = subst_tp (EVarDotId ev) z in
-          let (p, q, aa) = constraint_gen' G (s, z', c) in (p, q, aa)
-      | (G, ((Elt m)::s, TPi (MINUS, a, z), c)) ->
+          let (p, q, aa) = constraint_gen' __g (s, z', c) in (p, q, aa)
+      | (__g, ((Elt m)::s, TPi (MINUS, a, z), c)) ->
           let z' = subst_tp (TermDot (m, a, Id)) z in
-          let (p, q, aa) = constraint_gen' G (s, z', c) in
+          let (p, q, aa) = constraint_gen' __g (s, z', c) in
           (p, ((m, a) :: q), aa)
-      | (G, ((AElt m)::s, TPi (PLUS, a, z), c)) ->
-          let a' = synth (G, m) in
+      | (__g, ((AElt m)::s, TPi (PLUS, a, z), c)) ->
+          let a' = synth (__g, m) in
           let z' = subst_tp (TermDot ((ATerm m), a, Id)) z in
-          let (p, q, aa) = constraint_gen' G (s, z', c) in
+          let (p, q, aa) = constraint_gen' __g (s, z', c) in
           (((((TypeC (a, a')) :: p), q, aa))
             (* Same PERF comment here as above *))
-      | (G, ((Ascribe (m, a'))::s, TPi (PLUS, a, z), c)) ->
+      | (__g, ((Ascribe (m, a'))::s, TPi (PLUS, a, z), c)) ->
           let z' = subst_tp (TermDot ((NTerm m), a, Id)) z in
-          let (p, q, aa) = constraint_gen' G (s, z', c) in
+          let (p, q, aa) = constraint_gen' __g (s, z', c) in
           (((((TypeC (a, a')) :: p), q, aa))
-            (* As well as here *))
+            (* __As well as here *))
       | (_, _) -> raise (Error "spine doesn't match type")(* PERF: we might be able to reject this faster if we knew a and a'
                                          were not defined types and were different *)
     let rec tp_constraint_gen arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, ([], Type)) -> ([], [])
-      | (G, ((Omit)::s, KPi (OMIT, a, z))) ->
-          let (ev : evar) = ((ref NONE), a) in
+      | (__g, ([], Type)) -> ([], [])
+      | (__g, ((Omit)::s, KPi (OMIT, a, z))) ->
+          let (ev : evar) = ((ref None), a) in
           let z' = subst_knd (EVarDotId ev) z in
-          let (p, q) = tp_constraint_gen G (s, z') in (p, q)
-      | (G, ((Elt m)::s, KPi (MINUS, a, z))) ->
+          let (p, q) = tp_constraint_gen __g (s, z') in (p, q)
+      | (__g, ((Elt m)::s, KPi (MINUS, a, z))) ->
           let z' = subst_knd (TermDot (m, a, Id)) z in
-          let (p, q) = tp_constraint_gen G (s, z') in (p, ((m, a) :: q))
-      | (G, ((AElt m)::s, KPi (PLUS, a, z))) ->
-          let a' = synth (G, m) in
+          let (p, q) = tp_constraint_gen __g (s, z') in (p, ((m, a) :: q))
+      | (__g, ((AElt m)::s, KPi (PLUS, a, z))) ->
+          let a' = synth (__g, m) in
           let z' = subst_knd (TermDot ((ATerm m), a, Id)) z in
-          let (p, q) = tp_constraint_gen G (s, z') in
+          let (p, q) = tp_constraint_gen __g (s, z') in
           (((TypeC (a, a')) :: p), q)
-      | (G, ((Ascribe (m, a'))::s, KPi (PLUS, a, z))) ->
+      | (__g, ((Ascribe (m, a'))::s, KPi (PLUS, a, z))) ->
           let z' = subst_knd (TermDot ((NTerm m), a, Id)) z in
-          let (p, q) = tp_constraint_gen G (s, z') in
+          let (p, q) = tp_constraint_gen __g (s, z') in
           (((TypeC (a, a')) :: p), q)
       | (_, _) -> raise (Error "spine doesn't match type")
     let rec check_equality_constraints p = List.all eq_c_true p
-    let rec check_typing_constraints (G) q =
-      List.all (function | (m, a) -> check (G, m, a)) q
-    let rec matching_succeeds (G) (p, q) =
+    let rec check_typing_constraints (__g) q =
+      List.all (function | (m, a) -> check (__g, m, a)) q
+    let rec matching_succeeds (__g) (p, q) =
       let p' = matching p in
       let _ =
         if check_equality_constraints p'
         then ()
         else raise (Matching "residual equality constraints failed") in
       let _ =
-        if check_typing_constraints G q
+        if check_typing_constraints __g q
         then ()
         else raise (Matching "residual typing constraints failed") in
       ((true__)
         (* evar side-effects affect q, raises Matching if matching fails *))
     let rec check_spinelt =
       function
-      | (G, Elt t, a) -> check (G, t, a)
-      | (G, AElt t, a) -> check (G, (ATerm t), a)
-      | (G, Ascribe (t, a), a') ->
-          (tp_eq (a, a')) && (check (G, (NTerm t), a))
-      | (G, Omit, _) -> raise (Error "cannot check omitted arguments")
+      | (__g, Elt t, a) -> check (__g, t, a)
+      | (__g, AElt t, a) -> check (__g, (ATerm t), a)
+      | (__g, Ascribe (t, a), a') ->
+          (tp_eq (a, a')) && (check (__g, (NTerm t), a))
+      | (__g, Omit, _) -> raise (Error "cannot check omitted arguments")
     let rec check =
       function
-      | (G, NTerm (Lam t), TPi (_, a, b)) -> check ((ctxcons (a, G)), t, b)
-      | (G, ATerm t, a) ->
-          (try tp_eq ((synth (G, t)), a) with | Error s -> false__)
-      | (G, NTerm (NRoot (Const n, s)), a) ->
+      | (__g, NTerm (Lam t), TPi (_, a, b)) -> check ((ctxcons (a, __g)), t, b)
+      | (__g, ATerm t, a) ->
+          (try tp_eq ((synth (__g, t)), a) with | Error s -> false__)
+      | (__g, NTerm (NRoot (Const n, s)), a) ->
           let b =
             match Sgn.classifier n with
             | tclass b -> b
             | _ -> raise (Error "signature invariant violated!") in
-          let (p, q, _) = constraint_gen G (s, b, (CG_CHECK a)) in
-          ((matching_succeeds G (p, q))
+          let (p, q, _) = constraint_gen __g (s, b, (CG_CHECK a)) in
+          ((matching_succeeds __g (p, q))
             (* creates ref cells for evars *))
       | _ -> false__
     let rec check_kind =
       function
-      | (G, Type) -> true__
-      | (G, KPi (OMIT, a, k)) ->
-          (check_type CON_LF (G, a)) &&
-            ((check_kind ((ctxcons (a, G)), k)) &&
+      | (__g, Type) -> true__
+      | (__g, KPi (OMIT, a, k)) ->
+          (check_type CON_LF (__g, a)) &&
+            ((check_kind ((ctxcons (a, __g)), k)) &&
                (Strict.check_strict_kind k))
-      | (G, KPi (_, a, k)) ->
-          (check_type CON_LF (G, a)) && (check_kind ((ctxcons (a, G)), k))
+      | (__g, KPi (_, a, k)) ->
+          (check_type CON_LF (__g, a)) && (check_kind ((ctxcons (a, __g)), k))
     let rec check_type arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (_, (G, TRoot (n, s))) ->
+      | (_, (__g, TRoot (n, s))) ->
           let k =
             match Sgn.classifier n with
             | kclass k -> k
             | _ -> raise (Error "signature invariant violated!") in
-          let (p, q) = tp_constraint_gen G (s, k) in
-          ((matching_succeeds G (p, q))
+          let (p, q) = tp_constraint_gen __g (s, k) in
+          ((matching_succeeds __g (p, q))
             (* creates ref cells for evars *))
-      | (con, (G, TPi (OMIT, a, b))) ->
+      | (con, (__g, TPi (OMIT, a, b))) ->
           let plusconst =
             match con with
             | CON_LF ->
@@ -415,62 +415,62 @@ module Reductio =
                   (Error "TPi(OMIT) where a pure LF function type expected")
             | CON_PLUS -> true__
             | CON_MINUS -> false__ in
-          (check_type CON_LF (G, a)) &&
-            ((check_type con ((ctxcons (a, G)), b)) &&
+          (check_type CON_LF (__g, a)) &&
+            ((check_type con ((ctxcons (a, __g)), b)) &&
                (Strict.check_strict_type plusconst b))
-      | (con, (G, TPi (m, a, b))) ->
+      | (con, (__g, TPi (m, a, b))) ->
           (match (con, m) with
            | (CON_LF, PLUS) ->
                raise
                  (Error "TPi(PLUS) where a pure LF function type expected")
            | _ ->
-               (check_type CON_LF (G, a)) &&
-                 (check_type con ((ctxcons (a, G)), b)))
+               (check_type CON_LF (__g, a)) &&
+                 (check_type con ((ctxcons (a, __g)), b)))
     let rec check_type' =
       function
-      | (G, Type, []) -> true__
-      | (G, KPi (_, a, k), m::s) ->
+      | (__g, Type, []) -> true__
+      | (__g, KPi (_, a, k), m::s) ->
           let _ =
-            if check_spinelt (G, m, a)
+            if check_spinelt (__g, m, a)
             then ()
             else raise (Error "argument type mismatch") in
           let k' = subst_knd (TermDot ((termof m), a, Id)) k in
-          check_type' (G, k', s)
+          check_type' (__g, k', s)
       | _ -> false__
     let rec synth =
       function
-      | (G, ARoot (Var n, s)) -> synth' (G, (ctxLookup (G, n)), s)
-      | (G, ARoot (Const n, s)) ->
+      | (__g, ARoot (Var n, s)) -> synth' (__g, (ctxLookup (__g, n)), s)
+      | (__g, ARoot (Const n, s)) ->
           let b =
             match Sgn.classifier n with
             | tclass b -> b
             | _ -> raise (Error "signature invariant violated!") in
-          let (p, q, aopt) = constraint_gen G (s, b, CG_SYNTH) in
-          let _ = matching_succeeds G (p, q) in ((Option.valOf aopt)
+          let (p, q, aopt) = constraint_gen __g (s, b, CG_SYNTH) in
+          let _ = matching_succeeds __g (p, q) in ((Option.valOf aopt)
             (* creates ref cells for evars *)(* DEBUG		 val _ = l3 := (p, q, aopt)::(!l3) *)
-            (* raises Matching if not *)(* by invariant, aopt must be SOME *))
-      | (G, (ERoot _ as t)) -> elt_synth (G, (eroot_elim_plus t))
+            (* raises Matching if not *)(* by invariant, aopt must be Some *))
+      | (__g, (ERoot _ as t)) -> elt_synth (__g, (eroot_elim_plus t))
     let rec synth' =
       function
-      | (G, (TRoot (_, _) as a), []) -> a
-      | (G, TPi (_, a, b), m::s) ->
+      | (__g, (TRoot (_, _) as a), []) -> a
+      | (__g, TPi (_, a, b), m::s) ->
           let _ =
-            if check_spinelt (G, m, a)
+            if check_spinelt (__g, m, a)
             then ()
             else raise (Error "argument type mismatch") in
           let b' = subst_tp (TermDot ((termof m), a, Id)) b in
-          synth' (G, b', s)
+          synth' (__g, b', s)
       | _ -> raise (Error "applying nonfunction to argument")
     let rec elt_synth =
       function
-      | (G, AElt t) -> synth (G, t)
-      | (G, Ascribe (t, a)) ->
-          if check (G, (NTerm t), a)
+      | (__g, AElt t) -> synth (__g, t)
+      | (__g, Ascribe (t, a)) ->
+          if check (__g, (NTerm t), a)
           then a
           else raise (Error "ascription doesn't check")
-      | (G, Elt _) ->
+      | (__g, Elt _) ->
           raise (Error "trying to synthesize a merely checkable element")
-      | (G, Omit) -> raise (Error "trying to synthesize an omitted argument")
+      | (__g, Omit) -> raise (Error "trying to synthesize an omitted argument")
     let rec check_plusconst_type t = check_type CON_PLUS ([], t)
     let rec check_minusconst_type t = check_type CON_MINUS ([], t)
     (* check_strictness_type : bool -> tp -> bool

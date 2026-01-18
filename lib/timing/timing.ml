@@ -38,8 +38,8 @@ module Timing : TIMING =
     let zero =
       { usr = Time.zeroTime; sys = Time.zeroTime; gc = Time.zeroTime }
     let rec minus
-      ({ usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 },
-       { usr = s1; sys = s2; gc = s3; sys = s2; gc = s3; gc = s3 })
+      ({ usr = t1; sys = t2; gc = t3 },
+       { usr = s1; sys = s2; gc = s3 })
       =
       {
         usr = (Time.(-) (t1, s1));
@@ -47,15 +47,15 @@ module Timing : TIMING =
         gc = (Time.(-) (t3, s3))
       }
     let rec plus
-      ({ usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 },
-       { usr = s1; sys = s2; gc = s3; sys = s2; gc = s3; gc = s3 })
+      ({ usr = t1; sys = t2; gc = t3 },
+       { usr = s1; sys = s2; gc = s3 })
       =
       {
         usr = (Time.(+) (t1, s1));
         sys = (Time.(+) (t2, s2));
         gc = (Time.(+) (t3, s3))
       }
-    let rec sum { usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 } =
+    let rec sum { usr = t1; sys = t2; gc = t3 } =
       Time.(+) (t1, t2)
     (* We use only one global timer each for CPU time and real time *)
     (* val CPUTimer = Timer.startCPUTimer () *)
@@ -72,7 +72,7 @@ module Timing : TIMING =
        the time for those will be counted twice!
     *)
     let rec checkCPUAndGCTimer timer =
-      let { usr; sys; sys } = Compat.Timer.checkCPUTimer timer in
+      let { usr; sys } = Compat.Timer.checkCPUTimer timer in
       let gc = Compat.Timer.checkGCTime timer in { usr; sys; gc }
     let rec time (_, counters) (f : 'a -> 'b) (x : 'a) =
       let realTimer = Timer.startRealTimer () in
@@ -80,7 +80,7 @@ module Timing : TIMING =
       let result = try Value (f x) with | exn -> Exception exn in
       let evalCPUTime = checkCPUAndGCTimer CPUTimer in
       let evalRealTime = Timer.checkRealTimer realTimer in
-      let (CPUTime, realTime) = !counters in
+      let (cputime, realtime) = !counters in
       let _ =
         counters :=
           ((plus (CPUTime, evalCPUTime)),
@@ -95,15 +95,15 @@ module Timing : TIMING =
     let rec stdTime (n, time) = StringCvt.padLeft ' ' n (Time.toString time)
     let rec timesToString
       (name,
-       (({ usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 } as
-           CPUTime),
+       (({ usr = t1; sys = t2; gc = t3 } as
+           cpuTime),
         realTime))
       =
       (((((^) (((^) ((((^) ((((^) ((name ^ ": ") ^ "Real = ") stdTime
                                 (7, realTime))
                                ^ ", ")
                               ^ "Run = ")
-                         stdTime (7, (sum CPUTime)))
+                         stdTime (7, (sum cpuTime)))
                         ^ " ")
                        ^ "(")
                   stdTime (7, t1))
@@ -112,14 +112,14 @@ module Timing : TIMING =
            ^ " gc)")
           ^ "\n")
       (* ^ stdTime (5, t2) ^ " sys, " ^ *)(* elide sys time *))
-    let rec toString (name, ref (CPUTime, realTime)) =
-      timesToString (name, (CPUTime, realTime))
+    let rec toString (name, ref (cputime, realtime)) =
+      timesToString (name, (cputime, realtime))
     let rec sumToString (name, centers) =
       let rec sumup =
         function
-        | (nil, (CPUTime, realTime)) ->
-            timesToString (name, (CPUTime, realTime))
-        | ((_, ref (C, R))::centers, (CPUTime, realTime)) ->
+        | (nil, (cputime, realtime)) ->
+            timesToString (name, (cputime, realtime))
+        | ((_, ref (C, R))::centers, (cputime, realtime)) ->
             sumup (centers, ((plus (CPUTime, C)), (Time.(+) (realTime, R)))) in
       sumup (centers, (zero, Time.zeroTime))
   end  (* structure Timing *)

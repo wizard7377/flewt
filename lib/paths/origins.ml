@@ -34,7 +34,7 @@ module Origins(Origins:sig module Global : GLOBAL module Table : TABLE end) :
     let installLinesInfo = install
     let linesInfoLookup = lookup
     let originArray =
-      (Array.array ((Global.maxCid + 1), ("", NONE)) : (string *
+      (Array.array ((Global.maxCid + 1), ("", None)) : (string *
                                                          Paths.occConDec
                                                          option) Array.array)
     let rec installOrigin (cid, fileNameOpt) =

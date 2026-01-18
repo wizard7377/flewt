@@ -34,25 +34,25 @@ module Convert =
 *)
     let rec spine_form =
       function
-      | (G, Id s) ->
-          (match findid G s with
-           | Var n -> ((Var n), NONE, true__, [])
+      | (__g, Id s) ->
+          (match findid __g s with
+           | Var n -> ((Var n), None, true__, [])
            | Const n ->
-               ((Const n), (SOME (modesofclass (List.nth ((!sigmat), n)))),
+               ((Const n), (Some (modesofclass (List.nth ((!sigmat), n)))),
                  (List.nth ((!sigmap), n)), []))
-      | (G, App (t, u)) ->
-          let (h, mopt, p, s) = spine_form (G, t) in (h, mopt, p, (s @ [u]))
-      | (G, Lam _) -> raise (Convert "illegal redex")
-      | (G, _) -> raise (Convert "level mismatch")
+      | (__g, App (t, u)) ->
+          let (h, mopt, p, s) = spine_form (__g, t) in (h, mopt, p, (s @ [u]))
+      | (__g, Lam _) -> raise (Convert "illegal redex")
+      | (__g, _) -> raise (Convert "level mismatch")
     (* similar to spine_form for a type family applied to a list of arguments *)
     let rec type_spine_form =
       function
-      | (G, Id s) ->
+      | (__g, Id s) ->
           let n = findn (!sigma) s in
           (n, (modesofclass (List.nth ((!sigmat), n))), [])
-      | (G, App (t, u)) ->
-          let (n, m, s) = type_spine_form (G, t) in (n, m, (s @ [u]))
-      | (G, _) -> raise (Convert "level mismatch")
+      | (__g, App (t, u)) ->
+          let (n, m, s) = type_spine_form (__g, t) in (n, m, (s @ [u]))
+      | (__g, _) -> raise (Convert "level mismatch")
     let rec safezip (l1, l2) =
       if (=) (length l1) length l2
       then ListPair.zip (l1, l2)
@@ -60,62 +60,62 @@ module Convert =
     (* given a context and an external expression and a mode, return a spine element or raise an exception*)
     let rec eltconvert arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (G, (t, MINUS)) -> Elt (convert (G, t))
-      | (G, (Ascribe (t, a), PLUS)) ->
-          Ascribe ((nconvert (G, t)), (typeconvert (G, a)))
-      | (G, (t, PLUS)) -> AElt (aconvert (G, t))
-      | (G, (Parse.Omit, OMIT)) -> Omit
-      | (G, (_, OMIT)) -> raise (Convert "found term expected to be omitted")
-    let rec aconvert (G, t) =
-      match convert (G, t) with
+      | (__g, (t, MINUS)) -> Elt (convert (__g, t))
+      | (__g, (Ascribe (t, a), PLUS)) ->
+          Ascribe ((nconvert (__g, t)), (typeconvert (__g, a)))
+      | (__g, (t, PLUS)) -> AElt (aconvert (__g, t))
+      | (__g, (Parse.Omit, OMIT)) -> Omit
+      | (__g, (_, OMIT)) -> raise (Convert "found term expected to be omitted")
+    let rec aconvert (__g, t) =
+      match convert (__g, t) with
       | ATerm t' -> t'
       | NTerm _ -> raise (Convert "required atomic, found normal")
-    let rec nconvert (G, t) =
-      match convert (G, t) with
+    let rec nconvert (__g, t) =
+      match convert (__g, t) with
       | NTerm t' -> t'
       | ATerm _ -> raise (Convert "required normal, found atomic")
     let rec convert =
       function
-      | (G, Lam ((v, _), t)) -> NTerm (Lam (convert ((v :: G), t)))
-      | (G, t) ->
-          let (h, mopt, p, s) = spine_form (G, t) in
+      | (__g, Lam ((v, _), t)) -> NTerm (Lam (convert ((v :: __g), t)))
+      | (__g, t) ->
+          let (h, mopt, p, s) = spine_form (__g, t) in
           let s' =
-            map (eltconvert G)
+            map (eltconvert __g)
               (match mopt with
-               | NONE -> map (function | elt -> (elt, MINUS)) s
-               | SOME m -> safezip (s, m)) in
+               | None -> map (function | elt -> (elt, MINUS)) s
+               | Some m -> safezip (s, m)) in
           if p then ATerm (ARoot (h, s')) else NTerm (NRoot (h, s'))
     let rec typeconvert =
       function
-      | (G, Pi (m, (v, SOME t), t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = typeconvert ((v :: G), t') in
+      | (__g, Pi (m, (v, Some t), t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = typeconvert ((v :: __g), t') in
           TPi ((modeconvert m), ct, ct')
-      | (G, Pi (m, (_, NONE), _)) ->
+      | (__g, Pi (m, (_, None), _)) ->
           raise (Convert "can't handle implicit pi")
-      | (G, Arrow (t, t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = typeconvert (("" :: G), t') in TPi (MINUS, ct, ct')
-      | (G, PlusArrow (t, t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = typeconvert (("" :: G), t') in TPi (PLUS, ct, ct')
-      | (G, a) ->
-          let (n, m, s) = type_spine_form (G, a) in
-          let s' = map (eltconvert G) (safezip (s, m)) in TRoot (n, s')
+      | (__g, Arrow (t, t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = typeconvert (("" :: __g), t') in TPi (MINUS, ct, ct')
+      | (__g, PlusArrow (t, t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = typeconvert (("" :: __g), t') in TPi (PLUS, ct, ct')
+      | (__g, a) ->
+          let (n, m, s) = type_spine_form (__g, a) in
+          let s' = map (eltconvert __g) (safezip (s, m)) in TRoot (n, s')
     let rec kindconvert =
       function
-      | (G, Pi (m, (v, SOME t), t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = kindconvert ((v :: G), t') in
+      | (__g, Pi (m, (v, Some t), t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = kindconvert ((v :: __g), t') in
           KPi ((modeconvert m), ct, ct')
-      | (G, Arrow (t, t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = kindconvert (("" :: G), t') in KPi (MINUS, ct, ct')
-      | (G, PlusArrow (t, t')) ->
-          let ct = typeconvert (G, t) in
-          let ct' = kindconvert (("" :: G), t') in KPi (PLUS, ct, ct')
-      | (G, Pi (m, (_, NONE), _)) ->
+      | (__g, Arrow (t, t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = kindconvert (("" :: __g), t') in KPi (MINUS, ct, ct')
+      | (__g, PlusArrow (t, t')) ->
+          let ct = typeconvert (__g, t) in
+          let ct' = kindconvert (("" :: __g), t') in KPi (PLUS, ct, ct')
+      | (__g, Pi (m, (_, None), _)) ->
           raise (Convert "can't handle implicit pi")
-      | (G, Parse.Type) -> Type
+      | (__g, Parse.Type) -> Type
       | _ -> raise (Convert "level mismatch")
   end;;

@@ -1,22 +1,22 @@
 
 module TypecheckEL =
   struct
-    module L = Lib
+    module __l = Lib
     module S = Syntax
     module Sig = S.Signat
     module C = Context
-    module D = Debug
+    module __d = Debug
     open S
     let rec check_exp arg__0 arg__1 arg__2 arg__3 =
       match (arg__0, arg__1, arg__2, arg__3) with
       | (sgn, ctx, Uni (Type), Uni (Kind)) -> ()
       | (sgn, ctx, Lam { body = M }, Pi
-         { var; arg = U; body = V; arg = U; body = V; body = V }) ->
-          check_exp sgn (C.push ctx (var, U)) M V
-      | (sgn, ctx, Root (Const con, S), V) ->
+         { var; arg = __u; body = __v; arg = __u; body = __v; body = __v }) ->
+          check_exp sgn (C.push ctx (var, __u)) M __v
+      | (sgn, ctx, Root (Const con, S), __v) ->
           let rec foc exp =
-            let U = focus sgn ctx S exp in
-            if equiv_exp sgn U V
+            let __u = focus sgn ctx S exp in
+            if equiv_exp sgn __u __v
             then ()
             else raise (Check "check_exp: exps not equivalent") in
           (((match Sig.lookup sgn con with
@@ -24,14 +24,14 @@ module TypecheckEL =
              | Def def -> foc ((fun r -> r.exp) def)
              | Abbrev abbrev -> raise (Fail "check_exp: abbrev")))
             (* why does this fail?*)(* pull some common code out of the following case *))
-      | (sgn, ctx, Root (BVar i, S), V) ->
+      | (sgn, ctx, Root (BVar i, S), __v) ->
           (((match C.lookup ctx (i - 1) with
-             | SOME (_, A) ->
-                 let U = focus sgn ctx S (apply_exp (Shift i) A) in
-                 if equiv_exp sgn U V
+             | Some (_, A) ->
+                 let __u = focus sgn ctx S (apply_exp (Shift i) A) in
+                 if equiv_exp sgn __u __v
                  then ()
-                 else raise (Fail_exp2 ("check_exp: Root,BVar", U, V))
-             | NONE -> raise (Check "focus: var out of bounds")))
+                 else raise (Fail_exp2 ("check_exp: Root,BVar", __u, __v))
+             | None -> raise (Check "focus: var out of bounds")))
           (* DeBruijn indices start at 1 *))
       | (sgn, ctx, Pi
          { var; arg = A1; body = A2; arg = A1; body = A2; body = A2 },
@@ -52,18 +52,18 @@ module TypecheckEL =
       match (arg__0, arg__1) with
       | (_, (Uni _ as uni)) -> uni
       | (sub, Pi
-         { var; arg = U; depend; body = V; arg = U; depend; body = V; 
-           depend; body = V; body = V })
+         { var; arg = __u; depend; body = __v; arg = __u; depend; body = __v; 
+           depend; body = __v; body = __v })
           ->
           Pi
             {
               var;
-              arg = (apply_exp sub U);
+              arg = (apply_exp sub __u);
               depend;
-              body = (apply_exp (push_sub sub) V)
+              body = (apply_exp (push_sub sub) __v)
             }
-      | (sub, Lam { var; body = U; body = U }) ->
-          Lam { var; body = (apply_exp (push_sub sub) U) }
+      | (sub, Lam { var; body = __u; body = __u }) ->
+          Lam { var; body = (apply_exp (push_sub sub) __u) }
       | (sub, (Root (H, S) as exp)) ->
           let S' = apply_spine sub S in
           (match H with
@@ -99,10 +99,10 @@ module TypecheckEL =
     let rec equiv_exp arg__0 arg__1 arg__2 =
       match (arg__0, arg__1, arg__2) with
       | (sgn, Uni u1, Uni u2) -> u1 = u2
-      | (sgn, Pi { arg = U1; body = V1; body = V1 }, Pi
-         { arg = U2; body = V2; body = V2 }) ->
-          (equiv_exp sgn U1 U2) && (equiv_exp sgn V1 V2)
-      | (sgn, Lam { body = U }, Lam { body = U' }) -> equiv_exp sgn U U'
+      | (sgn, Pi { arg = __U1; body = V1; body = V1 }, Pi
+         { arg = __U2; body = V2; body = V2 }) ->
+          (equiv_exp sgn __U1 __U2) && (equiv_exp sgn V1 V2)
+      | (sgn, Lam { body = __u }, Lam { body = __u' }) -> equiv_exp sgn __u __u'
       | (sgn, Root (BVar i, S1), Root (BVar i', S2)) ->
           (i = i') && (equiv_spine sgn S1 S2)
       | (sgn, (Root (Const c, S) as exp), (Root (Const c', S') as exp')) ->

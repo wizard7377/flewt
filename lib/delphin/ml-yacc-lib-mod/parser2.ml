@@ -259,7 +259,7 @@ module LrParser : LR_PARSER =
           let goto = LrTable.goto table in
           let rec parseStep =
             function
-            | (lexPair, stack, queue, 0) -> (lexPair, stack, queue, 0, NONE)
+            | (lexPair, stack, queue, 0) -> (lexPair, stack, queue, 0, None)
             | (((TOKEN (terminal, ((_, leftPos, _) as value)), lexer) as
                   lexPair),
                ((state, _)::_ as stack), queue, distance) ->
@@ -285,9 +285,9 @@ module LrParser : LR_PARSER =
                               queue, distance)
                       | _ -> raise (ParseImpossible 240))
                  | ERROR ->
-                     (lexPair, stack, queue, distance, (SOME nextAction))
+                     (lexPair, stack, queue, distance, (Some nextAction))
                  | ACCEPT ->
-                     (lexPair, stack, queue, distance, (SOME nextAction)))
+                     (lexPair, stack, queue, distance, (Some nextAction)))
             | _ -> raise (ParseImpossible 242) in
           (parseStep : ('a, 'b) distanceParse)
     (* mkFixError: function to create fixError function which adjusts parser state
@@ -350,7 +350,7 @@ module LrParser : LR_PARSER =
           match distanceParse
                   (lexPair, stack, Fifo.empty, ((queuePos + maxAdvance) + 1))
           with
-          | (_, _, _, distance, SOME (ACCEPT)) ->
+          | (_, _, _, distance, Some (ACCEPT)) ->
               if ((maxAdvance - distance) - 1) >= 0
               then maxAdvance
               else (maxAdvance - distance) - 1
@@ -434,17 +434,17 @@ module LrParser : LR_PARSER =
                      }) in
         let rec do_delete =
           function
-          | (nil, ((TOKEN (_, (_, l, _)), _) as lp)) -> SOME (nil, l, l, lp)
+          | (nil, ((TOKEN (_, (_, l, _)), _) as lp)) -> Some (nil, l, l, lp)
           | (t::[], ((TOKEN (t', (_, l, r)) as tok), lp')) ->
-              if t = t' then SOME ([tok], l, r, (Streamm.get lp')) else NONE
+              if t = t' then Some ([tok], l, r, (Streamm.get lp')) else None
           | (t::rest, ((TOKEN (t', (_, l, r)) as tok), lp')) ->
               if t = t'
               then
                 (match do_delete (rest, (Streamm.get lp')) with
-                 | SOME (deleted, l', r', lp'') ->
-                     SOME ((tok :: deleted), l, r', lp'')
-                 | NONE -> NONE)
-              else NONE in
+                 | Some (deleted, l', r', lp'') ->
+                     Some ((tok :: deleted), l, r', lp'')
+                 | None -> None)
+              else None in
         let rec tryPreferred ((stack, lexPair), queuePos) =
           catList preferred_change
             (function
@@ -453,7 +453,7 @@ module LrParser : LR_PARSER =
                    then []
                    else
                      (match do_delete (delete, lexPair) with
-                      | SOME (deleted, l, r, lp) ->
+                      | Some (deleted, l, r, lp) ->
                           tryChange
                             {
                               lex = lp;
@@ -465,7 +465,7 @@ module LrParser : LR_PARSER =
                               new__ =
                                 (map (function | t -> tokAt (t, r)) insert)
                             }
-                      | NONE -> []))
+                      | None -> []))
                  (* should give warning at
 						 parser-generation time *))) in
         let changes =
@@ -572,7 +572,7 @@ module LrParser : LR_PARSER =
           (* trySubst: try to substitute tokens for the current terminal;
        return a list of the successes  *)
           (* do_delete(toks,lexPair) tries to delete tokens "toks" from "lexPair".
-         If it succeeds, returns SOME(toks',l,r,lp), where
+         If it succeeds, returns Some(toks',l,r,lp), where
 	     toks' is the actual tokens (with positions and values) deleted,
 	     (l,r) are the (leftmost,rightmost) position of toks', 
 	     lp is what remains of the stream after deletion 
@@ -606,11 +606,11 @@ module LrParser : LR_PARSER =
           let ssParse = ssParse (table, showTerminal, saction, fixError, arg) in
           let rec loop =
             function
-            | (lexPair, stack, queue, _, SOME (ACCEPT)) ->
+            | (lexPair, stack, queue, _, Some (ACCEPT)) ->
                 ssParse (lexPair, stack, queue)
             | (lexPair, stack, queue, 0, _) ->
                 ssParse (lexPair, stack, queue)
-            | (lexPair, stack, queue, distance, SOME (ERROR)) ->
+            | (lexPair, stack, queue, distance, Some (ERROR)) ->
                 let (lexPair, stack, queue) =
                   fixError (lexPair, stack, queue) in
                 loop (distanceParse (lexPair, stack, queue, distance))

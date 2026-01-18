@@ -19,8 +19,8 @@ module CSEqBools(CSEqBools:sig
       | Sum of (bool * __Mon set) 
     and __Mon =
       | Mon of (IntSyn.__Exp * IntSyn.__Sub) set 
-    (* Mon ::= U1[s1] * ...       *)
-    (* A monomial (U1[s1] * U2[s2] * ...) is said to be normal iff
+    (* Mon ::= __U1[s1] * ...       *)
+    (* A monomial (__U1[s1] * __U2[s2] * ...) is said to be normal iff
        (a) each (Ui,si) is in whnf and not a foreign term corresponding
            to a sum;
        (b) the terms Ui[si] are pairwise distinct.
@@ -42,26 +42,26 @@ module CSEqBools(CSEqBools:sig
     let rec falseExp () = Root ((Const (!falseID)), Nil)
     let rec solveBool =
       function
-      | (G, S, 0) -> SOME (trueExp ())
-      | (G, S, 1) -> SOME (falseExp ())
-      | (G, S, k) -> NONE
+      | (__g, S, 0) -> Some (trueExp ())
+      | (__g, S, 1) -> Some (falseExp ())
+      | (__g, S, k) -> None
     let notID = (ref (-1) : cid ref)
     let xorID = (ref (-1) : cid ref)
     let andID = (ref (-1) : cid ref)
     let orID = (ref (-1) : cid ref)
     let impliesID = (ref (-1) : cid ref)
     let iffID = (ref (-1) : cid ref)
-    let rec notExp (U) = Root ((Const (!notID)), (App (U, Nil)))
-    let rec xorExp (U, V) =
-      Root ((Const (!xorID)), (App (U, (App (V, Nil)))))
-    let rec andExp (U, V) =
-      Root ((Const (!andID)), (App (U, (App (V, Nil)))))
-    let rec orExp (U, V) = Root ((Const (!orID)), (App (U, (App (V, Nil)))))
-    let rec impliesExp (U, V) =
-      Root ((Const (!impliesID)), (App (U, (App (V, Nil)))))
-    let rec iffExp (U, V) =
-      Root ((Const (!iffID)), (App (U, (App (V, Nil)))))
-    let rec member eq (x, L) = List.exists (function | y -> eq (x, y)) L
+    let rec notExp (__u) = Root ((Const (!notID)), (App (__u, Nil)))
+    let rec xorExp (__u, __v) =
+      Root ((Const (!xorID)), (App (__u, (App (__v, Nil)))))
+    let rec andExp (__u, __v) =
+      Root ((Const (!andID)), (App (__u, (App (__v, Nil)))))
+    let rec orExp (__u, __v) = Root ((Const (!orID)), (App (__u, (App (__v, Nil)))))
+    let rec impliesExp (__u, __v) =
+      Root ((Const (!impliesID)), (App (__u, (App (__v, Nil)))))
+    let rec iffExp (__u, __v) =
+      Root ((Const (!iffID)), (App (__u, (App (__v, Nil)))))
+    let rec member eq (x, __l) = List.exists (function | y -> eq (x, y)) __l
     let rec differenceSet eq (L1, L2) =
       let L1' = List.filter (function | x -> not (member eq (x, L2))) L1 in
       let L2' = List.filter (function | x -> not (member eq (x, L1))) L2 in
@@ -84,25 +84,25 @@ module CSEqBools(CSEqBools:sig
           xorExp ((toExp (Sum (m, monL))), (toExpMon mon))
     let rec toExpMon =
       function
-      | Mon ((Us)::[]) -> toExpEClo Us
-      | Mon ((Us)::UsL) -> andExp ((toExpMon (Mon UsL)), (toExpEClo Us))
-    let rec toExpEClo = function | (U, Shift 0) -> U | Us -> EClo Us
+      | Mon ((__Us)::[]) -> toExpEClo __Us
+      | Mon ((__Us)::UsL) -> andExp ((toExpMon (Mon UsL)), (toExpEClo __Us))
+    let rec toExpEClo = function | (__u, Shift 0) -> __u | __Us -> EClo __Us
     let rec compatibleMon (Mon (UsL1), Mon (UsL2)) =
-      equalSet (function | (Us1, Us2) -> sameExp (Us1, Us2)) (UsL1, UsL2)
+      equalSet (function | (us1, us2) -> sameExp (us1, us2)) (UsL1, UsL2)
     let rec sameExpW =
       function
-      | (((Root (H1, S1), s1) as Us1), ((Root (H2, S2), s2) as Us2)) ->
+      | (((Root (H1, S1), s1) as us1), ((Root (H2, S2), s2) as us2)) ->
           (match (H1, H2) with
            | (BVar k1, BVar k2) ->
                (k1 = k2) && (sameSpine ((S1, s1), (S2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
                (n1 = n2) && (sameSpine ((S1, s1), (S2, s2)))
            | _ -> false__)
-      | ((((EVar (r1, G1, V1, cnstrs1) as U1), s1) as Us1),
-         (((EVar (r2, G2, V2, cnstrs2) as U2), s2) as Us2)) ->
+      | ((((EVar (r1, G1, V1, cnstrs1) as __U1), s1) as us1),
+         (((EVar (r2, G2, V2, cnstrs2) as __U2), s2) as us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
       | _ -> false__
-    let rec sameExp (Us1, Us2) = sameExpW ((Whnf.whnf Us1), (Whnf.whnf Us2))
+    let rec sameExp (us1, us2) = sameExpW ((Whnf.whnf us1), (Whnf.whnf us2))
     let rec sameSpine =
       function
       | ((Nil, s1), (Nil, s2)) -> true__
@@ -110,8 +110,8 @@ module CSEqBools(CSEqBools:sig
           sameSpine ((S1, (comp (s1', s1))), Ss2)
       | (Ss1, (SClo (S2, s2'), s2)) ->
           sameSpine (Ss1, (S2, (comp (s2', s2))))
-      | ((App (U1, S1), s1), (App (U2, S2), s2)) ->
-          (sameExp ((U1, s1), (U2, s2))) && (sameSpine ((S1, s1), (S2, s2)))
+      | ((App (__U1, S1), s1), (App (__U2, S2), s2)) ->
+          (sameExp ((__U1, s1), (__U2, s2))) && (sameSpine ((S1, s1), (S2, s2)))
       | _ -> false__
     let rec sameSub =
       function
@@ -153,12 +153,12 @@ module CSEqBools(CSEqBools:sig
     let rec iffSum (sum1, sum2) = notSum (xorSum (sum1, sum2))
     let rec fromExpW =
       function
-      | (FgnExp (cs, fe), _) as Us ->
+      | (FgnExp (cs, fe), _) as __Us ->
           if (!) ((=) cs) myID
           then normalizeSum (extractSum fe)
-          else Sum (false__, [Mon [Us]])
-      | Us -> Sum (false__, [Mon [Us]])
-    let rec fromExp (Us) = fromExpW (Whnf.whnf Us)
+          else Sum (false__, [Mon [__Us]])
+      | __Us -> Sum (false__, [Mon [__Us]])
+    let rec fromExp (__Us) = fromExpW (Whnf.whnf __Us)
     let rec normalizeSum =
       function
       | Sum (m, nil) as sum -> sum
@@ -167,48 +167,48 @@ module CSEqBools(CSEqBools:sig
           xorSum ((normalizeMon mon), (normalizeSum (Sum (m, monL))))
     let rec normalizeMon =
       function
-      | Mon ((Us)::[]) -> fromExp Us
-      | Mon ((Us)::UsL) -> andSum ((fromExp Us), (normalizeMon (Mon UsL)))
+      | Mon ((__Us)::[]) -> fromExp __Us
+      | Mon ((__Us)::UsL) -> andSum ((fromExp __Us), (normalizeMon (Mon UsL)))
     let rec mapSum (f, Sum (m, monL)) =
       Sum (m, (List.map (function | mon -> mapMon (f, mon)) monL))
     let rec mapMon (f, Mon (UsL)) =
-      Mon (List.map (function | Us -> Whnf.whnf ((f (EClo Us)), id)) UsL)
+      Mon (List.map (function | __Us -> Whnf.whnf ((f (EClo __Us)), id)) UsL)
     let rec appSum (f, Sum (m, monL)) =
       List.app (function | mon -> appMon (f, mon)) monL
     let rec appMon (f, Mon (UsL)) =
-      List.app (function | Us -> f (EClo Us)) UsL
-    let rec findMon f (G, Sum (m, monL)) =
+      List.app (function | __Us -> f (EClo __Us)) UsL
+    let rec findMon f (__g, Sum (m, monL)) =
       let rec findMon' =
         function
-        | (nil, monL2) -> NONE
+        | (nil, monL2) -> None
         | (mon::monL1, monL2) ->
-            (match f (G, mon, (Sum (m, (monL1 @ monL2)))) with
-             | SOME _ as result -> result
-             | NONE -> findMon' (monL1, (mon :: monL2))) in
+            (match f (__g, mon, (Sum (m, (monL1 @ monL2)))) with
+             | Some _ as result -> result
+             | None -> findMon' (monL1, (mon :: monL2))) in
       findMon' (monL, nil)
-    let rec unifySum (G, sum1, sum2) =
+    let rec unifySum (__g, sum1, sum2) =
       let rec invertMon =
         function
-        | (G, Mon (((EVar (r, _, _, _) as LHS), s)::[]), sum) ->
+        | (__g, Mon (((EVar (r, _, _, _) as LHS), s)::[]), sum) ->
             if Whnf.isPatSub s
             then
               let ss = Whnf.invert s in
               let RHS = toFgn sum in
-              (if Unify.invertible (G, (RHS, id), ss, r)
-               then SOME (G, LHS, RHS, ss)
-               else NONE)
-            else NONE
-        | _ -> NONE in
+              (if Unify.invertible (__g, (RHS, id), ss, r)
+               then Some (__g, LHS, RHS, ss)
+               else None)
+            else None
+        | _ -> None in
       match xorSum (sum2, sum1) with
       | Sum (false__, nil) -> Succeed nil
       | Sum (true__, nil) -> Fail
       | sum ->
-          (match findMon invertMon (G, sum) with
-           | SOME assignment -> Succeed [Assign assignment]
-           | NONE ->
-               let U = toFgn sum in
-               let cnstr = ref (Eqn (G, U, (falseExp ()))) in
-               Succeed [Delay (U, cnstr)])
+          (match findMon invertMon (__g, sum) with
+           | Some assignment -> Succeed [Assign assignment]
+           | None ->
+               let __u = toFgn sum in
+               let cnstr = ref (Eqn (__g, __u, (falseExp ()))) in
+               Succeed [Delay (__u, cnstr)])
     let rec toFgn =
       function
       | Sum (m, nil) as sum -> toExp sum
@@ -227,15 +227,15 @@ module CSEqBools(CSEqBools:sig
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec equalTo arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, U2) ->
-          (match xorSum ((normalizeSum sum), (fromExp (U2, id))) with
+      | (MyIntsynRep sum, __U2) ->
+          (match xorSum ((normalizeSum sum), (fromExp (__U2, id))) with
            | Sum (m, nil) -> m = false__
            | _ -> false__)
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec unifyWith arg__0 arg__1 =
       match (arg__0, arg__1) with
-      | (MyIntsynRep sum, (G, U2)) ->
-          unifySum (G, (normalizeSum sum), (fromExp (U2, id)))
+      | (MyIntsynRep sum, (__g, __U2)) ->
+          unifySum (__g, (normalizeSum sum), (fromExp (__U2, id)))
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec installFgnExpOps () =
       let csid = !myID in
@@ -253,123 +253,123 @@ module CSEqBools(CSEqBools:sig
         match (arg__0, arg__1) with
         | (E, 0) -> E
         | (E, n) ->
-            Lam ((Dec (NONE, (bool ()))), (makeLam E (Int.(-) (n, 1)))) in
+            Lam ((Dec (None, (bool ()))), (makeLam E (Int.(-) (n, 1)))) in
       let rec expand =
         function
         | ((Nil, s), arity) -> ((makeParams arity), arity)
-        | ((App (U, S), s), arity) ->
+        | ((App (__u, S), s), arity) ->
             let (S', arity') = expand ((S, s), (Int.(-) (arity, 1))) in
-            ((App ((EClo (U, (comp (s, (Shift arity'))))), S')), arity')
+            ((App ((EClo (__u, (comp (s, (Shift arity'))))), S')), arity')
         | ((SClo (S, s'), s), arity) -> expand ((S, (comp (s', s))), arity) in
       let (S', arity') = expand ((S, id), arity) in
       makeLam (toFgn (opExp S')) arity'
     let rec makeFgnUnary opSum =
-      makeFgn (1, (function | App (U, Nil) -> opSum (fromExp (U, id))))
+      makeFgn (1, (function | App (__u, Nil) -> opSum (fromExp (__u, id))))
     let rec makeFgnBinary opSum =
       makeFgn
         (2,
           (function
-           | App (U1, App (U2, Nil)) ->
-               opSum ((fromExp (U1, id)), (fromExp (U2, id)))))
-    let rec arrow (U, V) = Pi (((Dec (NONE, U)), No), V)
+           | App (__U1, App (__U2, Nil)) ->
+               opSum ((fromExp (__U1, id)), (fromExp (__U2, id)))))
+    let rec arrow (__u, __v) = Pi (((Dec (None, __u)), No), __v)
     let rec init (cs, installF) =
       myID := cs;
       (:=) boolID installF
         ((ConDec
-            ("bool", NONE, 0, (Constraint ((!myID), solveBool)), (Uni Type),
-              Kind)), NONE, [MS.Mnil]);
+            ("bool", None, 0, (Constraint ((!myID), solveBool)), (Uni Type),
+              Kind)), None, [MS.Mnil]);
       (:=) trueID installF
         ((ConDec
-            ("true", NONE, 0,
+            ("true", None, 0,
               (Foreign ((!myID), (function | _ -> toFgn (Sum (true__, nil))))),
-              (bool ()), Type)), NONE, nil);
+              (bool ()), Type)), None, nil);
       (:=) falseID installF
         ((ConDec
-            ("false", NONE, 0,
+            ("false", None, 0,
               (Foreign
                  ((!myID), (function | _ -> toFgn (Sum (false__, nil))))),
-              (bool ()), Type)), NONE, nil);
+              (bool ()), Type)), None, nil);
       (:=) notID installF
         ((ConDec
-            ("!", NONE, 0, (Foreign ((!myID), (makeFgnUnary notSum))),
+            ("!", None, 0, (Foreign ((!myID), (makeFgnUnary notSum))),
               (arrow ((bool ()), (bool ()))), Type)),
-          (SOME (FX.Prefix FX.maxPrec)), nil);
+          (Some (FX.Prefix FX.maxPrec)), nil);
       (:=) xorID installF
         ((ConDec
-            ("||", NONE, 0, (Foreign ((!myID), (makeFgnBinary xorSum))),
+            ("||", None, 0, (Foreign ((!myID), (makeFgnBinary xorSum))),
               (arrow ((bool ()), (arrow ((bool ()), (bool ()))))), Type)),
-          (SOME (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
+          (Some (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       (:=) andID installF
         ((ConDec
-            ("&", NONE, 0, (Foreign ((!myID), (makeFgnBinary andSum))),
+            ("&", None, 0, (Foreign ((!myID), (makeFgnBinary andSum))),
               (arrow ((bool ()), (arrow ((bool ()), (bool ()))))), Type)),
-          (SOME (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
+          (Some (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       (:=) orID installF
         ((ConDec
-            ("|", NONE, 0, (Foreign ((!myID), (makeFgnBinary orSum))),
+            ("|", None, 0, (Foreign ((!myID), (makeFgnBinary orSum))),
               (arrow ((bool ()), (arrow ((bool ()), (bool ()))))), Type)),
-          (SOME (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
+          (Some (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       (:=) impliesID installF
         ((ConDec
-            ("=>", NONE, 0, (Foreign ((!myID), (makeFgnBinary impliesSum))),
+            ("=>", None, 0, (Foreign ((!myID), (makeFgnBinary impliesSum))),
               (arrow ((bool ()), (arrow ((bool ()), (bool ()))))), Type)),
-          (SOME (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
+          (Some (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
       (:=) iffID installF
         ((ConDec
-            ("<=>", NONE, 0, (Foreign ((!myID), (makeFgnBinary iffSum))),
+            ("<=>", None, 0, (Foreign ((!myID), (makeFgnBinary iffSum))),
               (arrow ((bool ()), (arrow ((bool ()), (bool ()))))), Type)),
-          (SOME (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
+          (Some (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
       installFgnExpOps ();
       ()
     (* CSManager.ModeSyn *)
-    (* member eq (x, L) = true iff there there is a y in L s.t. eq(y, x) *)
-    (* differenceSet eq L1 L2 = (L1 \ L2) U (L2 \ L1) *)
+    (* member eq (x, __l) = true iff there there is a y in __l s.t. eq(y, x) *)
+    (* differenceSet eq L1 L2 = (L1 \ L2) __u (L2 \ L1) *)
     (* equalSet eq (L1, L2) = true iff L1 is equal to L2 (both seen as sets) *)
-    (* unionSet eq (L1, L2) = L1 U L2 *)
-    (* toExp sum = U
+    (* unionSet eq (L1, L2) = L1 __u L2 *)
+    (* toExp sum = __u
 
        Invariant:
        If sum is normal
-       G |- U : V and U is the Twelf syntax conversion of sum
+       __g |- __u : __v and __u is the Twelf syntax conversion of sum
     *)
-    (* toExpMon mon = U
+    (* toExpMon mon = __u
 
        Invariant:
        If mon is normal
-       G |- U : V and U is the Twelf syntax conversion of mon
+       __g |- __u : __v and __u is the Twelf syntax conversion of mon
     *)
-    (* toExpEClo (U,s) = U
+    (* toExpEClo (__u,s) = __u
 
        Invariant:
-       G |- U : V and U is the Twelf syntax conversion of Us
+       __g |- __u : __v and __u is the Twelf syntax conversion of __Us
     *)
     (* compatibleMon (mon1, mon2) = true only if mon1 = mon2 (as monomials) *)
-    (* sameExpW ((U1,s1), (U2,s2)) = T
+    (* sameExpW ((__U1,s1), (__U2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1    (U1,s1)  in whnf
-       and  G |- s2 : G2    G2 |- U2 : V2    (U2,s2)  in whnf
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   __g |- s1 : G1    G1 |- __U1 : V1    (__U1,s1)  in whnf
+       and  __g |- s2 : G2    G2 |- __U2 : V2    (__U2,s2)  in whnf
+       then T only if __U1[s1] = __U2[s2] (as expressions)
     *)
-    (* sameExp ((U1,s1), (U2,s2)) = T
+    (* sameExp ((__U1,s1), (__U2,s2)) = T
 
        Invariant:
-       If   G |- s1 : G1    G1 |- U1 : V1
-       and  G |- s2 : G2    G2 |- U2 : V2
-       then T only if U1[s1] = U2[s2] (as expressions)
+       If   __g |- s1 : G1    G1 |- __U1 : V1
+       and  __g |- s2 : G2    G2 |- __U2 : V2
+       then T only if __U1[s1] = __U2[s2] (as expressions)
     *)
     (* sameSpine (S1, S2) = T
 
        Invariant:
-       If   G |- S1 : V > W
-       and  G |- S2 : V > W
+       If   __g |- S1 : __v > W
+       and  __g |- S2 : __v > W
        then T only if S1 = S2 (as spines)
     *)
     (* sameSub (s1, s2) = T
 
        Invariant:
-       If   G |- s1 : G'
-       and  G |- s2 : G'
+       If   __g |- s1 : __g'
+       and  __g |- s2 : __g'
        then T only if s1 = s2 (as substitutions)
     *)
     (* xorSum (sum1, sum2) = sum3
@@ -427,54 +427,54 @@ module CSEqBools(CSEqBools:sig
        then sum3 normal
        and  sum3 = sum1 iff sum2
     *)
-    (* fromExpW (U, s) = sum
+    (* fromExpW (__u, s) = sum
 
        Invariant:
-       If   G' |- s : G    G |- U : V    (U,s)  in whnf
-       then sum is the internal representation of U[s] as sum of monomials
+       If   __g' |- s : __g    __g |- __u : __v    (__u,s)  in whnf
+       then sum is the internal representation of __u[s] as sum of monomials
        and sum is normal
     *)
     (* normalizeSum sum = sum', where sum' normal and sum' = sum *)
     (* normalizeMon mon = mon', where mon' normal and mon' = mon *)
     (* mapSum (f, m + M1 + ...) = m + mapMon(f,M1) + ... *)
-    (* mapMon (f, n * (U1,s1) + ...) = n * f(U1,s1) * ... *)
+    (* mapMon (f, n * (__U1,s1) + ...) = n * f(__U1,s1) * ... *)
     (* appSum (f, m + M1 + ...) = ()     and appMon (f, Mi) for each i *)
-    (* appMon (f, n * (U1, s1) + ... ) = () and f (Ui[si]) for each i *)
-    (* findMon f (G, sum) =
-         SOME(x) if f(M) = SOME(x) for some monomial M in sum
-         NONE    if f(M) = NONE for all monomials M in sum
+    (* appMon (f, n * (__U1, s1) + ... ) = () and f (Ui[si]) for each i *)
+    (* findMon f (__g, sum) =
+         Some(x) if f(M) = Some(x) for some monomial M in sum
+         None    if f(M) = None for all monomials M in sum
     *)
-    (* unifySum (G, sum1, sum2) = result
+    (* unifySum (__g, sum1, sum2) = result
 
        Invariant:
-       If   G |- sum1 : number     sum1 normal
-       and  G |- sum2 : number     sum2 normal
+       If   __g |- sum1 : number     sum1 normal
+       and  __g |- sum2 : number     sum2 normal
        then result is the outcome (of type FgnUnify) of solving the
        equation sum1 = sum2 by gaussian elimination.
     *)
-    (* toFgn sum = U
+    (* toFgn sum = __u
 
        Invariant:
        If sum normal
-       then U is a foreign expression representing sum.
+       then __u is a foreign expression representing sum.
     *)
-    (* toInternal (fe) = U
+    (* toInternal (fe) = __u
 
        Invariant:
        if fe is (MyIntsynRep sum) and sum : normal
-       then U is the Twelf syntax conversion of sum
+       then __u is the Twelf syntax conversion of sum
     *)
-    (* map (fe) f = U'
+    (* map (fe) f = __u'
 
        Invariant:
        if fe is (MyIntsynRep sum)   sum : normal
        and
          f sum = f (m + mon1 + ... + monN) =
-               = m + f (m1 * Us1 * ... * UsM) + ...
-               = m + (m1 * (f Us1) * ... * f (UsM))
+               = m + f (m1 * us1 * ... * UsM) + ...
+               = m + (m1 * (f us1) * ... * f (UsM))
                = sum'           sum' : normal
        then
-         U' is a foreign expression representing sum'
+         __u' is a foreign expression representing sum'
     *)
     (* app (fe) f = ()
 
@@ -496,7 +496,7 @@ module CSEqBools(CSEqBools:sig
         name = "equality/booleans";
         keywords = "booleans,equality";
         needs = ["Unify"];
-        fgnConst = NONE;
+        fgnConst = None;
         init;
         reset = (function | () -> ());
         mark = (function | () -> ());

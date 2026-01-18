@@ -59,27 +59,27 @@ module MTPStrategy(MTPStrategy:sig
       else ()
     let rec findMin =
       function
-      | nil -> NONE
-      | L ->
+      | nil -> None
+      | __l ->
           let rec findMin' =
             function
             | (nil, result) -> result
-            | ((O')::L', NONE) ->
+            | ((O')::__l', None) ->
                 if MTPSplitting.applicable O'
-                then findMin' (L', (SOME O'))
-                else findMin' (L', NONE)
-            | ((O')::L', SOME (O)) ->
+                then findMin' (__l', (Some O'))
+                else findMin' (__l', None)
+            | ((O')::__l', Some (O)) ->
                 if MTPSplitting.applicable O'
                 then
                   (match MTPSplitting.compare (O', O) with
-                   | LESS -> findMin' (L', (SOME O'))
-                   | _ -> findMin' (L', (SOME O)))
-                else findMin' (L', (SOME O)) in
-          findMin' (L, NONE)
+                   | LESS -> findMin' (__l', (Some O'))
+                   | _ -> findMin' (__l', (Some O)))
+                else findMin' (__l', (Some O)) in
+          findMin' (__l, None)
     let rec split ((S)::givenStates, ((openStates, solvedStates) as os)) =
       match findMin (Timers.time Timers.splitting MTPSplitting.expand S) with
-      | NONE -> fill (givenStates, ((S :: openStates), solvedStates))
-      | SOME splitOp ->
+      | None -> fill (givenStates, ((S :: openStates), solvedStates))
+      | Some splitOp ->
           let _ = printSplitting splitOp in
           let SL = Timers.time Timers.splitting MTPSplitting.apply splitOp in
           let _ = printCloseBracket () in
@@ -119,13 +119,13 @@ module MTPStrategy(MTPStrategy:sig
       let _ = match openStates with | nil -> printQed () | _ -> () in
       (openStates', solvedStates')
     (* if !Global.chatter > 5 then print ("[" ^ MTPSplitting.menu splitOp) *)
-    (* findMin L = Sopt
+    (* findMin __l = Sopt
 
        Invariant:
 
-       If   L be a set of splitting operators
-       then Sopt = NONE if L = []
-       else Sopt = SOME S, s.t. index S is minimal among all elements in L
+       If   __l be a set of splitting operators
+       then Sopt = None if __l = []
+       else Sopt = Some S, s.t. index S is minimal among all elements in __l
     *)
     (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
        recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')

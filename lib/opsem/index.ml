@@ -23,7 +23,7 @@ module type TABLEINDEX  =
     type answState =
       | New 
       | Repeated 
-    (* table: G, Gdprog |- goal , 
+    (* table: __g, Gdprog |- goal , 
             (answ list (ith stage) , answ list (1 to i-1 th stage))
    *)
     val table :
@@ -32,25 +32,25 @@ module type TABLEINDEX  =
     val noAnswers :
       ((IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp) * answer) list -> bool
     (* call check/insert *)
-    (* callCheck (G, D, U)
+    (* callCheck (__g, __d, __u)
    *
-   * if D, G |- U     in table  
-   *    then SOME(entries)
-   * if D, G |- U not in table 
-   *    then NONE  
-   *          SIDE EFFECT: D, G |- U added to table
+   * if __d, __g |- __u     in table  
+   *    then Some(entries)
+   * if __d, __g |- __u not in table 
+   *    then None  
+   *          SIDE EFFECT: __d, __g |- __u added to table
    *)
     val callCheck :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp) ->
         ((IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp) * answer) list option
     (* answer check/insert *)
-    (* answerCheck (G, D, (U,s))
+    (* answerCheck (__g, __d, (__u,s))
    * 
-   * Assumption: D, G |- U is in table
+   * Assumption: __d, __g |- __u is in table
    *             and A represents the corresponding solutions
    * 
-   * G |- s : D, G
-   * Dk, G |- sk : D, G
+   * __g |- s : __d, __g
+   * Dk, __g |- sk : __d, __g
    *
    * If  (Dk, sk) in A then repeated
    *  else New
@@ -115,14 +115,14 @@ module TableIndex(TableIndex:sig
     module Conv = Conv
     (* TABLE
 
-   table entry : D, G  |- u
+   table entry : __d, __g  |- u
 
    Answer substitution:
 
-                 Dk, G  |- sk : D, G
+                 Dk, __g  |- sk : __d, __g
 
    Answer :
-                 Dk, G |- u[sk]
+                 Dk, __g |- u[sk]
    *)
     (* solution: (Dk, sk)
 
@@ -132,7 +132,7 @@ module TableIndex(TableIndex:sig
       <
         solutions: ((IntSyn.dctx * IntSyn.__Sub) * CompSyn.pskeleton) list  ;
         lookup: int   > 
-    (* entry = (((i, G, D, U), A)) where i is the access counter
+    (* entry = (((i, __g, __d, __u), A)) where i is the access counter
    *)
     type nonrec entry =
       ((int ref * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp) * answer)
@@ -151,9 +151,9 @@ module TableIndex(TableIndex:sig
     (* Subsumption *)
     (* Variant *)
     (* term abstraction after term depth is greater than 5 *)
-    let termDepth = (ref NONE : int option ref)
-    let ctxDepth = (ref NONE : int option ref)
-    let ctxLength = (ref NONE : int option ref)
+    let termDepth = (ref None : int option ref)
+    let ctxDepth = (ref None : int option ref)
+    let ctxLength = (ref None : int option ref)
     (*   val termDepth = ref (!globalTermDepth); *)
     (*   val ctxDepth = ref (!globalCtxDepth);   *)
     (*   val ctxLength = ref (!globalCtxLength); *)
@@ -163,7 +163,7 @@ module TableIndex(TableIndex:sig
     let (query :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp * IntSyn.__Sub *
         (CompSyn.pskeleton -> unit)) option ref)
-      = ref NONE
+      = ref None
     (* ---------------------------------------------------------------------- *)
     module I = IntSyn
     module C = CompSyn
@@ -171,46 +171,46 @@ module TableIndex(TableIndex:sig
     let (table : index ref) = ref []
     let rec concat =
       function
-      | (I.Null, G') -> G'
-      | (Decl (G, D), G') -> I.Decl ((concat (G, G')), D)
+      | (I.Null, __g') -> __g'
+      | (Decl (__g, __d), __g') -> I.Decl ((concat (__g, __g')), __d)
     let rec reverse =
       function
-      | (I.Null, G') -> G'
-      | (Decl (G, D), G') -> reverse (G, (I.Decl (G', D)))
+      | (I.Null, __g') -> __g'
+      | (Decl (__g, __d), __g') -> reverse (__g, (I.Decl (__g', __d)))
     let rec printTable () =
       let rec proofTerms =
         function
-        | (G, D, U, []) -> print ""
-        | (G, D, U, ((D', s'), _)::S) ->
+        | (__g, __d, __u, []) -> print ""
+        | (__g, __d, __u, ((__d', s'), _)::S) ->
             ((try
                 print
                   (Print.expToString
                      (I.Null,
                        (A.raiseType
-                          ((Names.ctxName D'),
+                          ((Names.ctxName __d'),
                             (I.EClo
-                               ((A.raiseType ((Names.ctxName G), U)), s'))))))
+                               ((A.raiseType ((Names.ctxName __g), __u)), s'))))))
               with | _ -> print "EXCEPTION");
              print ", \n\t";
-             proofTerms (G, D, U, S)) in
+             proofTerms (__g, __d, __u, S)) in
       let rec printT =
         function
         | [] -> ()
-        | ((k, G, D, U), { solutions = S; lookup = i; lookup = i })::T ->
+        | ((k, __g, __d, __u), { solutions = S; lookup = i; lookup = i })::T ->
             (match S with
              | [] ->
                  (printT T;
                   print
                     ((Print.expToString
-                        (I.Null, (A.raiseType ((concat (G, D)), U))))
-                       ^ ", NONE\n"))
+                        (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
+                       ^ ", None\n"))
              | a::answ ->
                  (printT T;
                   print
                     ((Print.expToString
-                        (I.Null, (A.raiseType ((concat (G, D)), U))))
+                        (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
                        ^ ", [\n\t");
-                  proofTerms (G, D, U, (rev S));
+                  proofTerms (__g, __d, __u, (rev S));
                   print (((^) " ] -- lookup : " Int.toString i) ^ "\n\n"))) in
       print "Table: \n";
       printT (!table);
@@ -222,11 +222,11 @@ module TableIndex(TableIndex:sig
       let rec printT =
         function
         | [] -> ()
-        | ((k, G, D, U), { solutions = S; lookup = i; lookup = i })::T ->
+        | ((k, __g, __d, __u), { solutions = S; lookup = i; lookup = i })::T ->
             (printT T;
              print
                ((((Print.expToString
-                     (I.Null, (A.raiseType ((concat (G, D)), U))))
+                     (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
                     ^ "\n Access Counter : ")
                    ^ (Int.toString (!k)))
                   ^ " \n")) in
@@ -239,91 +239,91 @@ module TableIndex(TableIndex:sig
     let rec lengthSpine =
       function | I.Nil -> 0 | SClo (S, s') -> (+) 1 lengthSpine S
     let rec exceedsTermDepth i =
-      match !termDepth with | NONE -> false__ | SOME n -> i > n
+      match !termDepth with | None -> false__ | Some n -> i > n
     let rec exceedsCtxDepth i =
       match !ctxDepth with
-      | NONE -> false__
-      | SOME n ->
+      | None -> false__
+      | Some n ->
           (print
              (((^) (((^) "\n exceedsCtxDepth " Int.toString i) ^ " > ")
                  Int.toString n)
                 ^ " ? ");
            i > n)
     let rec exceedsCtxLength i =
-      match !ctxLength with | NONE -> false__ | SOME n -> i > n
+      match !ctxLength with | None -> false__ | Some n -> i > n
     let rec max (x, y) = if x > y then x else y
     let rec oroption =
       function
-      | (NONE, NONE, NONE) -> false__
-      | (SOME k, _, _) -> true__
-      | (_, SOME n, _) -> true__
-      | (_, _, SOME n) -> true__
+      | (None, None, None) -> false__
+      | (Some k, _, _) -> true__
+      | (_, Some n, _) -> true__
+      | (_, _, Some n) -> true__
     let rec abstractionSet () =
       oroption ((!termDepth), (!ctxDepth), (!ctxLength))
-    let rec exceeds (U) = countDecl (0, 0, U)
+    let rec exceeds (__u) = countDecl (0, 0, __u)
     let rec countDecl =
       function
-      | (ctrType, ctrLength, Pi ((D, _), V)) ->
-          let ctrType' = countDec (0, D) in
+      | (ctrType, ctrLength, Pi ((__d, _), __v)) ->
+          let ctrType' = countDec (0, __d) in
           if ctrType' > ctrType
-          then countDecl (ctrType', (ctrLength + 1), V)
-          else countDecl (ctrType, (ctrLength + 1), V)
-      | (ctrType, ctrLength, U) ->
-          let ctrTerm = count (0, U) in
+          then countDecl (ctrType', (ctrLength + 1), __v)
+          else countDecl (ctrType, (ctrLength + 1), __v)
+      | (ctrType, ctrLength, __u) ->
+          let ctrTerm = count (0, __u) in
           (exceedsCtxDepth ctrType) ||
             ((exceedsCtxLength ctrLength) ||
-               (exceedsTermDepth (count (0, U))))
+               (exceedsTermDepth (count (0, __u))))
     let rec countDec =
       function
-      | (ctr, Dec (_, U)) -> count (ctr, U)
+      | (ctr, Dec (_, __u)) -> count (ctr, __u)
       | (ctr, BDec (_, s)) -> 0
     let rec count =
       function
-      | (ctr, (Uni (L) as U)) -> ctr
-      | (ctr, Pi ((D, _), V)) ->
-          let ctrTerm = count (ctr, V) in
-          let ctrType = countDec (ctr, D) in max (ctrType, ctrTerm)
+      | (ctr, (Uni (__l) as __u)) -> ctr
+      | (ctr, Pi ((__d, _), __v)) ->
+          let ctrTerm = count (ctr, __v) in
+          let ctrType = countDec (ctr, __d) in max (ctrType, ctrTerm)
       | (ctr, Root (F, S)) ->
           let ctrDepth = countSpine (1, S) in (ctrDepth + 1) + ctr
-      | (ctr, Redex (U, S)) ->
-          let ctrDepth = count (0, U) in
+      | (ctr, Redex (__u, S)) ->
+          let ctrDepth = count (0, __u) in
           let ctrDepth' = countSpine (ctrDepth, S) in
           (max (ctrDepth', ctrDepth)) + ctr
-      | (ctr, Lam (D, U)) -> count ((ctr + 1), U)
-      | (ctr, (EVar _ as X)) -> ctr
+      | (ctr, Lam (__d, __u)) -> count ((ctr + 1), __u)
+      | (ctr, (EVar _ as x)) -> ctr
       | (ctr, EClo (E, s)) -> count (ctr, E)
       | (ctr, (FgnExp (cs, ops) as F)) -> ctr
     let rec countSpine =
       function
       | (ctrDepth, I.Nil) -> ctrDepth
       | (ctr, SClo (S, s')) -> countSpine (ctr, S)
-      | (ctrDepth, App (U, S)) ->
-          let ctrDepth' = count (0, U) in
+      | (ctrDepth, App (__u, S)) ->
+          let ctrDepth' = count (0, __u) in
           countSpine ((max (ctrDepth', ctrDepth)), S)
     let rec reinstSub =
       function
-      | (G, I.Null, s) -> s
-      | (G, Decl (D, Dec (_, A)), s) ->
-          let X = I.newEVar (I.Null, A) in
-          I.Dot ((I.Exp X), (reinstSub (G, D, s)))
-    let rec variant (Us, Us') = Conv.conv (Us, Us')
-    let rec subsumes ((G, D, U), (G', D', U')) =
-      let Upi = A.raiseType (G, U) in
-      let Upi' = A.raiseType (G', U') in
-      let s' = reinstSub (G', D', I.id) in
+      | (__g, I.Null, s) -> s
+      | (__g, Decl (__d, Dec (_, A)), s) ->
+          let x = I.newEVar (I.Null, A) in
+          I.Dot ((I.Exp x), (reinstSub (__g, __d, s)))
+    let rec variant (__Us, __Us') = Conv.conv (__Us, __Us')
+    let rec subsumes ((__g, __d, __u), (__g', __d', __u')) =
+      let Upi = A.raiseType (__g, __u) in
+      let Upi' = A.raiseType (__g', __u') in
+      let s' = reinstSub (__g', __d', I.id) in
       CSManager.trail
-        (function | () -> Unify.unifiable (D, (Upi', s'), (Upi, I.id)))
+        (function | () -> Unify.unifiable (__d, (Upi', s'), (Upi, I.id)))
     let rec equalSub =
       function
       | (Shift k, Shift k') -> k = k'
-      | (Dot (F, S), Dot (F', S')) ->
-          (equalFront (F, F')) && (equalSub (S, S'))
+      | (Dot (F, S), Dot (__F', S')) ->
+          (equalFront (F, __F')) && (equalSub (S, S'))
       | (Dot (F, S), Shift k) -> false__
       | (Shift k, Dot (F, S)) -> false__
     let rec equalFront =
       function
       | (Idx n, Idx n') -> n = n'
-      | (Exp (U), Exp (V)) -> Conv.conv ((U, I.id), (V, I.id))
+      | (Exp (__u), Exp (__v)) -> Conv.conv ((__u, I.id), (__v, I.id))
       | (I.Undef, I.Undef) -> true__
     let rec equalSub1 (Dot (ms, s), Dot (ms', s')) = equalSub (s, s')
     let rec equalCtx =
@@ -331,12 +331,12 @@ module TableIndex(TableIndex:sig
       | (I.Null, I.Null) -> true__
       | (Decl (Dk, Dec (_, A)), Decl (D1, Dec (_, A1))) ->
           (Conv.conv ((A, I.id), (A1, I.id))) && (equalCtx (Dk, D1))
-    let rec callCheckVariant (G, D, U) =
-      let Upi = A.raiseType ((concat (G, D)), U) in
+    let rec callCheckVariant (__g, __d, __u) =
+      let Upi = A.raiseType ((concat (__g, __d)), __u) in
       let rec lookup =
         function
-        | ((G, D, U), []) ->
-            ((table := (((ref 1), G, D, U), { solutions = []; lookup = 0 }))
+        | ((__g, __d, __u), []) ->
+            ((table := (((ref 1), __g, __d, __u), { solutions = []; lookup = 0 }))
                :: (!table);
              if (!Global.chatter) >= 5
              then
@@ -346,7 +346,7 @@ module TableIndex(TableIndex:sig
              added := true__;
              if abstractionSet ()
              then
-               (if exceeds (A.raiseType (G, U))
+               (if exceeds (A.raiseType (__g, __u))
                 then
                   (if (!Global.chatter) >= 5
                    then
@@ -354,13 +354,13 @@ module TableIndex(TableIndex:sig
                        (((^) "\n term " Print.expToString (I.Null, Upi)) ^
                           " exceeds depth or length \n")
                    else ();
-                   SOME [])
-                else NONE)
-             else NONE)
-        | ((G, D, U), (((k, G', D', U'), answ) as H)::T) ->
+                   Some [])
+                else None)
+             else None)
+        | ((__g, __d, __u), (((k, __g', __d', __u'), answ) as H)::T) ->
             if
               variant
-                ((Upi, I.id), ((A.raiseType ((concat (G', D')), U')), I.id))
+                ((Upi, I.id), ((A.raiseType ((concat (__g', __d')), __u')), I.id))
             then
               (((!) ((:=) k) k) + 1;
                if (!Global.chatter) >= 5
@@ -369,48 +369,48 @@ module TableIndex(TableIndex:sig
                    (((^) "call " Print.expToString (I.Null, Upi)) ^
                       " found in table \n ")
                else ();
-               SOME [((G', D', U'), answ)])
-            else lookup ((G, D, U), T) in
-      lookup ((G, D, U), (!table))
-    let rec callCheckSubsumes (G, D, U) =
+               Some [((__g', __d', __u'), answ)])
+            else lookup ((__g, __d, __u), T) in
+      lookup ((__g, __d, __u), (!table))
+    let rec callCheckSubsumes (__g, __d, __u) =
       let rec lookup =
         function
-        | ((G, D, U), []) ->
-            ((table := (((ref 1), G, D, U), { solutions = []; lookup = 0 }))
+        | ((__g, __d, __u), []) ->
+            ((table := (((ref 1), __g, __d, __u), { solutions = []; lookup = 0 }))
                :: (!table);
              if (!Global.chatter) >= 5
              then
                print
                  (((^) "Added " Print.expToString
-                     (I.Null, (A.raiseType ((concat (G, D)), U))))
+                     (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
                     ^ " to Table \n")
              else ();
              added := true__;
-             if exceeds (A.raiseType (G, U))
+             if exceeds (A.raiseType (__g, __u))
              then
                (if (!Global.chatter) >= 4
                 then
                   print
                     (((^) "\n term " Print.expToString
-                        (I.Null, (A.raiseType ((concat (G, D)), U))))
+                        (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
                        ^ " exceeds depth or length \n")
                 else ();
-                SOME [])
-             else NONE)
-        | ((G, D, U), ((k, G', D', U'), answ)::T) ->
-            if subsumes ((G, D, U), (G', D', U'))
+                Some [])
+             else None)
+        | ((__g, __d, __u), ((k, __g', __d', __u'), answ)::T) ->
+            if subsumes ((__g, __d, __u), (__g', __d', __u'))
             then
               (if (!Global.chatter) >= 5
                then
                  print
                    (((^) "call " Print.expToString
-                       (I.Null, (A.raiseType ((concat (G, D)), U))))
+                       (I.Null, (A.raiseType ((concat (__g, __d)), __u))))
                       ^ "found in table \n ")
                else ();
                ((!) ((:=) k) k) + 1;
-               SOME [((G', D', U'), answ)])
-            else lookup ((G, D, U), T) in
-      lookup ((G, D, U), (!table))
+               Some [((__g', __d', __u'), answ)])
+            else lookup ((__g, __d, __u), T) in
+      lookup ((__g, __d, __u), (!table))
     let rec member =
       function
       | ((Dk, sk), []) -> false__
@@ -418,79 +418,79 @@ module TableIndex(TableIndex:sig
           if (equalSub (sk, s1)) && (equalCtx (Dk, D1))
           then true__
           else member ((Dk, sk), S)
-    let rec answCheckVariant (G, D, U, s, O) =
-      let Upi = A.raiseType ((concat (G, D)), U) in
+    let rec answCheckVariant (__g, __d, __u, s, O) =
+      let Upi = A.raiseType ((concat (__g, __d)), __u) in
       let _ =
         if (!Global.chatter) >= 5
         then
           (print "\n AnswCheckInsert: ";
            print
-             ((Print.expToString (I.Null, (I.EClo ((A.raiseType (G, U)), s))))
+             ((Print.expToString (I.Null, (I.EClo ((A.raiseType (__g, __u)), s))))
                 ^ "\n");
            print "\n Table Index : ";
            print ((Print.expToString (I.Null, Upi)) ^ "\n"))
         else () in
       let rec lookup arg__0 arg__1 arg__2 =
         match (arg__0, arg__1, arg__2) with
-        | ((G, D, U, s), [], T) ->
+        | ((__g, __d, __u, s), [], T) ->
             (print
                ((Print.expToString
-                   (I.Null, (I.EClo ((A.raiseType (G, U)), s))))
+                   (I.Null, (I.EClo ((A.raiseType (__g, __u)), s))))
                   ^ " call should always be already in the table !\n");
              Repeated)
-        | ((G, D, U, s),
-           (((k, G', D', U'), { solutions = S; lookup = i; lookup = i }) as H)::T,
+        | ((__g, __d, __u, s),
+           (((k, __g', __d', __u'), { solutions = S; lookup = i; lookup = i }) as H)::T,
            T') ->
             if
               variant
-                ((Upi, I.id), ((A.raiseType ((concat (G', D')), U')), I.id))
+                ((Upi, I.id), ((A.raiseType ((concat (__g', __d')), __u')), I.id))
             then
               let (Dk, sk) = A.abstractAnswSub s in
               (if member ((Dk, sk), S)
                then Repeated
                else
                  ((table := (rev T')) @
-                    (((k, G', D', U'),
+                    (((k, __g', __d', __u'),
                        { solutions = (((Dk, sk), O) :: S); lookup = i }) :: T);
                   if (!Global.chatter) >= 5
                   then
                     (print "\n Add solution  -- ";
                      print
                        (Print.expToString
-                          (I.Null, (I.EClo ((A.raiseType (G', U')), s))));
+                          (I.Null, (I.EClo ((A.raiseType (__g', __u')), s))));
                      print "\n solution added  -- ";
                      print
                        (Print.expToString
                           (I.Null,
                             (A.raiseType
                                ((Names.ctxName Dk),
-                                 (I.EClo ((A.raiseType (G', U')), sk)))))))
+                                 (I.EClo ((A.raiseType (__g', __u')), sk)))))))
                   else ();
                   New))
-            else lookup (G, D, U, s) T (H :: T') in
-      lookup (G, D, U, s) (!table) []
+            else lookup (__g, __d, __u, s) T (H :: T') in
+      lookup (__g, __d, __u, s) (!table) []
     let rec memberSubsumes =
       function
-      | ((G, D, U, s), (G', U', [])) -> false__
-      | ((G, D, U, s), (G', U', ((D1, s1), _)::A)) ->
-          let Upi = A.raiseType (G, U) in
-          let Upi' = A.raiseType (G', U') in
-          let s1' = reinstSub (G', D1, I.id) in
+      | ((__g, __d, __u, s), (__g', __u', [])) -> false__
+      | ((__g, __d, __u, s), (__g', __u', ((D1, s1), _)::A)) ->
+          let Upi = A.raiseType (__g, __u) in
+          let Upi' = A.raiseType (__g', __u') in
+          let s1' = reinstSub (__g', D1, I.id) in
           let Vpis = ((I.EClo (Upi', s1)), s1') in
           let b =
             CSManager.trail
-              (function | () -> Unify.unifiable (D, (Upi, s), Vpis)) in
+              (function | () -> Unify.unifiable (__d, (Upi, s), Vpis)) in
           if b
           then
             (if (!Global.chatter) >= 5
              then print "\n answer in table subsumes answer \n "
              else ();
              true__)
-          else memberSubsumes ((G, D, U, s), (G', U', A))
+          else memberSubsumes ((__g, __d, __u, s), (__g', __u', A))
     let rec shift =
       function | (0, s) -> s | (n, s) -> shift ((n - 1), (I.dot1 s))
-    let rec answCheckSubsumes (G, D, U, s, O) =
-      let Upi = A.raiseType (G, U) in
+    let rec answCheckSubsumes (__g, __d, __u, s, O) =
+      let Upi = A.raiseType (__g, __u) in
       let _ =
         if (!Global.chatter) >= 4
         then
@@ -499,42 +499,42 @@ module TableIndex(TableIndex:sig
         else () in
       let rec lookup =
         function
-        | ((G, D, U, s), [], T) ->
+        | ((__g, __d, __u, s), [], T) ->
             (print
-               ((Print.expToString ((concat (G, D)), (I.EClo (U, s)))) ^
+               ((Print.expToString ((concat (__g, __d)), (I.EClo (__u, s)))) ^
                   " call should always be already in the table !\n");
              Repeated)
-        | ((G, D, U, s),
-           ((k, G', D', U'), { solutions = A; lookup = i; lookup = i })::T,
+        | ((__g, __d, __u, s),
+           ((k, __g', __d', __u'), { solutions = A; lookup = i; lookup = i })::T,
            T') ->
-            if subsumes ((G, D, U), (G', D', U'))
+            if subsumes ((__g, __d, __u), (__g', __d', __u'))
             then
               let (Dk, sk) = A.abstractAnswSub s in
-              (if memberSubsumes ((G, Dk, U, sk), (G', U', A))
+              (if memberSubsumes ((__g, Dk, __u, sk), (__g', __u', A))
                then Repeated
                else
-                 (let s' = reinstSub (G', D', I.id) in
+                 (let s' = reinstSub (__g', __d', I.id) in
                   let _ =
                     if (!Global.chatter) >= 4
                     then
                       (print "\n new answer to be added to Index \n";
                        print
                          ((Print.expToString
-                             (I.Null, (A.raiseType ((concat (G', D')), U'))))
+                             (I.Null, (A.raiseType ((concat (__g', __d')), __u'))))
                             ^ "\n");
                        print "\n answer added \n";
                        print
                          ((Print.expToString
                              (I.Null,
                                (A.raiseType
-                                  (Dk, (I.EClo ((A.raiseType (G, U)), sk))))))
+                                  (Dk, (I.EClo ((A.raiseType (__g, __u)), sk))))))
                             ^ "\n"))
                     else () in
                   let _ =
                     if
                       Unify.unifiable
-                        (Dk, ((A.raiseType (G, U)), sk),
-                          ((A.raiseType (G', U')), s'))
+                        (Dk, ((A.raiseType (__g, __u)), sk),
+                          ((A.raiseType (__g', __u')), s'))
                     then
                       (if (!Global.chatter) >= 4
                        then
@@ -544,24 +544,24 @@ module TableIndex(TableIndex:sig
                                 (I.Null,
                                   (A.raiseType
                                      (Dk,
-                                       (I.EClo ((A.raiseType (G', U')), s'))))))
+                                       (I.EClo ((A.raiseType (__g', __u')), s'))))))
                                ^ "\n"))
                        else ())
                     else
                       print
                         "\n1 unification failed! -- should never happen ?" in
                   let (Dk', sk') = A.abstractAnsw (Dk, s') in
-                  let rs = reinstSub (G', Dk', I.id) in
+                  let rs = reinstSub (__g', Dk', I.id) in
                   (match !query with
-                   | NONE -> ()
-                   | SOME (G1, D1, U1, s1, sc1) ->
+                   | None -> ()
+                   | Some (G1, D1, __U1, s1, sc1) ->
                        (if (!Global.chatter) >= 4
                         then
                           (print "Generate answers for: ";
                            print
                              ((Print.expToString
                                  (I.Null,
-                                   (I.EClo ((A.raiseType (G1, U1)), s1))))
+                                   (I.EClo ((A.raiseType (G1, __U1)), s1))))
                                 ^ " \n");
                            print "Answer in table: ";
                            print
@@ -569,7 +569,7 @@ module TableIndex(TableIndex:sig
                                  (I.Null,
                                    (A.raiseType
                                       (Dk,
-                                        (I.EClo ((A.raiseType (G', U')), s'))))))
+                                        (I.EClo ((A.raiseType (__g', __u')), s'))))))
                                 ^ " : \n");
                            print
                              ((Print.expToString
@@ -578,19 +578,19 @@ module TableIndex(TableIndex:sig
                                       ((A.raiseType
                                           (Dk,
                                             (I.EClo
-                                               ((A.raiseType (G', U')), sk')))),
+                                               ((A.raiseType (__g', __u')), sk')))),
                                         rs))))
                                 ^ " : \n"))
                         else ();
-                        if subsumes ((G1, D1, U1), (G', D', U'))
+                        if subsumes ((G1, D1, __U1), (__g', __d', __u'))
                         then
                           CSManager.trail
                             (function
                              | () ->
                                  if
                                    Unify.unifiable
-                                     (D1, ((A.raiseType (G1, U1)), s1),
-                                       ((I.EClo ((A.raiseType (G', U')), sk')),
+                                     (D1, ((A.raiseType (G1, __U1)), s1),
+                                       ((I.EClo ((A.raiseType (__g', __u')), sk')),
                                          rs))
                                  then
                                    let w =
@@ -599,14 +599,14 @@ module TableIndex(TableIndex:sig
                                        Subordinate.weaken
                                          (I.Null,
                                            (IntSyn.targetFam
-                                              (I.EClo (U1, s1))))
+                                              (I.EClo (__U1, s1))))
                                      else I.id in
                                    sc1 O
                                  else ())
                         else ()));
                   table :=
                     ((rev T') @
-                       (((k, G', D', U'),
+                       (((k, __g', __d', __u'),
                           { solutions = (((Dk', sk'), O) :: A); lookup = i })
                           :: T));
                   if (!Global.chatter) >= 5
@@ -614,91 +614,91 @@ module TableIndex(TableIndex:sig
                     (print "\n \n solution (original) was: \n";
                      print
                        ((Print.expToString
-                           (I.Null, (I.EClo ((A.raiseType (G, U)), s))))
+                           (I.Null, (I.EClo ((A.raiseType (__g, __u)), s))))
                           ^ "\n");
                      print "\n \n solution (deref) was: \n";
                      print
                        ((Print.expToString
                            (I.Null,
                              (A.raiseType
-                                (Dk, (I.EClo ((A.raiseType (G, U)), sk))))))
+                                (Dk, (I.EClo ((A.raiseType (__g, __u)), sk))))))
                           ^ "\n");
                      print "\n solution added  --- ";
                      print
                        ((Print.expToString
                            (I.Null,
                              (A.raiseType
-                                (Dk', (I.EClo ((A.raiseType (G', U')), s'))))))
+                                (Dk', (I.EClo ((A.raiseType (__g', __u')), s'))))))
                           ^ "\n");
                      print "\n solution added (dereferenced) --- ";
                      print
                        ((Print.expToString
                            (I.Null,
                              (A.raiseType
-                                (Dk', (I.EClo ((A.raiseType (G', U')), sk'))))))
+                                (Dk', (I.EClo ((A.raiseType (__g', __u')), sk'))))))
                           ^ "\n"))
                   else ();
                   New))
             else
               lookup
-                ((G, D, U, s), T,
-                  (((k, G', D', U'), { solutions = A; lookup = i }) :: T')) in
-      lookup ((G, D, U, s), (!table), [])
+                ((__g, __d, __u, s), T,
+                  (((k, __g', __d', __u'), { solutions = A; lookup = i }) :: T')) in
+      lookup ((__g, __d, __u, s), (!table), [])
     let rec reset () = table := []
     let rec solutions { solutions = S; lookup = i; lookup = i } = S
     let rec lookup { solutions = S; lookup = i; lookup = i } = i
     let rec noAnswers =
       function
       | [] -> true__
-      | (((G', D', U'), answ) as H)::L' ->
+      | (((__g', __d', __u'), answ) as H)::__l' ->
           (match List.take ((solutions answ), (lookup answ)) with
-           | [] -> noAnswers L'
-           | L -> false__)
-    let rec callCheck (G, D, U) =
+           | [] -> noAnswers __l'
+           | __l -> false__)
+    let rec callCheck (__g, __d, __u) =
       match !strategy with
-      | Variant -> callCheckVariant (G, D, U)
-      | Subsumption -> callCheckSubsumes (G, D, U)
-    let rec answCheck (G, D, U, s, O) =
+      | Variant -> callCheckVariant (__g, __d, __u)
+      | Subsumption -> callCheckSubsumes (__g, __d, __u)
+    let rec answCheck (__g, __d, __u, s, O) =
       match !strategy with
-      | Variant -> answCheckVariant (G, D, U, s, O)
-      | Subsumption -> answCheckSubsumes (G, D, U, s, O)
+      | Variant -> answCheckVariant (__g, __d, __u, s, O)
+      | Subsumption -> answCheckSubsumes (__g, __d, __u, s, O)
     let rec updateTable () =
       let rec update arg__0 arg__1 arg__2 =
         match (arg__0, arg__1, arg__2) with
         | ([], T, Flag) -> (Flag, T)
-        | (((k, G, D, U), { solutions = S; lookup = i; lookup = i })::T, T',
+        | (((k, __g, __d, __u), { solutions = S; lookup = i; lookup = i })::T, T',
            Flag) ->
             let l = length S in
             if l = i
             then
               update T
-                (((k, G, D, U), { solutions = S; lookup = (List.length S) })
+                (((k, __g, __d, __u), { solutions = S; lookup = (List.length S) })
                    :: T') Flag
             else
               update T
-                (((k, G, D, U), { solutions = S; lookup = (List.length S) })
+                (((k, __g, __d, __u), { solutions = S; lookup = (List.length S) })
                    :: T') true__ in
       let (Flag, T) = update (!table) [] false__ in
       let r = Flag || (!added) in added := false__; (:=) table rev T; r
     (* Global Table *)
-    (* concat(Gdp, G) = G''
+    (* concat(Gdp, __g) = __g''
      *
      * if Gdp = ym...y1
-     *    G   = xn...x1
+     *    __g   = xn...x1
      * then
-     *    Gdp, G = G''
+     *    Gdp, __g = __g''
      *    ym...y1, xn...x1
      *
      *)
     (* ---------------------------------------------------------------------- *)
     (* printTable () = () *)
     (* (print (Print.expToString (I.Null,  *)
-    (*              A.raiseType(Names.ctxName(concat(G,D')), I.EClo(U, s')))) *)
+    (*              A.raiseType(Names.ctxName(concat(__g,__d')), I.EClo(__u, s')))) *)
     (* do not print pskeletons *)
     (* printTableEntries () = () *)
     (* ---------------------------------------------------------------------- *)
     (* Term Abstraction *)
-    (* countDepth U =
+    (* countDepth __u =
          ctr = (ctrTerm, ctrDecl, ctrLength)
          ctrTerm : max term depth
          ctrDecl : max type depth in decl
@@ -725,46 +725,46 @@ module TableIndex(TableIndex:sig
     (* count max depth of term in S + length of S *)
     (* ? *)
     (* ---------------------------------------------------------------------- *)
-    (* reinstSub (G, D, s) = s'
+    (* reinstSub (__g, __d, s) = s'
     *
-    * If D', G |- s : D, G
-    * then  G |- s' : D, G
+    * If __d', __g |- s : __d, __g
+    * then  __g |- s' : __d, __g
     *)
     (* ---------------------------------------------------------------------- *)
-    (* variant (U,s) (U',s')) = bool   *)
-    (* subsumes ((G, D, U), (G', D', U')) = bool
+    (* variant (__u,s) (__u',s')) = bool   *)
+    (* subsumes ((__g, __d, __u), (__g', __d', __u')) = bool
      *
      * if
-     *    D, G   |- U
-     *    D', G' |- U'
+     *    __d, __g   |- __u
+     *    __d', __g' |- __u'
      * then
-     *      G' |- s' : D', G'
-     *    return true if D, G |- U is an instance of G' |- U'[s']
+     *      __g' |- s' : __d', __g'
+     *    return true if __d, __g |- __u is an instance of __g' |- __u'[s']
      *    otherwise false
      *
      *)
     (* ---------------------------------------------------------------------- *)
     (* Call check and insert *)
-    (* callCheck (G, D, U) = callState
+    (* callCheck (__g, __d, __u) = callState
 
-       check whether D, G |- U is in the table
+       check whether __d, __g |- __u is in the table
 
-     returns NONE,
-        if D, G |- U is not already in the table
-          Sideeffect: add D, G |- U to table
+     returns None,
+        if __d, __g |- __u is not already in the table
+          Sideeffect: add __d, __g |- __u to table
 
-     returns SOME(A)
-        if D, G |- U is in table and
+     returns Some(A)
+        if __d, __g |- __u is in table and
           A is an entry in the table together with its answer list
 
     Variant:
-    if it succeeds there is exactly one table entry which is a variant to U
+    if it succeeds there is exactly one table entry which is a variant to __u
     Subsumption:
-    if it succeeds it will return the most general table entry of which U is
+    if it succeeds it will return the most general table entry of which __u is
     an instance of (by invariant now, the most general table entry will be found first,
     any entry found later, will be an instance of this entry)
     *)
-    (* if termdepth(U) > n then force the tabled engine to suspend
+    (* if termdepth(__u) > n then force the tabled engine to suspend
                * and treat it like it is already in the table, but no answ available *)
     (* print ("\n term " ^ Print.expToString (I.Null, Upi) ^
                   " exceeds depth or length ? \n"); *)
@@ -782,45 +782,45 @@ module TableIndex(TableIndex:sig
     (* do we really need to compare Gus and Gs1 ?  *)
     (* answer check and insert
 
-      if     G |- U[s]
-          D, G |- U
-             G |- s : D, G
+      if     __g |- __u[s]
+          __d, __g |- __u
+             __g |- s : __d, __g
 
-      answerCheck (G, D, (U,s)) = repeated
-         if s already occurs in answer list for U
-      answerCheck (G, D, (U,s)) = new
-         if s did not occur in answer list for U
-         Sideeffect: update answer list for U
+      answerCheck (__g, __d, (__u,s)) = repeated
+         if s already occurs in answer list for __u
+      answerCheck (__g, __d, (__u,s)) = new
+         if s did not occur in answer list for __u
+         Sideeffect: update answer list for __u
 
-        Dk, G |- sk : D, G
-        Dk, G |- U[sk]
+        Dk, __g |- sk : __d, __g
+        Dk, __g |- __u[sk]
 
         sk is the abstraction of s and Dk contains all "free" vars
 
      *)
     (* cannot happen ! *)
     (* answer check *)
-    (* memberSubsumes ((G, Dk, U, sk), (G', U', A)) = bool
+    (* memberSubsumes ((__g, Dk, __u, sk), (__g', __u', A)) = bool
 
-   If Dk, G |- U[sk]
+   If Dk, __g |- __u[sk]
 
       A = ((Dn, sn), On), ....., ((D1, s1), O1)
 
       for all i in [1, ..., n]
-          Di, G' |- U'[si]
-              G' |- si' : Di, G'
+          Di, __g' |- __u'[si]
+              __g' |- si' : Di, __g'
    then
      exists an i in [1,...,n]  s.t.
-         Dk, G |- U[sk] is an instance of G' |- U'[si']
+         Dk, __g |- __u[sk] is an instance of __g' |- __u'[si']
    *)
-    (* assume G' and G are the same for now *)
+    (* assume __g' and __g are the same for now *)
     (* cannot happen ! *)
     (*  higher-order matching *)
     (* reinstantiate us' *)
     (* nothing to do *)
     (* original query is an instance of the entry we are adding answ to *)
     (* (I.EClo(N1, I.comp(shift(I.ctxLength(Gdp1),s1), w))) *)
-    (*                    print(Print.expToString(I.Null, I.EClo(A.raiseType(concat(G, Dk), U), sk)) *)
+    (*                    print(Print.expToString(I.Null, I.EClo(A.raiseType(concat(__g, Dk), __u), sk)) *)
     (* ---------------------------------------------------------------------- *)
     (* TOP LEVEL *)
     (* needs to take into account previous size of table *)

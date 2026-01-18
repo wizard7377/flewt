@@ -134,7 +134,7 @@ module Parser(Parser:sig
       | EndSubsig 
       | Use of string 
     (* Further pragmas to be added later here *)
-    module L = Lexer
+    module __l = Lexer
     module LS = Lexer.Stream
     let rec stripDot =
       function
@@ -151,9 +151,9 @@ module Parser(Parser:sig
           Parsing.error (r, ((^) "Expected `.', found " L.toString t))
     let rec parseBound' =
       function
-      | Cons ((ID (_, "*"), r), s') -> (NONE, s')
+      | Cons ((ID (_, "*"), r), s') -> (None, s')
       | Cons ((ID (_, name), r), s') ->
-          (try ((SOME (L.stringToNat name)), s')
+          (try ((Some (L.stringToNat name)), s')
            with | Overflow -> Parsing.error (r, "Bound too large")
            | NotDigit _ ->
                Parsing.error

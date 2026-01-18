@@ -24,18 +24,18 @@ module HashTable(HashTable:sig
       let rec insertB (Cons
         ((ref (hash', ((key', datum') as e')) as r'), br')) =
         if (hashVal = hash') && (eq (key, key'))
-        then (r' := (hashVal, e); SOME e')
+        then (r' := (hashVal, e); Some e')
         else insertBR br'
       and insertBR =
         function
         | ref (Nil) as br ->
-            ((:=) br Cons ((ref (hashVal, e)), (ref Nil)); NONE)
+            ((:=) br Cons ((ref (hashVal, e)), (ref Nil)); None)
         | br -> insertB (!br) in
       let rec insertA =
         function
         | Nil ->
             (Array.update (a, index, (Cons ((ref (hashVal, e)), (ref Nil))));
-             NONE)
+             None)
         | bucket -> insertB bucket in
       insertA bucket
     let rec insert h e = insertShadow h e; ()
@@ -45,9 +45,9 @@ module HashTable(HashTable:sig
         function
         | Cons (ref (hash1, (key1, datum1)), br) ->
             if (hashVal = hash1) && (eq (key, key1))
-            then SOME datum1
+            then Some datum1
             else lookup' (!br)
-        | Nil -> NONE in
+        | Nil -> None in
       let bucket = Array.sub (a, (hashVal mod__ n)) in lookup' bucket
     let rec delete (a, n) key =
       let hashVal = hash key in

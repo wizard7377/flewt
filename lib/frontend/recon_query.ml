@@ -22,8 +22,8 @@ module type RECON_QUERY  =
     val queryToQuery :
       (query * Paths.location) ->
         (IntSyn.__Exp * string option * (IntSyn.__Exp * string) list)
-    (* (A, SOME("X"), [(Y1, "Y1"),...] *)
-    (* where A is query type, X the optional proof term variable name *)
+    (* (A, Some("x"), [(Y1, "Y1"),...] *)
+    (* where A is query type, x the optional proof term variable name *)
     (* Yi the EVars in the query and "Yi" their names *)
     val solveToSolve :
       (define list * solve * Paths.location) ->
@@ -78,14 +78,14 @@ module ReconQuery(ReconQuery:sig
       | solve of (string option * T.term * Paths.region)
       [@sml.renamed "solve"][@sml.renamed "solve"]
     (* freeVar (XOpt, [(X1,"X1"),...,(Xn,"Xn")]) = true
-     iff XOpt = SOME("Xi"), false otherwise
+     iff XOpt = Some("Xi"), false otherwise
   *)
     let rec freeVar =
       function
-      | (SOME name, Xs) ->
-          List.exists (function | (_, name') -> name = name') Xs
+      | (Some name, __Xs) ->
+          List.exists (function | (_, name') -> name = name') __Xs
       | _ -> false__
-    (* queryToQuery (q) = (V, XOpt, [(X1,"X1"),...,(Xn,"Xn")])
+    (* queryToQuery (q) = (__v, XOpt, [(X1,"X1"),...,(Xn,"Xn")])
      where XOpt is the optional proof term variable
            X1,...,Xn are the free EVars in the terms with their names
  
@@ -99,43 +99,43 @@ module ReconQuery(ReconQuery:sig
     let rec queryToQuery (query (optName, tm), Loc (fileName, r)) =
       let _ = Names.varReset IntSyn.Null in
       let _ = T.resetErrors fileName in
-      let JClass ((V, oc), L) =
+      let JClass ((__v, oc), __l) =
         Timers.time Timers.recon T.reconQuery (T.jclass tm) in
       let _ = T.checkErrors r in
       let _ =
-        match L with
+        match __l with
         | IntSyn.Type -> ()
         | _ -> error (r, "Query was not a type") in
-      let Xs = Names.namedEVars () in
+      let __Xs = Names.namedEVars () in
       let _ =
-        if freeVar (optName, Xs)
+        if freeVar (optName, __Xs)
         then
           error
             (r,
               (((^) "Proof term variable " valOf optName) ^ " occurs in type"))
         else () in
-      (((V, optName, Xs))
+      (((__v, optName, __Xs))
         (* construct an external term for the result of the query
         val res = (case optName
-                     of NONE => T.omitted (r)
-                      | SOME name => T.evar (name, r)) *)
+                     of None => T.omitted (r)
+                      | Some name => T.evar (name, r)) *)
         (* ??? Since the reconstruction of a query is subject to constraints,
            couldn't optName "occur" in a constraint involving the type
            without being detected by this test?  -kw *))
     let rec finishDefine
-      (define (optName, tm, clsOpt), ((U, oc1), (V, oc2Opt), L)) =
-      let (i, (U', V')) =
-        try Timers.time Timers.abstract Abstract.abstractDef (U, V)
+      (define (optName, tm, clsOpt), ((__u, oc1), (__v, oc2Opt), __l)) =
+      let (i, (__u', __v')) =
+        try Timers.time Timers.abstract Abstract.abstractDef (__u, __v)
         with
         | Error msg ->
             raise (Abstract.Error (Paths.wrap ((Paths.toRegion oc1), msg))) in
-      let name = match optName with | NONE -> "_" | SOME name -> name in
+      let name = match optName with | None -> "_" | Some name -> name in
       let ocd = Paths.def (i, oc1, oc2Opt) in
       let cd =
         try
-          Strict.check ((U', V'), (SOME ocd));
-          IntSyn.ConDef (name, NONE, i, U', V', L, (IntSyn.ancestor U'))
-        with | Error _ -> IntSyn.AbbrevDef (name, NONE, i, U', V', L) in
+          Strict.check ((__u', __v'), (Some ocd));
+          IntSyn.ConDef (name, None, i, __u', __v', __l, (IntSyn.ancestor __u'))
+        with | Error _ -> IntSyn.AbbrevDef (name, None, i, __u', __v', __l) in
       let cd = Names.nameConDec cd in
       let _ =
         if (!Global.chatter) >= 3
@@ -146,24 +146,24 @@ module ReconQuery(ReconQuery:sig
       let _ =
         if !Global.doubleCheck
         then
-          (Timers.time Timers.checking TypeCheck.check (V', (IntSyn.Uni L));
-           Timers.time Timers.checking TypeCheck.check (U', V'))
+          (Timers.time Timers.checking TypeCheck.check (__v', (IntSyn.Uni __l));
+           Timers.time Timers.checking TypeCheck.check (__u', __v'))
         else () in
-      let conDecOpt = match optName with | NONE -> NONE | SOME _ -> SOME cd in
-      (((conDecOpt, (SOME ocd)))
+      let conDecOpt = match optName with | None -> None | Some _ -> Some cd in
+      (((conDecOpt, (Some ocd)))
         (* is this necessary? -kw *))
-    let rec finishSolve (solve (nameOpt, tm, r), U, V) =
-      let (i, (U', V')) =
-        try Timers.time Timers.abstract Abstract.abstractDef (U, V)
+    let rec finishSolve (solve (nameOpt, tm, r), __u, __v) =
+      let (i, (__u', __v')) =
+        try Timers.time Timers.abstract Abstract.abstractDef (__u, __v)
         with | Error msg -> raise (Abstract.Error (Paths.wrap (r, msg))) in
-      let name = match nameOpt with | NONE -> "_" | SOME name -> name in
+      let name = match nameOpt with | None -> "_" | Some name -> name in
       let cd =
         try
-          Strict.check ((U', V'), NONE);
+          Strict.check ((__u', __v'), None);
           IntSyn.ConDef
-            (name, NONE, i, U', V', IntSyn.Type, (IntSyn.ancestor U'))
+            (name, None, i, __u', __v', IntSyn.Type, (IntSyn.ancestor __u'))
         with
-        | Error _ -> IntSyn.AbbrevDef (name, NONE, i, U', V', IntSyn.Type) in
+        | Error _ -> IntSyn.AbbrevDef (name, None, i, __u', __v', IntSyn.Type) in
       let cd = Names.nameConDec cd in
       let _ =
         if (!Global.chatter) >= 3
@@ -175,12 +175,12 @@ module ReconQuery(ReconQuery:sig
         if !Global.doubleCheck
         then
           (Timers.time Timers.checking TypeCheck.check
-             (V', (IntSyn.Uni IntSyn.Type));
-           Timers.time Timers.checking TypeCheck.check (U', V'))
+             (__v', (IntSyn.Uni IntSyn.Type));
+           Timers.time Timers.checking TypeCheck.check (__u', __v'))
         else () in
-      let conDecOpt = match nameOpt with | NONE -> NONE | SOME _ -> SOME cd in
+      let conDecOpt = match nameOpt with | None -> None | Some _ -> Some cd in
       ((conDecOpt)(* is this necessary? -kw *))
-    (* queryToQuery (q) = (V, XOpt, [(X1,"X1"),...,(Xn,"Xn")])
+    (* queryToQuery (q) = (__v, XOpt, [(X1,"X1"),...,(Xn,"Xn")])
      where XOpt is the optional proof term variable
            X1,...,Xn are the free EVars in the terms with their names
  
@@ -197,34 +197,34 @@ module ReconQuery(ReconQuery:sig
       let _ = T.resetErrors fileName in
       let rec mkd =
         function
-        | define (_, tm1, NONE) -> T.jterm tm1
-        | define (_, tm1, SOME tm2) -> T.jof (tm1, tm2) in
+        | define (_, tm1, None) -> T.jterm tm1
+        | define (_, tm1, Some tm2) -> T.jof (tm1, tm2) in
       let rec mkj =
         function
         | nil -> T.jnothing
         | def::defs -> T.jand ((mkd def), (mkj defs)) in
-      let JAnd (defines', JClass ((V, _), L)) =
+      let JAnd (defines', JClass ((__v, _), __l)) =
         Timers.time Timers.recon T.reconQuery
           (T.jand ((mkj defines), (T.jclass tm))) in
       let _ = T.checkErrors r in
       let _ =
-        match L with
+        match __l with
         | IntSyn.Type -> ()
         | _ -> error (r0, "Query was not a type") in
       let rec sc =
         function
         | (M, nil, _) ->
-            (match finishSolve (sol, M, V) with
-             | NONE -> nil
-             | SOME condec -> [(condec, NONE)])
-        | (M, def::defs, JAnd (JTerm ((U, oc1), V, L), f)) ->
-            (match finishDefine (def, ((U, oc1), (V, NONE), L)) with
-             | (NONE, _) -> sc (M, defs, f)
-             | (SOME condec, ocdOpt) -> (::) (condec, ocdOpt) sc (M, defs, f))
-        | (M, def::defs, JAnd (JOf ((U, oc1), (V, oc2), L), f)) ->
-            (match finishDefine (def, ((U, oc1), (V, (SOME oc2)), L)) with
-             | (NONE, _) -> sc (M, defs, f)
-             | (SOME condec, ocdOpt) -> (::) (condec, ocdOpt) sc (M, defs, f)) in
-      (((V, (function | M -> sc (M, defines, defines'))))
-        (* val Xs = Names.namedEVars () *))
+            (match finishSolve (sol, M, __v) with
+             | None -> nil
+             | Some condec -> [(condec, None)])
+        | (M, def::defs, JAnd (JTerm ((__u, oc1), __v, __l), f)) ->
+            (match finishDefine (def, ((__u, oc1), (__v, None), __l)) with
+             | (None, _) -> sc (M, defs, f)
+             | (Some condec, ocdOpt) -> (::) (condec, ocdOpt) sc (M, defs, f))
+        | (M, def::defs, JAnd (JOf ((__u, oc1), (__v, oc2), __l), f)) ->
+            (match finishDefine (def, ((__u, oc1), (__v, (Some oc2)), __l)) with
+             | (None, _) -> sc (M, defs, f)
+             | (Some condec, ocdOpt) -> (::) (condec, ocdOpt) sc (M, defs, f)) in
+      (((__v, (function | M -> sc (M, defines, defines'))))
+        (* val __Xs = Names.namedEVars () *))
   end ;;
