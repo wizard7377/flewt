@@ -7,7 +7,8 @@
 *)
 module type FORMATTER  =
   sig
-    (*
+    open Basis  
+    (* 
 \subsection{Default values}
 These may may be changed by the user.
 *)

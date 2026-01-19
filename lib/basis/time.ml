@@ -1,69 +1,129 @@
-
-(* Time module - compatibility layer for SML Basis Library Time structure *)
-(* Author: Port from SML to OCaml *)
+(* Time module - SML Basis Library compatibility *)
+(* See https://smlfamily.github.io/Basis/time.html *)
 
 (* Order type for comparisons *)
 type order = LESS | EQUAL | GREATER
 
-module type TIME =
-  sig
-    (* Time represented as seconds (float) *)
-    type time
+(** Module type for time operations *)
+module type TIME = sig
+  (** Abstract type representing time values *)
+  type time
 
-    (* Exception raised on invalid time operations *)
-    exception Time
+  (** Exception raised on invalid time operations *)
+  exception Time
 
-    (* Zero time value *)
-    val zeroTime : time
+  (** The zero time value *)
+  val zeroTime : time
 
-    (* Time arithmetic *)
-    val (+) : time * time -> time
-    val (-) : time * time -> time
+  (** Time arithmetic *)
+  val (+) : time * time -> time
+  val (-) : time * time -> time
 
-    (* Comparisons *)
-    val (<) : time * time -> bool
-    val (<=) : time * time -> bool
-    val (>) : time * time -> bool
-    val (>=) : time * time -> bool
-    val compare : time * time -> order
+  (** Comparisons *)
+  val (<) : time * time -> bool
+  val (<=) : time * time -> bool
+  val (>) : time * time -> bool
+  val (>=) : time * time -> bool
+  val compare : time * time -> order
 
-    (* Conversions *)
-    val toString : time -> string
-    val fromReal : float -> time
-    val toReal : time -> float
+  (** Format time with given number of decimal places *)
+  val fmt : int -> time -> string
 
-    (* Current time *)
-    val now : unit -> time
-  end
+  (** Conversion from large integer representing microseconds *)
+  val fromMicroseconds : int64 -> time
 
-module Time : TIME =
-  struct
-    (* Time is represented as a float (seconds) *)
-    type time = float
+  (** Conversion from large integer representing milliseconds *)
+  val fromMilliseconds : int64 -> time
 
-    exception Time
+  (** Conversion from large integer representing nanoseconds *)
+  val fromNanoseconds : int64 -> time
 
-    let zeroTime = 0.0
+  (** Conversion from real number (seconds) *)
+  val fromReal : float -> time
 
-    let (+) (t1, t2) = t1 +. t2
-    let (-) (t1, t2) = t1 -. t2
+  (** Conversion from large integer representing seconds *)
+  val fromSeconds : int64 -> time
 
-    let (<) (t1, t2) = t1 < t2
-    let (<=) (t1, t2) = t1 <= t2
-    let (>) (t1, t2) = t1 > t2
-    let (>=) (t1, t2) = t1 >= t2
+  (** Parse time from string *)
+  val fromString : string -> time option
 
-    let compare (t1, t2) =
-      if (>) (t1, t2) then LESS
-      else if (<) (t1, t2) then GREATER
-      else EQUAL
+  (** Get current time *)
+  val now : unit -> time
 
-    let toString t =
-      Printf.sprintf "%.3f" t
+  (** Convert to microseconds *)
+  val toMicroseconds : time -> int64
 
-    let fromReal x = x
-    let toReal x = x
+  (** Convert to milliseconds *)
+  val toMilliseconds : time -> int64
 
-    let now () = Unix.gettimeofday ()
-  end
+  (** Convert to nanoseconds *)
+  val toNanoseconds : time -> int64
+
+  (** Convert to real number (seconds) *)
+  val toReal : time -> float
+
+  (** Convert to seconds *)
+  val toSeconds : time -> int64
+
+  (** Convert to string (default format) *)
+  val toString : time -> string
+end
+
+module Time : TIME = struct
+  (* Time is represented internally as nanoseconds (int64) for precision *)
+  type time = int64
+
+  exception Time
+
+  let zeroTime = 0L
+
+  let (+) (t1, t2) = Int64.add t1 t2
+  let (-) (t1, t2) = Int64.sub t1 t2
+
+  let int_lt (a : int) (b : int) = a < b
+  let int_gt (a : int) (b : int) = a > b
+
+  let (<) (t1, t2) = Int64.compare t1 t2 < 0
+  let (<=) (t1, t2) = Int64.compare t1 t2 <= 0
+  let (>) (t1, t2) = Int64.compare t1 t2 > 0
+  let (>=) (t1, t2) = Int64.compare t1 t2 >= 0
+
+  let compare (t1, t2) =
+    let c = Int64.compare t1 t2 in
+    if int_lt c 0 then LESS
+    else if int_gt c 0 then GREATER
+    else EQUAL
+
+  let fromReal r =
+    if Float.is_nan r then raise Time
+    else Int64.of_float (r *. 1e9)
+
+  let toReal t = Int64.to_float t /. 1e9
+
+  let fromSeconds s = Int64.mul s 1_000_000_000L
+  let toSeconds t = Int64.div t 1_000_000_000L
+
+  let fromMilliseconds ms = Int64.mul ms 1_000_000L
+  let toMilliseconds t = Int64.div t 1_000_000L
+
+  let fromMicroseconds us = Int64.mul us 1_000L
+  let toMicroseconds t = Int64.div t 1_000L
+
+  let fromNanoseconds ns = ns
+  let toNanoseconds t = t
+
+  let fmt n t =
+    Printf.sprintf "%.*f" n (toReal t)
+
+  let toString t = fmt 3 t
+
+  let now () =
+    let t = Unix.gettimeofday () in
+    fromReal t
+
+  let fromString s =
+    match Float.of_string_opt s with
+    | Some f -> Some (fromReal f)
+    | None -> None
+end
  

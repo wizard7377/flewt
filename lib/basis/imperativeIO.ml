@@ -1,36 +1,80 @@
-module type IMPERATIVE_IO =
-  sig
-    module StreamIO : STREAM_IO
+(* ImperativeIO module - SML Basis Library compatibility *)
+(* See https://smlfamily.github.io/Basis/imperative-io.html *)
 
-    type vector = StreamIO.vector
-    type elem = StreamIO.elem
+(** Module type for imperative stream I/O *)
+module type IMPERATIVE_IO = sig
+  (** Type of stream elements *)
+  type elem
 
-    type instream
-    type outstream
+  (** Type of element vectors *)
+  type vector
 
-    val input : instream -> vector
-    val input1 : instream -> elem option
-    val inputN : instream * int -> vector
-    val inputAll : instream -> vector
-    val canInput : instream * int -> int option
-    val lookahead : instream -> elem option
-    val closeIn : instream -> unit
-    val endOfStream : instream -> bool
+  (** Mutable input stream *)
+  type instream
 
-    val output : outstream * vector -> unit
-    val output1 : outstream * elem -> unit
-    val flushOut : outstream -> unit
-    val closeOut : outstream -> unit
+  (** Mutable output stream *)
+  type outstream
 
-    val mkInstream : StreamIO.instream -> instream
-    val getInstream : instream -> StreamIO.instream
-    val setInstream : instream * StreamIO.instream -> unit
+  (** Associated functional stream I/O module *)
+  module StreamIO : StreamIO.STREAM_IO
 
-    val mkOutstream : StreamIO.outstream -> outstream
-    val getOutstream : outstream -> StreamIO.outstream
-    val setOutstream : outstream * StreamIO.outstream -> unit
-    val getPosOut : outstream -> StreamIO.out_pos
-    val setPosOut : outstream * StreamIO.out_pos -> unit 
+  (** Read from input stream *)
+  val input : instream -> vector
 
+  (** Read single element from input stream *)
+  val input1 : instream -> elem option
 
-  end
+  (** Read n elements from input stream *)
+  val inputN : instream * int -> vector
+
+  (** Read all remaining input *)
+  val inputAll : instream -> vector
+
+  (** Check if n elements can be read without blocking *)
+  val canInput : instream * int -> int option
+
+  (** Look at next element without consuming it *)
+  val lookahead : instream -> elem option
+
+  (** Close input stream *)
+  val closeIn : instream -> unit
+
+  (** Test if at end of stream *)
+  val endOfStream : instream -> bool
+
+  (** Write vector to output stream *)
+  val output : outstream * vector -> unit
+
+  (** Write single element to output stream *)
+  val output1 : outstream * elem -> unit
+
+  (** Flush output stream *)
+  val flushOut : outstream -> unit
+
+  (** Close output stream *)
+  val closeOut : outstream -> unit
+
+  (** Create imperative stream from functional stream *)
+  val mkInstream : StreamIO.instream -> instream
+
+  (** Get underlying functional stream *)
+  val getInstream : instream -> StreamIO.instream
+
+  (** Set underlying functional stream *)
+  val setInstream : instream * StreamIO.instream -> unit
+
+  (** Create imperative output stream from functional stream *)
+  val mkOutstream : StreamIO.outstream -> outstream
+
+  (** Get underlying functional output stream *)
+  val getOutstream : outstream -> StreamIO.outstream
+
+  (** Set underlying functional output stream *)
+  val setOutstream : outstream * StreamIO.outstream -> unit
+
+  (** Get current output position *)
+  val getPosOut : outstream -> StreamIO.out_pos
+
+  (** Set output position *)
+  val setPosOut : outstream * StreamIO.out_pos -> unit
+end

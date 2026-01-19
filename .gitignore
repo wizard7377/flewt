@@ -36,3 +36,5 @@ setup.log
 _opam/
 .claude/agents/sml-to-ocaml-porter.md
 CLAUDE.md
+basis_new
+basis_old
