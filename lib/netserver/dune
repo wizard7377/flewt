@@ -3,5 +3,5 @@
   (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.netserver)
  (name netserver)
- (libraries base compat timing frontend msg)
+ (libraries compat timing frontend msg)
  (modules netserver))

@@ -4,7 +4,6 @@ module type UNKNOWN_EXN  = sig val unknownExn : exn -> string end;;
 
 
 
-(* Print an informative message on receipt of an unhandled exception. *)
 module UnknownExn(UnknownExn:sig val exnHistory : exn -> string list end) :
   UNKNOWN_EXN =
   struct

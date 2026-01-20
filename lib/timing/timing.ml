@@ -7,25 +7,12 @@ module type TIMING  =
     val reset : center -> unit
     val time : center -> ('a -> 'b) -> 'a -> 'b
     type nonrec sum
-    val sumCenter : (string * center list) -> sum
+    val sumCenter : string -> center list -> sum
     val toString : center -> string
     val sumToString : sum -> string
   end
-(* Timing utilities based on SML'97 Standard Library *)
-(* Author: Frank Pfenning *)
-(*
-   For documentation on timers and time, see also the
-   SML'97 Standard Library structures Time and Timer
-
-   In saved heaps in SML of NJ, a global timer must
-   be initialized, otherwise exception Time.Time is raised
-   somewhere.
-*)
-(* signature TIMING *)
 module Timing : TIMING =
   struct
-    (* user and system time add up to total CPU time used *)
-    (* gc time is a portion of the total CPU time devoted to garbage collection *)
     type nonrec cpuTime =
       < usr: Time.time  ;sys: Time.time  ;gc: Time.time   > 
     type nonrec realTime = Time.time
@@ -37,73 +24,51 @@ module Timing : TIMING =
     type nonrec sum = (string * center list)
     let zero =
       { usr = Time.zeroTime; sys = Time.zeroTime; gc = Time.zeroTime }
-    let rec minus
-      ({ usr = t1; sys = t2; gc = t3 },
-       { usr = s1; sys = s2; gc = s3 })
-      =
+    let rec minus { usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 }
+      { usr = s1; sys = s2; gc = s3; sys = s2; gc = s3; gc = s3 } =
       {
         usr = (Time.(-) (t1, s1));
         sys = (Time.(-) (t2, s2));
         gc = (Time.(-) (t3, s3))
       }
-    let rec plus
-      ({ usr = t1; sys = t2; gc = t3 },
-       { usr = s1; sys = s2; gc = s3 })
-      =
+    let rec plus { usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 }
+      { usr = s1; sys = s2; gc = s3; sys = s2; gc = s3; gc = s3 } =
       {
         usr = (Time.(+) (t1, s1));
         sys = (Time.(+) (t2, s2));
         gc = (Time.(+) (t3, s3))
       }
-    let rec sum { usr = t1; sys = t2; gc = t3 } =
+    let rec sum { usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 } =
       Time.(+) (t1, t2)
-    (* We use only one global timer each for CPU time and real time *)
-    (* val CPUTimer = Timer.startCPUTimer () *)
-    (* val realTimer = Timer.startRealTimer () *)
-    (* newCenter (name) = new center, initialized to 0 *)
     let rec newCenter name = (name, (ref (zero, Time.zeroTime)))
-    (* reset (center) = (), reset center to 0 as effect *)
-    let rec reset (_, counters) = counters := (zero, Time.zeroTime)
-    (* time center f x = y
-       runs f on x and adds its time to center.
-       If f x raises an exception, this is properly re-raised
-
-       Warning: if the execution of f uses its own centers,
-       the time for those will be counted twice!
-    *)
+    let rec reset _ counters = counters := (zero, Time.zeroTime)
     let rec checkCPUAndGCTimer timer =
-      let { usr; sys } = Compat.Timer.checkCPUTimer timer in
+      let { usr; sys; sys } = Compat.Timer.checkCPUTimer timer in
       let gc = Compat.Timer.checkGCTime timer in { usr; sys; gc }
-    let rec time (_, counters) (f : 'a -> 'b) (x : 'a) =
+    let rec time _ counters f x =
       let realTimer = Timer.startRealTimer () in
       let CPUTimer = Timer.startCPUTimer () in
       let result = try Value (f x) with | exn -> Exception exn in
       let evalCPUTime = checkCPUAndGCTimer CPUTimer in
       let evalRealTime = Timer.checkRealTimer realTimer in
-      let (cputime, realtime) = !counters in
+      let (CPUTime, realTime) = !counters in
       let _ =
         counters :=
           ((plus (CPUTime, evalCPUTime)),
             (Time.(+) (realTime, evalRealTime))) in
       match result with | Value v -> v | Exception e -> raise e
-    (* sumCenter (name, centers) = sc
-       where sc is a new sum which contains the sum of the timings of centers.
-
-       Warning: the centers should not overlap!
-    *)
-    let rec sumCenter (name, l) = (name, l)
-    let rec stdTime (n, time) = StringCvt.padLeft ' ' n (Time.toString time)
-    let rec timesToString
-      (name,
-       (({ usr = t1; sys = t2; gc = t3 } as
-           cpuTime),
-        realTime))
+    let rec sumCenter name l = (name, l)
+    let rec stdTime n time = StringCvt.padLeft ' ' n (Time.toString time)
+    let rec timesToString name
+      (({ usr = t1; sys = t2; gc = t3; sys = t2; gc = t3; gc = t3 } as
+          CPUTime),
+       realTime)
       =
       (((((^) (((^) ((((^) ((((^) ((name ^ ": ") ^ "Real = ") stdTime
                                 (7, realTime))
                                ^ ", ")
                               ^ "Run = ")
-                         stdTime (7, (sum cpuTime)))
+                         stdTime (7, (sum CPUTime)))
                         ^ " ")
                        ^ "(")
                   stdTime (7, t1))
@@ -112,20 +77,18 @@ module Timing : TIMING =
            ^ " gc)")
           ^ "\n")
       (* ^ stdTime (5, t2) ^ " sys, " ^ *)(* elide sys time *))
-    let rec toString (name, ref (cputime, realtime)) =
-      timesToString (name, (cputime, realtime))
-    let rec sumToString (name, centers) =
-      let rec sumup =
-        function
-        | (nil, (cputime, realtime)) ->
-            timesToString (name, (cputime, realtime))
-        | ((_, ref (C, R))::centers, (cputime, realtime)) ->
-            sumup (centers, ((plus (CPUTime, C)), (Time.(+) (realTime, R)))) in
+    let rec toString name { contents = (CPUTime, realTime) } =
+      timesToString (name, (CPUTime, realTime))
+    let rec sumToString name centers =
+      let rec sumup __0__ __1__ =
+        match (__0__, __1__) with
+        | (nil, (CPUTime, realTime)) ->
+            timesToString (name, (CPUTime, realTime))
+        | ((_, { contents = (__C, __R) })::centers, (CPUTime, realTime)) ->
+            sumup
+              (centers, ((plus (CPUTime, __C)), (Time.(+) (realTime, __R)))) in
       sumup (centers, (zero, Time.zeroTime))
-  end  (* structure Timing *)
-(* This version only counts, but does not time *)
-(* Unused in the default linking, but could be *)
-(* passed as a paramter to Timers *)
+  end 
 module Counting : TIMING =
   struct
     type 'a result =
@@ -135,16 +98,17 @@ module Counting : TIMING =
     type nonrec sum = (string * center list)
     let rec init () = ()
     let rec newCenter name = (name, (ref 0))
-    let rec reset (_, counters) = counters := 0
-    let rec time (_, counters) (f : 'a -> 'b) (x : 'a) =
+    let rec reset _ counters = counters := 0
+    let rec time _ counters f x =
       let _ = ((!) ((:=) counters) counters) + 1 in f x
-    let rec sumCenter (name, l) = (name, l)
-    let rec toString' (name, n) = ((^) (name ^ ": ") Int.toString n) ^ "\n"
-    let rec toString (name, ref n) = toString' (name, n)
-    let rec sumToString (name, centers) =
-      let rec sumup =
-        function
+    let rec sumCenter name l = (name, l)
+    let rec toString' name n = ((^) (name ^ ": ") Int.toString n) ^ "\n"
+    let rec toString name { contents = n } = toString' (name, n)
+    let rec sumToString name centers =
+      let rec sumup __2__ __3__ =
+        match (__2__, __3__) with
         | (nil, total) -> toString' (name, total)
-        | ((_, ref n)::centers, total) -> sumup (centers, (total + n)) in
+        | ((_, { contents = n })::centers, total) ->
+            sumup (centers, (total + n)) in
       sumup (centers, 0)
   end ;;

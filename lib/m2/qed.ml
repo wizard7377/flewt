@@ -1,6 +1,4 @@
 
-(* Qed *)
-(* Author: Carsten Schuermann *)
 module type QED  =
   sig
     module MetaSyn : METASYN
@@ -11,8 +9,6 @@ module type QED  =
 
 
 
-(* QED *)
-(* Author: Carsten Schuermann *)
 module Qed(Qed:sig module Global : GLOBAL module MetaSyn' : METASYN end) :
   QED =
   struct
@@ -20,12 +16,12 @@ module Qed(Qed:sig module Global : GLOBAL module MetaSyn' : METASYN end) :
     exception Error of string 
     module M = MetaSyn
     module I = IntSyn
-    let rec subgoal (State (name, Prefix (__g, M, B), __v)) =
+    let rec subgoal (State (name, Prefix (__G, __M, __B), __V)) =
       let rec check =
         function
         | I.Null -> true__
-        | Decl (M, M.Top) -> check M
-        | Decl (M, M.Bot) -> false__ in
-      check M
+        | Decl (__M, M.Top) -> check __M
+        | Decl (__M, M.Bot) -> false__ in
+      check __M
     let subgoal = subgoal
   end ;;

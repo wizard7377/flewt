@@ -1,194 +1,191 @@
 
-(* Abstract Machine for Tracing *)
-(* Author: Frank Pfenning *)
-(* Modified: Jeff Polakow, Frank Pfenning, Larry Greenfield, Roberto Virga *)
 module TMachine(TMachine:sig
-                           (*! structure IntSyn' : INTSYN !*)
-                           (*! structure CompSyn' : COMPSYN !*)
-                           (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                            module Unify : UNIFY
                            module Assign : ASSIGN
                            module Index : INDEX
                            module CPrint : CPRINT
                            module Names : NAMES
-                           (*! sharing Unify.IntSyn = IntSyn' !*)
-                           (*! sharing Assign.IntSyn = IntSyn' !*)
-                           (*! sharing Index.IntSyn = IntSyn' !*)
-                           (*! sharing CPrint.IntSyn = IntSyn' !*)
-                           (*! sharing CPrint.CompSyn = CompSyn' !*)
-                           (*! sharing Names.IntSyn = IntSyn' !*)
-                           (*! structure CSManager : CS_MANAGER !*)
-                           (*! sharing CSManager.IntSyn = IntSyn' !*)
                            module Trace : TRACE
                          end) : ABSMACHINE =
   struct
-    (*! sharing Trace.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure CompSyn = CompSyn' !*)
     module I = IntSyn
     module C = CompSyn
     module T = Trace
     module N = Names
     let rec cidFromHead = function | Const a -> a | Def a -> a
-    let rec eqHead =
-      function
+    let rec eqHead __0__ __1__ =
+      match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
       | _ -> false__
-    let rec compose =
-      function
-      | (__g, IntSyn.Null) -> __g
-      | (__g, Decl (__g', __d)) -> IntSyn.Decl ((compose (__g, __g')), __d)
-    let rec shiftSub =
-      function
+    let rec compose __2__ __3__ =
+      match (__2__, __3__) with
+      | (__G, IntSyn.Null) -> __G
+      | (__G, Decl (__G', __D)) -> IntSyn.Decl ((compose (__G, __G')), __D)
+    let rec shiftSub __4__ __5__ =
+      match (__4__, __5__) with
       | (IntSyn.Null, s) -> s
-      | (Decl (__g, __d), s) -> I.dot1 (shiftSub (__g, s))
+      | (Decl (__G, __D), s) -> I.dot1 (shiftSub (__G, s))
     let rec subgoalNum =
-      function | I.Nil -> 1 | App (__u, S) -> (+) 1 subgoalNum S
-    let rec goalToType =
-      function
-      | (All (__d, g), s) ->
-          I.Pi (((I.decSub (__d, s)), I.Maybe), (goalToType (g, (I.dot1 s))))
-      | (Impl (_, A, _, g), s) ->
+      function | I.Nil -> 1 | App (__U, __S) -> (+) 1 subgoalNum __S
+    let rec goalToType __6__ __7__ =
+      match (__6__, __7__) with
+      | (All (__D, g), s) ->
+          I.Pi (((I.decSub (__D, s)), I.Maybe), (goalToType (g, (I.dot1 s))))
+      | (Impl (_, __A, _, g), s) ->
           I.Pi
-            (((I.Dec (None, (I.EClo (A, s)))), I.No),
+            (((I.Dec (NONE, (I.EClo (__A, s)))), I.No),
               (goalToType (g, (I.dot1 s))))
       | (Atom p, s) -> I.EClo (p, s)
-    let rec solve' =
-      function
-      | ((Atom p, s), (DProg (__g, dPool) as dp), sc) ->
+    let rec solve' __8__ __9__ __10__ =
+      match (__8__, __9__, __10__) with
+      | ((Atom p, s), (DProg (__G, dPool) as dp), sc) ->
           matchAtom ((p, s), dp, sc)
-      | ((Impl (r, A, Ha, g), s), DProg (__g, dPool), sc) ->
-          let Dec (Some x, _) as __d' =
-            N.decUName (__g, (I.Dec (None, (I.EClo (A, s))))) in
-          let _ = T.signal (__g, (T.IntroHyp (Ha, __d'))) in
+      | ((Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
+          let Dec (Some x, _) as D' =
+            N.decUName (__G, (I.Dec (NONE, (I.EClo (__A, s))))) in
+          let _ = T.signal (__G, (T.IntroHyp (Ha, __D'))) in
           solve'
             ((g, (I.dot1 s)),
               (C.DProg
-                 ((I.Decl (__g, __d')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
-              (function
-               | M ->
-                   (T.signal (__g, (T.DischargeHyp (Ha, __d')));
-                    sc (I.Lam (__d', M)))))
-      | ((All (__d, g), s), DProg (__g, dPool), sc) ->
-          let Dec (Some x, __v) as __d' = N.decUName (__g, (I.decSub (__d, s))) in
-          let Ha = I.targetHead __v in
-          let _ = T.signal (__g, (T.IntroParm (Ha, __d'))) in
+                 ((I.Decl (__G, __D')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+              (fun (__M) ->
+                 T.signal (__G, (T.DischargeHyp (Ha, __D')));
+                 sc (I.Lam (__D', __M))))
+      | ((All (__D, g), s), DProg (__G, dPool), sc) ->
+          let Dec (Some x, __V) as D' = N.decUName (__G, (I.decSub (__D, s))) in
+          let Ha = I.targetHead __V in
+          let _ = T.signal (__G, (T.IntroParm (Ha, __D'))) in
           solve'
             ((g, (I.dot1 s)),
-              (C.DProg ((I.Decl (__g, __d')), (I.Decl (dPool, C.Parameter)))),
-              (function
-               | M ->
-                   (T.signal (__g, (T.DischargeParm (Ha, __d')));
-                    sc (I.Lam (__d', M)))))
-    let rec rSolve =
-      function
-      | (ps', (Eq (Q), s), DProg (__g, dPool), HcHa, sc) ->
-          (T.signal (__g, (T.Unify (HcHa, (I.EClo (Q, s)), (I.EClo ps'))));
-           (match Unify.unifiable' (__g, (Q, s), ps') with
-            | None -> (T.signal (__g, (T.Resolved HcHa)); sc I.Nil; true__)
-            | Some msg -> (T.signal (__g, (T.FailUnify (HcHa, msg))); false__)))
-      | (ps', (Assign (Q, eqns), s), (DProg (__g, dPool) as dp), HcHa, sc) ->
-          (match Assign.assignable (__g, ps', (Q, s)) with
-           | Some cnstr ->
-               aSolve
-                 ((eqns, s), dp, HcHa, cnstr, (function | () -> sc I.Nil))
-           | None -> false__)
-      | (ps', (And (r, A, g), s), (DProg (__g, dPool) as dp), HcHa, sc) ->
-          let x = I.newEVar (__g, (I.EClo (A, s))) in
+              (C.DProg ((I.Decl (__G, __D')), (I.Decl (dPool, C.Parameter)))),
+              (fun (__M) ->
+                 T.signal (__G, (T.DischargeParm (Ha, __D')));
+                 sc (I.Lam (__D', __M))))
+    let rec rSolve __11__ __12__ __13__ __14__ __15__ =
+      match (__11__, __12__, __13__, __14__, __15__) with
+      | (ps', (Eq (__Q), s), DProg (__G, dPool), HcHa, sc) ->
+          (T.signal (__G, (T.Unify (HcHa, (I.EClo (__Q, s)), (I.EClo ps'))));
+           (((match Unify.unifiable' (__G, (__Q, s), ps') with
+              | NONE ->
+                  (((T.signal (__G, (T.Resolved HcHa)); sc I.Nil; true__))
+                  (* call success continuation *))
+              | Some msg ->
+                  (T.signal (__G, (T.FailUnify (HcHa, msg))); false__)))
+           (* effect: instantiate EVars *)(* deep backtracking *)))
+      | (ps', (Assign (__Q, eqns), s), (DProg (__G, dPool) as dp), HcHa, sc)
+          ->
+          (((match Assign.assignable (__G, ps', (__Q, s)) with
+             | Some cnstr ->
+                 aSolve ((eqns, s), dp, HcHa, cnstr, (fun () -> sc I.Nil))
+             | NONE -> ((false__)
+                 (* T.signal (G, T.FailUnify (HcHa, "Assignment failed")); *))))
+          (* T.signal (G, T.Unify (HcHa, I.EClo (Q, s), I.EClo ps')); *))
+      | (ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), HcHa, sc) ->
+          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
+          ((rSolve
+              (ps', (r, (I.Dot ((I.Exp __X), s))), dp, HcHa,
+                (fun (__S) ->
+                   T.signal
+                     (__G, (T.Subgoal (HcHa, (fun () -> subgoalNum __S))));
+                   solve' ((g, s), dp, (fun (__M) -> sc (I.App (__M, __S)))))))
+            (* is this EVar redundant? -fp *))
+      | (ps', (Exists (Dec (_, __A), r), s), (DProg (__G, dPool) as dp),
+         HcHa, sc) ->
+          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
           rSolve
-            (ps', (r, (I.Dot ((I.Exp x), s))), dp, HcHa,
-              (function
-               | S ->
-                   (T.signal
-                      (__g,
-                        (T.Subgoal (HcHa, (function | () -> subgoalNum S))));
-                    solve' ((g, s), dp, (function | M -> sc (I.App (M, S)))))))
-      | (ps', (Exists (Dec (_, A), r), s), (DProg (__g, dPool) as dp), HcHa,
+            (ps', (r, (I.Dot ((I.Exp __X), s))), dp, HcHa,
+              (fun (__S) -> sc (I.App (__X, __S))))
+      | (ps', (Axists (ADec (_, d), r), s), (DProg (__G, dPool) as dp), HcHa,
          sc) ->
-          let x = I.newEVar (__g, (I.EClo (A, s))) in
-          rSolve
-            (ps', (r, (I.Dot ((I.Exp x), s))), dp, HcHa,
-              (function | S -> sc (I.App (x, S))))
-      | (ps', (Axists (ADec (_, d), r), s), (DProg (__g, dPool) as dp), HcHa,
-         sc) ->
-          let x = I.newAVar () in
-          rSolve
-            (ps', (r, (I.Dot ((I.Exp (I.EClo (x, (I.Shift (~- d))))), s))),
-              dp, HcHa, sc)
-    let rec aSolve =
-      function
-      | ((C.Trivial, s), (DProg (__g, dPool) as dp), HcHa, cnstr, sc) ->
+          let __X = I.newAVar () in
+          ((rSolve
+              (ps',
+                (r, (I.Dot ((I.Exp (I.EClo (__X, (I.Shift (~ d))))), s))),
+                dp, HcHa, sc))
+            (* we don't increase the proof term here! *))
+      (* Optimized clause heads lead to unprintable substitutions *)
+      (* Do not signal unification events for optimized clauses *)
+      (* shallow backtracking *)
+    let rec aSolve __16__ __17__ __18__ __19__ __20__ =
+      match (__16__, __17__, __18__, __19__, __20__) with
+      | ((C.Trivial, s), (DProg (__G, dPool) as dp), HcHa, cnstr, sc) ->
           if Assign.solveCnstr cnstr
-          then (T.signal (__g, (T.Resolved HcHa)); sc (); true__)
-          else false__
-      | ((UnifyEq (__g', e1, N, eqns), s), (DProg (__g, dPool) as dp), HcHa,
-         cnstr, sc) ->
-          let __g'' = compose (__g, __g') in
-          let s' = shiftSub (__g', s) in
-          if Assign.unifiable (__g'', (N, s'), (e1, s'))
+          then (T.signal (__G, (T.Resolved HcHa)); sc (); true__)
+          else ((false__)
+            (* T.signal (G, T.FailUnify (HcHa, "Dynamic residual equations failed")); *))
+      | ((UnifyEq (__G', e1, __N, eqns), s), (DProg (__G, dPool) as dp),
+         HcHa, cnstr, sc) ->
+          let G'' = compose (__G, __G') in
+          let s' = shiftSub (__G', s) in
+          if Assign.unifiable (G'', (__N, s'), (e1, s'))
           then aSolve ((eqns, s), dp, HcHa, cnstr, sc)
-          else false__
-    let rec matchAtom
-      (((Root (Ha, S), s) as ps'), (DProg (__g, dPool) as dp), sc) =
+          else ((false__)
+            (* T.signal (G, T.FailUnify (HcHa, "Static residual equations failed")); *))
+    let rec matchAtom ((Root (Ha, __S), s) as ps') (DProg (__G, dPool) as dp)
+      sc =
       let tag = T.tagGoal () in
-      let _ = T.signal (__g, (T.SolveGoal (tag, Ha, (I.EClo ps')))) in
+      let _ = T.signal (__G, (T.SolveGoal (tag, Ha, (I.EClo ps')))) in
       let deterministic = C.detTableCheck (cidFromHead Ha) in
       let exception SucceedOnce of I.__Spine  in
         let rec matchSig =
           function
-          | nil -> (T.signal (__g, (T.FailGoal (tag, Ha, (I.EClo ps')))); ())
+          | nil -> (T.signal (__G, (T.FailGoal (tag, Ha, (I.EClo ps')))); ())
           | (Hc)::sgn' ->
               let SClause r = C.sProgLookup (cidFromHead Hc) in
-              (if
-                 CSManager.trail
-                   (function
-                    | () ->
-                        rSolve
-                          (ps', (r, I.id), dp, (Hc, Ha),
-                            (function
-                             | S ->
-                                 (T.signal
-                                    (__g,
-                                      (T.SucceedGoal
-                                         (tag, (Hc, Ha), (I.EClo ps'))));
-                                  sc (I.Root (Hc, S))))))
-               then
-                 (T.signal (__g, (T.RetryGoal (tag, (Hc, Ha), (I.EClo ps'))));
-                  ())
-               else ();
-               matchSig sgn') in
-        let rec matchSigDet =
-          function
-          | nil -> (T.signal (__g, (T.FailGoal (tag, Ha, (I.EClo ps')))); ())
-          | (Hc)::sgn' ->
-              let SClause r = C.sProgLookup (cidFromHead Hc) in
-              (try
-                 if
-                   CSManager.trail
-                     (function
-                      | () ->
+              (((((if
+                     CSManager.trail
+                       (fun () ->
                           rSolve
                             (ps', (r, I.id), dp, (Hc, Ha),
-                              (function
-                               | S ->
-                                   (T.signal
-                                      (__g,
-                                        (T.SucceedGoal
-                                           (tag, (Hc, Ha), (I.EClo ps'))));
-                                    raise (SucceedOnce S)))))
-                 then
-                   (T.signal (__g, (T.RetryGoal (tag, (Hc, Ha), (I.EClo ps'))));
-                    ())
-                 else ();
-                 matchSigDet sgn'
-               with
-               | SucceedOnce (S) ->
-                   (T.signal
-                      (__g, (T.CommitGoal (tag, (Hc, Ha), (I.EClo ps'))));
-                    sc (I.Root (Hc, S)))) in
-        let rec matchDProg =
+                              (fun (__S) ->
+                                 T.signal
+                                   (__G,
+                                     (T.SucceedGoal
+                                        (tag, (Hc, Ha), (I.EClo ps'))));
+                                 sc (I.Root (Hc, __S)))))
+                   then
+                     (T.signal
+                        (__G, (T.RetryGoal (tag, (Hc, Ha), (I.EClo ps'))));
+                      ())
+                   else ())
+                 (* deep backtracking *)(* shallow backtracking *));
+                 matchSig sgn'))
+                (* trail to undo EVar instantiations *))
+          (* return on failure *) in
+        let rec matchSigDet =
           function
+          | nil -> (T.signal (__G, (T.FailGoal (tag, Ha, (I.EClo ps')))); ())
+          | (Hc)::sgn' ->
+              let SClause r = C.sProgLookup (cidFromHead Hc) in
+              (((try
+                   ((if
+                       CSManager.trail
+                         (fun () ->
+                            rSolve
+                              (ps', (r, I.id), dp, (Hc, Ha),
+                                (fun (__S) ->
+                                   T.signal
+                                     (__G,
+                                       (T.SucceedGoal
+                                          (tag, (Hc, Ha), (I.EClo ps'))));
+                                   raise (SucceedOnce __S))))
+                     then
+                       (T.signal
+                          (__G, (T.RetryGoal (tag, (Hc, Ha), (I.EClo ps'))));
+                        ())
+                     else ())
+                   (* deep backtracking *)(* shallow backtracking *));
+                   matchSigDet sgn'
+                 with
+                 | SucceedOnce (__S) ->
+                     (T.signal
+                        (__G, (T.CommitGoal (tag, (Hc, Ha), (I.EClo ps'))));
+                      sc (I.Root (Hc, __S)))))
+                (* trail to undo EVar instantiations *))
+          (* return on failure *) in
+        let rec matchDProg __21__ __22__ =
+          match (__21__, __22__) with
           | (I.Null, _) ->
               if deterministic
               then matchSigDet (Index.lookup (cidFromHead Ha))
@@ -196,183 +193,90 @@ module TMachine(TMachine:sig
           | (Decl (dPool', Dec (r, s, Ha')), k) ->
               if eqHead (Ha, Ha')
               then
-                (if deterministic
-                 then
-                   try
-                     if
-                       CSManager.trail
-                         (function
-                          | () ->
-                              rSolve
-                                (ps', (r, (I.comp (s, (I.Shift k)))), dp,
-                                  ((I.BVar k), Ha),
-                                  (function
-                                   | S ->
-                                       (T.signal
-                                          (__g,
-                                            (T.SucceedGoal
-                                               (tag, ((I.BVar k), Ha),
-                                                 (I.EClo ps'))));
-                                        raise (SucceedOnce S)))))
-                     then
-                       (T.signal
-                          (__g,
-                            (T.RetryGoal
-                               (tag, ((I.BVar k), Ha), (I.EClo ps'))));
-                        ())
-                     else ();
-                     matchDProg (dPool', (k + 1))
-                   with
-                   | SucceedOnce (S) ->
-                       (T.signal
-                          (__g,
-                            (T.CommitGoal
-                               (tag, ((I.BVar k), Ha), (I.EClo ps'))));
-                        sc (I.Root ((I.BVar k), S)))
-                 else
-                   (if
-                      CSManager.trail
-                        (function
-                         | () ->
-                             rSolve
-                               (ps', (r, (I.comp (s, (I.Shift k)))), dp,
-                                 ((I.BVar k), Ha),
-                                 (function
-                                  | S ->
-                                      (T.SucceedGoal
-                                         (tag, ((I.BVar k), Ha),
-                                           (I.EClo ps'));
-                                       sc (I.Root ((I.BVar k), S))))))
-                    then
-                      (T.signal
-                         (__g,
-                           (T.RetryGoal (tag, ((I.BVar k), Ha), (I.EClo ps'))));
-                       ())
-                    else ();
-                    matchDProg (dPool', (k + 1))))
+                (((if deterministic
+                   then
+                     try
+                       ((if
+                           ((CSManager.trail
+                               (fun () ->
+                                  rSolve
+                                    (ps', (r, (I.comp (s, (I.Shift k)))), dp,
+                                      ((I.BVar k), Ha),
+                                      (fun (__S) ->
+                                         T.signal
+                                           (__G,
+                                             (T.SucceedGoal
+                                                (tag, ((I.BVar k), Ha),
+                                                  (I.EClo ps'))));
+                                         raise (SucceedOnce __S)))))
+                           (* trail to undo EVar instantiations *))
+                         then
+                           (T.signal
+                              (__G,
+                                (T.RetryGoal
+                                   (tag, ((I.BVar k), Ha), (I.EClo ps'))));
+                            ())
+                         else ())
+                       (* deep backtracking *)(* shallow backtracking *));
+                       matchDProg (dPool', (k + 1))
+                     with
+                     | SucceedOnce (__S) ->
+                         (T.signal
+                            (__G,
+                              (T.CommitGoal
+                                 (tag, ((I.BVar k), Ha), (I.EClo ps'))));
+                          sc (I.Root ((I.BVar k), __S)))
+                   else
+                     (((if
+                          CSManager.trail
+                            (fun () ->
+                               rSolve
+                                 (ps', (r, (I.comp (s, (I.Shift k)))), dp,
+                                   ((I.BVar k), Ha),
+                                   (fun (__S) ->
+                                      T.SucceedGoal
+                                        (tag, ((I.BVar k), Ha), (I.EClo ps'));
+                                      sc (I.Root ((I.BVar k), __S)))))
+                        then
+                          (T.signal
+                             (__G,
+                               (T.RetryGoal
+                                  (tag, ((I.BVar k), Ha), (I.EClo ps'))));
+                           ())
+                        else ())
+                      (* deep backtracking *)(* shallow backtracking *));
+                      matchDProg (dPool', (k + 1)))))
+                (* #succeeds = 1 *)(* #succeeds >= 1 -- allows backtracking *))
               else matchDProg (dPool', (k + 1))
-          | (Decl (dPool', C.Parameter), k) -> matchDProg (dPool', (k + 1)) in
-        let rec matchConstraint (cnstrSolve, try__) =
+          | (Decl (dPool', C.Parameter), k) -> matchDProg (dPool', (k + 1))
+          (* dynamic program exhausted, try signature *) in
+        let rec matchConstraint cnstrSolve try__ =
           let succeeded =
             CSManager.trail
-              (function
-               | () ->
-                   (match cnstrSolve (__g, (I.SClo (S, s)), try__) with
-                    | Some (__u) -> (sc __u; true__)
-                    | None -> false__)) in
+              (fun () ->
+                 match cnstrSolve (__G, (I.SClo (__S, s)), try__) with
+                 | Some (__U) -> (sc __U; true__)
+                 | NONE -> false__) in
           if succeeded then matchConstraint (cnstrSolve, (try__ + 1)) else () in
-        match I.constStatus (cidFromHead Ha) with
-        | Constraint (cs, cnstrSolve) -> matchConstraint (cnstrSolve, 0)
-        | _ -> matchDProg (dPool, 1)
-    (* We write
-       __g |- M : g
-     if M is a canonical proof term for goal g which could be found
-     following the operational semantics.  In general, the
-     success continuation sc may be applied to such M's in the order
-     they are found.  Backtracking is modeled by the return of
-     the success continuation.
-
-     Similarly, we write
-       __g |- S : r
-     if S is a canonical proof spine for residual goal r which could
-     be found following the operational semantics.  A success continuation
-     sc may be applies to such S's in the order they are found and
-     return to indicate backtracking.
-  *)
-    (* Wed Mar 13 10:27:00 2002 -bp  *)
-    (* should probably go to intsyn.fun *)
-    (* currently unused *)
-    (* solve' ((g, s), dp, sc) = ()
-     Invariants:
-       dp = (__g, dPool) where  __g ~ dPool  (context __g matches dPool)
-       __g |- s : __g'
-       __g' |- g  goal
-       if  __g |- M : g[s]
-       then  sc M  is evaluated to
-
-     Effects: instantiation of EVars in g, s, and dp
-              any effect  sc M  might have
-  *)
-    (* rSolve' ((p,s'), (r,s), dp, (Hc, Ha), sc) = T
-     Invariants:
-       dp = (__g, dPool) where __g ~ dPool
-       __g |- s : __g'
-       __g' |- r  resgoal
-       __g |- s' : __g''
-       __g'' |- p : H @ S' (mod whnf)
-       if __g |- S : r[s]
-       then sc S is evaluated
-       Hc is the clause which generated this residual goal
-       Ha is the target family of p and r (which must be equal)
-     Effects: instantiation of EVars in p[s'], r[s], and dp
-              any effect  sc S  might have
-  *)
-    (* effect: instantiate EVars *)
-    (* call success continuation *)
-    (* deep backtracking *)
-    (* shallow backtracking *)
-    (* Do not signal unification events for optimized clauses *)
-    (* Optimized clause heads lead to unprintable substitutions *)
-    (* T.signal (__g, T.Unify (HcHa, I.EClo (Q, s), I.EClo ps')); *)
-    (* T.signal (__g, T.FailUnify (HcHa, "Assignment failed")); *)
-    (* is this EVar redundant? -fp *)
-    (* we don't increase the proof term here! *)
-    (* aSolve ((ag, s), dp, HcHa, sc) = T
-     Invariants:
-       dp = (__g, dPool) where __g ~ dPool
-       __g |- s : __g'
-       if __g |- ag[s] auxgoal
-       then sc () is evaluated
-
-     Effects: instantiation of EVars in ag[s], dp and sc () *)
-    (* T.signal (__g, T.FailUnify (HcHa, "Dynamic residual equations failed")); *)
-    (* T.signal (__g, T.FailUnify (HcHa, "Static residual equations failed")); *)
-    (* matchatom ((p, s), dp, sc) = res
-     Invariants:
-       dp = (__g, dPool) where __g ~ dPool
-       __g |- s : __g'
-       __g' |- p : type, p = H @ S mod whnf
-       if __g |- M :: p[s]
-       then sc M is evaluated with return value res
-       else res = False
-     Effects: instantiation of EVars in p[s] and dp
-              any effect  sc M  might have
-
-     This first tries the local assumptions in dp then
-     the static signature.
-  *)
-    (* matchSig [c1,...,cn] = ()
+        ((match I.constStatus (cidFromHead Ha) with
+          | Constraint (cs, cnstrSolve) -> matchConstraint (cnstrSolve, 0)
+          | _ -> matchDProg (dPool, 1))
+          (* matchSig [c1,...,cn] = ()
            try each constant ci in turn for solving atomic goal ps', starting
            with c1.
 
            #succeeds >= 1 (succeeds at least once)
         *)
-    (* return on failure *)
-    (* trail to undo EVar instantiations *)
-    (* deep backtracking *)
-    (* shallow backtracking *)
-    (* matchSigDet [c1,...,cn] = ()
+          (* matchSigDet [c1,...,cn] = ()
            try each constant ci in turn for solving atomic goal ps', starting
            with c1. -- succeeds exactly once
 
            succeeds exactly once (#succeeds = 1)
         *)
-    (* return on failure *)
-    (* trail to undo EVar instantiations *)
-    (* deep backtracking *)
-    (* shallow backtracking *)
-    (* matchDProg (dPool, k) = ()
+          (* matchDProg (dPool, k) = ()
            where k is the index of dPool in global dPool from call to matchAtom.
            Try each local assumption for solving atomic goal ps', starting
            with the most recent one.
-        *)
-    (* dynamic program exhausted, try signature *)
-    (* #succeeds = 1 *)
-    (* trail to undo EVar instantiations *)
-    (* deep backtracking *)
-    (* shallow backtracking *)
-    (* #succeeds >= 1 -- allows backtracking *)
-    (* deep backtracking *)
-    (* shallow backtracking *)
-    let rec solve (gs, dp, sc) = T.init (); solve' (gs, dp, sc)
+        *))
+    let rec solve gs dp sc = T.init (); solve' (gs, dp, sc)
   end ;;

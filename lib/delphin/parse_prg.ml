@@ -1,6 +1,4 @@
 
-(* The Parser *)
-(* Author: Richard Fontana *)
 module type PARSE  =
   sig
     module DextSyn : DEXTSYN
@@ -12,8 +10,6 @@ module type PARSE  =
 
 
 
-(* The Parser *)
-(* Author: Richard Fontana *)
 module Parse(Parse:sig
                      module DextSyn : DEXTSYN
                      module Interface : INTERFACE
@@ -27,15 +23,12 @@ module Parse(Parse:sig
     module Tokens = Tokens
     module Streamm = Parserr.Streamm
     module Token = Parserr.Token
-    (* Given a lexer, invoke parser *)
     let rec invoke lexstream =
       Parserr.parse (0, lexstream, Interface.error, Interface.nothing)
-    (* Parse a named input file *)
     let rec fparse fname =
       let _ = Interface.init_line () in
       let infile = TextIO.openIn fname in
-      let lexer =
-        Parserr.makeLexer (function | _ -> Compat.inputLine97 infile) in
+      let lexer = Parserr.makeLexer (fun _ -> Compat.inputLine97 infile) in
       let empty = !Interface.line in
       let dummyEOF = Tokens.EOF (empty, empty) in
       let rec loop lexer =
@@ -50,8 +43,7 @@ module Parse(Parse:sig
     let rec sparse () =
       let _ = Interface.init_line () in
       let infile = TextIO.openString (TextIO.input TextIO.stdIn) in
-      let lexer =
-        Parserr.makeLexer (function | _ -> Compat.inputLine97 infile) in
+      let lexer = Parserr.makeLexer (fun _ -> Compat.inputLine97 infile) in
       let empty = !Interface.line in
       let dummyEOF = Tokens.EOF (empty, empty) in
       let rec loop lexer =
@@ -64,8 +56,7 @@ module Parse(Parse:sig
     let rec gparse fname =
       let _ = Interface.init_line () in
       let infile = TextIO.openIn fname in
-      let lexer =
-        Parserr.makeLexer (function | _ -> Compat.inputLine97 infile) in
+      let lexer = Parserr.makeLexer (fun _ -> Compat.inputLine97 infile) in
       let empty = !Interface.line in
       let dummyEOF = Tokens.EOF (empty, empty) in
       let rec loop lexer =

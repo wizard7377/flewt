@@ -1,19 +1,12 @@
 
-(* Parsing Theorems *)
-(* Author: Carsten Schuermann *)
 module type PARSE_THM  =
   sig
-    (*! structure Parsing : PARSING !*)
     module ThmExtSyn : THMEXTSYN
     val parseTotal' : ThmExtSyn.tdecl Parsing.parser
-    (* -fp *)
     val parseTerminates' : ThmExtSyn.tdecl Parsing.parser
     val parseReduces' : ThmExtSyn.rdecl Parsing.parser
-    (* -bp *)
     val parseTabled' : ThmExtSyn.tableddecl Parsing.parser
-    (* -bp *)
     val parseKeepTable' : ThmExtSyn.keepTabledecl Parsing.parser
-    (* -bp *)
     val parseTheorem' : ThmExtSyn.theorem Parsing.parser
     val parseTheoremDec' : ThmExtSyn.theoremdec Parsing.parser
     val parseWorlds' : ThmExtSyn.wdecl Parsing.parser
@@ -25,26 +18,17 @@ module type PARSE_THM  =
 
 
 
-(* Parsing Thm Declarations *)
-(* Author: Carsten Schuermann *)
-(* Modified: Brigitte Pientka *)
 module ParseThm(ParseThm:sig
-                           (*! structure Paths : PATHS *)
-                           (*! structure Parsing' : PARSING !*)
-                           (*! sharing Parsing'.Lexer.Paths = Paths !*)
                            module ThmExtSyn' : THMEXTSYN
-                           (*! sharing ThmExtSyn'.Paths = Paths !*)
-                           (*! sharing ThmExtSyn'.ExtSyn.Paths = Paths !*)
                            module ParseTerm : PARSE_TERM
                          end) : PARSE_THM =
   struct
-    (*! structure Parsing = Parsing' !*)
     module ThmExtSyn = ThmExtSyn'
-    module __l = Lexer
+    module L = Lexer
     module LS = Lexer.Stream
     module E = ThmExtSyn
     module P = Paths
-    let rec idToNat (r, name) =
+    let rec idToNat r name =
       try L.stringToNat name
       with | Overflow -> Parsing.error (r, "Integer too large")
       | NotDigit _ -> Parsing.error (r, "Identifier not a natural number")
@@ -53,22 +37,22 @@ module ParseThm(ParseThm:sig
       | Cons ((L.RPAREN, r), s') -> LS.expose s'
       | Cons ((t, r), _) ->
           Parsing.error (r, ((^) "Expected `)', found " L.toString t))
-    let rec decideRBrace =
-      function
+    let rec decideRBrace __0__ __1__ =
+      match (__0__, __1__) with
       | (r0, (orders, Cons ((L.RBRACE, r), s'))) ->
           ((Some (E.lex (r0, orders))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
           Parsing.error
             ((P.join (r0, r)), ((^) "Expected `}', found " L.toString t))
-    let rec decideRBracket =
-      function
+    let rec decideRBracket __2__ __3__ =
+      match (__2__, __3__) with
       | (r0, (orders, Cons ((L.RBRACKET, r), s'))) ->
           ((Some (E.simul (r0, orders))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
           Parsing.error
             ((P.join (r0, r)), ((^) "Expected `]', found " L.toString t))
-    let rec decideRParen =
-      function
+    let rec decideRParen __4__ __5__ =
+      match (__4__, __5__) with
       | (r0, (ids, Cons ((L.RPAREN, r), s'))) ->
           ((Some (E.varg (r, ids))), (LS.expose s'))
       | (r0, (order, Cons ((t, r), _))) ->
@@ -91,7 +75,7 @@ module ParseThm(ParseThm:sig
           Parsing.error (r, ("Expected upper case identifier, found " ^ id))
       | Cons ((L.UNDERSCORE, r), s') ->
           let (idOpts, f') = parseArgPat (LS.expose s') in
-          ((None :: idOpts), f')
+          ((NONE :: idOpts), f')
       | f -> (nil, f)
     let rec parseCallPat =
       function
@@ -112,6 +96,7 @@ module ParseThm(ParseThm:sig
       | Cons ((t, r), s) ->
           Parsing.error
             (r, ((^) "Expected call patterns, found token " L.toString t))
+      (* Parens around call patterns no longer optional *)
     let rec parseOrderOpt =
       function
       | Cons ((L.LPAREN, r), s') ->
@@ -122,18 +107,18 @@ module ParseThm(ParseThm:sig
           decideRBracket (r, (parseOrders (LS.expose s')))
       | Cons ((ID (L.Upper, id), r), s') ->
           ((Some (E.varg (r, [id]))), (LS.expose s'))
-      | Cons (_, s') as f -> (None, f)
+      | Cons (_, s') as f -> (NONE, f)
     let rec parseOrders f = parseOrders' (parseOrderOpt f)
-    let rec parseOrders' =
-      function
+    let rec parseOrders' __6__ __7__ =
+      match (__6__, __7__) with
       | (Some order, f') ->
           let (orders, f'') = parseOrders f' in ((order :: orders), f'')
-      | (None, f') -> (nil, f')
+      | (NONE, f') -> (nil, f')
     let rec parseOrder f = parseOrder' (parseOrderOpt f)
-    let rec parseOrder' =
-      function
+    let rec parseOrder' __8__ __9__ =
+      match (__8__, __9__) with
       | (Some order, f') -> (order, f')
-      | (None, Cons ((t, r), s')) ->
+      | (NONE, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected order, found " L.toString t))
     let rec parseTDecl f =
       let (order, f') = parseOrder f in
@@ -171,16 +156,16 @@ module ParseThm(ParseThm:sig
       | Cons ((L.RBRACE, r), s') -> ((LS.expose s'), r)
       | Cons ((t, r), _) ->
           Parsing.error (r, ((^) "Expected `}', found " L.toString t))
-    let rec parseDec (r, f) =
+    let rec parseDec r f =
       let ((x, yOpt), f') = ParseTerm.parseDec' f in
       let (f'', r2) = stripRBrace f' in
       let dec =
         match yOpt with
-        | None -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
+        | NONE -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
         | Some y -> E.ExtSyn.dec (x, y, (P.join (r, r2))) in
       (dec, f'')
-    let rec parseDecs' =
-      function
+    let rec parseDecs' __10__ __11__ =
+      match (__10__, __11__) with
       | (Drs, Cons (((L.LBRACE, r), s') as BS)) ->
           let (Dr, f') = parseDec (r, (LS.expose s')) in
           parseDecs' ((E.decl (Drs, Dr)), f')
@@ -197,8 +182,8 @@ module ParseThm(ParseThm:sig
       | Cons ((ID (_, "pi"), r), s') -> parseDecs (LS.expose s')
       | Cons ((t, r), s') ->
           Parsing.error (r, ((^) "Expected `pi', found " L.toString t))
-    let rec parseSome =
-      function
+    let rec parseSome __12__ __13__ =
+      match (__12__, __13__) with
       | (gbs, Cons ((ID (_, "some"), r), s')) ->
           let (g1, f') = parseDecs (LS.expose s') in
           let (g2, f'') = parsePi f' in parseSome' (((g1, g2) :: gbs), f'')
@@ -208,29 +193,28 @@ module ParseThm(ParseThm:sig
       | (gbs, Cons ((t, r), s')) ->
           Parsing.error
             (r, ((^) "Expected `some' or `pi', found " L.toString t))
-    let rec parseSome' =
-      function
+    let rec parseSome' __14__ __15__ =
+      match (__14__, __15__) with
       | (gbs, (Cons ((L.RPAREN, r), s') as f)) -> (gbs, f)
       | (gbs, Cons ((ID (_, "|"), r), s')) -> parseSome (gbs, (LS.expose s'))
       | (gbs, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected `)' or `|', found " L.toString t))
-    let rec stripParen (gbs, Cons ((L.RPAREN, r), s')) =
-      (gbs, (LS.expose s'))
+    let rec stripParen gbs (Cons ((L.RPAREN, r), s')) = (gbs, (LS.expose s'))
     let rec parseGBs =
       function
       | Cons ((L.LPAREN, r), s') ->
           stripParen (parseSome (nil, (LS.expose s')))
       | Cons ((t, r), s') ->
           Parsing.error (r, ((^) "Expected `(', found " L.toString t))
-    let rec forallG ((gbs', f'), r) =
+    let rec forallG (gbs', f') r =
       let (t'', f'') = parseForallStar f' in ((E.forallG (gbs', t'')), f'')
-    let rec forallStar ((g', f'), r) =
+    let rec forallStar (g', f') r =
       let (t'', f'') = parseForall f' in ((E.forallStar (g', t'')), f'')
-    let rec forall ((g', f'), r) =
+    let rec forall (g', f') r =
       let (t'', f'') = parseExists f' in ((E.forall (g', t'')), f'')
-    let rec exists ((g', f'), r) =
+    let rec exists (g', f') r =
       let (t'', f'') = parseTrue f' in ((E.exists (g', t'')), f'')
-    let rec top (f', r) = (E.top, f')
+    let rec top f' r = (E.top, f')
     let rec parseTrue =
       function
       | Cons ((ID (_, "true"), r), s') -> top ((LS.expose s'), r)
@@ -336,77 +320,10 @@ module ParseThm(ParseThm:sig
     let rec parseWDecl f =
       let (qids, f1) = ParseTerm.parseQualIds' f in
       let (callpats, f2) = parseCallPats f1 in
-      ((E.wdecl (qids, (E.callpats callpats))), f2)
+      ((((E.wdecl (qids, (E.callpats callpats))), f2))
+        (*       val (GBs, f1) = parseGBs f *))
     let rec parseWorlds' (Cons ((L.WORLDS, r), s')) =
       parseWDecl (LS.expose s')
-    (*--------------------------*)
-    (* %terminates declarations *)
-    (*--------------------------*)
-    (* idToNat (region, (idCase, name)) = n
-       where n an natural number indicated by name, which should consist
-       of all digits.  Raises error otherwise, or if integer it too large
-    *)
-    (* parseIds "id ... id" = ["id",...,"id"] *)
-    (* terminated by non-identifier token *)
-    (* parseArgPat "_id ... _id" = [idOpt,...,idOpt] *)
-    (* terminated by token different from underscore or id *)
-    (* parseCallPat "id _id ... _id" = (id, region, [idOpt,...,idOpt]) *)
-    (* parseCallPats "(id _id ... _id)...(id _id ... _id)." *)
-    (* Parens around call patterns no longer optional *)
-    (* order ::= id | (id ... id)   virtual arguments = subterm ordering
-               | {order ... order}  lexicgraphic order
-               | [order ... order]  simultaneous order
-    *)
-    (* parseOrderOpt (f) = (Some(order), f') or (None, f) *)
-    (* returns an optional order and front of remaining stream *)
-    (* parseOrders (f) = ([order1,...,ordern], f') *)
-    (* returns a sequence of orders and remaining front of stream *)
-    (* parseOrder (f) = (order, f') *)
-    (* returns an order and front of remaining stream *)
-    (* parseTDecl "order callPats." *)
-    (* parses Termination Declaration, followed by `.' *)
-    (* parseTerminates' "%terminates tdecl." *)
-    (* ------------------- *)
-    (* %total declaration  *)
-    (* ------------------- *)
-    (* parseTotal' "%total tdecl." *)
-    (* ------------------- *)
-    (* %prove declarations *)
-    (* ------------------- *)
-    (* parsePDecl "id nat order callpats." *)
-    (* parseProve' "%prove pdecl." *)
-    (* ----------------------- *)
-    (* %establish declarations *)
-    (* ----------------------- *)
-    (* parseEDecl "id nat order callpats." *)
-    (* parseEstablish' "%establish pdecl." *)
-    (* -------------------- *)
-    (* %assert declarations *)
-    (* -------------------- *)
-    (* parseAssert' "%assert cp" *)
-    (* --------------------- *)
-    (* %theorem declarations *)
-    (* --------------------- *)
-    (* parseDec "{id:term} | {id}" *)
-    (* parseDecs' "{id:term}...{id:term}", zero or more, ":term" optional *)
-    (* parseDecs "{id:term}...{id:term}", one ore more, ":term" optional *)
-    (* parseTrue "true" *)
-    (* parseExists "exists decs mform | mform" *)
-    (* parseForall "forall decs mform | mform" *)
-    (* parseForallStar "forall* decs mform | mform" *)
-    (* parseColon ": mform" *)
-    (* parseThDec "id : mform" *)
-    (* parseTheoremDec' "%theorem thdec." *)
-    (* We enforce the quantifier alternation restriction syntactically *)
-    (*  -bp6/5/99. *)
-    (* parsePredicate f = (pred, f')               *)
-    (* parses the reduction predicate, <, <=, =   *)
-    (* parseRDecl "order callPats." *)
-    (* parses Reducer Declaration, followed by `.' *)
-    (* parseReduces' "%reduces thedec. " *)
-    (* parseTabled' "%tabled thedec. " *)
-    (* parseKeepTable' "%keepTabled thedec. " *)
-    (*       val (GBs, f1) = parseGBs f *)
     let parseTotal' = parseTotal'
     let parseTerminates' = parseTerminates'
     let parseTheorem' = parseForallStar
@@ -415,10 +332,7 @@ module ParseThm(ParseThm:sig
     let parseEstablish' = parseEstablish'
     let parseAssert' = parseAssert'
     let parseReduces' = parseReduces'
-    (*  -bp  6/05/99.*)
     let parseTabled' = parseTabled'
-    (*  -bp 20/11/01.*)
     let parseKeepTable' = parseKeepTable'
-    (*  -bp 20/11/01.*)
     let parseWorlds' = parseWorlds'
   end ;;

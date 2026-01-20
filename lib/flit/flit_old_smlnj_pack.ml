@@ -1,5 +1,4 @@
 
-(* cope with nonstandard old smlnj name of PackWord32Little -jcreed 2006.9.15 *)
 module Flit =
   (Make_Flit)(struct
                 module Global = Global

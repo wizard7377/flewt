@@ -1,6 +1,4 @@
 
-(* Compatibility shim from Basis-02 Word8ArraySlice to Basis-97 Word8Array *)
-(* Author: Christopher Richards *)
 module Word8ArraySlice : MONO_ARRAY_SLICE =
   struct
     type nonrec array = Word8Array.array

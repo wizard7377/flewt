@@ -1,0 +1,6 @@
+(library
+ (wrapped false)
+ (public_name flewt.ml_yacc_lib_mod)
+ (name ml_yacc_lib_mod)
+ (libraries)
+ (modules base join lrtable parser2 stream))

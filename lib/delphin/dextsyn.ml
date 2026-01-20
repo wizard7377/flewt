@@ -1,8 +1,6 @@
 
-(* Delphin external syntax *)
 module type DEXTSYN  =
   sig
-    (* structure Lexer : LEXER *)
     type __Ast =
       | Ast of __Decs 
     and __Decs =
@@ -86,24 +84,12 @@ module type DEXTSYN  =
 
 
 
-(* Delphin external syntax *)
-(* Author: Richard Fontana *)
-module DextSyn(DextSyn:sig
-                         (* structure Stream' : STREAM *)
-                         module ExtSyn' : EXTSYN
-                         module Parsing' : PARSING
+module DextSyn(DextSyn:sig module ExtSyn' : EXTSYN module Parsing' : PARSING
                        end) : DEXTSYN =
   struct
-    (*                    sharing Parsing'.Lexer.Paths = ExtSyn'.Paths  *)
-    (*                  structure Lexer' : LEXER *)
-    (*                    sharing Lexer' = Parsing'.Lexer *)
-    (*  structure Stream = Stream' *)
     module ExtSyn = ExtSyn'
     module Parsing = Parsing'
-    (*  structure Paths = ExtSyn.Paths
-  structure Lexer = Lexer' *)
-    module __l = Lexer
-    (*  structure S = Parsing'.Lexer.Stream *)
+    module L = Lexer
     module S = Stream
     type __Ast =
       | Ast of __Decs 

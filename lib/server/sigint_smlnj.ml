@@ -1,14 +1,12 @@
 
 module SigINT : SIGINT =
   struct
-    let rec interruptLoop (loop : unit -> unit) =
+    let rec interruptLoop loop =
       SMLofNJ.Cont.callcc
-        (function
-         | k ->
-             (Signals.setHandler
-                (Signals.sigINT,
-                  (Signals.HANDLER
-                     (function | _ -> (print "\ninterrupt\n"; k))));
-              ()));
+        (fun k ->
+           Signals.setHandler
+             (Signals.sigINT,
+               (Signals.HANDLER (fun _ -> print "\ninterrupt\n"; k)));
+           ());
       loop ()
   end ;;

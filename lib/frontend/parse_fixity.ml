@@ -1,9 +1,6 @@
 
-(* Parsing Fixity Declarations *)
-(* Author: Frank Pfenning *)
 module type PARSE_FIXITY  =
   sig
-    (*! structure Parsing : PARSING !*)
     module Names : NAMES
     val parseFixity' :
       ((Names.__Qid * Paths.region) * Names.Fixity.fixity) Parsing.parser
@@ -15,21 +12,15 @@ module type PARSE_FIXITY  =
 
 
 
-(* Parsing Fixity and Name Preference Declarations *)
-(* Author: Frank Pfenning *)
-module ParseFixity(ParseFixity:sig
-                                 (*! structure Parsing' : PARSING !*)
-                                 module Names' : NAMES
-                               end) : PARSE_FIXITY =
+module ParseFixity(ParseFixity:sig module Names' : NAMES end) : PARSE_FIXITY
+  =
   struct
-    (*! structure Parsing = Parsing' !*)
     module Names = Names'
-    (* some shorthands *)
-    module __l = Lexer
+    module L = Lexer
     module LS = Lexer.Stream
     module FX = Names.Fixity
     let rec fixToString (Strength p) = Int.toString p
-    let rec idToPrec (r, (_, name)) =
+    let rec idToPrec r (_, name) =
       let prec =
         try FX.Strength (L.stringToNat name)
         with | Overflow -> Parsing.error (r, "Precedence too large")
@@ -43,8 +34,8 @@ module ParseFixity(ParseFixity:sig
                 fixToString FX.maxPrec)
                ^ "]"))
       else prec
-    let rec parseFixCon =
-      function
+    let rec parseFixCon __0__ __1__ =
+      match (__0__, __1__) with
       | (fixity, Cons ((ID (_, name), r), s')) ->
           ((((Names.Qid (nil, name)), r), fixity), (LS.expose s'))
       | (fixity, Cons ((t, r), s')) ->
@@ -52,8 +43,8 @@ module ParseFixity(ParseFixity:sig
             (r,
               ((^) "Expected identifier to assign fixity, found " L.toString
                  t))
-    let rec parseFixPrec =
-      function
+    let rec parseFixPrec __2__ __3__ =
+      match (__2__, __3__) with
       | (fixity, Cons ((ID id, r), s')) ->
           parseFixCon ((fixity (idToPrec (r, id))), (LS.expose s'))
       | (fixity, Cons ((t, r), s')) ->
@@ -61,14 +52,11 @@ module ParseFixity(ParseFixity:sig
     let rec parseInfix =
       function
       | Cons ((ID (L.Lower, "none"), r), s') ->
-          parseFixPrec
-            ((function | p -> FX.Infix (p, FX.None)), (LS.expose s'))
+          parseFixPrec ((fun p -> FX.Infix (p, FX.None)), (LS.expose s'))
       | Cons ((ID (L.Lower, "left"), r), s') ->
-          parseFixPrec
-            ((function | p -> FX.Infix (p, FX.Left)), (LS.expose s'))
+          parseFixPrec ((fun p -> FX.Infix (p, FX.Left)), (LS.expose s'))
       | Cons ((ID (L.Lower, "right"), r), s') ->
-          parseFixPrec
-            ((function | p -> FX.Infix (p, FX.Right)), (LS.expose s'))
+          parseFixPrec ((fun p -> FX.Infix (p, FX.Right)), (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,
@@ -82,8 +70,8 @@ module ParseFixity(ParseFixity:sig
       | Cons ((L.PREFIX, r), s') -> parsePrefix (LS.expose s')
       | Cons ((L.POSTFIX, r), s') -> parsePostfix (LS.expose s')
     let rec parseFixity s = parseFixity' (LS.expose s)
-    let rec parseName5 =
-      function
+    let rec parseName5 __4__ __5__ __6__ __7__ __8__ =
+      match (__4__, __5__, __6__, __7__, __8__) with
       | (name, r0, prefENames, prefUNames, Cons ((ID (_, prefUName), r), s'))
           ->
           parseName5
@@ -95,17 +83,18 @@ module ParseFixity(ParseFixity:sig
       | (name, r0, prefENames, prefUNames, Cons ((t, r), s')) ->
           Parsing.error
             (r, ((^) "Expected name preference or ')', found " L.toString t))
-    let rec parseName3 =
-      function
+      (* prefUName should be lower case---not enforced *)
+    let rec parseName3 __9__ __10__ __11__ __12__ =
+      match (__9__, __10__, __11__, __12__) with
       | (name, r0, prefEName, Cons ((ID (_, prefUName), r), s')) ->
           ((((Names.Qid (nil, name)), r0), (prefEName, [prefUName])),
             (LS.expose s'))
       | (name, r0, prefEName, Cons ((L.LPAREN, r), s')) ->
           parseName5 (name, r0, prefEName, nil, (LS.expose s'))
       | (name, r0, prefEName, f) ->
-          ((((Names.Qid (nil, name)), r0), (prefEName, nil)), f)
-    let rec parseName4 =
-      function
+          ((((Names.Qid (nil, name)), r0), (prefEName, nil)), f)(* prefUName should be lower case---not enforced *)
+    let rec parseName4 __13__ __14__ __15__ __16__ =
+      match (__13__, __14__, __15__, __16__) with
       | (name, r0, prefENames, Cons ((ID (_, prefEName), r), s')) ->
           if L.isUpper prefEName
           then
@@ -118,8 +107,8 @@ module ParseFixity(ParseFixity:sig
       | (name, r0, prefENames, Cons ((t, r), s')) ->
           Parsing.error
             (r, ((^) "Expected name preference or ')', found " L.toString t))
-    let rec parseName2 =
-      function
+    let rec parseName2 __17__ __18__ __19__ =
+      match (__17__, __18__, __19__) with
       | (name, r0, Cons ((ID (_, prefEName), r), s')) ->
           if L.isUpper prefEName
           then parseName3 (name, r0, [prefEName], (LS.expose s'))
@@ -142,37 +131,6 @@ module ParseFixity(ParseFixity:sig
     let rec parseNamePref' (Cons ((L.NAME, r), s')) =
       parseName1 (LS.expose s')
     let rec parseNamePref s = parseNamePref' (LS.expose s)
-    (* idToPrec (region, (idCase, name)) = n
-       where n is the precedence indicated by name, which should consists
-       of all digits.  Raises error otherwise, or if precedence it too large
-    *)
-    (*-----------------------------*)
-    (* Parsing fixity declarations *)
-    (*-----------------------------*)
-    (* parseFixCon "id" *)
-    (* parseFixPrec "n id" where n is precedence *)
-    (* parseInfix "none|left|right n id" where n is precedence *)
-    (* parsePrefix "n id" where n is precedence *)
-    (* parsePostfix "n id" where n is precedence *)
-    (* parseFixity' : lexResult stream -> (name,fixity) * lexResult stream
-       Invariant: token stream starts with %infix, %prefix or %postfix
-    *)
-    (* anything else should be impossible *)
-    (*------------------------------------*)
-    (* Parsing name preferences %name ... *)
-    (*------------------------------------*)
-    (* parseName5 "string ... )" or ")" *)
-    (* prefUName should be lower case---not enforced *)
-    (* parseName3 "string" or "" *)
-    (* prefUName should be lower case---not enforced *)
-    (* parseName4 "string ... )" or ")" *)
-    (* parseName2 "string" or "string string"
-              or "(string ... ) string"  or " string (string ...)"
-              or "(string ... ) (string ...)" *)
-    (* parseName1 "id string" or "id string string" *)
-    (* parseNamePref' "%name id string" or "%name id string string"
-       Invariant: token stream starts with %name
-    *)
     let parseFixity' = parseFixity'
     let parseNamePref' = parseNamePref'
   end ;;

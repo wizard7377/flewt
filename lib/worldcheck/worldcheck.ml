@@ -2,7 +2,7 @@
 module MemoTable =
   (Make_HashTable)(struct
                      type nonrec key' = (int * int)
-                     let hash = function | (n, m) -> (7 * n) + m
+                     let hash n m = (7 * n) + m
                      let eq = (=)
                    end)
 module WorldSyn =
@@ -14,7 +14,6 @@ module WorldSyn =
                     module Abstract = Abstract
                     module Constraints = Constraints
                     module Index = Index
-                    (*! structure CSManager = CSManager !*)
                     module Subordinate = Subordinate
                     module Print = Print
                     module Table = IntRedBlackTree
@@ -25,9 +24,7 @@ module WorldSyn =
 module Worldify =
   (Make_Worldify)(struct
                     module Global = Global
-                    (*! structure IntSyn = IntSyn !*)
                     module WorldSyn = WorldSyn
-                    (*! structure Tomega = Tomega !*)
                     module Whnf = Whnf
                     module Names = Names
                     module Unify = UnifyTrail
@@ -40,6 +37,5 @@ module Worldify =
                     module Table = IntRedBlackTree
                     module MemoTable = MemoTable
                     module IntSet = IntSet
-                    (*! structure Paths = Paths !*)
                     module Origins = Origins
                   end);;

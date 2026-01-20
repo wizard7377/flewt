@@ -3,5 +3,5 @@
   (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.flit)
  (name flit)
- (libraries base compat global table lambda names index paths print)
+ (libraries compat global table lambda names index paths print)
  (modules flit))

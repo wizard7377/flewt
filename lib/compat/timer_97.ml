@@ -1,6 +1,4 @@
 
-(* Compatibility shim from Basis-current Timer to Basis-97 Timer *)
-(* Author: Christopher Richards *)
 module CompatTimer97 : COMPAT_TIMER =
   struct
     let rec checkCPUTimer timer =

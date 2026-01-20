@@ -24,8 +24,7 @@ module Rep =
       | AbbrevDef (_, _, _, _, _, _) -> defSize (Sgn.o_def cid)
       | _ -> 0
     open SMLofNJ.Cont
-    (* val l : (Syntax.term * Syntax.tp) list ref = ref [] *)
-    let (k : Reductio.eq_c option ref) = ref None
+    let (k : Reductio.eq_c option ref) = ref NONE
     exception Crap 
     let rec sanityCheck cid =
       try
@@ -68,19 +67,14 @@ module Rep =
                (print (("insane: <" ^ (Int.toString n)) ^ ">\n"); raise Crap)) in
       let _ = sanity n in
       let pairs =
-        List.tabulate
-          ((n + 1), (function | x -> ((o_cidSize x), (cidSize x)))) in
+        List.tabulate ((n + 1), (fun x -> ((o_cidSize x), (cidSize x)))) in
       let s =
         foldl (^) ""
           (map
-             (function
-              | (x, y) ->
-                  ((^) ((Int.toString x) ^ " ") Int.toString y) ^ "\n") pairs) in
+             (fun x ->
+                fun y -> ((^) ((Int.toString x) ^ " ") Int.toString y) ^ "\n")
+             pairs) in
       let f = TextIO.openOut "/tmp/graph" in
       let _ = TextIO.output (f, s) in let _ = TextIO.closeOut f in ()
-    (* DEBUG  handle Reductio.Matching2 s => (print "doesn'tmatch"; k := Some s); *)
-    (* fun gg n = (Compress.sgnReset(); gen_graph n
-	    (fn n => Compress.sgnAutoCompressUpTo n Compress.naiveModes)) *)
-    (* Syntax.size_term (Option.valOf(#o_def (Compress.sgnLookup n))) *)
     open Reductio
   end;;

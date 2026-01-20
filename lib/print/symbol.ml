@@ -50,7 +50,8 @@ module SymbolTeXfp() : SYMBOL =
       | '7' -> "$_7$"
       | '8' -> "$_8$"
       | '9' -> "$_9$"
-      | c -> String.str c
+      | c -> String.str c(* not in math mode *)(* not in math mode *)
+      (* not in math mode *)
     let rec quote s = String.translate quoteChar s
     let rec str s = ((((^) "\\Str{" quote s) ^ "}"), (String.size s))
     let rec evar s = ((((^) "\\EVar{" quote s) ^ "}"), (String.size s))
@@ -74,40 +75,11 @@ module SymbolTeXfp() : SYMBOL =
       | "..." -> ("$\\ldots$", 3)
       | "%%" -> ("%%", 2)
       | "%skolem" -> ("%skolem", 7)
-      | s -> (s, (String.size s))
-  end  (* functor SymbolAscii *)
-(* Illegal constituents: \ _ $ # *)
-(* { } are also special, but cannot occur in identifiers *)
-(* not in math mode *)
-(* not in math mode *)
-(* not in math mode *)
-(*
-  fun mathQuoteChar #"\\" = "\\\\"
-    | mathQuoteChar #"_" = "\\_"
-    | mathQuoteChar #"$" = "\\$"
-    | mathQuoteChar #"#" = "\\#"
-    | mathquoteChar #"^" = "\\hat{\\quad}$"
-    | mathQuoteChar #"0" = "{_0}"
-    | mathQuoteChar #"1" = "{_1}"
-    | mathQuoteChar #"2" = "{_2}"
-    | mathQuoteChar #"3" = "{_3}"
-    | mathQuoteChar #"4" = "{_4}"
-    | mathQuoteChar #"5" = "{_5}"
-    | mathQuoteChar #"6" = "{_6}"
-    | mathQuoteChar #"7" = "{_7}"
-    | mathQuoteChar #"8" = "{_8}"
-    | mathQuoteChar #"9" = "{_9}"
-    | mathQuoteChar c = String.str c
-
-  fun mathQuote s = String.translate mathQuoteChar s
-  *)
-(* itself, for now *)
-(* itself, for now *) (* ():.= *)
-(* functor SymbolTeX *)
+      | s -> (s, (String.size s))(* itself, for now *)
+      (* itself, for now *)
+  end 
 module SymbolTeX() : SYMBOL =
   struct
-    (* Illegal constituents: \ _ $ # *)
-    (* { } are also special, but cannot occur in identifiers *)
     let rec quoteChar =
       function
       | '\\' -> "\\\\"
@@ -127,26 +99,6 @@ module SymbolTeX() : SYMBOL =
       | '9' -> "$_9$"
       | c -> String.str c
     let rec quote s = String.translate quoteChar s
-    (*
-  fun mathQuoteChar #"\\" = "\\\\"
-    | mathQuoteChar #"_" = "\\_"
-    | mathQuoteChar #"$" = "\\$"
-    | mathQuoteChar #"#" = "\\#"
-    | mathquoteChar #"^" = "\\hat{\\quad}$"
-    | mathQuoteChar #"0" = "{_0}"
-    | mathQuoteChar #"1" = "{_1}"
-    | mathQuoteChar #"2" = "{_2}"
-    | mathQuoteChar #"3" = "{_3}"
-    | mathQuoteChar #"4" = "{_4}"
-    | mathQuoteChar #"5" = "{_5}"
-    | mathQuoteChar #"6" = "{_6}"
-    | mathQuoteChar #"7" = "{_7}"
-    | mathQuoteChar #"8" = "{_8}"
-    | mathQuoteChar #"9" = "{_9}"
-    | mathQuoteChar c = String.str c
-
-  fun mathQuote s = String.translate mathQuoteChar s
-  *)
     let rec str s = ((((^) "\\Str{" quote s) ^ "}"), (String.size s))
     let rec evar s = ((((^) "\\EVar{" quote s) ^ "}"), (String.size s))
     let rec bvar s = ((((^) "\\BVar{" quote s) ^ "}"), (String.size s))

@@ -3,8 +3,8 @@ module Version =
   struct
     let current_version = "1.7.1"
     let current_version_revision = "1813"
-    let rec maybe arg__0 arg__1 =
-      match (arg__0, arg__1) with | (true__, x) -> x | (false__, x) -> ""
+    let rec maybe __0__ __1__ =
+      match (__0__, __1__) with | (true__, x) -> x | (false__, x) -> ""
     let official = BuildId.revision = current_version_revision
     let external__ = BuildId.revision = "exported"
     let version_string =

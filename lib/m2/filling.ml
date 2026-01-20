@@ -1,6 +1,4 @@
 
-(* Filling *)
-(* Author: Carsten Schuermann *)
 module type FILLING  =
   sig
     module MetaSyn : METASYN
@@ -8,35 +6,21 @@ module type FILLING  =
     exception TimeOut 
     type nonrec operator
     val expand : MetaSyn.__State -> (operator list * operator)
-    (*
-    gets a list of operators, which fill in several non index variables
-    on one level simultaneously
-  *)
     val apply : operator -> MetaSyn.__State list
-    (*
-    in the case of an induction hypothesis, an operator can transform a
-    state into several states. In the case of just filling in the existential
-    parameters, there will by only one resulting state (we only need ONE
-    witness instantiation of the variables 
-  *)
     val menu : operator -> string
   end;;
 
 
 
 
-(* Filling *)
-(* Author: Carsten Schuermann *)
 module Filling(Filling:sig
                          module MetaSyn' : METASYN
                          module MetaAbstract : METAABSTRACT
                          module Search : OLDSEARCH
                          module Whnf : WHNF
-                         (*! sharing Whnf.IntSyn = MetaSyn'.IntSyn !*)
                          module Print : PRINT
                        end) : FILLING =
   struct
-    (*! sharing Print.IntSyn = MetaSyn'.IntSyn !*)
     module MetaSyn = MetaSyn'
     exception Error of string 
     exception TimeOut 
@@ -45,55 +29,58 @@ module Filling(Filling:sig
     module M = MetaSyn
     module I = IntSyn
     exception Success of M.__State 
-    let rec delay (search, Params) () =
+    let rec delay search (Params) () =
       try search Params with | Error s -> raise (Error s)
-    let rec makeAddressInit (S) k = (S, k)
+    let rec makeAddressInit (__S) k = (__S, k)
     let rec makeAddressCont makeAddress k = makeAddress (k + 1)
-    let rec operators (__g, GE, __Vs, abstractAll, abstractEx, makeAddress) =
+    let rec operators (__G) (GE) (__Vs) abstractAll abstractEx makeAddress =
       operatorsW
-        (__g, GE, (Whnf.whnf __Vs), abstractAll, abstractEx, makeAddress)
-    let rec operatorsW =
-      function
-      | (__g, GE, ((Root (C, S), _) as __Vs), abstractAll, abstractEx,
+        (__G, GE, (Whnf.whnf __Vs), abstractAll, abstractEx, makeAddress)
+    let rec operatorsW __0__ __1__ __2__ __3__ __4__ __5__ =
+      match (__0__, __1__, __2__, __3__, __4__, __5__) with
+      | (__G, GE, ((Root (__C, __S), _) as Vs), abstractAll, abstractEx,
          makeAddress) ->
           (nil,
             ((makeAddress 0),
               (delay
-                 ((function
-                   | Params ->
-                       (try Search.searchEx Params with | Success (S) -> [S])),
-                   (__g, GE, __Vs, abstractEx)))))
-      | (__g, GE, (Pi (((Dec (_, V1) as __d), P), V2), s), abstractAll,
+                 ((fun (Params) ->
+                     try Search.searchEx Params with | Success (__S) -> [__S]),
+                   (__G, GE, __Vs, abstractEx)))))
+      | (__G, GE, (Pi (((Dec (_, __V1) as D), __P), __V2), s), abstractAll,
          abstractEx, makeAddress) ->
-          let (GO', O) =
+          let (GO', __O) =
             operators
-              ((I.Decl (__g, (I.decSub (__d, s)))), GE, (V2, (I.dot1 s)),
+              ((I.Decl (__G, (I.decSub (__D, s)))), GE, (__V2, (I.dot1 s)),
                 abstractAll, abstractEx, (makeAddressCont makeAddress)) in
           ((((makeAddress 0),
-              (delay (Search.searchAll, (__g, GE, (V1, s), abstractAll)))) ::
-              GO'), O)
+              (delay (Search.searchAll, (__G, GE, (__V1, s), abstractAll))))
+              :: GO'), __O)
     let rec createEVars =
       function
       | Prefix (I.Null, I.Null, I.Null) ->
           ((M.Prefix (I.Null, I.Null, I.Null)), I.id, nil)
-      | Prefix (Decl (__g, __d), Decl (M, M.Top), Decl (B, b)) ->
-          let (Prefix (__g', M', B'), s', GE') =
-            createEVars (M.Prefix (__g, M, B)) in
+      | Prefix (Decl (__G, __D), Decl (__M, M.Top), Decl (__B, b)) ->
+          let (Prefix (__G', __M', __B'), s', GE') =
+            createEVars (M.Prefix (__G, __M, __B)) in
           ((M.Prefix
-              ((I.Decl (__g', (I.decSub (__d, s')))), (I.Decl (M', M.Top)),
-                (I.Decl (B', b)))), (I.dot1 s'), GE')
-      | Prefix (Decl (__g, Dec (_, __v)), Decl (M, M.Bot), Decl (B, _)) ->
-          let (Prefix (__g', M', B'), s', GE') =
-            createEVars (M.Prefix (__g, M, B)) in
-          let x = I.newEVar (__g', (I.EClo (__v, s'))) in
-          let x' = Whnf.lowerEVar x in
-          ((M.Prefix (__g', M', B')), (I.Dot ((I.Exp x), s')), (x' :: GE'))
-    let rec expand (State (name, Prefix (__g, M, B), __v) as S) =
-      let (Prefix (__g', M', B'), s', GE') = createEVars (M.Prefix (__g, M, B)) in
+              ((I.Decl (__G', (I.decSub (__D, s')))), (I.Decl (__M', M.Top)),
+                (I.Decl (__B', b)))), (I.dot1 s'), GE')
+      | Prefix (Decl (__G, Dec (_, __V)), Decl (__M, M.Bot), Decl (__B, _))
+          ->
+          let (Prefix (__G', __M', __B'), s', GE') =
+            createEVars (M.Prefix (__G, __M, __B)) in
+          let __X = I.newEVar (__G', (I.EClo (__V, s'))) in
+          let __X' = Whnf.lowerEVar __X in
+          ((M.Prefix (__G', __M', __B')), (I.Dot ((I.Exp __X), s')),
+            (__X' :: GE'))
+    let rec expand (State (name, Prefix (__G, __M, __B), __V) as S) =
+      let (Prefix (__G', __M', __B'), s', GE') =
+        createEVars (M.Prefix (__G, __M, __B)) in
       let rec abstractAll acc =
         try
           (MetaAbstract.abstract
-             (M.State (name, (M.Prefix (__g', M', B')), (I.EClo (__v, s')))))
+             (M.State
+                (name, (M.Prefix (__G', __M', __B')), (I.EClo (__V, s')))))
             :: acc
         with | Error s -> acc in
       let rec abstractEx () =
@@ -101,66 +88,25 @@ module Filling(Filling:sig
           raise
             (Success
                (MetaAbstract.abstract
-                  (M.State (name, (M.Prefix (__g', M', B')), (I.EClo (__v, s'))))))
+                  (M.State
+                     (name, (M.Prefix (__G', __M', __B')),
+                       (I.EClo (__V, s'))))))
         with | Error s -> () in
       operators
-        (__g', GE', (__v, s'), abstractAll, abstractEx, (makeAddressInit S))
-    let rec apply (_, f) = f ()
-    let rec menu ((State (name, Prefix (__g, M, B), __v), k), Sl) =
-      let rec toString =
-        function
-        | (__g, Pi ((Dec (_, __v), _), _), 0) -> Print.expToString (__g, __v)
-        | (__g, (Root _ as __v), 0) -> Print.expToString (__g, __v)
-        | (__g, Pi ((__d, _), __v), k) -> toString ((I.Decl (__g, __d)), __v, (k - 1)) in
-      (^) "Filling   : " toString (__g, __v, k)
-    (* operators (__g, GE, (__v, s), abstract, makeAddress) = (OE', OL')
-
-       Invariant:
-       If   __g |- s : G1   G1 |- __v : type
-       and  abstract is an abstraction continuation
-       and  makeAddress is continuation which calculates the correct
-         debruijn index of the variable being filled
-       and __v = {V1}...{Vn} __v'
-       then OE' is an operator list, OL' is a list with one operator
-         where the ith O' in OE' corresponds to a function which generates ALL possible
-                                      successor states instantiating - non-index variables
-                                      with terms (if possible) in Vi
-        and OL' is a list containing one operator which instantiates all - non-index variables
-          in __v' with the smallest possible terms.
-    *)
-    (* createEVars (__g, M) = ((__g', M'), s', GE')
-
-       Invariant:
-       If   |- __g ctx
-       and  __g |- M mtx
-       then |- __g' ctx
-       and  __g' |- M' mtx
-       and  __g' |- s' : __g
-       and  GE a list of EVars
-
-    *)
-    (* expand' ((__g, M), __v) = (OE', OL')
-
-       Invariant:
-       If   |- __g ctx
-       and  __g |- M mtx
-       and  __g |- __v type
-       and  __v = {V1}...{Vn} __v'
-       then OE' is an operator list, OL' is a list with one operator
-         where the ith O' in OE' corresponds to a function which generates ALL possible
-                                      successor states instantiating - non-index variables
-                                      with terms (if possible) in Vi
-        and OL' is a list containing one operator which instantiates all - non-index variables
-          in __v' with the smallest possible terms.
-    *)
-    (* apply (S, f) = S'
-
-       Invariant:
-       S is state and f is a function constructing the successor state S'
-    *)
-    (* no cases for
-              toSTring (__g, I.Root _, k) for k <> 0
-            *)
+        (__G', GE', (__V, s'), abstractAll, abstractEx,
+          (makeAddressInit __S))
+    let rec apply _ f = f ()
+    let rec menu (State (name, Prefix (__G, __M, __B), __V), k) (Sl) =
+      let rec toString __6__ __7__ __8__ =
+        match (__6__, __7__, __8__) with
+        | (__G, Pi ((Dec (_, __V), _), _), 0) -> Print.expToString (__G, __V)
+        | (__G, (Root _ as V), 0) -> Print.expToString (__G, __V)
+        | (__G, Pi ((__D, _), __V), k) ->
+            toString ((I.Decl (__G, __D)), __V, (k - 1)) in
+      (((^) "Filling   : " toString (__G, __V, k))
+        (* no cases for
+              toSTring (G, I.Root _, k) for k <> 0
+            *))
     let expand = expand
     let apply = apply
     let menu = menu

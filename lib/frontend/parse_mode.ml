@@ -1,9 +1,6 @@
 
-(* Parsing Mode Declarations *)
-(* Author: Carsten Schuermann *)
 module type PARSE_MODE  =
   sig
-    (*! structure Parsing : PARSING !*)
     module ExtModes : EXTMODES
     val parseMode' : ExtModes.modedec list Parsing.parser
   end;;
@@ -11,29 +8,21 @@ module type PARSE_MODE  =
 
 
 
-(* Parsing Mode Declarations *)
-(* Author: Carsten Schuermann *)
 module ParseMode(ParseMode:sig
-                             (*! structure Paths : PATHS !*)
-                             (*! structure Parsing' : PARSING !*)
-                             (*! sharing Parsing'.Lexer.Paths = Paths !*)
                              module ExtModes' : EXTMODES
-                             (*! sharing ExtModes'.Paths = Paths !*)
-                             (*! sharing ExtModes'.ExtSyn.Paths = Paths !*)
                              module ParseTerm : PARSE_TERM
                            end) : PARSE_MODE =
   struct
-    (*! structure Parsing = Parsing' !*)
     module ExtModes = ExtModes'
-    module __l = Lexer
+    module L = Lexer
     module LS = Lexer.Stream
     module E = ExtModes
     module P = Paths
-    let rec extract (s, i) =
+    let rec extract s i =
       if (=) i String.size s
-      then None
-      else Some (String.extract (s, i, None))
-    let rec splitModeId (r, id) =
+      then NONE
+      else Some (String.extract (s, i, NONE))
+    let rec splitModeId r id =
       match String.sub (id, 0) with
       | '*' -> ((E.star r), (extract (id, 1)))
       | '-' ->
@@ -44,19 +33,19 @@ module ParseMode(ParseMode:sig
       | _ ->
           Parsing.error
             (r, ("Expected mode `+', `-', `*', or `-1'  found " ^ id))
-    let rec validateMArg =
-      function
+    let rec validateMArg __0__ __1__ =
+      match (__0__, __1__) with
       | (r, ((mode, Some id) as mId)) ->
           if L.isUpper id
           then mId
           else
             Parsing.error
               (r, ("Expected free uppercase variable, found " ^ id))
-      | (r, (_, None)) ->
+      | (r, (_, NONE)) ->
           Parsing.error (r, "Missing variable following mode")
-    let rec validateMode =
-      function
-      | (r, (mode, None)) -> mode
+    let rec validateMode __2__ __3__ =
+      match (__2__, __3__) with
+      | (r, (mode, NONE)) -> mode
       | (r, (_, Some id)) ->
           Parsing.error
             (r,
@@ -67,7 +56,7 @@ module ParseMode(ParseMode:sig
       | Cons ((L.RPAREN, r), s') -> ((LS.expose s'), r)
       | Cons ((t, r), s') ->
           Parsing.error
-            (r, ((^) "Expected closing `)', found " L.toString t))
+            (r, ((^) "Expected closing `)', found " L.toString t))(* t = `.' or ? *)
     let rec stripRBrace =
       function
       | Cons ((L.RBRACE, r), s') -> ((LS.expose s'), r)
@@ -84,25 +73,27 @@ module ParseMode(ParseMode:sig
       | Cons ((t, r), s') ->
           Parsing.error
             (r, ((^) "Expected mode or `.', found " L.toString t))
-    let rec parseFull =
-      function
+    let rec parseFull __4__ __5__ =
+      match (__4__, __5__) with
       | (Cons (((ID (c, id), r0) as t0), s'), r1) ->
-          (match LS.expose s' with
-           | Cons ((L.LBRACE, r), s'') ->
-               let mId = splitModeId (r0, id) in
-               let m = validateMode (r0, mId) in
-               let ((x, yOpt), f') = ParseTerm.parseDec' (LS.expose s'') in
-               let (f'', r') = stripRBrace f' in
-               let dec =
-                 match yOpt with
-                 | None -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
-                 | Some y -> ParseTerm.ExtSyn.dec (x, y, (P.join (r, r'))) in
-               let (t', f''') = parseFull (f'', r1) in
-               ((E.Full.mpi (m, dec, t')), f''')
-           | Cons (TS) ->
-               let (t', (Cons ((_, r), s') as f')) =
-                 ParseTerm.parseTerm' (LS.Cons (t0, (LS.cons TS))) in
-               ((E.Full.mroot (t', (P.join (r, r1)))), f'))
+          (((match LS.expose s' with
+             | Cons ((L.LBRACE, r), s'') ->
+                 let mId = splitModeId (r0, id) in
+                 let m = validateMode (r0, mId) in
+                 let ((x, yOpt), f') = ParseTerm.parseDec' (LS.expose s'') in
+                 let (f'', r') = stripRBrace f' in
+                 let dec =
+                   match yOpt with
+                   | NONE -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
+                   | Some y -> ParseTerm.ExtSyn.dec (x, y, (P.join (r, r'))) in
+                 let (t', f''') = parseFull (f'', r1) in
+                 ((E.Full.mpi (m, dec, t')), f''')
+             | Cons (TS) ->
+                 let (t', (Cons ((_, r), s') as f')) =
+                   ParseTerm.parseTerm' (LS.Cons (t0, (LS.cons TS))) in
+                 ((E.Full.mroot (t', (P.join (r, r1)))), f')))
+          (* found quantifier --- id must be mode *)
+          (* no quantifier --- parse atomic type *))
       | (Cons ((L.LPAREN, r0), s'), r1) ->
           let (t', f') = ParseTerm.parseTerm' (LS.expose s') in
           let (f'', r') = stripRParen f' in
@@ -110,16 +101,17 @@ module ParseMode(ParseMode:sig
       | (Cons ((t, r), s'), _) ->
           Parsing.error
             (r, ((^) "Expected mode or identifier, found " L.toString t))
-    let rec parseMode2 =
-      function
+      (* Left paren --- parse atomic type *)(* Look ahead one token to decide if quantifier follows *)
+    let rec parseMode2 __6__ __7__ __8__ =
+      match (__6__, __7__, __8__) with
       | (lexid, Cons (((L.LBRACE, r), s') as BS), r1) ->
           let (t', f') = parseFull ((LS.Cons (lexid, (LS.cons BS))), r1) in
           ((E.Full.toModedec t'), f')
       | ((ID (_, name), r), f, _) ->
           let (mS', f') = parseShortSpine f in
           ((E.Short.toModedec (E.Short.mroot (nil, name, r, mS'))), f')
-    let rec parseModeParen =
-      function
+    let rec parseModeParen __9__ __10__ =
+      match (__9__, __10__) with
       | (Cons ((ID (_, name), r0), s'), r) ->
           let (mS', f') = parseShortSpine (LS.expose s') in
           let (f'', r') = stripRParen f' in
@@ -136,8 +128,8 @@ module ParseMode(ParseMode:sig
       | Cons ((t, r), _) ->
           Parsing.error
             (r, ((^) "Expected identifier or mode, found " L.toString t))
-    let rec parseModeNext =
-      function
+    let rec parseModeNext __11__ __12__ =
+      match (__11__, __12__) with
       | (modedec, (Cons ((L.DOT, _), s') as f)) -> ((modedec :: nil), f)
       | (modedec, f) ->
           let (mdecs, f') = parseMode1 f in ((modedec :: mdecs), f')
@@ -146,24 +138,5 @@ module ParseMode(ParseMode:sig
       | Cons ((L.MODE, r), s') -> parseMode1 (LS.expose s')
       | Cons ((L.UNIQUE, r), s') -> parseMode1 (LS.expose s')
       | Cons ((L.COVERS, r), s') -> parseMode1 (LS.expose s')
-    (* extract (s, i) = substring of s starting at index i
-       Effect: raises Subscript if i > |s|
-    *)
-    (* splitModeId (r, id) = (mode, idOpt) where id = "<mode><idOpt>"
-       Invariant: id <> ""
-    *)
-    (* t = `.' or ? *)
-    (* parseShortSpine "modeid ... modeid." *)
-    (* parseFull "mode {id:term} ... mode {x:term} term" *)
-    (* Look ahead one token to decide if quantifier follows *)
-    (* found quantifier --- id must be mode *)
-    (* no quantifier --- parse atomic type *)
-    (* Left paren --- parse atomic type *)
-    (* parseMode2 switches between full and short mode declarations *)
-    (* lexid could be mode or other identifier *)
-    (* parseMode1 parses mdecl *)
-    (* parseMode' : lexResult front -> modedec * lexResult front
-       Invariant: exposed input stream starts with MODE
-    *)
     let parseMode' = parseMode'
   end ;;

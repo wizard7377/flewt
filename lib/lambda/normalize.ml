@@ -1,109 +1,81 @@
 
-(* Normalizer for Delphin meta level *)
-(* Author: Carsten Schuermann *)
 module type NORMALIZE  = sig  end;;
 
 
 
 
-(* Internal syntax for functional proof term calculus *)
-(* Author: Carsten Schuermann *)
-module Normalize(Normalize:sig
-                             (*! structure IntSyn' : INTSYN !*)
-                             (*! structure Tomega' : TOMEGA !*)
-                             (*! sharing Tomega'.IntSyn = IntSyn' !*)
-                             module Whnf : WHNF
-                           end) : NORMALIZE =
+module Normalize(Normalize:sig module Whnf : WHNF end) : NORMALIZE =
   struct
-    (*! sharing Whnf.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure Tomega = Tomega' !*)
     exception Error of string 
     module I = IntSyn
     module T = Tomega
-    let rec normalizeFor =
-      function
-      | (All ((__d, Q), F), t) ->
-          T.All (((T.decSub (__d, t)), Q), (normalizeFor (F, (T.dot1 t))))
-      | (Ex ((__d, Q), F), t) ->
+    let rec normalizeFor __0__ __1__ =
+      match (__0__, __1__) with
+      | (All ((__D, __Q), __F), t) ->
+          T.All
+            (((T.decSub (__D, t)), __Q), (normalizeFor (__F, (T.dot1 t))))
+      | (Ex ((__D, __Q), __F), t) ->
           T.Ex
-            (((I.decSub (__d, (T.coerceSub t))), Q),
-              (normalizeFor (F, (T.dot1 t))))
+            (((I.decSub (__D, (T.coerceSub t))), __Q),
+              (normalizeFor (__F, (T.dot1 t))))
       | (And (__F1, __F2), t) ->
           T.And ((normalizeFor (__F1, t)), (normalizeFor (__F2, t)))
-      | (FClo (F, t1), t2) -> normalizeFor (F, (T.comp (t1, t2)))
-      | (World (W, F), t) -> T.World (W, (normalizeFor (F, t)))
-      | (T.True, _) -> T.True
-    let rec whnfFor =
-      function
-      | (All (__d, _), t) as Ft -> Ft
-      | (Ex (__d, F), t) as Ft -> Ft
+      | (FClo (__F, t1), t2) -> normalizeFor (__F, (T.comp (t1, t2)))
+      | (World (__W, __F), t) -> T.World (__W, (normalizeFor (__F, t)))
+      | (T.True, _) -> T.True(*      | normalizeFor (T.FVar (G, r))   think about it *)
+    let rec whnfFor __2__ =
+      match __2__ with
+      | (All (__D, _), t) as Ft -> Ft
+      | (Ex (__D, __F), t) as Ft -> Ft
       | (And (__F1, __F2), t) as Ft -> Ft
-      | (FClo (F, t1), t2) -> whnfFor (F, (T.comp (t1, t2)))
-      | (World (W, F), t) as Ft -> Ft
+      | (FClo (__F, t1), t2) -> whnfFor (__F, (T.comp (t1, t2)))
+      | (World (__W, __F), t) as Ft -> Ft
       | (T.True, _) as Ft -> Ft
-    let rec normalizePrg =
-      function
+    let rec normalizePrg __3__ __4__ =
+      match (__3__, __4__) with
       | (Var n, t) ->
           (match T.varSub (n, t) with
-           | Prg (P) -> P
+           | Prg (__P) -> __P
            | Idx _ -> raise Domain
            | Exp _ -> raise Domain
            | Block _ -> raise Domain
            | T.Undef -> raise Domain)
-      | (PairExp (__u, __P'), t) ->
+      | (PairExp (__U, __P'), t) ->
           T.PairExp
-            ((Whnf.normalize (__u, (T.coerceSub t))), (normalizePrg (__P', t)))
-      | (PairBlock (B, __P'), t) ->
+            ((Whnf.normalize (__U, (T.coerceSub t))),
+              (normalizePrg (__P', t)))
+      | (PairBlock (__B, __P'), t) ->
           T.PairBlock
-            ((I.blockSub (B, (T.coerceSub t))), (normalizePrg (__P', t)))
+            ((I.blockSub (__B, (T.coerceSub t))), (normalizePrg (__P', t)))
       | (PairPrg (__P1, __P2), t) ->
           T.PairPrg ((normalizePrg (__P1, t)), (normalizePrg (__P2, t)))
       | (T.Unit, _) -> T.Unit
-      | (EVar (_, ref (Some (P)), _), t) -> T.PClo (P, t)
-      | ((EVar _ as P), t) -> T.PClo (P, t)
-      | (PClo (P, t), t') -> normalizePrg (P, (T.comp (t, t')))
-    let rec normalizeSpine =
-      function
+      | (EVar (_, { contents = Some (__P) }, _), t) -> T.PClo (__P, t)
+      | ((EVar _ as P), t) -> T.PClo (__P, t)
+      | (PClo (__P, t), t') -> normalizePrg (__P, (T.comp (t, t')))(* ABP *)
+      (* ABP -- 1/20/03 *)
+    let rec normalizeSpine __5__ __6__ =
+      match (__5__, __6__) with
       | (T.Nil, t) -> T.Nil
-      | (AppExp (__u, S), t) ->
+      | (AppExp (__U, __S), t) ->
           T.AppExp
-            ((Whnf.normalize (__u, (T.coerceSub t))), (normalizeSpine (S, t)))
-      | (AppPrg (P, S), t) ->
-          T.AppPrg ((normalizePrg (P, t)), (normalizeSpine (S, t)))
-      | (AppBlock (B, S), t) ->
+            ((Whnf.normalize (__U, (T.coerceSub t))),
+              (normalizeSpine (__S, t)))
+      | (AppPrg (__P, __S), t) ->
+          T.AppPrg ((normalizePrg (__P, t)), (normalizeSpine (__S, t)))
+      | (AppBlock (__B, __S), t) ->
           T.AppBlock
-            ((I.blockSub (B, (T.coerceSub t))), (normalizeSpine (S, t)))
-      | (SClo (S, t1), t2) -> normalizeSpine (S, (T.comp (t1, t2)))
+            ((I.blockSub (__B, (T.coerceSub t))), (normalizeSpine (__S, t)))
+      | (SClo (__S, t1), t2) -> normalizeSpine (__S, (T.comp (t1, t2)))
     let rec normalizeSub =
       function
       | Shift n as s -> s
-      | Dot (Prg (P), s) ->
-          T.Dot ((T.Prg (normalizePrg (P, T.id))), (normalizeSub s))
-      | Dot (Exp (E), s) ->
-          T.Dot ((T.Exp (Whnf.normalize (E, I.id))), (normalizeSub s))
+      | Dot (Prg (__P), s) ->
+          T.Dot ((T.Prg (normalizePrg (__P, T.id))), (normalizeSub s))
+      | Dot (Exp (__E), s) ->
+          T.Dot ((T.Exp (Whnf.normalize (__E, I.id))), (normalizeSub s))
       | Dot (Block k, s) -> T.Dot ((T.Block k), (normalizeSub s))
       | Dot (Idx k, s) -> T.Dot ((T.Idx k), (normalizeSub s))
-    (*      | normalizeFor (T.FVar (__g, r))   think about it *)
-    (* normalizePrg (P, t) = (__P', t')
-
-       Invariant:
-       If   Psi' |- P :: F
-       and  Psi  |- t :: Psi'
-       and  P doesn't contain free EVars
-       then there exists a Psi'', __F'
-       s.t. Psi'' |- __F' for
-       and  Psi'' |- __P' :: __F'
-       and  Psi |- t' : Psi''
-       and  Psi |- F [t] == __F' [t']
-       and  Psi |- P [t] == __P' [t'] : F [t]
-       and  Psi |- __P' [t'] :nf: F [t]
-    *)
-    (* ABP -- 1/20/03 *)
-    (* ABP *)
-    (*
-    and normalizeDec (T.UDec __d, t) = T.UDec (I.decSub (__d, T.coerceSub t))
-      | normalizeDec (T.BDec (k, t1), t2) = *)
     let normalizeFor = normalizeFor
     let normalizePrg = normalizePrg
     let normalizeSub = normalizeSub

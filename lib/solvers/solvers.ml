@@ -45,26 +45,6 @@ module CSIntWord32 =
                      let wordSize = 32
                    end)
 module type CS_INSTALLER  = sig val version : string end
-(* now in cs-manager.fun *)
-(*
-structure CSManager = CSManager (structure Global = Global
-                                 ! structure IntSyn = IntSyn !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(*! structure IntSyn = IntSyn !*)
-(*! structure CSManager = CSManager !*)
-(* execute for effect *)
-(* wrapped in structure so it can be tracked by CM *)
 module CSInstaller : CS_INSTALLER =
   struct
     let solvers =
@@ -75,10 +55,8 @@ module CSInstaller : CS_INSTALLER =
       CSEqZ.solver;
       CSIneqZ.solver;
       CSIntWord32.solver]
-    let _ =
-      List.app (function | s -> (CSManager.installSolver s; ())) solvers
+    let _ = List.app (fun s -> CSManager.installSolver s; ()) solvers
     let version =
-      List.foldr
-        (function | (s, str) -> (((fun r -> r.name) s) ^ "\n") ^ str) ""
-        solvers
+      List.foldr (fun s -> fun str -> (((fun r -> r.name) s) ^ "\n") ^ str)
+        "" solvers
   end ;;

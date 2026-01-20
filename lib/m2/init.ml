@@ -1,6 +1,4 @@
 
-(* Initialization *)
-(* Author: Carsten Schuermann *)
 module type INIT  =
   sig
     module MetaSyn : METASYN
@@ -11,8 +9,6 @@ module type INIT  =
 
 
 
-(* Initialization *)
-(* Author: Carsten Schuermann *)
 module Init(Init:sig
                    module MetaSyn' : METASYN
                    module MetaAbstract : METAABSTRACT
@@ -23,23 +19,11 @@ module Init(Init:sig
     module M = MetaSyn
     module I = IntSyn
     let rec init' cid =
-      let (__v, _) = M.createAtomConst (I.Null, (I.Const cid)) in
+      let (__V, _) = M.createAtomConst (I.Null, (I.Const cid)) in
       MetaAbstract.abstract
         (M.State
            ((((^) "/" I.conDecName (I.sgnLookup cid)) ^ "/"),
-             (M.Prefix (I.Null, I.Null, I.Null)), __v))
+             (M.Prefix (I.Null, I.Null, I.Null)), __V))
     let rec init cidList = map init' cidList
-    (* init c = S'
-
-       Invariant:
-       If   c is type constant identifier
-       then S' is initial prover state.
-    *)
-    (* init c1 .. cn = S1 .. Sn
-
-       Invariant:
-       If   c1 .. cn are mutually recursive
-       then S1 .. Sn is an initial prover state.
-    *)
     let init = init
   end ;;

@@ -1,40 +1,33 @@
 
-(* Meta Theorem Prover abstraction : Version 1.3 *)
-(* Author: Frank Pfenning, Carsten Schuermann *)
 module type MTPABSTRACT  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure FunSyn : FUNSYN !*)
     module StateSyn : STATESYN
     exception Error of string 
     type __ApproxFor =
       | Head of (IntSyn.dctx * (FunSyn.__For * IntSyn.__Sub) * int) 
       | Block of ((IntSyn.dctx * IntSyn.__Sub * int * IntSyn.__Dec list) *
       __ApproxFor) 
-    (*  | (t, G2), AF *)
-    val weaken : (IntSyn.dctx * IntSyn.cid) -> IntSyn.__Sub
-    val raiseType : (IntSyn.dctx * IntSyn.__Exp) -> IntSyn.__Exp
+    val weaken : IntSyn.dctx -> IntSyn.cid -> IntSyn.__Sub
+    val raiseType : IntSyn.dctx -> IntSyn.__Exp -> IntSyn.__Exp
     val abstractSub :
-      (IntSyn.__Sub * StateSyn.__Tag IntSyn.__Ctx * (IntSyn.dctx *
-        StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub * StateSyn.__Tag
-        IntSyn.__Ctx) ->
-        ((IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub)
+      IntSyn.__Sub ->
+        StateSyn.__Tag IntSyn.__Ctx ->
+          (IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) ->
+            IntSyn.__Sub ->
+              StateSyn.__Tag IntSyn.__Ctx ->
+                ((IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub)
     val abstractSub' :
-      ((IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub *
-        StateSyn.__Tag IntSyn.__Ctx) ->
-        ((IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub)
+      (IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) ->
+        IntSyn.__Sub ->
+          StateSyn.__Tag IntSyn.__Ctx ->
+            ((IntSyn.dctx * StateSyn.__Tag IntSyn.__Ctx) * IntSyn.__Sub)
     val abstractApproxFor : __ApproxFor -> FunSyn.__For
   end;;
 
 
 
 
-(* Meta Theorem Prover abstraction : Version 1.3 *)
-(* Author: Frank Pfenning, Carsten Schuermann *)
 module MTPAbstract(MTPAbstract:sig
-                                 (*! structure IntSyn' : INTSYN !*)
-                                 (*! structure FunSyn' : FUNSYN !*)
-                                 (*! sharing FunSyn'.IntSyn = IntSyn' !*)
                                  module StateSyn' : STATESYN
                                  module Whnf : WHNF
                                  module Constraints : CONSTRAINTS
@@ -42,26 +35,15 @@ module MTPAbstract(MTPAbstract:sig
                                  module Subordinate : SUBORDINATE
                                  module TypeCheck : TYPECHECK
                                  module FunTypeCheck : FUNTYPECHECK
-                                 (*! sharing StateSyn'.FunSyn = FunSyn' !*)
-                                 (*! sharing Whnf.IntSyn = IntSyn' !*)
-                                 (*! sharing Constraints.IntSyn = IntSyn' !*)
-                                 (*! sharing Unify.IntSyn = IntSyn' !*)
-                                 (*! sharing Subordinate.IntSyn = IntSyn' !*)
-                                 (*! sharing TypeCheck.IntSyn = IntSyn' !*)
-                                 (*! sharing FunTypeCheck.FunSyn = FunSyn' !*)
                                  module Abstract : ABSTRACT
                                end) : MTPABSTRACT =
   struct
-    (*! sharing Abstract.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure FunSyn = FunSyn' !*)
     module StateSyn = StateSyn'
     exception Error of string 
     type __ApproxFor =
       | Head of (IntSyn.dctx * (FunSyn.__For * IntSyn.__Sub) * int) 
       | Block of ((IntSyn.dctx * IntSyn.__Sub * int * IntSyn.__Dec list) *
       __ApproxFor) 
-    (*      | (t, G2), AF *)
     module I = IntSyn
     module F = FunSyn
     module S = StateSyn
@@ -76,759 +58,485 @@ module MTPAbstract(MTPAbstract:sig
           (match C.simplify cnstrL with
            | nil -> ()
            | _ -> raise (Error "Typing ambiguous -- unresolved constraints"))
-    let rec eqEVar arg__0 arg__1 =
-      match (arg__0, arg__1) with
+    let rec eqEVar __0__ __1__ =
+      match (__0__, __1__) with
       | (EVar (r1, _, _, _), EV (r2, _, _, _)) -> r1 = r2
       | (_, _) -> false__
-    let rec exists (P) (K) =
+    let rec exists (__P) (__K) =
       let rec exists' =
-        function | I.Null -> false__ | Decl (K', y) -> (P y) || (exists' K') in
-      exists' K
-    let rec or__ =
-      function
+        function
+        | I.Null -> false__
+        | Decl (__K', __Y) -> (__P __Y) || (exists' __K') in
+      exists' __K
+    let rec or__ __2__ __3__ =
+      match (__2__, __3__) with
       | (I.Maybe, _) -> I.Maybe
       | (_, I.Maybe) -> I.Maybe
       | (I.Meta, _) -> I.Meta
       | (_, I.Meta) -> I.Meta
       | (I.No, I.No) -> I.No
-    let rec occursInExp =
-      function
+    let rec occursInExp __4__ __5__ =
+      match (__4__, __5__) with
       | (k, Uni _) -> I.No
-      | (k, Pi (DP, __v)) ->
-          or__ ((occursInDecP (k, DP)), (occursInExp ((k + 1), __v)))
-      | (k, Root (H, S)) -> occursInHead (k, H, (occursInSpine (k, S)))
-      | (k, Lam (__d, __v)) ->
-          or__ ((occursInDec (k, __d)), (occursInExp ((k + 1), __v)))
-    let rec occursInHead =
-      function
+      | (k, Pi (DP, __V)) ->
+          or__ ((occursInDecP (k, DP)), (occursInExp ((k + 1), __V)))
+      | (k, Root (__H, __S)) ->
+          occursInHead (k, __H, (occursInSpine (k, __S)))
+      | (k, Lam (__D, __V)) ->
+          or__ ((occursInDec (k, __D)), (occursInExp ((k + 1), __V)))
+    let rec occursInHead __6__ __7__ __8__ =
+      match (__6__, __7__, __8__) with
       | (k, BVar k', DP) -> if k = k' then I.Maybe else DP
       | (k, Const _, DP) -> DP
       | (k, Def _, DP) -> DP
       | (k, Skonst _, I.No) -> I.No
       | (k, Skonst _, I.Meta) -> I.Meta
       | (k, Skonst _, I.Maybe) -> I.Meta
-    let rec occursInSpine =
-      function
+    let rec occursInSpine __9__ __10__ =
+      match (__9__, __10__) with
       | (_, I.Nil) -> I.No
-      | (k, App (__u, S)) ->
-          or__ ((occursInExp (k, __u)), (occursInSpine (k, S)))
-    let rec occursInDec (k, Dec (_, __v)) = occursInExp (k, __v)
-    let rec occursInDecP (k, (__d, _)) = occursInDec (k, __d)
-    let rec piDepend =
-      function
-      | ((__d, I.No), __v) as DPV -> I.Pi DPV
-      | ((__d, I.Meta), __v) as DPV -> I.Pi DPV
-      | ((__d, I.Maybe), __v) -> I.Pi ((__d, (occursInExp (1, __v))), __v)
-    let rec weaken =
-      function
+      | (k, App (__U, __S)) ->
+          or__ ((occursInExp (k, __U)), (occursInSpine (k, __S)))
+    let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
+    let rec occursInDecP k (__D, _) = occursInDec (k, __D)
+    let rec piDepend __11__ =
+      match __11__ with
+      | ((__D, I.No), __V) as DPV -> I.Pi DPV
+      | ((__D, I.Meta), __V) as DPV -> I.Pi DPV
+      | ((__D, I.Maybe), __V) -> I.Pi ((__D, (occursInExp (1, __V))), __V)
+    let rec weaken __12__ __13__ =
+      match (__12__, __13__) with
       | (I.Null, a) -> I.id
-      | (Decl (__g', (Dec (name, __v) as __d)), a) ->
-          let w' = weaken (__g', a) in
-          if Subordinate.belowEq ((I.targetFam __v), a)
+      | (Decl (__G', (Dec (name, __V) as D)), a) ->
+          let w' = weaken (__G', a) in
+          if Subordinate.belowEq ((I.targetFam __V), a)
           then I.dot1 w'
           else I.comp (w', I.shift)
-    let rec raiseType =
-      function
-      | (I.Null, __v) -> __v
-      | (Decl (__g, __d), __v) -> raiseType (__g, (I.Pi ((__d, I.Maybe), __v)))
-    let rec restore =
-      function
+    let rec raiseType __14__ __15__ =
+      match (__14__, __15__) with
+      | (I.Null, __V) -> __V
+      | (Decl (__G, __D), __V) ->
+          raiseType (__G, (I.Pi ((__D, I.Maybe), __V)))
+    let rec restore __16__ __17__ =
+      match (__16__, __17__) with
       | (0, Gp) -> (Gp, I.Null)
-      | (n, Decl (__g, __d)) ->
-          let (Gp', GX') = restore ((n - 1), __g) in (Gp', (I.Decl (GX', __d)))
-    let rec concat =
-      function
+      | (n, Decl (__G, __D)) ->
+          let (Gp', GX') = restore ((n - 1), __G) in
+          (Gp', (I.Decl (GX', __D)))
+    let rec concat __18__ __19__ =
+      match (__18__, __19__) with
       | (Gp, I.Null) -> Gp
-      | (Gp, Decl (__g, __d)) -> I.Decl ((concat (Gp, __g)), __d)
-    let rec collectExpW =
-      function
-      | (T, d, __g, (Uni (__l), s), K) -> K
-      | (T, d, __g, (Pi ((__d, _), __v), s), K) ->
+      | (Gp, Decl (__G, __D)) -> I.Decl ((concat (Gp, __G)), __D)
+    let rec collectExpW __20__ __21__ __22__ __23__ __24__ =
+      match (__20__, __21__, __22__, __23__, __24__) with
+      | (__T, d, __G, (Uni (__L), s), __K) -> __K
+      | (__T, d, __G, (Pi ((__D, _), __V), s), __K) ->
           collectExp
-            (T, d, (I.Decl (__g, (I.decSub (__d, s)))), (__v, (I.dot1 s)),
-              (collectDec (T, d, __g, (__d, s), K)))
-      | (T, d, __g, (Root (_, S), s), K) ->
-          collectSpine ((S.decrease T), d, __g, (S, s), K)
-      | (T, d, __g, (Lam (__d, __u), s), K) ->
+            (__T, d, (I.Decl (__G, (I.decSub (__D, s)))), (__V, (I.dot1 s)),
+              (collectDec (__T, d, __G, (__D, s), __K)))
+      | (__T, d, __G, (Root (_, __S), s), __K) ->
+          collectSpine ((S.decrease __T), d, __G, (__S, s), __K)
+      | (__T, d, __G, (Lam (__D, __U), s), __K) ->
           collectExp
-            (T, d, (I.Decl (__g, (I.decSub (__d, s)))), (__u, (I.dot1 s)),
-              (collectDec (T, d, __g, (__d, s), K)))
-      | (T, d, __g, ((EVar (r, GdX, __v, cnstrs) as x), s), K) ->
-          if exists (eqEVar x) K
-          then collectSub (T, d, __g, s, K)
+            (__T, d, (I.Decl (__G, (I.decSub (__D, s)))), (__U, (I.dot1 s)),
+              (collectDec (__T, d, __G, (__D, s), __K)))
+      | (__T, d, __G, ((EVar (r, GdX, __V, cnstrs) as X), s), __K) ->
+          if exists (eqEVar __X) __K
+          then collectSub (__T, d, __G, s, __K)
           else
             (let (Gp, GX) = restore (((I.ctxLength GdX) - d), GdX) in
              let _ = checkEmpty (!cnstrs) in
-             let w = weaken (GX, (I.targetFam __v)) in
+             let w = weaken (GX, (I.targetFam __V)) in
              let iw = Whnf.invert w in
              let GX' = Whnf.strengthen (iw, GX) in
-             let EVar (r', _, _, _) as x' =
-               I.newEVar ((concat (Gp, GX')), (I.EClo (__v, iw))) in
-             let _ = Unify.instantiateEVar (r, (I.EClo (x', w)), nil) in
-             let __v' = raiseType (GX', (I.EClo (__v, iw))) in
-             collectSub
-               (T, d, __g, (I.comp (w, s)),
-                 (I.Decl
-                    ((collectExp (T, d, Gp, (__v', I.id), K)),
-                      (EV (r', __v', T, d))))))
-      | (T, d, __g, (FgnExp csfe, s), K) ->
+             let EVar (r', _, _, _) as X' =
+               I.newEVar ((concat (Gp, GX')), (I.EClo (__V, iw))) in
+             let _ = Unify.instantiateEVar (r, (I.EClo (__X', w)), nil) in
+             let __V' = raiseType (GX', (I.EClo (__V, iw))) in
+             ((collectSub
+                 (__T, d, __G, (I.comp (w, s)),
+                   (I.Decl
+                      ((collectExp (__T, d, Gp, (__V', I.id), __K)),
+                        (EV (r', __V', __T, d))))))
+               (* optimization possible for d = 0 *)))
+      | (__T, d, __G, (FgnExp csfe, s), __K) ->
           I.FgnExpStd.fold csfe
-            (function | (__u, K') -> collectExp (T, d, __g, (__u, s), K')) K
-    let rec collectExp (T, d, __g, __Us, K) =
-      collectExpW (T, d, __g, (Whnf.whnf __Us), K)
-    let rec collectSpine =
-      function
-      | (T, d, __g, (I.Nil, _), K) -> K
-      | (T, d, __g, (SClo (S, s'), s), K) ->
-          collectSpine (T, d, __g, (S, (I.comp (s', s))), K)
-      | (T, d, __g, (App (__u, S), s), K) ->
-          collectSpine (T, d, __g, (S, s), (collectExp (T, d, __g, (__u, s), K)))
-    let rec collectDec (T, d, __g, (Dec (_, __v), s), K) =
-      collectExp (T, d, __g, (__v, s), K)
-    let rec collectSub =
-      function
-      | (T, d, __g, Shift _, K) -> K
-      | (T, d, __g, Dot (Idx _, s), K) -> collectSub (T, d, __g, s, K)
-      | (T, d, __g, Dot (Exp (__u), s), K) ->
-          collectSub (T, d, __g, s, (collectExp (T, d, __g, (__u, I.id), K)))
-    let rec abstractEVar =
-      function
-      | (Decl (K', EV (r', _, _, d)), depth, (EVar (r, _, _, _) as x)) ->
+            (fun (__U) ->
+               fun (__K') -> collectExp (__T, d, __G, (__U, s), __K')) __K
+    let rec collectExp (__T) d (__G) (__Us) (__K) =
+      collectExpW (__T, d, __G, (Whnf.whnf __Us), __K)
+    let rec collectSpine __25__ __26__ __27__ __28__ __29__ =
+      match (__25__, __26__, __27__, __28__, __29__) with
+      | (__T, d, __G, (I.Nil, _), __K) -> __K
+      | (__T, d, __G, (SClo (__S, s'), s), __K) ->
+          collectSpine (__T, d, __G, (__S, (I.comp (s', s))), __K)
+      | (__T, d, __G, (App (__U, __S), s), __K) ->
+          collectSpine
+            (__T, d, __G, (__S, s),
+              (collectExp (__T, d, __G, (__U, s), __K)))
+    let rec collectDec (__T) d (__G) (Dec (_, __V), s) (__K) =
+      collectExp (__T, d, __G, (__V, s), __K)
+    let rec collectSub __30__ __31__ __32__ __33__ __34__ =
+      match (__30__, __31__, __32__, __33__, __34__) with
+      | (__T, d, __G, Shift _, __K) -> __K
+      | (__T, d, __G, Dot (Idx _, s), __K) ->
+          collectSub (__T, d, __G, s, __K)
+      | (__T, d, __G, Dot (Exp (__U), s), __K) ->
+          collectSub
+            (__T, d, __G, s, (collectExp (__T, d, __G, (__U, I.id), __K)))
+    let rec abstractEVar __35__ __36__ __37__ =
+      match (__35__, __36__, __37__) with
+      | (Decl (__K', EV (r', _, _, d)), depth, (EVar (r, _, _, _) as X)) ->
           if r = r'
           then ((I.BVar (depth + 1)), d)
-          else abstractEVar (K', (depth + 1), x)
-      | (Decl (K', BV _), depth, x) -> abstractEVar (K', (depth + 1), x)
-    let rec lookupBV (K, i) =
-      let rec lookupBV' =
-        function
-        | (Decl (K, EV (r, __v, _, _)), i, k) -> lookupBV' (K, i, (k + 1))
-        | (Decl (K, BV _), 1, k) -> k
-        | (Decl (K, BV _), i, k) -> lookupBV' (K, (i - 1), (k + 1)) in
-      lookupBV' (K, i, 1)
-    let rec abstractExpW =
-      function
-      | (K, depth, ((Uni (__l) as __u), s)) -> __u
-      | (K, depth, (Pi ((__d, P), __v), s)) ->
+          else abstractEVar (__K', (depth + 1), __X)
+      | (Decl (__K', BV _), depth, __X) ->
+          abstractEVar (__K', (depth + 1), __X)
+    let rec lookupBV (__K) i =
+      let rec lookupBV' __38__ __39__ __40__ =
+        match (__38__, __39__, __40__) with
+        | (Decl (__K, EV (r, __V, _, _)), i, k) ->
+            lookupBV' (__K, i, (k + 1))
+        | (Decl (__K, BV _), 1, k) -> k
+        | (Decl (__K, BV _), i, k) -> lookupBV' (__K, (i - 1), (k + 1)) in
+      ((lookupBV' (__K, i, 1))
+        (* lookupBV' I.Null cannot occur by invariant *))
+    let rec abstractExpW __41__ __42__ __43__ =
+      match (__41__, __42__, __43__) with
+      | (__K, depth, ((Uni (__L) as U), s)) -> __U
+      | (__K, depth, (Pi ((__D, __P), __V), s)) ->
           piDepend
-            (((abstractDec (K, depth, (__d, s))), P),
-              (abstractExp (K, (depth + 1), (__v, (I.dot1 s)))))
-      | (K, depth, (Root ((BVar k as H), S), s)) ->
+            (((abstractDec (__K, depth, (__D, s))), __P),
+              (abstractExp (__K, (depth + 1), (__V, (I.dot1 s)))))
+      | (__K, depth, (Root ((BVar k as H), __S), s)) ->
           if k > depth
           then
-            let k' = lookupBV (K, (k - depth)) in
+            let k' = lookupBV (__K, (k - depth)) in
             I.Root
-              ((I.BVar (k' + depth)), (abstractSpine (K, depth, (S, s))))
-          else I.Root (H, (abstractSpine (K, depth, (S, s))))
-      | (K, depth, (Root (H, S), s)) ->
-          I.Root (H, (abstractSpine (K, depth, (S, s))))
-      | (K, depth, (Lam (__d, __u), s)) ->
+              ((I.BVar (k' + depth)), (abstractSpine (__K, depth, (__S, s))))
+          else I.Root (__H, (abstractSpine (__K, depth, (__S, s))))
+      | (__K, depth, (Root (__H, __S), s)) ->
+          I.Root (__H, (abstractSpine (__K, depth, (__S, s))))
+      | (__K, depth, (Lam (__D, __U), s)) ->
           I.Lam
-            ((abstractDec (K, depth, (__d, s))),
-              (abstractExp (K, (depth + 1), (__u, (I.dot1 s)))))
-      | (K, depth, ((EVar (_, __g, _, _) as x), s)) ->
-          let (H, d) = abstractEVar (K, depth, x) in
+            ((abstractDec (__K, depth, (__D, s))),
+              (abstractExp (__K, (depth + 1), (__U, (I.dot1 s)))))
+      | (__K, depth, ((EVar (_, __G, _, _) as X), s)) ->
+          let (__H, d) = abstractEVar (__K, depth, __X) in
           I.Root
-            (H, (abstractSub (((I.ctxLength __g) - d), K, depth, s, I.Nil)))
-      | (K, depth, (FgnExp csfe, s)) ->
+            (__H,
+              (abstractSub (((I.ctxLength __G) - d), __K, depth, s, I.Nil)))
+      | (__K, depth, (FgnExp csfe, s)) ->
           I.FgnExpStd.Map.apply csfe
-            (function | __u -> abstractExp (K, depth, (__u, s)))
-    let rec abstractExp (K, depth, __Us) =
-      abstractExpW (K, depth, (Whnf.whnf __Us))
-    let rec abstractSub =
-      function
-      | (n, K, depth, Shift k, S) ->
-          if n > 0
-          then
-            abstractSub
-              (n, K, depth, (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), S)
-          else S
-      | (n, K, depth, Dot (Idx k, s), S) ->
-          let H =
+            (fun (__U) -> abstractExp (__K, depth, (__U, s)))(* s = id *)
+    let rec abstractExp (__K) depth (__Us) =
+      abstractExpW (__K, depth, (Whnf.whnf __Us))
+    let rec abstractSub __44__ __45__ __46__ __47__ __48__ =
+      match (__44__, __45__, __46__, __47__, __48__) with
+      | (n, __K, depth, Shift k, __S) ->
+          ((if n > 0
+            then
+              abstractSub
+                (n, __K, depth, (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))),
+                  __S)
+            else __S)
+          (* n = 0 *))
+      | (n, __K, depth, Dot (Idx k, s), __S) ->
+          let __H =
             if k > depth
-            then let k' = lookupBV (K, (k - depth)) in I.BVar (k' + depth)
+            then let k' = lookupBV (__K, (k - depth)) in I.BVar (k' + depth)
             else I.BVar k in
           abstractSub
-            ((n - 1), K, depth, s, (I.App ((I.Root (H, I.Nil)), S)))
-      | (n, K, depth, Dot (Exp (__u), s), S) ->
+            ((n - 1), __K, depth, s, (I.App ((I.Root (__H, I.Nil)), __S)))
+      | (n, __K, depth, Dot (Exp (__U), s), __S) ->
           abstractSub
-            ((n - 1), K, depth, s,
-              (I.App ((abstractExp (K, depth, (__u, I.id))), S)))
-    let rec abstractSpine =
-      function
-      | (K, depth, (I.Nil, _)) -> I.Nil
-      | (K, depth, (SClo (S, s'), s)) ->
-          abstractSpine (K, depth, (S, (I.comp (s', s))))
-      | (K, depth, (App (__u, S), s)) ->
+            ((n - 1), __K, depth, s,
+              (I.App ((abstractExp (__K, depth, (__U, I.id))), __S)))
+    let rec abstractSpine __49__ __50__ __51__ =
+      match (__49__, __50__, __51__) with
+      | (__K, depth, (I.Nil, _)) -> I.Nil
+      | (__K, depth, (SClo (__S, s'), s)) ->
+          abstractSpine (__K, depth, (__S, (I.comp (s', s))))
+      | (__K, depth, (App (__U, __S), s)) ->
           I.App
-            ((abstractExp (K, depth, (__u, s))),
-              (abstractSpine (K, depth, (S, s))))
-    let rec abstractDec (K, depth, (Dec (x, __v), s)) =
-      I.Dec (x, (abstractExp (K, depth, (__v, s))))
+            ((abstractExp (__K, depth, (__U, s))),
+              (abstractSpine (__K, depth, (__S, s))))
+    let rec abstractDec (__K) depth (Dec (x, __V), s) =
+      I.Dec (x, (abstractExp (__K, depth, (__V, s))))
     let rec getLevel =
       function
       | Uni _ -> I.Kind
-      | Pi (_, __u) -> getLevel __u
+      | Pi (_, __U) -> getLevel __U
       | Root _ -> I.Type
-      | Redex (__u, _) -> getLevel __u
-      | Lam (_, __u) -> getLevel __u
-      | EClo (__u, _) -> getLevel __u
-    let rec checkType (__v) =
-      match getLevel __v with
+      | Redex (__U, _) -> getLevel __U
+      | Lam (_, __U) -> getLevel __U
+      | EClo (__U, _) -> getLevel __U
+    let rec checkType (__V) =
+      match getLevel __V with
       | I.Type -> ()
       | _ -> raise (Error "Typing ambiguous -- free type variable")
     let rec abstractCtx =
       function
       | I.Null -> (I.Null, I.Null)
-      | Decl (K', EV (_, __v', (Lemma b as T), _)) ->
-          let __v'' = abstractExp (K', 0, (__v', I.id)) in
-          let _ = checkType __v'' in
-          let (__g', B') = abstractCtx K' in
-          let __d' = I.Dec (None, __v'') in ((I.Decl (__g', __d')), (I.Decl (B', T)))
-      | Decl (K', EV (_, __v', (S.None as T), _)) ->
-          let __v'' = abstractExp (K', 0, (__v', I.id)) in
-          let _ = checkType __v'' in
-          let (__g', B') = abstractCtx K' in
-          let __d' = I.Dec (None, __v'') in
-          ((I.Decl (__g', __d')), (I.Decl (B', S.None)))
-      | Decl (K', BV (__d, T)) ->
-          let __d' = abstractDec (K', 0, (__d, I.id)) in
-          let (__g', B') = abstractCtx K' in
-          ((I.Decl (__g', __d')), (I.Decl (B', T)))
-    let rec abstractGlobalSub =
-      function
-      | (K, Shift _, I.Null) -> I.Shift (I.ctxLength K)
-      | (K, Shift n, (Decl _ as B)) ->
+      | Decl (__K', EV (_, __V', (Lemma b as T), _)) ->
+          let V'' = abstractExp (__K', 0, (__V', I.id)) in
+          let _ = checkType V'' in
+          let (__G', __B') = abstractCtx __K' in
+          let __D' = I.Dec (NONE, V'') in
+          ((I.Decl (__G', __D')), (I.Decl (__B', __T)))
+      | Decl (__K', EV (_, __V', (S.None as T), _)) ->
+          let V'' = abstractExp (__K', 0, (__V', I.id)) in
+          let _ = checkType V'' in
+          let (__G', __B') = abstractCtx __K' in
+          let __D' = I.Dec (NONE, V'') in
+          ((I.Decl (__G', __D')), (I.Decl (__B', S.None)))
+      | Decl (__K', BV (__D, __T)) ->
+          let __D' = abstractDec (__K', 0, (__D, I.id)) in
+          let (__G', __B') = abstractCtx __K' in
+          ((I.Decl (__G', __D')), (I.Decl (__B', __T)))
+    let rec abstractGlobalSub __52__ __53__ __54__ =
+      match (__52__, __53__, __54__) with
+      | (__K, Shift _, I.Null) -> I.Shift (I.ctxLength __K)
+      | (__K, Shift n, (Decl _ as B)) ->
           abstractGlobalSub
-            (K, (I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), B)
-      | (K, Dot (Idx k, s'), Decl (B, (Parameter _ as T))) ->
-          I.Dot ((I.Idx (lookupBV (K, k))), (abstractGlobalSub (K, s', B)))
-      | (K, Dot (Exp (__u), s'), Decl (B, (Lemma _ as T))) ->
+            (__K, (I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), __B)
+      | (__K, Dot (Idx k, s'), Decl (__B, (Parameter _ as T))) ->
           I.Dot
-            ((I.Exp (abstractExp (K, 0, (__u, I.id)))),
-              (abstractGlobalSub (K, s', B)))
-    let rec collectGlobalSub =
-      function
-      | (G0, Shift _, I.Null, collect) -> collect
-      | (G0, s, (Decl (_, Parameter (Some l)) as B), collect) ->
-          let LabelDec (name, _, G2) = F.labelLookup l in
-          skip (G0, (List.length G2), s, B, collect)
-      | (G0, Dot (Exp (__u), s), Decl (B, T), collect) ->
+            ((I.Idx (lookupBV (__K, k))), (abstractGlobalSub (__K, s', __B)))
+      | (__K, Dot (Exp (__U), s'), Decl (__B, (Lemma _ as T))) ->
+          I.Dot
+            ((I.Exp (abstractExp (__K, 0, (__U, I.id)))),
+              (abstractGlobalSub (__K, s', __B)))
+    let rec collectGlobalSub __55__ __56__ __57__ __58__ =
+      match (__55__, __56__, __57__, __58__) with
+      | (__G0, Shift _, I.Null, collect) -> collect
+      | (__G0, s, (Decl (_, Parameter (Some l)) as B), collect) ->
+          let LabelDec (name, _, __G2) = F.labelLookup l in
+          skip (__G0, (List.length __G2), s, __B, collect)
+      | (__G0, Dot (Exp (__U), s), Decl (__B, __T), collect) ->
           collectGlobalSub
-            (G0, s, B,
-              (function
-               | (d, K) -> collect (d, (collectExp (T, d, G0, (__u, I.id), K)))))
-    let rec skip =
-      function
-      | (G0, 0, s, B, collect) -> collectGlobalSub (G0, s, B, collect)
-      | (Decl (G0, __d), n, s, Decl (B, (Parameter _ as T)), collect) ->
+            (__G0, s, __B,
+              (fun d ->
+                 fun (__K) ->
+                   collect (d, (collectExp (__T, d, __G0, (__U, I.id), __K)))))
+    let rec skip __59__ __60__ __61__ __62__ __63__ =
+      match (__59__, __60__, __61__, __62__, __63__) with
+      | (__G0, 0, s, __B, collect) ->
+          collectGlobalSub (__G0, s, __B, collect)
+      | (Decl (__G0, __D), n, s, Decl (__B, (Parameter _ as T)), collect) ->
           skip
-            (G0, (n - 1), (I.invDot1 s), B,
-              (function
-               | (d, K) -> collect ((d + 1), (I.Decl (K, (BV (__d, T)))))))
-    let rec abstractNew ((G0, B0), s, B) =
-      let cf = collectGlobalSub (G0, s, B, (function | (_, K') -> K')) in
-      let K = cf (0, I.Null) in
-      ((abstractCtx K), (abstractGlobalSub (K, s, B)))
-    let rec abstractSubAll (t, B1, (G0, B0), s, B) =
-      let rec skip'' =
-        function
-        | (K, (I.Null, I.Null)) -> K
-        | (K, (Decl (G0, __d), Decl (B0, T))) ->
-            I.Decl ((skip'' (K, (G0, B0))), (BV (__d, T))) in
-      let collect2 = collectGlobalSub (G0, s, B, (function | (_, K') -> K')) in
+            (__G0, (n - 1), (I.invDot1 s), __B,
+              (fun d ->
+                 fun (__K) ->
+                   collect ((d + 1), (I.Decl (__K, (BV (__D, __T)))))))
+    let rec abstractNew (__G0, __B0) s (__B) =
+      let cf = collectGlobalSub (__G0, s, __B, (fun _ -> fun (__K') -> __K')) in
+      let __K = cf (0, I.Null) in
+      ((abstractCtx __K), (abstractGlobalSub (__K, s, __B)))
+    let rec abstractSubAll t (__B1) (__G0, __B0) s (__B) =
+      let rec skip'' __64__ __65__ =
+        match (__64__, __65__) with
+        | (__K, (I.Null, I.Null)) -> __K
+        | (__K, (Decl (__G0, __D), Decl (__B0, __T))) ->
+            I.Decl ((skip'' (__K, (__G0, __B0))), (BV (__D, __T))) in
+      let collect2 =
+        collectGlobalSub (__G0, s, __B, (fun _ -> fun (__K') -> __K')) in
       let collect0 =
-        collectGlobalSub (I.Null, t, B1, (function | (_, K') -> K')) in
-      let K0 = collect0 (0, I.Null) in
-      let K1 = skip'' (K0, (G0, B0)) in
-      let d = I.ctxLength G0 in
-      let K = collect2 (d, K1) in
-      ((abstractCtx K), (abstractGlobalSub (K, s, B)))
-    let rec abstractFor =
-      function
-      | (K, depth, (All (Prim (__d), F), s)) ->
+        collectGlobalSub (I.Null, t, __B1, (fun _ -> fun (__K') -> __K')) in
+      let __K0 = collect0 (0, I.Null) in
+      let __K1 = skip'' (__K0, (__G0, __B0)) in
+      let d = I.ctxLength __G0 in
+      let __K = collect2 (d, __K1) in
+      ((((abstractCtx __K), (abstractGlobalSub (__K, s, __B))))
+        (* skip'' (K, (G, B)) = K'
+
+             Invariant:
+             If   G = x1:V1 .. xn:Vn
+             and  G |- B = <param> ... <param> tags
+             then  K' = K, BV (x1) .. BV (xn)
+          *))
+    let rec abstractFor __66__ __67__ __68__ =
+      match (__66__, __67__, __68__) with
+      | (__K, depth, (All (Prim (__D), __F), s)) ->
           F.All
-            ((F.Prim (abstractDec (K, depth, (__d, s)))),
-              (abstractFor (K, (depth + 1), (F, (I.dot1 s)))))
-      | (K, depth, (Ex (__d, F), s)) ->
+            ((F.Prim (abstractDec (__K, depth, (__D, s)))),
+              (abstractFor (__K, (depth + 1), (__F, (I.dot1 s)))))
+      | (__K, depth, (Ex (__D, __F), s)) ->
           F.Ex
-            ((abstractDec (K, depth, (__d, s))),
-              (abstractFor (K, (depth + 1), (F, (I.dot1 s)))))
-      | (K, depth, (F.True, s)) -> F.True
-      | (K, depth, (And (__F1, __F2), s)) ->
+            ((abstractDec (__K, depth, (__D, s))),
+              (abstractFor (__K, (depth + 1), (__F, (I.dot1 s)))))
+      | (__K, depth, (F.True, s)) -> F.True
+      | (__K, depth, (And (__F1, __F2), s)) ->
           F.And
-            ((abstractFor (K, depth, (__F1, s))),
-              (abstractFor (K, depth, (__F2, s))))
-    let rec allClo =
-      function
-      | (I.Null, F) -> F
-      | (Decl (Gx, __d), F) -> allClo (Gx, (F.All ((F.Prim __d), F)))
+            ((abstractFor (__K, depth, (__F1, s))),
+              (abstractFor (__K, depth, (__F2, s))))
+    let rec allClo __69__ __70__ =
+      match (__69__, __70__) with
+      | (I.Null, __F) -> __F
+      | (Decl (Gx, __D), __F) -> allClo (Gx, (F.All ((F.Prim __D), __F)))
     let rec convert =
       function
       | I.Null -> I.Null
-      | Decl (__g, __d) -> I.Decl ((convert __g), (BV (__d, (S.Parameter None))))
+      | Decl (__G, __D) ->
+          I.Decl ((convert __G), (BV (__D, (S.Parameter NONE))))
     let rec createEmptyB =
       function | 0 -> I.Null | n -> I.Decl ((createEmptyB (n - 1)), S.None)
-    let rec lower =
-      function
+    let rec lower __71__ __72__ =
+      match (__71__, __72__) with
       | (_, 0) -> I.Null
-      | (Decl (__g, __d), n) -> I.Decl ((lower (__g, (n - 1))), __d)
-    let rec split =
-      function
-      | (__g, 0) -> (__g, I.Null)
-      | (Decl (__g, __d), n) ->
-          let (G1, G2) = split (__g, (n - 1)) in (G1, (I.Decl (G2, __d)))
+      | (Decl (__G, __D), n) -> I.Decl ((lower (__G, (n - 1))), __D)
+    let rec split __73__ __74__ =
+      match (__73__, __74__) with
+      | (__G, 0) -> (__G, I.Null)
+      | (Decl (__G, __D), n) ->
+          let (__G1, __G2) = split (__G, (n - 1)) in
+          (__G1, (I.Decl (__G2, __D)))
     let rec shift =
-      function | I.Null -> I.shift | Decl (__g, _) -> I.dot1 (shift __g)
-    let rec ctxSub =
-      function
+      function | I.Null -> I.shift | Decl (__G, _) -> I.dot1 (shift __G)
+    let rec ctxSub __75__ __76__ =
+      match (__75__, __76__) with
       | (nil, s) -> nil
-      | ((__d)::__g, s) -> (::) (I.decSub (__d, s)) ctxSub (__g, (I.dot1 s))
-    let rec weaken2 =
-      function
-      | (I.Null, a, i) -> (I.id, ((function | S -> S)))
-      | (Decl (__g', (Dec (name, __v) as __d)), a, i) ->
-          let (w', S') = weaken2 (__g', a, (i + 1)) in
-          if Subordinate.belowEq ((I.targetFam __v), a)
+      | ((__D)::__G, s) -> (::) (I.decSub (__D, s)) ctxSub (__G, (I.dot1 s))
+    let rec weaken2 __77__ __78__ __79__ =
+      match (__77__, __78__, __79__) with
+      | (I.Null, a, i) -> (I.id, ((fun (__S) -> __S)))
+      | (Decl (__G', (Dec (name, __V) as D)), a, i) ->
+          let (w', __S') = weaken2 (__G', a, (i + 1)) in
+          if Subordinate.belowEq ((I.targetFam __V), a)
           then
             ((I.dot1 w'),
-              ((function | S -> I.App ((I.Root ((I.BVar i), I.Nil)), S))))
-          else ((I.comp (w', I.shift)), S')
-    let rec raiseType =
-      function
-      | (I.Null, __v) -> __v
-      | (Decl (__g, __d), __v) ->
+              ((fun (__S) -> I.App ((I.Root ((I.BVar i), I.Nil)), __S))))
+          else ((I.comp (w', I.shift)), __S')
+    let rec raiseType __80__ __81__ =
+      match (__80__, __81__) with
+      | (I.Null, __V) -> __V
+      | (Decl (__G, __D), __V) ->
           raiseType
-            (__g,
+            (__G,
               (Abstract.piDepend
-                 (((Whnf.normalizeDec (__d, I.id)), I.Maybe), __v)))
-    let rec raiseFor =
-      function
-      | (k, Gorig, (F.True as F), w, sc) -> F
-      | (k, Gorig, Ex (Dec (name, __v), F), w, sc) ->
-          let __g = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
-          let g = I.ctxLength __g in
+                 (((Whnf.normalizeDec (__D, I.id)), I.Maybe), __V)))
+    let rec raiseFor __82__ __83__ __84__ __85__ __86__ =
+      match (__82__, __83__, __84__, __85__, __86__) with
+      | (k, Gorig, (F.True as F), w, sc) -> __F
+      | (k, Gorig, Ex (Dec (name, __V), __F), w, sc) ->
+          let __G = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
+          let g = I.ctxLength __G in
           let s = sc (w, k) in
-          let __v' = I.EClo (__v, s) in
-          let (nw, S) = weaken2 (__g, (I.targetFam __v), 1) in
+          let __V' = I.EClo (__V, s) in
+          let (nw, __S) = weaken2 (__G, (I.targetFam __V), 1) in
           let iw = Whnf.invert nw in
-          let Gw = Whnf.strengthen (iw, __g) in
-          let __v'' = Whnf.normalize (__v', iw) in
-          let __v''' = Whnf.normalize ((raiseType (Gw, __v'')), I.id) in
-          let S''' = S I.Nil in
-          let sc' =
-            function
-            | (w', k') ->
-                let s' = sc (w', k') in
-                I.Dot ((I.Exp (I.Root ((I.BVar ((g + k') - k)), S'''))), s') in
-          let __F' = raiseFor ((k + 1), Gorig, F, (I.comp (w, I.shift)), sc') in
-          F.Ex ((I.Dec (name, __v''')), __F')
-      | (k, Gorig, All (Prim (Dec (name, __v)), F), w, sc) ->
-          let __g = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
-          let g = I.ctxLength __g in
+          let Gw = Whnf.strengthen (iw, __G) in
+          let V'' = Whnf.normalize (__V', iw) in
+          let V''' = Whnf.normalize ((raiseType (Gw, V'')), I.id) in
+          let S''' = __S I.Nil in
+          let sc' w' k' =
+            let s' = sc (w', k') in
+            ((I.Dot ((I.Exp (I.Root ((I.BVar ((g + k') - k)), S'''))), s'))
+              (* G0, GA |- w' : G0 *)(* G0, GA, G[..] |- s' : G0, G, GF *)
+              (* G0, GA, G[..] |- (g+k'-k). S', s' : G0, G, GF, V *)) in
+          let __F' =
+            raiseFor ((k + 1), Gorig, __F, (I.comp (w, I.shift)), sc') in
+          ((F.Ex ((I.Dec (name, V''')), __F'))
+            (* G0, {G}GF[..], G |- s : G0, G, GF *)(* G0, {G}GF[..], G |- V' : type *)
+            (* G0, {G}GF[..], G |- nw : G0, {G}GF[..], Gw
+                                         Gw < G *)
+            (* G0, {G}GF[..], Gw |- iw : G0, {G}GF[..], G *)
+            (* Generalize the invariant for Whnf.strengthen --cs *)
+            (* G0, {G}GF[..], Gw |- V'' = V'[iw] : type*)
+            (* G0, {G}GF[..] |- V''' = {Gw} V'' : type*)
+            (* G0, {G}GF[..], G[..] |- S''' : {Gw} V''[..] > V''[..] *)
+            (* G0, {G}GF[..], G |- s : G0, G, GF *))
+      | (k, Gorig, All (Prim (Dec (name, __V)), __F), w, sc) ->
+          let __G = F.listToCtx (ctxSub ((F.ctxToList Gorig), w)) in
+          let g = I.ctxLength __G in
           let s = sc (w, k) in
-          let __v' = I.EClo (__v, s) in
-          let (nw, S) = weaken2 (__g, (I.targetFam __v), 1) in
+          let __V' = I.EClo (__V, s) in
+          let (nw, __S) = weaken2 (__G, (I.targetFam __V), 1) in
           let iw = Whnf.invert nw in
-          let Gw = Whnf.strengthen (iw, __g) in
-          let __v'' = Whnf.normalize (__v', iw) in
-          let __v''' = Whnf.normalize ((raiseType (Gw, __v'')), I.id) in
-          let S''' = S I.Nil in
-          let sc' =
-            function
-            | (w', k') ->
-                let s' = sc (w', k') in
-                I.Dot ((I.Exp (I.Root ((I.BVar ((g + k') - k)), S'''))), s') in
-          let __F' = raiseFor ((k + 1), Gorig, F, (I.comp (w, I.shift)), sc') in
-          F.All ((F.Prim (I.Dec (name, __v'''))), __F')
-    let rec extend =
-      function
-      | (K, nil) -> K
-      | (K, (__d)::__l) -> extend ((I.Decl (K, (BV (__d, S.None)))), __l)
-    let rec makeFor =
-      function
-      | (K, w, Head (__g, (F, s), d)) ->
+          let Gw = Whnf.strengthen (iw, __G) in
+          let V'' = Whnf.normalize (__V', iw) in
+          let V''' = Whnf.normalize ((raiseType (Gw, V'')), I.id) in
+          let S''' = __S I.Nil in
+          let sc' w' k' =
+            let s' = sc (w', k') in
+            ((I.Dot ((I.Exp (I.Root ((I.BVar ((g + k') - k)), S'''))), s'))
+              (* G0, GA |- w' : G0 *)(* G0, GA, G[..] |- s' : G0, G, GF *)
+              (* G0, GA, G[..] |- (g+k'-k). S', s' : G0, G, GF, V *)) in
+          let __F' =
+            raiseFor ((k + 1), Gorig, __F, (I.comp (w, I.shift)), sc') in
+          ((F.All ((F.Prim (I.Dec (name, V'''))), __F'))
+            (*                val G = F.listToCtx (ctxSub (F.ctxToList Gorig, w))
+                  val g = I.ctxLength G
+                  val s = sc (w, k)
+                                         G0, {G}GF[..], G |- s : G0, G, GF *)
+            (* G0, {G}GF[..] |- V' = {G}(V[s]) : type *)
+            (* G0, {G}GF[..] |- S' > {G}(V[s]) > V[s] *)
+            (* G0, GA |- w' : G0 *)(* G0, GA, G[..] |- s' : G0, G, GF *)
+            (* G0, GA, G[..] |- g+k'-k. S', s' : G0, G, GF, V *)
+            (* G0, {G}GF[..], G |- s : G0, G, GF *)(* G0, {G}GF[..], G |- V' : type *)
+            (* G0, {G}GF[..], G |- nw : G0, {G}GF[..], Gw
+                                         Gw < G *)
+            (* G0, {G}GF[..], Gw |- iw : G0, {G}GF[..], G *)
+            (* Generalize the invariant for Whnf.strengthen --cs *)
+            (* G0, {G}GF[..], Gw |- V'' = V'[iw] : type*)
+            (* G0, {G}GF[..] |- V''' = {Gw} V'' : type*)
+            (* G0, {G}GF[..], G[..] |- S''' : {Gw} V''[..] > V''[..] *)
+            (* G0, {G}GF[..], G |- s : G0, G, GF *))
+    let rec extend __87__ __88__ =
+      match (__87__, __88__) with
+      | (__K, nil) -> __K
+      | (__K, (__D)::__L) -> extend ((I.Decl (__K, (BV (__D, S.None)))), __L)
+    let rec makeFor __89__ __90__ __91__ =
+      match (__89__, __90__, __91__) with
+      | (__K, w, Head (__G, (__F, s), d)) ->
           let cf =
             collectGlobalSub
-              (__g, s, (createEmptyB d), (function | (_, K') -> K')) in
-          let k = I.ctxLength K in
-          let K' = cf ((I.ctxLength __g), K) in
-          let k' = I.ctxLength K' in
-          let (GK, BK) = abstractCtx K' in
+              (__G, s, (createEmptyB d), (fun _ -> fun (__K') -> __K')) in
+          let k = I.ctxLength __K in
+          let __K' = cf ((I.ctxLength __G), __K) in
+          let k' = I.ctxLength __K' in
+          let (GK, BK) = abstractCtx __K' in
           let _ =
             if !Global.doubleCheck then TypeCheck.typeCheckCtx GK else () in
           let w' = I.comp (w, (I.Shift (k' - k))) in
-          let FK = abstractFor (K', 0, (F, s)) in
+          let FK = abstractFor (__K', 0, (__F, s)) in
           let _ =
             if !Global.doubleCheck then FunTypeCheck.isFor (GK, FK) else () in
-          let (GK1, GK2) = split (GK, (k' - k)) in (GK1, (allClo (GK2, FK)))
-      | (K, w, Block ((__g, t, d, G2), AF)) ->
-          let k = I.ctxLength K in
+          let (GK1, GK2) = split (GK, (k' - k)) in
+          (((GK1, (allClo (GK2, FK))))
+            (*        val _ = if !Global.doubleCheck then checkTags (GK, BK) else () *))
+      | (__K, w, Block ((__G, t, d, __G2), AF)) ->
+          let k = I.ctxLength __K in
           let collect =
             collectGlobalSub
-              (__g, t, (createEmptyB d), (function | (_, K') -> K')) in
-          let K' = collect ((I.ctxLength __g), K) in
-          let k' = I.ctxLength K' in
-          let K'' = extend (K', G2) in
+              (__G, t, (createEmptyB d), (fun _ -> fun (__K') -> __K')) in
+          let __K' = collect ((I.ctxLength __G), __K) in
+          let k' = I.ctxLength __K' in
+          let K'' = extend (__K', __G2) in
           let w' =
-            F.dot1n ((F.listToCtx G2), (I.comp (w, (I.Shift (k' - k))))) in
+            F.dot1n ((F.listToCtx __G2), (I.comp (w, (I.Shift (k' - k))))) in
           let (GK, __F') = makeFor (K'', w', AF) in
           let _ =
             if !Global.doubleCheck then FunTypeCheck.isFor (GK, __F') else () in
-          let (GK1, GK2) = split (GK, (List.length G2)) in
-          let __F'' =
+          let (GK1, GK2) = split (GK, (List.length __G2)) in
+          let F'' =
             raiseFor
-              (0, GK2, __F', I.id, (function | (w, _) -> F.dot1n (GK2, w))) in
+              (0, GK2, __F', I.id, (fun w -> fun _ -> F.dot1n (GK2, w))) in
           let _ =
-            if !Global.doubleCheck then FunTypeCheck.isFor (GK1, __F'') else () in
+            if !Global.doubleCheck then FunTypeCheck.isFor (GK1, F'') else () in
           let (GK11, GK12) = split (GK1, (k' - k)) in
-          let __F''' = allClo (GK12, __F'') in
+          let F''' = allClo (GK12, F'') in
           let _ =
             if !Global.doubleCheck
-            then FunTypeCheck.isFor (GK11, __F''')
+            then FunTypeCheck.isFor (GK11, F''')
             else () in
-          (GK11, __F''')
+          (((GK11, F'''))(* BUG *))
     let rec abstractApproxFor =
       function
-      | Head (__g, _, _) as AF ->
-          let (_, F) = makeFor ((convert __g), I.id, AF) in F
-      | Block ((__g, _, _, _), _) as AF ->
-          let (_, F) = makeFor ((convert __g), I.id, AF) in F
-    (* Intermediate Data Structure *)
-    (* y ::= (x , {G2} __v)  if {G1, G2 |- x : __v
-                                          |G1| = d *)
-    (*
-       We write {{K}} for the context of K, where EVars and BVars have
-       been translated to declarations and their occurrences to BVars.
-       We write {{__u}}_K, {{S}}_K for the corresponding translation of an
-       expression or spine.
-
-       Just like contexts __g, any K is implicitly assumed to be
-       well-formed and in dependency order.
-
-       We write  K ||- __u  if all EVars and BVars in __u are collected in K.
-       In particular, . ||- __u means __u contains no EVars or BVars.  Similarly,
-       for spines K ||- S and other syntactic categories.
-
-       Collection and abstraction raise Error if there are unresolved
-       constraints after simplification.
-    *)
-    (* checkEmpty Cnstr = ()
-       raises Error exception if constraints Cnstr cannot be simplified
-       to the empty constraint
-    *)
-    (* eqEVar x y = B
-       where B iff x and y represent same variable
-    *)
-    (* exists P K = B
-       where B iff K = K1, y, K2  s.t. P y  holds
-    *)
-    (* occursInExp (k, __u) = DP,
-
-       Invariant:
-       If    __u in nf
-       then  DP = No      iff k does not occur in __u
-             DP = Maybe   iff k occurs in __u some place not as an argument to a Skonst
-             DP = Meta    iff k occurs in __u and only as arguments to Skonsts
-    *)
-    (* no case for Redex, EVar, EClo *)
-    (* no case for FVar *)
-    (* no case for SClo *)
-    (* piDepend ((__d,P), __v) = Pi ((__d,__P'), __v)
-       where __P' = Maybe if __d occurs in __v, __P' = No otherwise
-    *)
-    (* optimize to have fewer traversals? -cs *)
-    (* pre-Twelf 1.2 code walk Fri May  8 11:17:10 1998 *)
-    (* weaken (depth,  __g, a) = (w')
-    *)
-    (* raiseType (__g, __v) = {{__g}} __v
-
-       Invariant:
-       If __g |- __v : __l
-       then  . |- {{__g}} __v : __l
-
-       All abstractions are potentially dependent.
-    *)
-    (* collectExpW (T, d, __g, (__u, s), K) = K'
-
-       Invariant:
-       If    __g |- s : G1     G1 |- __u : __v      (__u,s) in whnf
-       No circularities in __u
-             (enforced by extended occurs-check for BVars in Unify)
-       and   K' = K, K''
-             where K'' contains all EVars and BVars in (__u,s)
-    *)
-    (* Possible optimization: Calculate also the normal form of the term *)
-    (* optimization possible for d = 0 *)
-    (* hack - should consult cs    -rv *)
-    (* No other cases can occur due to whnf invariant *)
-    (* collectExp (T, d, __g, (__u, s), K) = K'
-
-       same as collectExpW  but  (__u,s) need not to be in whnf
-    *)
-    (* collectSpine (T, d, __g, (S, s), K) = K'
-
-       Invariant:
-       If    __g |- s : G1     G1 |- S : __v > P
-       then  K' = K, K''
-       where K'' contains all EVars and BVars in (S, s)
-     *)
-    (* collectDec (T, d, __g, (x:__v, s), K) = K'
-
-       Invariant:
-       If    __g |- s : G1     G1 |- __v : __l
-       then  K' = K, K''
-       where K'' contains all EVars and BVars in (__v, s)
-    *)
-    (* collectSub (T, d, __g, s, K) = K'
-
-       Invariant:
-       If    __g |- s : G1
-       then  K' = K, K''
-       where K'' contains all EVars and BVars in s
-    *)
-    (* abstractEVar (K, depth, x) = C'
-
-       Invariant:
-       If   __g |- x : __v
-       and  |__g| = depth
-       and  x occurs in K  at kth position (starting at 1)
-       then C' = BVar (depth + k)
-       and  {{K}}, __g |- C' : __v
-    *)
-    (* lookupBV (A, i) = k'
-
-       Invariant:
-
-       If   A ||- __v
-       and  __g |- __v type
-       and  __g [x] A |- i : __v'
-       then ex a substititution  __g x A |- s : __g [x] A
-       and  __g x A |- k' : __v''
-       and  __g x A |- __v' [s] = __v'' : type
-    *)
-    (* lookupBV' I.Null cannot occur by invariant *)
-    (* abstractExpW (K, depth, (__u, s)) = __u'
-       __u' = {{__u[s]}}_K
-
-       Invariant:
-       If    __g |- s : G1     G1 |- __u : __v    (__u,s) is in whnf
-       and   K is internal context in dependency order
-       and   |__g| = depth
-       and   K ||- __u and K ||- __v
-       then  {{K}}, __g |- __u' : __v'
-       and   . ||- __u' and . ||- __v'
-       and   __u' is in nf
-    *)
-    (* s = id *)
-    (* hack - should consult cs   -rv *)
-    (* abstractExp (K, depth, (__u, s)) = __u'
-
-       same as abstractExpW, but (__u,s) need not to be in whnf
-    *)
-    (* abstractSub (K, depth, s, S) = S'      (implicit raising)
-       S' = {{s}}_K @@ S
-
-       Invariant:
-       If   __g |- s : G1
-       and  |__g| = depth
-       and  K ||- s
-       then {{K}}, __g |- S' : {G1}.W > W   (for some W)
-       and  . ||- S'
-    *)
-    (* n = 0 *)
-    (* abstractSpine (K, depth, (S, s)) = S'
-       where S' = {{S[s]}}_K
-
-       Invariant:
-       If   __g |- s : G1     G1 |- S : __v > P
-       and  K ||- S
-       and  |__g| = depth
-
-       then {{K}}, __g |- S' : __v' > __P'
-       and  . ||- S'
-    *)
-    (* abstractDec (K, depth, (x:__v, s)) = x:__v'
-       where __v = {{__v[s]}}_K
-
-       Invariant:
-       If   __g |- s : G1     G1 |- __v : __l
-       and  K ||- __v
-       and  |__g| = depth
-
-       then {{K}}, __g |- __v' : __l
-       and  . ||- __v'
-    *)
-    (* getlevel (__v) = __l if __g |- __v : __l
-
-       Invariant: __g |- __v : __l' for some __l'
-    *)
-    (* checkType (__v) = () if __g |- __v : type
-
-       Invariant: __g |- __v : __l' for some __l'
-    *)
-    (* abstractCtx (K, __v) = __v'
-       where __v' = {{K}} __v
-
-       Invariant:
-       If   {{K}} |- __v : __l
-       and  . ||- __v
-
-       then __v' = {{K}} __v
-       and  . |- __v' : __l
-       and  . ||- __v'
-    *)
-    (* abstractGlobalSub (K, s, B) = s'
-
-       Invariant:
-       If   K > __g   aux context
-       and  __g |- s : __g'
-       then K |- s' : __g'
-    *)
-    (* collectGlobalSub (G0, s, B, collect) = collect'
-
-       Invariant:
-       If   |- G0 ctx
-       and  |- __g ctx
-       and  __g |- B tags
-       and  G0 |- s : __g
-       and  collect is a function which maps
-               (d, K)  (d expresses the number of parameters in K, |- K aux ctx)
-            to K'      (|- K' aux ctx, which collects all EVars in K)
-    *)
-    (* no cases for (G0, s, B as I.Decl (_, S.Parameter None), collect) *)
-    (* abstractNew ((G0, B0), s, B) = ((__g', B'), s')
-
-       Invariant:
-       If   . |- G0 ctx
-       and  G0 |- B0 tags
-       and  G0 |- s : __g
-       and  __g |- B tags
-       then . |- __g' = G1, Gp, G2
-       and  __g' |- B' tags
-       and  __g' |- s' : __g
-    *)
-    (* abstractSub (t, B1, (G0, B0), s, B) = ((__g', B'), s')
-
-       Invariant:
-       If   . |- t : G1
-       and  G1 |- B1 tags
-
-       and  G0 |- B0 tags
-       and  G0 |- s : __g
-       and  __g |- B tags
-       then . |- __g' = G1, G0, G2
-       and  B' |- __g' tags
-       and  __g' |- s' : __g
-    *)
-    (* skip'' (K, (__g, B)) = K'
-
-             Invariant:
-             If   __g = x1:V1 .. xn:Vn
-             and  __g |- B = <param> ... <param> tags
-             then  K' = K, BV (x1) .. BV (xn)
-          *)
-    (* abstractFor (K, depth, (F, s)) = __F'
-       __F' = {{F[s]}}_K
-
-       Invariant:
-       If    __g |- s : G1     G1 |- __u : __v    (__u,s) is in whnf
-       and   K is internal context in dependency order
-       and   |__g| = depth
-       and   K ||- __u and K ||- __v
-       then  {{K}}, __g |- __u' : __v'
-       and   . ||- __u' and . ||- __v'
-       and   __u' is in nf
-    *)
-    (* abstract (Gx, F) = __F'
-
-       Invariant:
-       If   __g, Gx |- F formula
-       then __g |- __F' = {{Gx}} F formula
-    *)
-    (* shift __g = s'
-
-       Invariant:
-       Forall contexts G0:
-       If   |- G0, __g ctx
-       then G0, __v, __g |- s' : G0, __g
-    *)
-    (* ctxSub (__g, s) = __g'
-
-       Invariant:
-       If   G2 |- s : G1
-       and  G1 |- __g ctx
-       then G2 |- __g' = __g[s] ctx
-    *)
-    (* weaken2 (__g, a, i, S) = w'
-
-       Invariant:
-       __g |- w' : Gw
-       Gw < __g
-       __g |- S : {Gw} __v > __v
-    *)
-    (* raiseType (__g, __v) = {{__g}} __v
-
-       Invariant:
-       If __g |- __v : __l
-       then  . |- {{__g}} __v : __l
-
-       All abstractions are potentially dependent.
-    *)
-    (* raiseFor (__g, F, w, sc) = __F'
-
-       Invariant:
-       If   G0 |- __g ctx
-       and  G0, __g, GF |- F for
-       and  G0, {__g} GF [...] |- w : G0
-       and  sc maps  (G0, GA |- w : G0, |GA|)  to   (G0, GA, __g[..] |- s : G0, __g, GF)
-       then G0, {__g} GF |- __F' for
-    *)
-    (* G0, {__g}GF[..], __g |- s : G0, __g, GF *)
-    (* G0, {__g}GF[..], __g |- __v' : type *)
-    (* G0, {__g}GF[..], __g |- nw : G0, {__g}GF[..], Gw
-                                         Gw < __g *)
-    (* G0, {__g}GF[..], Gw |- iw : G0, {__g}GF[..], __g *)
-    (* Generalize the invariant for Whnf.strengthen --cs *)
-    (* G0, {__g}GF[..], Gw |- __v'' = __v'[iw] : type*)
-    (* G0, {__g}GF[..] |- __v''' = {Gw} __v'' : type*)
-    (* G0, {__g}GF[..], __g[..] |- S''' : {Gw} __v''[..] > __v''[..] *)
-    (* G0, {__g}GF[..], __g |- s : G0, __g, GF *)
-    (* G0, GA |- w' : G0 *)
-    (* G0, GA, __g[..] |- s' : G0, __g, GF *)
-    (* G0, GA, __g[..] |- (g+k'-k). S', s' : G0, __g, GF, __v *)
-    (*                val __g = F.listToCtx (ctxSub (F.ctxToList Gorig, w))
-                  val g = I.ctxLength __g
-                  val s = sc (w, k)
-                                         G0, {__g}GF[..], __g |- s : G0, __g, GF *)
-    (* G0, {__g}GF[..] |- __v' = {__g}(__v[s]) : type *)
-    (* G0, {__g}GF[..] |- S' > {__g}(__v[s]) > __v[s] *)
-    (* G0, GA |- w' : G0 *)
-    (* G0, GA, __g[..] |- s' : G0, __g, GF *)
-    (* G0, GA, __g[..] |- g+k'-k. S', s' : G0, __g, GF, __v *)
-    (* G0, {__g}GF[..], __g |- s : G0, __g, GF *)
-    (* G0, {__g}GF[..], __g |- __v' : type *)
-    (* G0, {__g}GF[..], __g |- nw : G0, {__g}GF[..], Gw
-                                         Gw < __g *)
-    (* G0, {__g}GF[..], Gw |- iw : G0, {__g}GF[..], __g *)
-    (* Generalize the invariant for Whnf.strengthen --cs *)
-    (* G0, {__g}GF[..], Gw |- __v'' = __v'[iw] : type*)
-    (* G0, {__g}GF[..] |- __v''' = {Gw} __v'' : type*)
-    (* G0, {__g}GF[..], __g[..] |- S''' : {Gw} __v''[..] > __v''[..] *)
-    (* G0, {__g}GF[..], __g |- s : G0, __g, GF *)
-    (* G0, GA |- w' : G0 *)
-    (* G0, GA, __g[..] |- s' : G0, __g, GF *)
-    (* G0, GA, __g[..] |- (g+k'-k). S', s' : G0, __g, GF, __v *)
-    (* the other case of F.All (F.Block _, _) is not yet covered *)
-    (* makeFor (__g, w, AF) = __F'
-
-       Invariant :
-       If   |- __g ctx
-       and  __g |- w : __g'
-       and  __g' |- AF approx for
-       then __g'; . |- __F' = {EVARS} AF  for
-    *)
-    (*        val _ = if !Global.doubleCheck then checkTags (GK, BK) else () *)
-    (* BUG *)
+      | Head (__G, _, _) as AF ->
+          let (_, __F) = makeFor ((convert __G), I.id, AF) in __F
+      | Block ((__G, _, _, _), _) as AF ->
+          let (_, __F) = makeFor ((convert __G), I.id, AF) in __F
     let weaken = weaken
     let raiseType = raiseType
     let abstractSub = abstractSubAll

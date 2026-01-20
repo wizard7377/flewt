@@ -1,19 +1,14 @@
 
-(* Style Checking *)
-(* Author: Carsten Schuermann *)
 module type STYLECHECK  =
   sig
     exception Error of string 
     val check : unit -> unit
-    (* raises Error (msg) *)
     val checkConDec : IntSyn.cid -> unit
   end;;
 
 
 
 
-(* Style Checking *)
-(* Author: Carsten Schuermann *)
 module StyleCheck(StyleCheck:sig
                                module Whnf : WHNF
                                module Index : INDEX
@@ -30,9 +25,9 @@ module StyleCheck(StyleCheck:sig
       | Correct 
       | Incorrect of (string list * string) 
     let rec toggle = function | Plus -> Minus | Minus -> Plus
-    let rec wrapMsg (c, occ, msg) err =
+    let rec wrapMsg c occ msg err =
       match Origins.originLookup c with
-      | (fileName, None) -> (fileName ^ ":") ^ msg
+      | (fileName, NONE) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (err occDec occ))),
@@ -48,30 +43,30 @@ module StyleCheck(StyleCheck:sig
           else l'
     let rec options =
       function | n::nil -> n | n::l -> (n ^ ", ") ^ (options l)
-    let rec error c (prefNames, n, occ) err =
+    let rec error c prefNames n occ err =
       [wrapMsg
          (c, occ,
            (((((^) "Variable naming: expected " options prefNames) ^
                 " found ")
                ^ n)
               ^ "\n")) err]
-    let rec checkVariablename (n, prefNames) =
+    let rec checkVariablename n prefNames =
       if
         List.exists
-          (function | n' -> (=) (denumber (explode n)) denumber (explode n'))
+          (fun n' -> (=) (denumber (explode n)) denumber (explode n'))
           prefNames
       then Correct
       else Incorrect (prefNames, n)
-    let rec checkVar =
-      function
-      | (Dec (Some n, __v), pol) ->
-          (match Names.getNamePref (I.targetFam __v) with
-           | None -> Correct
+    let rec checkVar __0__ __1__ =
+      match (__0__, __1__) with
+      | (Dec (Some n, __V), pol) ->
+          (match Names.getNamePref (I.targetFam __V) with
+           | NONE -> Correct
            | Some (prefENames, prefUNames) ->
                (match pol with
                 | Plus -> checkVariablename (n, prefENames)
                 | Minus -> checkVariablename (n, prefUNames)))
-      | (Dec (None, __v), pol) -> Correct
+      | (Dec (NONE, __V), pol) -> Correct
     let rec implicitHead =
       function
       | BVar k -> 0
@@ -80,280 +75,130 @@ module StyleCheck(StyleCheck:sig
       | Def d -> I.constImp d
       | NSDef d -> I.constImp d
       | FgnConst _ -> 0
-    let rec checkExp arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), Uni _, occ), err) -> []
-      | (c, ((__g, P), Lam (__d, __u), occ), err) ->
-          checkDec c ((__g, P), __d, Minus, occ) err
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkExp c ((__g', __P'), __u, (P.body occ)) err)
-      | (c, ((__g, P), Root (H, S), occ), err) ->
-          (@) (checkHead c ((__g, P), H, (P.head occ)) err) checkSpine c
-            ((__g, P), 1, (implicitHead H), S, (P.body occ)) err
-      | (c, ((__g, P), FgnExp (_, _), occ), err) -> []
-    let rec checkType arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), Uni _, pol, occ), err) -> []
-      | (c, ((__g, P), Pi ((__d, I.Maybe), __v), pol, occ), err) ->
-          checkDec c ((__g, P), __d, pol, occ) err
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkType c ((__g', __P'), __v, pol, (P.body occ)) err)
-      | (c, ((__g, P), Pi ((__d, I.No), __v), pol, occ), err) ->
-          checkDec c ((__g, P), __d, pol, occ) err
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkType c ((__g', __P'), __v, pol, (P.body occ)) err)
-      | (c, ((__g, P), Root (H, S), pol, occ), err) ->
-          (@) (checkHead c ((__g, P), H, (P.head occ)) err) checkSpine c
-            ((__g, P), 1, (implicitHead H), S, (P.body occ)) err
-      | (c, ((__g, P), FgnExp (_, _), pol, occ), err) -> []
-    let rec checkDecImp ((__g, P), (Dec (_, __v) as __d), pol) k =
-      let I = checkVar (__d, pol) in k (((I.Decl (__g, __d)), (I.Decl (P, I))), [])
-    let rec checkDec c ((__g, P), (Dec (_, __v) as __d), pol, occ) err k =
-      let I = checkVar (__d, pol) in
-      let E1 =
-        match I with
+    let rec checkExp __2__ __3__ __4__ __5__ __6__ =
+      match (__2__, __3__, __4__, __5__, __6__) with
+      | (c, (__G, __P), Uni _, occ, err) -> []
+      | (c, (__G, __P), Lam (__D, __U), occ, err) ->
+          checkDec c ((__G, __P), __D, Minus, occ) err
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkExp c ((__G', __P'), __U, (P.body occ)) err)
+      | (c, (__G, __P), Root (__H, __S), occ, err) ->
+          (@) (checkHead c ((__G, __P), __H, (P.head occ)) err) checkSpine c
+            ((__G, __P), 1, (implicitHead __H), __S, (P.body occ)) err
+      | (c, (__G, __P), FgnExp (_, _), occ, err) -> []
+    let rec checkType __7__ __8__ __9__ __10__ __11__ __12__ =
+      match (__7__, __8__, __9__, __10__, __11__, __12__) with
+      | (c, (__G, __P), Uni _, pol, occ, err) -> []
+      | (c, (__G, __P), Pi ((__D, I.Maybe), __V), pol, occ, err) ->
+          checkDec c ((__G, __P), __D, pol, occ) err
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkType c ((__G', __P'), __V, pol, (P.body occ))
+                   err)
+      | (c, (__G, __P), Pi ((__D, I.No), __V), pol, occ, err) ->
+          checkDec c ((__G, __P), __D, pol, occ) err
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkType c ((__G', __P'), __V, pol, (P.body occ))
+                   err)
+      | (c, (__G, __P), Root (__H, __S), pol, occ, err) ->
+          (@) (checkHead c ((__G, __P), __H, (P.head occ)) err) checkSpine c
+            ((__G, __P), 1, (implicitHead __H), __S, (P.body occ)) err
+      | (c, (__G, __P), FgnExp (_, _), pol, occ, err) -> []
+    let rec checkDecImp (__G, __P) (Dec (_, __V) as D) pol k =
+      let __I = checkVar (__D, pol) in
+      k (((I.Decl (__G, __D)), (I.Decl (__P, __I))), [])
+    let rec checkDec c (__G, __P) (Dec (_, __V) as D) pol occ err k =
+      let __I = checkVar (__D, pol) in
+      let __E1 =
+        match __I with
         | Correct -> []
         | Incorrect (prefNames, n) -> error c (prefNames, n, occ) err in
-      let E2 = checkType c ((__g, P), __v, (toggle pol), (P.label occ)) err in
-      k (((I.Decl (__g, __d)), (I.Decl (P, I))), (E1 @ E2))
-    let rec checkHead arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), BVar k, occ), err) ->
-          (match I.ctxLookup (P, k) with
+      let __E2 =
+        checkType c ((__G, __P), __V, (toggle pol), (P.label occ)) err in
+      k (((I.Decl (__G, __D)), (I.Decl (__P, __I))), (__E1 @ __E2))
+    let rec checkHead __13__ __14__ __15__ __16__ __17__ =
+      match (__13__, __14__, __15__, __16__, __17__) with
+      | (c, (__G, __P), BVar k, occ, err) ->
+          (match I.ctxLookup (__P, k) with
            | Correct -> []
            | Incorrect (prefNames, n) -> error c (prefNames, n, occ) err)
-      | (c, ((__g, P), Const _, occ), err) -> []
-      | (c, ((__g, P), Skonst k, occ), err) -> []
-      | (c, ((__g, P), Def d, occ), err) -> []
-      | (c, ((__g, P), NSDef d, occ), err) -> []
-      | (c, ((__g, P), FgnConst _, occ), err) -> []
-    let rec checkSpine arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), n, 0, I.Nil, occ), err) -> []
-      | (c, ((__g, P), n, 0, App (__u, S), occ), err) ->
-          (@) (checkExp c ((__g, P), __u, (P.arg (n, occ))) err) checkSpine c
-            ((__g, P), (n + 1), 0, S, occ) err
-      | (c, ((__g, P), n, i, App (__u, S), occ), err) ->
-          checkSpine c ((__g, P), (n + 1), (i - 1), S, occ) err
-    let rec checkType' arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), 0, __v, occ), err) ->
-          checkType c ((__g, P), __v, Plus, occ) err
-      | (c, ((__g, P), n, Pi ((__d, I.Maybe), __v), occ), err) ->
-          checkDecImp ((__g, P), __d, Plus)
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkType' c ((__g', __P'), (n - 1), __v, (P.body occ)) err)
-    let rec checkExp' arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), Lam (__d, __u), occ), err) ->
-          checkDec c ((__g, P), __d, Plus, occ) err
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkExp' c ((__g', __P'), __u, (P.body occ)) err)
-      | (c, ((__g, P), __u, occ), err) -> checkExp c ((__g, P), __u, occ) err
-    let rec checkDef arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (c, ((__g, P), 0, __u, occ), err) -> checkExp' c ((__g, P), __u, occ) err
-      | (c, ((__g, P), n, Lam (__d, __u), occ), err) ->
-          checkDecImp ((__g, P), __d, Plus)
-            (function
-             | ((__g', __P'), __l') ->
-                 (@) __l' checkDef c ((__g', __P'), (n - 1), __u, (P.body occ)) err)
-    let rec checkConDec arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (c, ConDec (_, _, implicit, _, __u, _)) ->
+      | (c, (__G, __P), Const _, occ, err) -> []
+      | (c, (__G, __P), Skonst k, occ, err) -> []
+      | (c, (__G, __P), Def d, occ, err) -> []
+      | (c, (__G, __P), NSDef d, occ, err) -> []
+      | (c, (__G, __P), FgnConst _, occ, err) -> []
+    let rec checkSpine __18__ __19__ __20__ __21__ __22__ __23__ __24__ =
+      match (__18__, __19__, __20__, __21__, __22__, __23__, __24__) with
+      | (c, (__G, __P), n, 0, I.Nil, occ, err) -> []
+      | (c, (__G, __P), n, 0, App (__U, __S), occ, err) ->
+          (@) (checkExp c ((__G, __P), __U, (P.arg (n, occ))) err) checkSpine
+            c ((__G, __P), (n + 1), 0, __S, occ) err
+      | (c, (__G, __P), n, i, App (__U, __S), occ, err) ->
+          checkSpine c ((__G, __P), (n + 1), (i - 1), __S, occ) err
+    let rec checkType' __25__ __26__ __27__ __28__ __29__ __30__ =
+      match (__25__, __26__, __27__, __28__, __29__, __30__) with
+      | (c, (__G, __P), 0, __V, occ, err) ->
+          checkType c ((__G, __P), __V, Plus, occ) err
+      | (c, (__G, __P), n, Pi ((__D, I.Maybe), __V), occ, err) ->
+          checkDecImp ((__G, __P), __D, Plus)
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkType' c
+                   ((__G', __P'), (n - 1), __V, (P.body occ)) err)
+    let rec checkExp' __31__ __32__ __33__ __34__ __35__ =
+      match (__31__, __32__, __33__, __34__, __35__) with
+      | (c, (__G, __P), Lam (__D, __U), occ, err) ->
+          checkDec c ((__G, __P), __D, Plus, occ) err
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkExp' c ((__G', __P'), __U, (P.body occ)) err)
+      | (c, (__G, __P), __U, occ, err) ->
+          checkExp c ((__G, __P), __U, occ) err
+    let rec checkDef __36__ __37__ __38__ __39__ __40__ __41__ =
+      match (__36__, __37__, __38__, __39__, __40__, __41__) with
+      | (c, (__G, __P), 0, __U, occ, err) ->
+          checkExp' c ((__G, __P), __U, occ) err
+      | (c, (__G, __P), n, Lam (__D, __U), occ, err) ->
+          checkDecImp ((__G, __P), __D, Plus)
+            (fun (__G', __P') ->
+               fun (__L') ->
+                 (@) __L' checkDef c
+                   ((__G', __P'), (n - 1), __U, (P.body occ)) err)
+    let rec checkConDec __42__ __43__ =
+      match (__42__, __43__) with
+      | (c, ConDec (_, _, implicit, _, __U, _)) ->
           (if (!Global.chatter) > 3
            then print ((Names.qidToString (Names.constQid c)) ^ " ")
            else ();
-           checkType' c ((I.Null, I.Null), implicit, __u, P.top)
+           checkType' c ((I.Null, I.Null), implicit, __U, P.top)
              P.occToRegionDec)
-      | (c, ConDef (_, _, implicit, __u, __v, I.Type, _)) ->
+      | (c, ConDef (_, _, implicit, __U, __V, I.Type, _)) ->
           (if (!Global.chatter) > 3
            then print ((Names.qidToString (Names.constQid c)) ^ " ")
            else ();
-           (@) (checkType' c ((I.Null, I.Null), implicit, __v, P.top)
+           (@) (checkType' c ((I.Null, I.Null), implicit, __V, P.top)
                   P.occToRegionDef2)
-             checkDef c ((I.Null, I.Null), implicit, __u, P.top)
+             checkDef c ((I.Null, I.Null), implicit, __U, P.top)
              P.occToRegionDef1)
-      | (c, AbbrevDef (_, _, implicit, __u, __v, I.Type)) ->
+      | (c, AbbrevDef (_, _, implicit, __U, __V, I.Type)) ->
           (if (!Global.chatter) > 3
            then print ((Names.qidToString (Names.constQid c)) ^ " ")
            else ();
-           checkType' c ((I.Null, I.Null), implicit, __v, P.top)
+           checkType' c ((I.Null, I.Null), implicit, __V, P.top)
              P.occToRegionDef2;
-           checkDef c ((I.Null, I.Null), implicit, __u, P.top)
+           checkDef c ((I.Null, I.Null), implicit, __U, P.top)
              P.occToRegionDef1)
-      | (c, _) -> []
-    let rec checkAll (c, n) =
+      | (c, _) -> [](* type level abbreviations ? *)
+      (* type level definitions ? *)
+    let rec checkAll c n =
       if c <= n
       then (@) (checkConDec c (I.sgnLookup c)) checkAll ((c + 1), n)
       else []
     let rec check () =
       let (n, _) = I.sgnSize () in map print (checkAll (0, n)); ()
-    (* indicates positivity *)
-    (* distinguishes style correct
-                                           from - incorrect declarations *)
-    (* wrapMsg (c, occ, msg) err = s
-
-       Invariant:
-       Let c be a cid
-       occ by an occurrence,
-       msg an error message,
-       and err a function that computes adequate region information for c
-       then s is msg wrapped with location information
-    *)
-    (* denumber __l = __l'
-
-       Invariant:
-       __l' = __l without digits
-    *)
-    (* checkVariblename (n, prefNames) = I
-
-       Invariant:
-       If n occurs in prefNames then I = Correct otherwise Incorrect
-    *)
-    (* checkVar (__d, pol) = I
-
-       Invariant:
-       If  __d's name corresponds to the name choice for pol,
-       then I is Correct else Incorrect
-    *)
-    (* implicitHead H = k
-
-       Invariant:
-       k = # implicit arguments associated with H
-    *)
-    (* checkExp c ((__g, P), __u, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |- __u : __v
-       and   occ an occurrence to the current location
-       and   err an function mapping occ to regions
-       then  __l is a list of strings (error messages) computed from __u
-    *)
-    (* checkType c ((__g, P), __v, pol, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |-pol  __v : type
-       and   occ an occurrence to the current location
-       and   err an function mapping occ to regions
-       then  __l is a list of strings (error messages) computed from __v
-    *)
-    (* checkDecImp c ((__g, P), __d, pol) k = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |-pol  __d declation
-       and   k a continuation, that expects the extended context (__g', __P')
-             and a list of already computed error messages __l' as argument.
-       then  __l is a list of strings (error messages) computed __d
-       ( checkDecImp does not generate any error messages for __d since omitted)
-    *)
-    (* checkDec c ((__g, P), __d, pol, occ) err k = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |-pol  __d declation
-       and   occ occurrence, err wrapper function
-       and   k a continuation, that expects the extended context (__g', __P')
-             and a list of already computed error messages __l' as argument.
-       then  __l is a list of strings (error messages) computed from __d
-    *)
-    (* checkHead c ((__g, P), H, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |-  H head
-       and   occ occurrence, err wrapper function
-       then  __l is a list of at most one string (error message) computed from H
-    *)
-    (* checkSpine c ((__g, P), S, n, i, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |- S : V1 >> V2  for V1 V2, valid types
-       and   n a running number of arguments considered
-       and   i the number of remaining implicit arguments
-       and   occ occurrence, err wrapper function
-       then  __l is a list of  strings (error messages) computed from S
-    *)
-    (* checkType' c ((__g, P), n, __v, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   n a decreasing number of implicit arguments
-       and   __g |- __v : type
-       and   occ occurrence, err wrapper function
-       then  __l is a list of  strings (error messages) computed from __v
-       (omitted arguments generate error message where they are used not declared)
-    *)
-    (* checkExp' c ((__g, P), __u, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   __g |- __u : __v for some type __v, body of a definition
-       and   occ occurrence, err wrapper function
-       then  __l is a list of  strings (error messages) computed from __u
-       (top level negative occurrences exception.  Treated as pos occurrences)
-    *)
-    (* checkDef c ((__g, P), n, __u, occ) err = __l
-
-       Invariant:
-       Let   c be a cid
-       and   |- __g ctx
-       and   |- P info for __g
-       and   n a decreasing number of implicit arguments
-       and   __g |- __u : __v for some type __v, body of a definition
-       and   occ occurrence, err wrapper function
-       then  __l is a list of strings (error messages) computed from __u
-       (top level negative occurrences exception.  Treated as pos occurrences)
-    *)
-    (* checkConDec c C = __l
-
-       Invariant:
-       Let   c be a cid
-       and   . |- C : __v for some type __v, constant declaration
-       then  __l is a list of  strings (error messages) computed from C
-    *)
-    (* type level definitions ? *)
-    (* type level abbreviations ? *)
-    (* in all other cases *)
-    (* checkAll (c, n) = __l
-
-       Invariant:
-       Let   c be a cid
-       and   n the max. number of cids
-       then  __l is a list of  strings (error messages) computed from the signature c<=n
-    *)
-    (* checkAll () = __l
-
-       Invariant:
-       __l is a list of  strings (error messages) computed from the entire Twelf signature
-    *)
-    let checkConDec =
-      function | c -> (map print (checkConDec c (I.sgnLookup c)); ())
+    let checkConDec c = map print (checkConDec c (I.sgnLookup c)); ()
     let check = check
   end ;;
 

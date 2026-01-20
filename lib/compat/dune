@@ -6,13 +6,4 @@
  (libraries 
   base
  )
- (modules 
-  array
-  compat
-  path
-  socket
-  substring
-  text_io
-  time_limit
-  timer
-  vector))
+ (modules ))

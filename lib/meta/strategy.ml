@@ -1,6 +1,4 @@
 
-(* MTPStrategy : Version 1.3 *)
-(* Author: Carsten Schuermann *)
 module type MTPSTRATEGY  =
   sig
     module StateSyn : STATESYN
@@ -12,8 +10,6 @@ module type MTPSTRATEGY  =
 
 
 
-(* MTP Strategy: Version 1.3 *)
-(* Author: Carsten Schuermann *)
 module MTPStrategy(MTPStrategy:sig
                                  module MTPGlobal : MTPGLOBAL
                                  module StateSyn' : STATESYN
@@ -45,7 +41,7 @@ module MTPStrategy(MTPStrategy:sig
     let rec printSplitting splitOp =
       if (!Global.chatter) > 5
       then print "[Splitting ..."
-      else if (!Global.chatter) > 4 then print "S" else ()
+      else if (!Global.chatter) > 4 then print "S" else ()(* if !Global.chatter > 5 then print ("[" ^ MTPSplitting.menu splitOp) *)
     let rec printCloseBracket () =
       if (!Global.chatter) > 5 then print "]\n" else ()
     let rec printQed () =
@@ -59,26 +55,27 @@ module MTPStrategy(MTPStrategy:sig
       else ()
     let rec findMin =
       function
-      | nil -> None
-      | __l ->
-          let rec findMin' =
-            function
+      | nil -> NONE
+      | __L ->
+          let rec findMin' __0__ __1__ =
+            match (__0__, __1__) with
             | (nil, result) -> result
-            | ((O')::__l', None) ->
-                if MTPSplitting.applicable O'
-                then findMin' (__l', (Some O'))
-                else findMin' (__l', None)
-            | ((O')::__l', Some (O)) ->
-                if MTPSplitting.applicable O'
+            | ((__O')::__L', NONE) ->
+                if MTPSplitting.applicable __O'
+                then findMin' (__L', (Some __O'))
+                else findMin' (__L', NONE)
+            | ((__O')::__L', Some (__O)) ->
+                if MTPSplitting.applicable __O'
                 then
-                  (match MTPSplitting.compare (O', O) with
-                   | LESS -> findMin' (__l', (Some O'))
-                   | _ -> findMin' (__l', (Some O)))
-                else findMin' (__l', (Some O)) in
-          findMin' (__l, None)
-    let rec split ((S)::givenStates, ((openStates, solvedStates) as os)) =
-      match findMin (Timers.time Timers.splitting MTPSplitting.expand S) with
-      | None -> fill (givenStates, ((S :: openStates), solvedStates))
+                  (match MTPSplitting.compare (__O', __O) with
+                   | LESS -> findMin' (__L', (Some __O'))
+                   | _ -> findMin' (__L', (Some __O)))
+                else findMin' (__L', (Some __O)) in
+          findMin' (__L, NONE)
+    let rec split ((__S)::givenStates) ((openStates, solvedStates) as os) =
+      match findMin (Timers.time Timers.splitting MTPSplitting.expand __S)
+      with
+      | NONE -> fill (givenStates, ((__S :: openStates), solvedStates))
       | Some splitOp ->
           let _ = printSplitting splitOp in
           let SL = Timers.time Timers.splitting MTPSplitting.apply splitOp in
@@ -86,31 +83,29 @@ module MTPStrategy(MTPStrategy:sig
           let _ = printRecursion () in
           let SL' =
             map
-              (function
-               | S ->
-                   Timers.time Timers.recursion MTPRecursion.apply
-                     (MTPRecursion.expand S)) SL in
+              (fun (__S) ->
+                 Timers.time Timers.recursion MTPRecursion.apply
+                   (MTPRecursion.expand __S)) SL in
           let _ = printInference () in
           let SL'' =
             map
-              (function
-               | S ->
-                   Timers.time Timers.inference Inference.apply
-                     (Inference.expand S)) SL' in
+              (fun (__S) ->
+                 Timers.time Timers.inference Inference.apply
+                   (Inference.expand __S)) SL' in
           fill ((SL'' @ givenStates), os)
-    let rec fill =
-      function
+    let rec fill __2__ __3__ =
+      match (__2__, __3__) with
       | (nil, os) -> os
-      | ((S)::givenStates, ((openStates, solvedStates) as os)) ->
-          (match Timers.time Timers.recursion MTPFilling.expand S with
+      | ((__S)::givenStates, ((openStates, solvedStates) as os)) ->
+          (match Timers.time Timers.recursion MTPFilling.expand __S with
            | fillingOp ->
                (try
                   let _ = printFilling () in
-                  let (max, P) =
+                  let (max, __P) =
                     TimeLimit.timeLimit (!Global.timeLimit)
                       (Timers.time Timers.filling MTPFilling.apply) fillingOp in
                   let _ = printCloseBracket () in fill (givenStates, os)
-                with | Error _ -> split ((S :: givenStates), os)))
+                with | Error _ -> split ((__S :: givenStates), os)))
     let rec run givenStates =
       let _ = printInit () in
       let (openStates, solvedStates) = fill (givenStates, (nil, nil)) in
@@ -118,43 +113,5 @@ module MTPStrategy(MTPStrategy:sig
       let solvedStates' = map MTPrint.nameState solvedStates in
       let _ = match openStates with | nil -> printQed () | _ -> () in
       (openStates', solvedStates')
-    (* if !Global.chatter > 5 then print ("[" ^ MTPSplitting.menu splitOp) *)
-    (* findMin __l = Sopt
-
-       Invariant:
-
-       If   __l be a set of splitting operators
-       then Sopt = None if __l = []
-       else Sopt = Some S, s.t. index S is minimal among all elements in __l
-    *)
-    (* split   (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       recurse (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-       fill    (givenStates, (openStates, solvedStates)) = (openStates', solvedStates')
-
-       Invariant:
-       openStates' extends openStates and
-         contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' extends solvedStates and
-         contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-    *)
-    (* Note: calling splitting in case filling fails, may cause the prover to succeed
-              if there are no cases to split -- however this may in fact be wrong -bp*)
-    (* for comparing depth-first search (logic programming) with iterative deepening search
-              in the meta-theorem prover, we must disallow splitting :
-
-                handle TimeLimit.TimeOut =>  raise Filling.Error "Time Out: Time limit exceeded\n"
-                handle MTPFilling.Error msg =>  raise Filling.Error msg
-                  ) handle MTPFilling.Error msg =>  raise Filling.Error msg
-            *)
-    (* run givenStates = (openStates', solvedStates')
-
-       Invariant:
-       openStates' contains the states resulting from givenStates which cannot be
-         solved using Filling, Recursion, and Splitting
-       solvedStates' contains the states resulting from givenStates which can be
-         solved using Filling, Recursion, and Splitting
-     *)
     let run = run
   end ;;

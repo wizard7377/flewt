@@ -1,40 +1,29 @@
 
-(* Reasoning about orders *)
-(* Author: Brigitte Pientka *)
 module type CHECKING  =
   sig
-    (*! structure IntSyn : INTSYN !*)
     module Order : ORDER
-    (*! structure Paths : PATHS !*)
-    (* If Q marks all parameters in a context __g we write   __g : Q  *)
     type __Quantifier =
       | All 
       | Exist 
       | And of Paths.occ 
-    (*     | And                     *)
     type 'a __Predicate =
       | Less of ('a * 'a) 
       | Leq of ('a * 'a) 
       | Eq of ('a * 'a) 
       | Pi of (IntSyn.__Dec * 'a __Predicate) 
     type nonrec order = (IntSyn.eclo * IntSyn.eclo) Order.__Order
-    (* reduction predicate context (unordered) *)
     type nonrec rctx = order __Predicate list
-    (* mixed-prefix context *)
     type nonrec qctx = __Quantifier IntSyn.__Ctx
     val shiftRCtx : rctx -> (IntSyn.__Sub -> IntSyn.__Sub) -> rctx
     val shiftPred :
       order __Predicate ->
         (IntSyn.__Sub -> IntSyn.__Sub) -> order __Predicate
-    val deduce : (IntSyn.dctx * qctx * rctx * order __Predicate) -> bool
+    val deduce : IntSyn.dctx -> qctx -> rctx -> order __Predicate -> bool
   end;;
 
 
 
 
-(* Reasoning about structural orders *)
-(* Author: Brigitte Pientka *)
-(* for reasoning about orders see [Pientka IJCAR'01] *)
 module Checking(Checking:sig
                            module Global : GLOBAL
                            module Whnf : WHNF
@@ -46,1621 +35,1122 @@ module Checking(Checking:sig
                            module Formatter : FORMATTER
                            module Print : PRINT
                            module Order : ORDER
-                           (*! structure IntSyn' : INTSYN !*)
-                           (*! sharing Whnf.IntSyn = IntSyn' !*)
-                           (*! sharing Conv.IntSyn = IntSyn' !*)
-                           (*! sharing Unify.IntSyn = IntSyn' !*)
-                           (*! sharing Names.IntSyn = IntSyn' !*)
-                           (*! sharing Index.IntSyn = IntSyn' !*)
-                           (*! sharing Subordinate.IntSyn = IntSyn' !*)
-                           (*! sharing Print.IntSyn = IntSyn' !*)
-                           (*! sharing Order.IntSyn = IntSyn' !*)
-                           (*! structure Paths  : PATHS !*)
                            module Origins : ORIGINS
                          end) : CHECKING =
   struct
-    (*! sharing Origins.Paths = Paths !*)
-    (*! sharing Origins.IntSyn = IntSyn' !*)
-    (*! structure CSManager : CS_MANAGER !*)
-    (*! sharing CSManager.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
     module Order = Order
-    (*! structure Paths = Paths !*)
     type __Quantifier =
       | All 
       | Exist 
       | And of Paths.occ 
-    (*     | And                     *)
-    (* If Q marks all parameters in a context __g we write   __g : Q               *)
     type 'a __Predicate =
       | Less of ('a * 'a) 
       | Leq of ('a * 'a) 
       | Eq of ('a * 'a) 
       | Pi of (IntSyn.__Dec * 'a __Predicate) 
-    (* Abbreviation *)
     type nonrec order = (IntSyn.eclo * IntSyn.eclo) Order.__Order
-    (* reduction order assumptions (unordered) *)
     type nonrec rctx = order __Predicate list
-    (* mixed prefix order contex *)
     type nonrec qctx = __Quantifier IntSyn.__Ctx
     module I = IntSyn
     module P = Paths
     module N = Names
     module F = Formatter
     module R = Order
-    let rec atomicPredToString =
-      function
-      | (__g, Less ((__Us, _), (__Us', _))) ->
-          (^) ((Print.expToString (__g, (I.EClo __Us))) ^ " < ")
-            Print.expToString (__g, (I.EClo __Us'))
-      | (__g, Leq ((__Us, _), (__Us', _))) ->
-          (^) ((Print.expToString (__g, (I.EClo __Us))) ^ " <= ")
-            Print.expToString (__g, (I.EClo __Us'))
-      | (__g, Eq ((__Us, _), (__Us', _))) ->
-          (^) ((Print.expToString (__g, (I.EClo __Us))) ^ " = ")
-            Print.expToString (__g, (I.EClo __Us'))
-    let rec atomicRCtxToString =
-      function
-      | (__g, nil) -> " "
-      | (__g, (O)::nil) -> atomicPredToString (__g, O)
-      | (__g, (O)::__d') ->
-          (^) ((atomicRCtxToString (__g, __d')) ^ ", ") atomicPredToString (__g, O)
-    let rec shiftO arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (Arg ((__u, us), (__v, vs)), f) -> R.Arg ((__u, (f us)), (__v, (f vs)))
-      | (Lex (__l), f) -> R.Lex (map (function | O -> shiftO O f) __l)
-      | (Simul (__l), f) -> R.Simul (map (function | O -> shiftO O f) __l)
-    let rec shiftP arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (Less (O1, O2), f) -> Less ((shiftO O1 f), (shiftO O2 f))
-      | (Leq (O1, O2), f) -> Leq ((shiftO O1 f), (shiftO O2 f))
-      | (Eq (O1, O2), f) -> Eq ((shiftO O1 f), (shiftO O2 f))
-      | (Pi ((Dec (x, __v) as __d), P), f) -> Pi (__d, (shiftP P f))
-    let rec shiftRCtx (Rl) f = map (function | p -> shiftP p f) Rl
-    let rec shiftArg arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (Less (((__U1, s1), (V1, s1')), ((__U2, s2), (V2, s2'))), f) ->
-          Less (((__U1, (f s1)), (V1, (f s1'))), ((__U2, (f s2)), (V2, (f s2'))))
-      | (Leq (((__U1, s1), (V1, s1')), ((__U2, s2), (V2, s2'))), f) ->
-          Leq (((__U1, (f s1)), (V1, (f s1'))), ((__U2, (f s2)), (V2, (f s2'))))
-      | (Eq (((__U1, s1), (V1, s1')), ((__U2, s2), (V2, s2'))), f) ->
-          Eq (((__U1, (f s1)), (V1, (f s1'))), ((__U2, (f s2)), (V2, (f s2'))))
-    let rec shiftACtx (Rl) f = map (function | p -> shiftArg p f) Rl
-    let rec fmtOrder (__g, O) =
+    let rec atomicPredToString __0__ __1__ =
+      match (__0__, __1__) with
+      | (__G, Less ((__Us, _), (__Us', _))) ->
+          (^) ((Print.expToString (__G, (I.EClo __Us))) ^ " < ")
+            Print.expToString (__G, (I.EClo __Us'))
+      | (__G, Leq ((__Us, _), (__Us', _))) ->
+          (^) ((Print.expToString (__G, (I.EClo __Us))) ^ " <= ")
+            Print.expToString (__G, (I.EClo __Us'))
+      | (__G, Eq ((__Us, _), (__Us', _))) ->
+          (^) ((Print.expToString (__G, (I.EClo __Us))) ^ " = ")
+            Print.expToString (__G, (I.EClo __Us'))
+    let rec atomicRCtxToString __2__ __3__ =
+      match (__2__, __3__) with
+      | (__G, nil) -> " "
+      | (__G, (__O)::nil) -> atomicPredToString (__G, __O)
+      | (__G, (__O)::__D') ->
+          (^) ((atomicRCtxToString (__G, __D')) ^ ", ") atomicPredToString
+            (__G, __O)
+    let rec shiftO __4__ __5__ =
+      match (__4__, __5__) with
+      | (Arg ((__U, us), (__V, vs)), f) ->
+          R.Arg ((__U, (f us)), (__V, (f vs)))
+      | (Lex (__L), f) -> R.Lex (map (fun (__O) -> shiftO __O f) __L)
+      | (Simul (__L), f) -> R.Simul (map (fun (__O) -> shiftO __O f) __L)
+    let rec shiftP __6__ __7__ =
+      match (__6__, __7__) with
+      | (Less (__O1, __O2), f) -> Less ((shiftO __O1 f), (shiftO __O2 f))
+      | (Leq (__O1, __O2), f) -> Leq ((shiftO __O1 f), (shiftO __O2 f))
+      | (Eq (__O1, __O2), f) -> Eq ((shiftO __O1 f), (shiftO __O2 f))
+      | (Pi ((Dec (__X, __V) as D), __P), f) -> Pi (__D, (shiftP __P f))
+    let rec shiftRCtx (Rl) f = map (fun p -> shiftP p f) Rl
+    let rec shiftArg __8__ __9__ =
+      match (__8__, __9__) with
+      | (Less (((__U1, s1), (__V1, s1')), ((__U2, s2), (__V2, s2'))), f) ->
+          Less
+            (((__U1, (f s1)), (__V1, (f s1'))),
+              ((__U2, (f s2)), (__V2, (f s2'))))
+      | (Leq (((__U1, s1), (__V1, s1')), ((__U2, s2), (__V2, s2'))), f) ->
+          Leq
+            (((__U1, (f s1)), (__V1, (f s1'))),
+              ((__U2, (f s2)), (__V2, (f s2'))))
+      | (Eq (((__U1, s1), (__V1, s1')), ((__U2, s2), (__V2, s2'))), f) ->
+          Eq
+            (((__U1, (f s1)), (__V1, (f s1'))),
+              ((__U2, (f s2)), (__V2, (f s2'))))
+    let rec shiftACtx (Rl) f = map (fun p -> shiftArg p f) Rl
+    let rec fmtOrder (__G) (__O) =
       let rec fmtOrder' =
         function
-        | Arg (((__u, s) as __Us), ((__v, s') as __Vs)) ->
-            F.hbox
-              [F.String "("; Print.formatExp (__g, (I.EClo __Us)); F.String ")"]
-        | Lex (__l) ->
-            F.hbox
-              [F.String "{"; F.hOVbox0 1 0 1 (fmtOrders __l); F.String "}"]
-        | Simul (__l) ->
-            F.hbox
-              [F.String "["; F.hOVbox0 1 0 1 (fmtOrders __l); F.String "]"]
+        | Arg (((__U, s) as Us), ((__V, s') as Vs)) ->
+            F.Hbox
+              [F.String "(";
+              Print.formatExp (__G, (I.EClo __Us));
+              F.String ")"]
+        | Lex (__L) ->
+            F.Hbox
+              [F.String "{"; F.HOVbox0 1 0 1 (fmtOrders __L); F.String "}"]
+        | Simul (__L) ->
+            F.Hbox
+              [F.String "["; F.HOVbox0 1 0 1 (fmtOrders __L); F.String "]"]
       and fmtOrders =
         function
         | [] -> []
-        | (O)::[] -> (fmtOrder' O) :: []
-        | (O)::__l -> (::) ((fmtOrder' O) :: F.Break) fmtOrders __l in
-      fmtOrder' O
-    let rec fmtComparison (__g, O, comp, O') =
-      F.hOVbox0 1 0 1
-        [fmtOrder (__g, O); F.Break; F.String comp; F.Break; fmtOrder (__g, O')]
-    let rec fmtPredicate' =
-      function
-      | (__g, Less (O, O')) -> fmtComparison (__g, O, "<", O')
-      | (__g, Leq (O, O')) -> fmtComparison (__g, O, "<=", O')
-      | (__g, Eq (O, O')) -> fmtComparison (__g, O, "=", O')
-      | (__g, Pi (__d, P)) ->
-          F.hbox [F.String "Pi "; fmtPredicate' ((I.Decl (__g, __d)), P)]
-    let rec fmtPredicate (__g, P) = fmtPredicate' ((Names.ctxName __g), P)
-    let rec fmtRGCtx' =
-      function
-      | (__g, nil) -> ""
-      | (__g, (P)::[]) -> F.makestring_fmt (fmtPredicate' (__g, P))
-      | (__g, (P)::Rl) ->
-          (^) ((F.makestring_fmt (fmtPredicate' (__g, P))) ^ " ,") fmtRGCtx'
-            (__g, Rl)
-    let rec fmtRGCtx (__g, Rl) = fmtRGCtx' ((Names.ctxName __g), Rl)
+        | (__O)::[] -> (fmtOrder' __O) :: []
+        | (__O)::__L -> (::) ((fmtOrder' __O) :: F.Break) fmtOrders __L in
+      fmtOrder' __O
+    let rec fmtComparison (__G) (__O) comp (__O') =
+      F.HOVbox0 1 0 1
+        [fmtOrder (__G, __O);
+        F.Break;
+        F.String comp;
+        F.Break;
+        fmtOrder (__G, __O')]
+    let rec fmtPredicate' __10__ __11__ =
+      match (__10__, __11__) with
+      | (__G, Less (__O, __O')) -> fmtComparison (__G, __O, "<", __O')
+      | (__G, Leq (__O, __O')) -> fmtComparison (__G, __O, "<=", __O')
+      | (__G, Eq (__O, __O')) -> fmtComparison (__G, __O, "=", __O')
+      | (__G, Pi (__D, __P)) ->
+          F.Hbox [F.String "Pi "; fmtPredicate' ((I.Decl (__G, __D)), __P)]
+      (* F.String "Pi predicate"  *)
+    let rec fmtPredicate (__G) (__P) =
+      fmtPredicate' ((Names.ctxName __G), __P)
+    let rec fmtRGCtx' __12__ __13__ =
+      match (__12__, __13__) with
+      | (__G, nil) -> ""
+      | (__G, (__P)::[]) -> F.makestring_fmt (fmtPredicate' (__G, __P))
+      | (__G, (__P)::Rl) ->
+          (^) ((F.makestring_fmt (fmtPredicate' (__G, __P))) ^ " ,")
+            fmtRGCtx' (__G, Rl)
+    let rec fmtRGCtx (__G) (Rl) = fmtRGCtx' ((Names.ctxName __G), Rl)
     let rec init () = true__
-    let rec eqCid (c, c') = c = c'
-    let rec conv ((__Us, __Vs), (__Us', __Vs')) =
+    let rec eqCid c c' = c = c'
+    let rec conv (__Us, __Vs) (__Us', __Vs') =
       (Conv.conv (__Vs, __Vs')) && (Conv.conv (__Us, __Us'))
     let rec isUniversal =
       function | All -> true__ | Exist -> false__ | Exist' -> false__
     let rec isExistential =
       function | All -> false__ | Exist -> true__ | Exist' -> true__
-    let rec isParameter (Q, x) = isParameterW (Q, (Whnf.whnf (x, I.id)))
-    let rec isParameterW (Q, __Us) =
-      try isUniversal (I.ctxLookup (Q, (Whnf.etaContract (I.EClo __Us))))
+    let rec isParameter (__Q) (__X) =
+      isParameterW (__Q, (Whnf.whnf (__X, I.id)))
+    let rec isParameterW (__Q) (__Us) =
+      try isUniversal (I.ctxLookup (__Q, (Whnf.etaContract (I.EClo __Us))))
       with | Whnf.Eta -> isFreeEVar __Us
-    let rec isFreeEVar =
-      function
-      | (EVar (_, _, _, ref []), _) -> true__
-      | (Lam (__d, __u), s) -> isFreeEVar (Whnf.whnf (__u, (I.dot1 s)))
-      | _ -> false__
-    let rec isAtomic (GQ, __Us) = isAtomicW (GQ, (Whnf.whnf __Us))
-    let rec isAtomicW =
-      function
-      | (GQ, ((Root (Const c, S) as x), s)) -> isAtomicS (GQ, (S, s))
-      | (GQ, ((Root (Def c, S) as x), s)) -> isAtomicS (GQ, (S, s))
-      | (((__g, Q) as GQ), ((Root (BVar n, S) as x), s)) ->
-          (isExistential (I.ctxLookup (Q, n))) || (isAtomicS (GQ, (S, s)))
-      | (GQ, _) -> false__
-    let rec isAtomicS =
-      function
+    let rec isFreeEVar __14__ __15__ =
+      match (__14__, __15__) with
+      | (EVar (_, _, _, { contents = [] }), _) -> true__
+      | (Lam (__D, __U), s) -> isFreeEVar (Whnf.whnf (__U, (I.dot1 s)))
+      | _ -> false__(* constraints must be empty *)
+    let rec isAtomic (GQ) (__Us) = isAtomicW (GQ, (Whnf.whnf __Us))
+    let rec isAtomicW __16__ __17__ =
+      match (__16__, __17__) with
+      | (GQ, ((Root (Const c, __S) as X), s)) -> isAtomicS (GQ, (__S, s))
+      | (GQ, ((Root (Def c, __S) as X), s)) -> isAtomicS (GQ, (__S, s))
+      | (((__G, __Q) as GQ), ((Root (BVar n, __S) as X), s)) ->
+          (isExistential (I.ctxLookup (__Q, n))) ||
+            (isAtomicS (GQ, (__S, s)))
+      | (GQ, _) -> false__(*      | isAtomicW (GQ, (X as (I.EClo _))) = true    existential var *)
+      (* should disallow orelse ? *)
+    let rec isAtomicS __18__ __19__ =
+      match (__18__, __19__) with
       | (GQ, (I.Nil, _)) -> true__
-      | (GQ, (SClo (S, s'), s'')) -> isAtomicS (GQ, (S, (I.comp (s', s''))))
-      | (GQ, (App (__u', S'), s1')) -> false__
-    let rec eq (__g, (__Us, __Vs), (__Us', __Vs')) =
-      (Unify.unifiable (__g, __Vs, __Vs')) && (Unify.unifiable (__g, __Us, __Us'))
-    let rec lookupEq =
-      function
+      | (GQ, (SClo (__S, s'), s'')) ->
+          isAtomicS (GQ, (__S, (I.comp (s', s''))))
+      | (GQ, (App (__U', __S'), s1')) -> false__
+    let rec eq (__G) (__Us, __Vs) (__Us', __Vs') =
+      (Unify.unifiable (__G, __Vs, __Vs')) &&
+        (Unify.unifiable (__G, __Us, __Us'))
+    let rec lookupEq __20__ __21__ __22__ __23__ __24__ =
+      match (__20__, __21__, __22__, __23__, __24__) with
       | (GQ, nil, UsVs, UsVs', sc) -> false__
-      | (GQ, (Less (_, _))::__d, UsVs, UsVs', sc) ->
-          lookupEq (GQ, __d, UsVs, UsVs', sc)
-      | (((__g, Q) as GQ), (Eq (UsVs1, UsVs1'))::__d, UsVs, UsVs', sc) ->
+      | (GQ, (Less (_, _))::__D, UsVs, UsVs', sc) ->
+          lookupEq (GQ, __D, UsVs, UsVs', sc)
+      | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, UsVs, UsVs', sc) ->
           (CSManager.trail
-             (function
-              | () ->
-                  (eq (__g, UsVs1, UsVs)) &&
-                    ((eq (__g, UsVs1', UsVs')) && (sc ()))))
+             (fun () ->
+                (eq (__G, UsVs1, UsVs)) &&
+                  ((eq (__G, UsVs1', UsVs')) && (sc ()))))
             ||
             ((CSManager.trail
-                (function
-                 | () ->
-                     (eq (__g, UsVs1, UsVs')) &&
-                       ((eq (__g, UsVs1', UsVs)) && (sc ()))))
-               || (lookupEq (GQ, __d, UsVs, UsVs', sc)))
-    let rec lookupLt =
-      function
+                (fun () ->
+                   (eq (__G, UsVs1, UsVs')) &&
+                     ((eq (__G, UsVs1', UsVs)) && (sc ()))))
+               || (lookupEq (GQ, __D, UsVs, UsVs', sc)))
+    let rec lookupLt __25__ __26__ __27__ __28__ __29__ =
+      match (__25__, __26__, __27__, __28__, __29__) with
       | (GQ, nil, UsVs, UsVs', sc) -> false__
-      | (GQ, (Eq (_, _))::__d, UsVs, UsVs', sc) ->
-          lookupLt (GQ, __d, UsVs, UsVs', sc)
-      | (((__g, Q) as GQ), (Less (UsVs1, UsVs1'))::__d, UsVs, UsVs', sc) ->
+      | (GQ, (Eq (_, _))::__D, UsVs, UsVs', sc) ->
+          lookupLt (GQ, __D, UsVs, UsVs', sc)
+      | (((__G, __Q) as GQ), (Less (UsVs1, UsVs1'))::__D, UsVs, UsVs', sc) ->
           (CSManager.trail
-             (function
-              | () ->
-                  (eq (__g, UsVs1, UsVs)) &&
-                    ((eq (__g, UsVs1', UsVs')) && (sc ()))))
-            || (lookupLt (GQ, __d, UsVs, UsVs', sc))
-    let rec eqAtomic =
-      function
-      | (((__g, Q) as GQ), nil, __d', UsVs, UsVs', sc) ->
+             (fun () ->
+                (eq (__G, UsVs1, UsVs)) &&
+                  ((eq (__G, UsVs1', UsVs')) && (sc ()))))
+            || (lookupLt (GQ, __D, UsVs, UsVs', sc))
+    let rec eqAtomic __30__ __31__ __32__ __33__ __34__ __35__ =
+      match (__30__, __31__, __32__, __33__, __34__, __35__) with
+      | (((__G, __Q) as GQ), nil, __D', UsVs, UsVs', sc) ->
+          (CSManager.trail (fun () -> (eq (__G, UsVs, UsVs')) && (sc ()))) ||
+            (lookupEq (GQ, __D', UsVs, UsVs', sc))
+      | (((__G, __Q) as GQ), __D, __D', UsVs, UsVs', sc) ->
+          (CSManager.trail (fun () -> (eq (__G, UsVs, UsVs')) && (sc ()))) ||
+            ((lookupEq (GQ, __D, UsVs, UsVs', sc)) ||
+               ((lookupEq (GQ, __D', UsVs, UsVs', sc)) ||
+                  (transEq (GQ, __D, __D', UsVs, UsVs', sc))))
+    let rec transEq __36__ __37__ __38__ __39__ __40__ __41__ =
+      match (__36__, __37__, __38__, __39__, __40__, __41__) with
+      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false__
+      | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
+         sc) ->
           (CSManager.trail
-             (function | () -> (eq (__g, UsVs, UsVs')) && (sc ())))
-            || (lookupEq (GQ, __d', UsVs, UsVs', sc))
-      | (((__g, Q) as GQ), __d, __d', UsVs, UsVs', sc) ->
-          (CSManager.trail
-             (function | () -> (eq (__g, UsVs, UsVs')) && (sc ())))
-            ||
-            ((lookupEq (GQ, __d, UsVs, UsVs', sc)) ||
-               ((lookupEq (GQ, __d', UsVs, UsVs', sc)) ||
-                  (transEq (GQ, __d, __d', UsVs, UsVs', sc))))
-    let rec transEq =
-      function
-      | (((__g, Q) as GQ), nil, __d, UsVs, UsVs', sc) -> false__
-      | (((__g, Q) as GQ), (Eq (UsVs1, UsVs1'))::__d, __d', UsVs, UsVs', sc) ->
-          (CSManager.trail
-             (function
-              | () ->
-                  (eq (__g, UsVs1', UsVs')) &&
-                    ((sc ()) &&
-                       (eqAtomicR (GQ, (__d @ __d'), UsVs, UsVs1, sc, atomic)))))
+             (fun () ->
+                (eq (__G, UsVs1', UsVs')) &&
+                  ((sc ()) &&
+                     (eqAtomicR (GQ, (__D @ __D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
-                (function
-                 | () ->
-                     (eq (__g, UsVs1, UsVs')) &&
-                       ((sc ()) &&
-                          (eqAtomicR (GQ, (__d @ __d'), UsVs, UsVs1', sc, atomic)))))
+                (fun () ->
+                   (eq (__G, UsVs1, UsVs')) &&
+                     ((sc ()) &&
+                        (eqAtomicR
+                           (GQ, (__D @ __D'), UsVs, UsVs1', sc, atomic)))))
                ||
                (transEq
-                  (GQ, __d, ((Eq (UsVs1, UsVs1')) :: __d'), UsVs, UsVs', sc)))
-      | (((__g, Q) as GQ), (Less (UsVs1, UsVs1'))::__d, __d', UsVs, UsVs', sc) ->
-          transEq (GQ, __d, __d', UsVs, UsVs', sc)
-    let rec ltAtomic =
-      function
-      | (((__g, Q) as GQ), nil, __d', UsVs, UsVs', sc) ->
-          lookupLt (GQ, __d', UsVs, UsVs', sc)
-      | (((__g, Q) as GQ), __d, __d', UsVs, UsVs', sc) ->
-          (lookupLt (GQ, __d, UsVs, UsVs', sc)) ||
-            ((lookupLt (GQ, __d', UsVs, UsVs', sc)) ||
-               (transLt (GQ, __d, __d', UsVs, UsVs', sc)))
-    let rec transLt =
-      function
-      | (((__g, Q) as GQ), nil, __d, UsVs, UsVs', sc) -> false__
-      | (((__g, Q) as GQ), (Eq (UsVs1, UsVs1'))::__d, __d', UsVs, UsVs', sc) ->
+                  (GQ, __D, ((Eq (UsVs1, UsVs1')) :: __D'), UsVs, UsVs', sc)))
+      | (((__G, __Q) as GQ), (Less (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
+         sc) -> transEq (GQ, __D, __D', UsVs, UsVs', sc)
+    let rec ltAtomic __42__ __43__ __44__ __45__ __46__ __47__ =
+      match (__42__, __43__, __44__, __45__, __46__, __47__) with
+      | (((__G, __Q) as GQ), nil, __D', UsVs, UsVs', sc) ->
+          lookupLt (GQ, __D', UsVs, UsVs', sc)
+      | (((__G, __Q) as GQ), __D, __D', UsVs, UsVs', sc) ->
+          (lookupLt (GQ, __D, UsVs, UsVs', sc)) ||
+            ((lookupLt (GQ, __D', UsVs, UsVs', sc)) ||
+               (transLt (GQ, __D, __D', UsVs, UsVs', sc)))
+    let rec transLt __48__ __49__ __50__ __51__ __52__ __53__ =
+      match (__48__, __49__, __50__, __51__, __52__, __53__) with
+      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false__
+      | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
+         sc) ->
           (CSManager.trail
-             (function
-              | () ->
-                  (eq (__g, UsVs1', UsVs')) &&
-                    ((sc ()) &&
-                       (ltAtomicR (GQ, (__d @ __d'), UsVs, UsVs1, sc, atomic)))))
+             (fun () ->
+                (eq (__G, UsVs1', UsVs')) &&
+                  ((sc ()) &&
+                     (ltAtomicR (GQ, (__D @ __D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
-                (function
-                 | () ->
-                     (eq (__g, UsVs1, UsVs')) &&
-                       ((sc ()) &&
-                          (ltAtomicR (GQ, (__d @ __d'), UsVs, UsVs1', sc, atomic)))))
+                (fun () ->
+                   (eq (__G, UsVs1, UsVs')) &&
+                     ((sc ()) &&
+                        (ltAtomicR
+                           (GQ, (__D @ __D'), UsVs, UsVs1', sc, atomic)))))
                ||
                (transLt
-                  (GQ, __d, ((Eq (UsVs1, UsVs1')) :: __d'), UsVs, UsVs', sc)))
-      | (((__g, Q) as GQ), (Less (UsVs1, UsVs1'))::__d, __d', UsVs, UsVs', sc) ->
+                  (GQ, __D, ((Eq (UsVs1, UsVs1')) :: __D'), UsVs, UsVs', sc)))
+      | (((__G, __Q) as GQ), (Less (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
+         sc) ->
           (CSManager.trail
-             (function
-              | () ->
-                  (eq (__g, UsVs1', UsVs')) &&
-                    ((sc ()) &&
-                       (eqAtomicR (GQ, (__d @ __d'), UsVs, UsVs1, sc, atomic)))))
+             (fun () ->
+                (eq (__G, UsVs1', UsVs')) &&
+                  ((sc ()) &&
+                     (eqAtomicR (GQ, (__D @ __D'), UsVs, UsVs1, sc, atomic)))))
             ||
             ((CSManager.trail
-                (function
-                 | () ->
-                     (eq (__g, UsVs1', UsVs')) &&
-                       ((sc ()) &&
-                          (ltAtomicR (GQ, (__d @ __d'), UsVs, UsVs1, sc, atomic)))))
+                (fun () ->
+                   (eq (__G, UsVs1', UsVs')) &&
+                     ((sc ()) &&
+                        (ltAtomicR
+                           (GQ, (__D @ __D'), UsVs, UsVs1, sc, atomic)))))
                ||
                (transLt
-                  (GQ, __d, ((Less (UsVs1, UsVs1')) :: __d'), UsVs, UsVs', sc)))
-    let rec atomic =
-      function
-      | (GQ, __d, __d', Eq (UsVs, UsVs'), sc) ->
-          eqAtomic (GQ, __d, __d', UsVs, UsVs', sc)
-      | (GQ, __d, __d', Less (UsVs, UsVs'), sc) ->
-          ltAtomic (GQ, __d, __d', UsVs, UsVs', sc)
-    let rec leftInstantiate =
-      function
-      | (((__g, Q) as GQ), nil, __d', P, sc) ->
-          if atomic (GQ, __d', nil, P, sc)
-          then
-            (if (!Global.chatter) > 4
-             then
-               print
-                 (((^) (((^) " Proved: " atomicRCtxToString (__g, __d')) ^
-                          " ---> ")
-                     atomicPredToString (__g, P))
-                    ^ "\n")
-             else ();
-             true__)
-          else false__
-      | (GQ, (Less (UsVs, UsVs'))::__d, __d', P, sc) ->
-          ltInstL (GQ, __d, __d', UsVs, UsVs', P, sc)
-      | (GQ, (Leq (UsVs, UsVs'))::__d, __d', P, sc) ->
-          leInstL (GQ, __d, __d', UsVs, UsVs', P, sc)
-      | (GQ, (Eq (UsVs, UsVs'))::__d, __d', P, sc) ->
-          eqInstL (GQ, __d, __d', UsVs, UsVs', P, sc)
-    let rec ltInstL (GQ, __d, __d', UsVs, UsVs', __P', sc) =
-      ltInstLW (GQ, __d, __d', (Whnf.whnfEta UsVs), UsVs', __P', sc)
-    let rec ltInstLW =
-      function
-      | (((__g, Q) as GQ), __d, __d',
-         ((Lam ((Dec (_, V1) as Dec), __u), s1),
-          (Pi ((Dec (_, V2), _), __v), s2)),
-         ((__u', s1'), (__v', s2')), __P', sc) ->
-          if Subordinate.equiv ((I.targetFam __v'), (I.targetFam V1))
-          then
-            let x = I.newEVar (__g, (I.EClo (V1, s1))) in
-            let sc' = function | () -> (isParameter (Q, x)) && (sc ()) in
-            ltInstL
-              ((__g, Q), __d, __d',
-                ((__u, (I.Dot ((I.Exp x), s1))), (__v, (I.Dot ((I.Exp x), s2)))),
-                ((__u', s1'), (__v', s2')), __P', sc')
-          else
-            if Subordinate.below ((I.targetFam V1), (I.targetFam __v'))
+                  (GQ, __D, ((Less (UsVs1, UsVs1')) :: __D'), UsVs, UsVs',
+                    sc)))
+    let rec atomic __54__ __55__ __56__ __57__ __58__ =
+      match (__54__, __55__, __56__, __57__, __58__) with
+      | (GQ, __D, __D', Eq (UsVs, UsVs'), sc) ->
+          eqAtomic (GQ, __D, __D', UsVs, UsVs', sc)
+      | (GQ, __D, __D', Less (UsVs, UsVs'), sc) ->
+          ltAtomic (GQ, __D, __D', UsVs, UsVs', sc)
+    let rec leftInstantiate __59__ __60__ __61__ __62__ __63__ =
+      match (__59__, __60__, __61__, __62__, __63__) with
+      | (((__G, __Q) as GQ), nil, __D', __P, sc) ->
+          ((if atomic (GQ, __D', nil, __P, sc)
             then
-              (let x = I.newEVar (__g, (I.EClo (V1, s1))) in
-               ltInstL
-                 ((__g, Q), __d, __d',
-                   ((__u, (I.Dot ((I.Exp x), s1))),
-                     (__v, (I.Dot ((I.Exp x), s2)))), ((__u', s1'), (__v', s2')),
-                   __P', sc))
-            else false__
-      | (GQ, __d, __d', UsVs, UsVs', __P', sc) ->
-          leftInstantiate (GQ, __d, ((Less (UsVs, UsVs')) :: __d'), __P', sc)
-    let rec leInstL (GQ, __d, __d', UsVs, UsVs', __P', sc) =
-      leInstLW (GQ, __d, __d', (Whnf.whnfEta UsVs), UsVs', __P', sc)
-    let rec leInstLW =
-      function
-      | (((__g, Q) as GQ), __d, __d',
-         ((Lam (Dec (_, V1), __u), s1), (Pi ((Dec (_, V2), _), __v), s2)),
-         ((__u', s1'), (__v', s2')), __P', sc) ->
-          if Subordinate.equiv ((I.targetFam __v'), (I.targetFam V1))
-          then
-            let x = I.newEVar (__g, (I.EClo (V1, s1))) in
-            let sc' = function | () -> (isParameter (Q, x)) && (sc ()) in
-            leInstL
-              ((__g, Q), __d, __d',
-                ((__u, (I.Dot ((I.Exp x), s1))), (__v, (I.Dot ((I.Exp x), s2)))),
-                ((__u', s1'), (__v', s2')), __P', sc')
-          else
-            if Subordinate.below ((I.targetFam V1), (I.targetFam __v'))
+              (if (!Global.chatter) > 4
+               then
+                 print
+                   (((^) (((^) " Proved: " atomicRCtxToString (__G, __D')) ^
+                            " ---> ")
+                       atomicPredToString (__G, __P))
+                      ^ "\n")
+               else ();
+               true__)
+            else false__)
+          (* should never happen by invariant *))
+      | (GQ, (Less (UsVs, UsVs'))::__D, __D', __P, sc) ->
+          ltInstL (GQ, __D, __D', UsVs, UsVs', __P, sc)
+      | (GQ, (Leq (UsVs, UsVs'))::__D, __D', __P, sc) ->
+          leInstL (GQ, __D, __D', UsVs, UsVs', __P, sc)
+      | (GQ, (Eq (UsVs, UsVs'))::__D, __D', __P, sc) ->
+          eqInstL (GQ, __D, __D', UsVs, UsVs', __P, sc)
+    let rec ltInstL (GQ) (__D) (__D') (UsVs) (UsVs') (__P') sc =
+      ltInstLW (GQ, __D, __D', (Whnf.whnfEta UsVs), UsVs', __P', sc)
+    let rec ltInstLW __64__ __65__ __66__ __67__ __68__ __69__ __70__ =
+      match (__64__, __65__, __66__, __67__, __68__, __69__, __70__) with
+      | (((__G, __Q) as GQ), __D, __D',
+         ((Lam ((Dec (_, __V1) as Dec), __U), s1),
+          (Pi ((Dec (_, __V2), _), __V), s2)),
+         ((__U', s1'), (__V', s2')), __P', sc) ->
+          ((if Subordinate.equiv ((I.targetFam __V'), (I.targetFam __V1))
             then
-              (let x = I.newEVar (__g, (I.EClo (V1, s1))) in
-               leInstL
-                 ((__g, Q), __d, __d',
-                   ((__u, (I.Dot ((I.Exp x), s1))),
-                     (__v, (I.Dot ((I.Exp x), s2)))), ((__u', s1'), (__v', s2')),
-                   __P', sc))
-            else false__
-      | (GQ, __d, __d', UsVs, UsVs', P, sc) ->
-          leftInstantiate (GQ, __d, ((Less (UsVs, UsVs')) :: __d'), P, sc)
-    let rec eqInstL (GQ, __d, __d', UsVs, UsVs', __P', sc) =
-      eqInstLW (GQ, __d, __d', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), __P', sc)
-    let rec eqInstLW =
-      function
-      | (((__g, Q) as GQ), __d, __d',
-         ((Lam (Dec (_, V1'), __u'), s1'), (Pi ((Dec (_, V2'), _), __v'), s2')),
-         ((Lam (Dec (_, V1''), __u''), s1''),
-          (Pi ((Dec (_, V2''), _), __v''), s2'')),
+              let __X = I.newEVar (__G, (I.EClo (__V1, s1))) in
+              let sc' () = (isParameter (__Q, __X)) && (sc ()) in
+              ((ltInstL
+                  ((__G, __Q), __D, __D',
+                    ((__U, (I.Dot ((I.Exp __X), s1))),
+                      (__V, (I.Dot ((I.Exp __X), s2)))),
+                    ((__U', s1'), (__V', s2')), __P', sc'))
+                (* = I.newEVar (I.EClo (V2', s2')) *)
+                (* enforces that X can only bound to parameter or remain uninstantiated *))
+            else
+              if Subordinate.below ((I.targetFam __V1), (I.targetFam __V'))
+              then
+                (let __X = I.newEVar (__G, (I.EClo (__V1, s1))) in
+                 ((ltInstL
+                     ((__G, __Q), __D, __D',
+                       ((__U, (I.Dot ((I.Exp __X), s1))),
+                         (__V, (I.Dot ((I.Exp __X), s2)))),
+                       ((__U', s1'), (__V', s2')), __P', sc))
+                   (* = I.newEVar (I.EClo (V2', s2')) *)))
+              else false__)
+          (* == I.targetFam V2' *))
+      | (GQ, __D, __D', UsVs, UsVs', __P', sc) ->
+          leftInstantiate (GQ, __D, ((Less (UsVs, UsVs')) :: __D'), __P', sc)
+      (* impossible, if additional invariant assumed (see ltW) *)
+    let rec leInstL (GQ) (__D) (__D') (UsVs) (UsVs') (__P') sc =
+      leInstLW (GQ, __D, __D', (Whnf.whnfEta UsVs), UsVs', __P', sc)
+    let rec leInstLW __71__ __72__ __73__ __74__ __75__ __76__ __77__ =
+      match (__71__, __72__, __73__, __74__, __75__, __76__, __77__) with
+      | (((__G, __Q) as GQ), __D, __D',
+         ((Lam (Dec (_, __V1), __U), s1), (Pi ((Dec (_, __V2), _), __V), s2)),
+         ((__U', s1'), (__V', s2')), __P', sc) ->
+          ((if Subordinate.equiv ((I.targetFam __V'), (I.targetFam __V1))
+            then
+              let __X = I.newEVar (__G, (I.EClo (__V1, s1))) in
+              let sc' () = (isParameter (__Q, __X)) && (sc ()) in
+              ((leInstL
+                  ((__G, __Q), __D, __D',
+                    ((__U, (I.Dot ((I.Exp __X), s1))),
+                      (__V, (I.Dot ((I.Exp __X), s2)))),
+                    ((__U', s1'), (__V', s2')), __P', sc'))
+                (* = I.newEVar (I.EClo (V2', s2')) *)
+                (* enforces that X can only bound to parameter or remain uninstantiated *))
+            else
+              if Subordinate.below ((I.targetFam __V1), (I.targetFam __V'))
+              then
+                (let __X = I.newEVar (__G, (I.EClo (__V1, s1))) in
+                 ((leInstL
+                     ((__G, __Q), __D, __D',
+                       ((__U, (I.Dot ((I.Exp __X), s1))),
+                         (__V, (I.Dot ((I.Exp __X), s2)))),
+                       ((__U', s1'), (__V', s2')), __P', sc))
+                   (* = I.newEVar (I.EClo (V2', s2')) *)))
+              else false__)
+          (* == I.targetFam V2' *))
+      | (GQ, __D, __D', UsVs, UsVs', __P, sc) ->
+          leftInstantiate (GQ, __D, ((Less (UsVs, UsVs')) :: __D'), __P, sc)
+      (* impossible, if additional invariant assumed (see ltW) *)
+    let rec eqInstL (GQ) (__D) (__D') (UsVs) (UsVs') (__P') sc =
+      eqInstLW
+        (GQ, __D, __D', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), __P', sc)
+    let rec eqInstLW __78__ __79__ __80__ __81__ __82__ __83__ __84__ =
+      match (__78__, __79__, __80__, __81__, __82__, __83__, __84__) with
+      | (((__G, __Q) as GQ), __D, __D',
+         ((Lam (Dec (_, V1'), __U'), s1'),
+          (Pi ((Dec (_, V2'), _), __V'), s2')),
+         ((Lam (Dec (_, V1''), U''), s1''),
+          (Pi ((Dec (_, V2''), _), V''), s2'')),
          __P', sc) ->
-          let x = I.newEVar (__g, (I.EClo (V1'', s1''))) in
-          eqInstL
-            (GQ, __d, __d',
-              ((__u', (I.Dot ((I.Exp x), s1'))),
-                (__v', (I.Dot ((I.Exp x), s2')))),
-              ((__u'', (I.Dot ((I.Exp x), s1''))),
-                (__v'', (I.Dot ((I.Exp x), s2'')))), __P',
-              (function | () -> (isParameter (Q, x); sc ())))
-      | (GQ, __d, __d', UsVs, UsVs', __P', sc) ->
-          eqIL (GQ, __d, __d', UsVs, UsVs', __P', sc)
-    let rec eqIL =
-      function
-      | (((__g, Q) as GQ), __d, __d', (((Root (Const c, S), s), __Vs) as UsVs),
-         (((Root (Const c', S'), s'), __Vs') as UsVs'), __P', sc) ->
+          let __X = I.newEVar (__G, (I.EClo (V1'', s1''))) in
+          ((eqInstL
+              (GQ, __D, __D',
+                ((__U', (I.Dot ((I.Exp __X), s1'))),
+                  (__V', (I.Dot ((I.Exp __X), s2')))),
+                ((U'', (I.Dot ((I.Exp __X), s1''))),
+                  (V'', (I.Dot ((I.Exp __X), s2'')))), __P',
+                (fun () -> isParameter (__Q, __X); sc ())))
+            (* = I.newEVar (I.EClo (V2', s2')) *))
+      | (GQ, __D, __D', UsVs, UsVs', __P', sc) ->
+          eqIL (GQ, __D, __D', UsVs, UsVs', __P', sc)
+    let rec eqIL __85__ __86__ __87__ __88__ __89__ __90__ __91__ =
+      match (__85__, __86__, __87__, __88__, __89__, __90__, __91__) with
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (Const c, __S), s), __Vs) as UsVs),
+         (((Root (Const c', __S'), s'), __Vs') as UsVs'), __P', sc) ->
           if eqCid (c, c')
           then
             eqSpineIL
-              (GQ, __d, __d', ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), __P', sc)
+              (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), __P', sc)
           else
             (if (!Global.chatter) > 4
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq (UsVs, UsVs')) :: __d)))
-                           atomicRCtxToString (__g, __d'))
+                                (__G, ((Eq (UsVs, UsVs')) :: __D)))
+                           atomicRCtxToString (__G, __D'))
                           ^ " ---> ")
-                     atomicPredToString (__g, __P'))
+                     atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
              true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (Def c, S), s), __Vs) as UsVs),
-         (((Root (Def c', S'), s'), __Vs') as UsVs'), __P', sc) ->
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (Def c, __S), s), __Vs) as UsVs),
+         (((Root (Def c', __S'), s'), __Vs') as UsVs'), __P', sc) ->
           if eqCid (c, c')
           then
             eqSpineIL
-              (GQ, __d, __d', ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), __P', sc)
+              (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), __P', sc)
           else
             (if (!Global.chatter) > 4
              then
                print
                  (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq (UsVs, UsVs')) :: __d)))
-                           atomicRCtxToString (__g, __d'))
+                                (__G, ((Eq (UsVs, UsVs')) :: __D)))
+                           atomicRCtxToString (__G, __D'))
                           ^ " ---> ")
-                     atomicPredToString (__g, __P'))
+                     atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
              true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (Const c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), __P', sc) ->
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (Const c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), __P', sc) ->
           if isAtomic (GQ, __Us')
           then
             leftInstantiate
-              (GQ, __d, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __d'), __P', sc)
-          else
-            (if (!Global.chatter) > 4
-             then
-               print
-                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d)))
-                           atomicRCtxToString (__g, __d'))
-                          ^ " ---> ")
-                     atomicPredToString (__g, __P'))
-                    ^ "\n")
-             else ();
-             true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (Def c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), __P', sc) ->
-          if isAtomic (GQ, __Us')
-          then
-            leftInstantiate
-              (GQ, __d, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __d'), __P', sc)
-          else
-            (if (!Global.chatter) > 4
-             then
-               print
-                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d)))
-                           atomicRCtxToString (__g, __d'))
-                          ^ " ---> ")
-                     atomicPredToString (__g, __P'))
-                    ^ "\n")
-             else ();
-             true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Def c, S'), s') as __Us'), __Vs'), __P', sc) ->
-          if isAtomic (GQ, __Us)
-          then
-            leftInstantiate
-              (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), __P', sc)
-          else
-            (if (!Global.chatter) > 4
-             then
-               print
-                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d')))
-                           atomicRCtxToString (__g, __d'))
-                          ^ " ---> ")
-                     atomicPredToString (__g, __P'))
-                    ^ "\n")
-             else ();
-             true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Const c, S'), s') as __Us'), __Vs'), __P', sc) ->
-          if isAtomic (GQ, __Us)
-          then
-            leftInstantiate
-              (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), __P', sc)
-          else
-            (if (!Global.chatter) > 4
-             then
-               print
-                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                                (__g, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d')))
-                           atomicRCtxToString (__g, __d'))
-                          ^ " ---> ")
-                     atomicPredToString (__g, __P'))
-                    ^ "\n")
-             else ();
-             true__)
-      | (((__g, Q) as GQ), __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (BVar n', S'), s') as __Us'), __Vs'), __P', sc) ->
-          if n = n'
-          then
-            let Dec (_, __v') = I.ctxDec (__g, n) in
-            eqSpineIL
-              (GQ, __d, __d', ((S, s), (__v', I.id)), ((S', s'), (__v', I.id)), __P',
+              (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P',
                 sc)
           else
+            (if (!Global.chatter) > 4
+             then
+               print
+                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
+                                (__G,
+                                  ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D)))
+                           atomicRCtxToString (__G, __D'))
+                          ^ " ---> ")
+                     atomicPredToString (__G, __P'))
+                    ^ "\n")
+             else ();
+             true__)
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (Def c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), __P', sc) ->
+          if isAtomic (GQ, __Us')
+          then
             leftInstantiate
-              (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), __P', sc)
-      | (((__g, Q) as GQ), __d, __d', UsVs, UsVs', __P', sc) ->
+              (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P',
+                sc)
+          else
+            (if (!Global.chatter) > 4
+             then
+               print
+                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
+                                (__G,
+                                  ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D)))
+                           atomicRCtxToString (__G, __D'))
+                          ^ " ---> ")
+                     atomicPredToString (__G, __P'))
+                    ^ "\n")
+             else ();
+             true__)
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Def c, __S'), s') as Us'), __Vs'), __P', sc) ->
+          if isAtomic (GQ, __Us)
+          then
+            leftInstantiate
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P',
+                sc)
+          else
+            (if (!Global.chatter) > 4
+             then
+               print
+                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
+                                (__G,
+                                  ((Eq ((__Us, __Vs), (__Us', __Vs'))) ::
+                                     __D')))
+                           atomicRCtxToString (__G, __D'))
+                          ^ " ---> ")
+                     atomicPredToString (__G, __P'))
+                    ^ "\n")
+             else ();
+             true__)
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Const c, __S'), s') as Us'), __Vs'), __P', sc) ->
+          if isAtomic (GQ, __Us)
+          then
+            leftInstantiate
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P',
+                sc)
+          else
+            (if (!Global.chatter) > 4
+             then
+               print
+                 (((^) (((^) ((^) " Proved: " atomicRCtxToString
+                                (__G,
+                                  ((Eq ((__Us, __Vs), (__Us', __Vs'))) ::
+                                     __D')))
+                           atomicRCtxToString (__G, __D'))
+                          ^ " ---> ")
+                     atomicPredToString (__G, __P'))
+                    ^ "\n")
+             else ();
+             true__)
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (BVar n', __S'), s') as Us'), __Vs'), __P', sc) ->
+          if n = n'
+          then
+            let Dec (_, __V') = I.ctxDec (__G, n) in
+            eqSpineIL
+              (GQ, __D, __D', ((__S, s), (__V', I.id)),
+                ((__S', s'), (__V', I.id)), __P', sc)
+          else
+            leftInstantiate
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P',
+                sc)
+      | (((__G, __Q) as GQ), __D, __D', UsVs, UsVs', __P', sc) ->
           (if (!Global.chatter) > 4
            then
              print
                (((^) (((^) ((^) " Proved: " atomicRCtxToString
-                              (__g, ((Eq (UsVs, UsVs')) :: __d)))
-                         atomicRCtxToString (__g, __d'))
+                              (__G, ((Eq (UsVs, UsVs')) :: __D)))
+                         atomicRCtxToString (__G, __D'))
                         ^ " ---> ")
-                   atomicPredToString (__g, __P'))
+                   atomicPredToString (__G, __P'))
                   ^ "\n")
            else ();
-           true__)
-    let rec eqSpineIL (GQ, __d, __d', (__Ss, __Vs), (__Ss', __Vs'), __P', sc) =
+           true__)(* (Us, Vs as (I.Pi _ , _)) and (Us', Vs' as (I.Root _, _))
+           or the other way
+         *)
+    let rec eqSpineIL (GQ) (__D) (__D') (__Ss, __Vs) (__Ss', __Vs') (__P') sc
+      =
       eqSpineILW
-        (GQ, __d, __d', (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')), __P', sc)
-    let rec eqSpineILW =
-      function
-      | (GQ, __d, __d', ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), __P', sc) ->
-          leftInstantiate (GQ, __d, __d', __P', sc)
-      | (GQ, __d, __d', ((SClo (S, s'), s''), __Vs), SsVs', __P', sc) ->
-          eqSpineIL (GQ, __d, __d', ((S, (I.comp (s', s''))), __Vs), SsVs', __P', sc)
-      | (GQ, __d, __d', SsVs, ((SClo (S', s'), s''), __Vs'), __P', sc) ->
+        (GQ, __D, __D', (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')),
+          __P', sc)
+    let rec eqSpineILW __92__ __93__ __94__ __95__ __96__ __97__ __98__ =
+      match (__92__, __93__, __94__, __95__, __96__, __97__, __98__) with
+      | (GQ, __D, __D', ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), __P', sc)
+          -> leftInstantiate (GQ, __D, __D', __P', sc)
+      | (GQ, __D, __D', ((SClo (__S, s'), s''), __Vs), SsVs', __P', sc) ->
           eqSpineIL
-            (GQ, __d, __d', SsVs, ((S', (I.comp (s', s''))), __Vs'), __P', sc)
-      | (GQ, __d, __d', ((App (__u, S), s1), (Pi ((Dec (_, V1), _), V2), s2)),
-         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), __P', sc)
-          ->
-          let D1 = (Eq (((__u, s1), (V1, s2)), ((__u', s1'), (V1', s2')))) :: __d in
+            (GQ, __D, __D', ((__S, (I.comp (s', s''))), __Vs), SsVs', __P',
+              sc)
+      | (GQ, __D, __D', SsVs, ((SClo (__S', s'), s''), __Vs'), __P', sc) ->
           eqSpineIL
-            (GQ, D1, __d',
-              ((S, s1), (V2, (I.Dot ((I.Exp (I.EClo (__u, s1))), s2)))),
-              ((S', s1'), (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))),
-              __P', sc)
-    let rec rightDecompose =
-      function
-      | (GQ, __d', Less (O, O')) -> ordLtR (GQ, __d', O, O')
-      | (GQ, __d', Leq (O, O')) -> ordLeR (GQ, __d', O, O')
-      | (GQ, __d', Eq (O, O')) -> ordEqR (GQ, __d', O, O')
-    let rec ordLtR =
-      function
-      | (GQ, __d', Arg (UsVs), Arg (UsVs')) ->
-          ltAtomicR (GQ, __d', UsVs, UsVs', init, leftInstantiate)
-      | (GQ, __d', Lex (O), Lex (O')) -> ltLexR (GQ, __d', O, O')
-      | (GQ, __d', Simul (O), Simul (O')) -> ltSimulR (GQ, __d', O, O')
-    let rec ordLeR =
-      function
-      | (GQ, __d', Arg (UsVs), Arg (UsVs')) ->
-          leAtomicR (GQ, __d', UsVs, UsVs', init, leftInstantiate)
-      | (GQ, __d', Lex (O), Lex (O')) ->
-          (ltLexR (GQ, __d', O, O')) || (ordEqsR (GQ, __d', O, O'))
-      | (GQ, __d', Simul (O), Simul (O')) -> leSimulR (GQ, __d', O, O')
-    let rec ordEqR =
-      function
-      | (GQ, __d', Arg (UsVs), Arg (UsVs')) ->
+            (GQ, __D, __D', SsVs, ((__S', (I.comp (s', s''))), __Vs'), __P',
+              sc)
+      | (GQ, __D, __D',
+         ((App (__U, __S), s1), (Pi ((Dec (_, __V1), _), __V2), s2)),
+         ((App (__U', __S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), __P',
+         sc) ->
+          let __D1 =
+            (Eq (((__U, s1), (__V1, s2)), ((__U', s1'), (V1', s2')))) :: __D in
+          eqSpineIL
+            (GQ, __D1, __D',
+              ((__S, s1), (__V2, (I.Dot ((I.Exp (I.EClo (__U, s1))), s2)))),
+              ((__S', s1'),
+                (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), __P',
+              sc)
+    let rec rightDecompose __99__ __100__ __101__ =
+      match (__99__, __100__, __101__) with
+      | (GQ, __D', Less (__O, __O')) -> ordLtR (GQ, __D', __O, __O')
+      | (GQ, __D', Leq (__O, __O')) -> ordLeR (GQ, __D', __O, __O')
+      | (GQ, __D', Eq (__O, __O')) -> ordEqR (GQ, __D', __O, __O')
+    let rec ordLtR __102__ __103__ __104__ __105__ =
+      match (__102__, __103__, __104__, __105__) with
+      | (GQ, __D', Arg (UsVs), Arg (UsVs')) ->
+          ltAtomicR (GQ, __D', UsVs, UsVs', init, leftInstantiate)
+      | (GQ, __D', Lex (__O), Lex (__O')) -> ltLexR (GQ, __D', __O, __O')
+      | (GQ, __D', Simul (__O), Simul (__O')) ->
+          ltSimulR (GQ, __D', __O, __O')
+    let rec ordLeR __106__ __107__ __108__ __109__ =
+      match (__106__, __107__, __108__, __109__) with
+      | (GQ, __D', Arg (UsVs), Arg (UsVs')) ->
+          leAtomicR (GQ, __D', UsVs, UsVs', init, leftInstantiate)
+      | (GQ, __D', Lex (__O), Lex (__O')) ->
+          (ltLexR (GQ, __D', __O, __O')) || (ordEqsR (GQ, __D', __O, __O'))
+      | (GQ, __D', Simul (__O), Simul (__O')) ->
+          leSimulR (GQ, __D', __O, __O')
+    let rec ordEqR __110__ __111__ __112__ __113__ =
+      match (__110__, __111__, __112__, __113__) with
+      | (GQ, __D', Arg (UsVs), Arg (UsVs')) ->
           (conv (UsVs, UsVs')) ||
-            (eqAtomicR (GQ, __d', UsVs, UsVs', init, leftInstantiate))
-      | (GQ, __d', Lex (O), Lex (O')) -> ordEqsR (GQ, __d', O, O')
-      | (GQ, __d', Simul (O), Simul (O')) -> ordEqsR (GQ, __d', O, O')
-    let rec ordEqsR =
-      function
-      | (GQ, __d', nil, nil) -> true__
-      | (GQ, __d', (O)::__l, (O')::__l') ->
-          (ordEqR (GQ, __d', O, O')) && (ordEqsR (GQ, __d', __l, __l'))
-    let rec ltLexR =
-      function
-      | (GQ, __d', nil, nil) -> false__
-      | (GQ, __d', (O)::__l, (O')::__l') ->
-          (ordLtR (GQ, __d', O, O')) ||
-            ((ordEqR (GQ, __d', O, O')) && (ltLexR (GQ, __d', __l, __l')))
-    let rec leLexR (GQ, __d', __l, __l') =
-      (ltLexR (GQ, __d', __l, __l')) || (ordEqsR (GQ, __d', __l, __l'))
-    let rec ltSimulR =
-      function
-      | (GQ, __d, nil, nil) -> false__
-      | (GQ, __d, (O)::__l, (O')::__l') ->
-          ((ordLtR (GQ, __d, O, O')) && (leSimulR (GQ, __d, __l, __l'))) ||
-            ((ordEqR (GQ, __d, O, O')) && (ltSimulR (GQ, __d, __l, __l')))
-    let rec leSimulR =
-      function
-      | (GQ, __d, nil, nil) -> true__
-      | (GQ, __d, (O)::__l, (O')::__l') ->
-          (ordLeR (GQ, __d, O, O')) && (leSimulR (GQ, __d, __l, __l'))
-    let rec ltAtomicR (GQ, __d, UsVs, UsVs', sc, k) =
-      ltAtomicRW (GQ, __d, (Whnf.whnfEta UsVs), UsVs', sc, k)
-    let rec ltAtomicRW =
-      function
-      | (GQ, __d, ((__Us, ((Root _, s') as __Vs)) as UsVs), UsVs', sc, k) ->
-          ltR (GQ, __d, UsVs, UsVs', sc, k)
-      | (((__g, Q) as GQ), __d, ((Lam (_, __u), s1), (Pi ((Dec, _), __v), s2)),
-         ((__u', s1'), (__v', s2')), sc, k) ->
+            (eqAtomicR (GQ, __D', UsVs, UsVs', init, leftInstantiate))
+      | (GQ, __D', Lex (__O), Lex (__O')) -> ordEqsR (GQ, __D', __O, __O')
+      | (GQ, __D', Simul (__O), Simul (__O')) ->
+          ordEqsR (GQ, __D', __O, __O')
+    let rec ordEqsR __114__ __115__ __116__ __117__ =
+      match (__114__, __115__, __116__, __117__) with
+      | (GQ, __D', nil, nil) -> true__
+      | (GQ, __D', (__O)::__L, (__O')::__L') ->
+          (ordEqR (GQ, __D', __O, __O')) && (ordEqsR (GQ, __D', __L, __L'))
+    let rec ltLexR __118__ __119__ __120__ __121__ =
+      match (__118__, __119__, __120__, __121__) with
+      | (GQ, __D', nil, nil) -> false__
+      | (GQ, __D', (__O)::__L, (__O')::__L') ->
+          (ordLtR (GQ, __D', __O, __O')) ||
+            ((ordEqR (GQ, __D', __O, __O')) && (ltLexR (GQ, __D', __L, __L')))
+    let rec leLexR (GQ) (__D') (__L) (__L') =
+      (ltLexR (GQ, __D', __L, __L')) || (ordEqsR (GQ, __D', __L, __L'))
+    let rec ltSimulR __122__ __123__ __124__ __125__ =
+      match (__122__, __123__, __124__, __125__) with
+      | (GQ, __D, nil, nil) -> false__
+      | (GQ, __D, (__O)::__L, (__O')::__L') ->
+          ((ordLtR (GQ, __D, __O, __O')) && (leSimulR (GQ, __D, __L, __L')))
+            ||
+            ((ordEqR (GQ, __D, __O, __O')) && (ltSimulR (GQ, __D, __L, __L')))
+    let rec leSimulR __126__ __127__ __128__ __129__ =
+      match (__126__, __127__, __128__, __129__) with
+      | (GQ, __D, nil, nil) -> true__
+      | (GQ, __D, (__O)::__L, (__O')::__L') ->
+          (ordLeR (GQ, __D, __O, __O')) && (leSimulR (GQ, __D, __L, __L'))
+    let rec ltAtomicR (GQ) (__D) (UsVs) (UsVs') sc k =
+      ltAtomicRW (GQ, __D, (Whnf.whnfEta UsVs), UsVs', sc, k)
+    let rec ltAtomicRW __130__ __131__ __132__ __133__ __134__ __135__ =
+      match (__130__, __131__, __132__, __133__, __134__, __135__) with
+      | (GQ, __D, ((__Us, ((Root _, s') as Vs)) as UsVs), UsVs', sc, k) ->
+          ltR (GQ, __D, UsVs, UsVs', sc, k)
+      | (((__G, __Q) as GQ), __D,
+         ((Lam (_, __U), s1), (Pi ((Dec, _), __V), s2)),
+         ((__U', s1'), (__V', s2')), sc, k) ->
           let UsVs' =
-            ((__u', (I.comp (s1', I.shift))), (__v', (I.comp (s2', I.shift)))) in
-          let UsVs = ((__u, (I.dot1 s1)), (__v, (I.dot1 s2))) in
-          let __d' = shiftACtx __d (function | s -> I.comp (s, I.shift)) in
+            ((__U', (I.comp (s1', I.shift))),
+              (__V', (I.comp (s2', I.shift)))) in
+          let UsVs = ((__U, (I.dot1 s1)), (__V, (I.dot1 s2))) in
+          let __D' = shiftACtx __D (fun s -> I.comp (s, I.shift)) in
           ltAtomicR
-            (((I.Decl (__g, (N.decLUName (__g, (I.decSub (Dec, s2)))))),
-               (I.Decl (Q, All))), __d', UsVs, UsVs', sc, k)
-    let rec leAtomicR (GQ, __d, UsVs, UsVs', sc, k) =
-      leAtomicRW (GQ, __d, (Whnf.whnfEta UsVs), UsVs', sc, k)
-    let rec leAtomicRW =
-      function
-      | (GQ, __d, ((__Us, ((Root _, s') as __Vs)) as UsVs), UsVs', sc, k) ->
-          leR (GQ, __d, UsVs, UsVs', sc, k)
-      | (((__g, Q) as GQ), __d, ((Lam (_, __u), s1), (Pi ((Dec, _), __v), s2)),
-         ((__u', s1'), (__v', s2')), sc, k) ->
-          let __d' = shiftACtx __d (function | s -> I.comp (s, I.shift)) in
+            (((I.Decl (__G, (N.decLUName (__G, (I.decSub (Dec, s2)))))),
+               (I.Decl (__Q, All))), __D', UsVs, UsVs', sc, k)
+    let rec leAtomicR (GQ) (__D) (UsVs) (UsVs') sc k =
+      leAtomicRW (GQ, __D, (Whnf.whnfEta UsVs), UsVs', sc, k)
+    let rec leAtomicRW __136__ __137__ __138__ __139__ __140__ __141__ =
+      match (__136__, __137__, __138__, __139__, __140__, __141__) with
+      | (GQ, __D, ((__Us, ((Root _, s') as Vs)) as UsVs), UsVs', sc, k) ->
+          leR (GQ, __D, UsVs, UsVs', sc, k)
+      | (((__G, __Q) as GQ), __D,
+         ((Lam (_, __U), s1), (Pi ((Dec, _), __V), s2)),
+         ((__U', s1'), (__V', s2')), sc, k) ->
+          let __D' = shiftACtx __D (fun s -> I.comp (s, I.shift)) in
           let UsVs' =
-            ((__u', (I.comp (s1', I.shift))), (__v', (I.comp (s2', I.shift)))) in
-          let UsVs = ((__u, (I.dot1 s1)), (__v, (I.dot1 s2))) in
+            ((__U', (I.comp (s1', I.shift))),
+              (__V', (I.comp (s2', I.shift)))) in
+          let UsVs = ((__U, (I.dot1 s1)), (__V, (I.dot1 s2))) in
           leAtomicR
-            (((I.Decl (__g, (N.decLUName (__g, (I.decSub (Dec, s2)))))),
-               (I.Decl (Q, All))), __d', UsVs, UsVs', sc, k)
-    let rec eqAtomicR (((__g, Q) as GQ), __d, UsVs, UsVs', sc, k) =
-      eqAtomicRW (GQ, __d, (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), sc, k)
-    let rec eqAtomicRW =
-      function
-      | (((__g, Q) as GQ), __d, ((Lam (_, __u), s1), (Pi ((Dec, _), __v), s2)),
-         ((Lam (_, __u'), s1'), (Pi ((Dec', _), __v'), s2')), sc, k) ->
+            (((I.Decl (__G, (N.decLUName (__G, (I.decSub (Dec, s2)))))),
+               (I.Decl (__Q, All))), __D', UsVs, UsVs', sc, k)
+    let rec eqAtomicR ((__G, __Q) as GQ) (__D) (UsVs) (UsVs') sc k =
+      eqAtomicRW (GQ, __D, (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), sc, k)
+    let rec eqAtomicRW __142__ __143__ __144__ __145__ __146__ __147__ =
+      match (__142__, __143__, __144__, __145__, __146__, __147__) with
+      | (((__G, __Q) as GQ), __D,
+         ((Lam (_, __U), s1), (Pi ((Dec, _), __V), s2)),
+         ((Lam (_, __U'), s1'), (Pi ((Dec', _), __V'), s2')), sc, k) ->
           eqAtomicR
-            (((I.Decl (__g, (N.decLUName (__g, (I.decSub (Dec, s2)))))),
-               (I.Decl (Q, All))),
-              (shiftACtx __d (function | s -> I.comp (s, I.shift))),
-              ((__u, (I.dot1 s1')), (__v, (I.dot1 s2'))),
-              ((__u', (I.dot1 s1')), (__v', (I.dot1 s2'))), sc, k)
-      | (GQ, __d, (__Us, ((Root _, s2) as __Vs)), (__Us', ((Root _, s2') as __Vs')),
-         sc, k) -> eqR (GQ, __d, (__Us, __Vs), (__Us', __Vs'), sc, k)
-      | (GQ, __d, (__Us, __Vs), (__Us', __Vs'), sc, k) -> false__
-    let rec ltR (((__g, Q) as GQ), __d, UsVs, UsVs', sc, k) =
-      ltRW (GQ, __d, UsVs, (Whnf.whnfEta UsVs'), sc, k)
-    let rec ltRW =
-      function
-      | (GQ, __d, (__Us, __Vs), (((Root (Const c, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us')
-          then k (GQ, __d, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
-          else
-            ltSpineR
-              (GQ, __d, (__Us, __Vs), ((S', s'), ((I.constType c), I.id)), sc, k)
-      | (GQ, __d, (__Us, __Vs), (((Root (Def c, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us')
-          then k (GQ, __d, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
-          else
-            ltSpineR
-              (GQ, __d, (__Us, __Vs), ((S', s'), ((I.constType c), I.id)), sc, k)
-      | (((__g, Q) as GQ), __d, (__Us, __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us')
-          then k (GQ, __d, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
-          else
-            (let Dec (_, __v') = I.ctxDec (__g, n) in
-             ltSpineR (GQ, __d, (__Us, __Vs), ((S', s'), (__v', I.id)), sc, k))
-      | (GQ, __d, _, ((EVar _, _), _), _, _) -> false__
-      | (((__g, Q) as GQ), __d, ((__u, s1), (__v, s2)),
-         ((Lam (Dec (_, V1'), __u'), s1'), (Pi ((Dec (_, V2'), _), __v'), s2')),
+            (((I.Decl (__G, (N.decLUName (__G, (I.decSub (Dec, s2)))))),
+               (I.Decl (__Q, All))),
+              (shiftACtx __D (fun s -> I.comp (s, I.shift))),
+              ((__U, (I.dot1 s1')), (__V, (I.dot1 s2'))),
+              ((__U', (I.dot1 s1')), (__V', (I.dot1 s2'))), sc, k)
+      | (GQ, __D, (__Us, ((Root _, s2) as Vs)),
+         (__Us', ((Root _, s2') as Vs')), sc, k) ->
+          eqR (GQ, __D, (__Us, __Vs), (__Us', __Vs'), sc, k)
+      | (GQ, __D, (__Us, __Vs), (__Us', __Vs'), sc, k) -> false__(* Fri Feb 25 21:26:39 2005 -fp !!! *)
+      (* mismatch: not equal *)(* Dec = Dec' *)
+    let rec ltR ((__G, __Q) as GQ) (__D) (UsVs) (UsVs') sc k =
+      ltRW (GQ, __D, UsVs, (Whnf.whnfEta UsVs'), sc, k)
+    let rec ltRW __148__ __149__ __150__ __151__ __152__ __153__ =
+      match (__148__, __149__, __150__, __151__, __152__, __153__) with
+      | (GQ, __D, (__Us, __Vs), (((Root (Const c, __S'), s') as Us'), __Vs'),
          sc, k) ->
-          if Subordinate.equiv ((I.targetFam __v), (I.targetFam V1'))
-          then
-            let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
-            let sc' = function | () -> (isParameter (Q, x); sc ()) in
-            ltR
-              (GQ, __d, ((__u, s1), (__v, s2)),
-                ((__u', (I.Dot ((I.Exp x), s1'))),
-                  (__v', (I.Dot ((I.Exp x), s2')))), sc', k)
-          else
-            if Subordinate.below ((I.targetFam V1'), (I.targetFam __v))
+          ((if isAtomic (GQ, __Us')
+            then k (GQ, __D, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
+            else
+              ltSpineR
+                (GQ, __D, (__Us, __Vs),
+                  ((__S', s'), ((I.constType c), I.id)), sc, k))
+          (* either leftInstantiate D or  atomic reasoning *))
+      | (GQ, __D, (__Us, __Vs), (((Root (Def c, __S'), s') as Us'), __Vs'),
+         sc, k) ->
+          ((if isAtomic (GQ, __Us')
+            then k (GQ, __D, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
+            else
+              ltSpineR
+                (GQ, __D, (__Us, __Vs),
+                  ((__S', s'), ((I.constType c), I.id)), sc, k))
+          (* either leftInstantiate D or  atomic reasoning *))
+      | (((__G, __Q) as GQ), __D, (__Us, __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), sc, k) ->
+          ((if isAtomic (GQ, __Us')
+            then k (GQ, __D, nil, (Less ((__Us, __Vs), (__Us', __Vs'))), sc)
+            else
+              (let Dec (_, __V') = I.ctxDec (__G, n) in
+               ltSpineR
+                 (GQ, __D, (__Us, __Vs), ((__S', s'), (__V', I.id)), sc, k)))
+          (* either leftInstantiate D or  atomic reasoning *))
+      | (GQ, __D, _, ((EVar _, _), _), _, _) -> false__
+      | (((__G, __Q) as GQ), __D, ((__U, s1), (__V, s2)),
+         ((Lam (Dec (_, V1'), __U'), s1'),
+          (Pi ((Dec (_, V2'), _), __V'), s2')),
+         sc, k) ->
+          ((if Subordinate.equiv ((I.targetFam __V), (I.targetFam V1'))
             then
-              (let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
-               ltR
-                 (GQ, __d, ((__u, s1), (__v, s2)),
-                   ((__u', (I.Dot ((I.Exp x), s1'))),
-                     (__v', (I.Dot ((I.Exp x), s2')))), sc, k))
-            else false__
-    let rec ltSpineR (GQ, __d, (__Us, __Vs), (__Ss', __Vs'), sc, k) =
-      ltSpineRW (GQ, __d, (__Us, __Vs), (__Ss', (Whnf.whnf __Vs')), sc, k)
-    let rec ltSpineRW =
-      function
-      | (GQ, __d, (__Us, __Vs), ((I.Nil, _), _), _, _) -> false__
-      | (GQ, __d, (__Us, __Vs), ((SClo (S, s'), s''), __Vs'), sc, k) ->
-          ltSpineR (GQ, __d, (__Us, __Vs), ((S, (I.comp (s', s''))), __Vs'), sc, k)
-      | (GQ, __d, (__Us, __Vs),
-         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc, k) ->
-          (leAtomicR (GQ, __d, (__Us, __Vs), ((__u', s1'), (V1', s2')), sc, k)) ||
+              let __X = I.newEVar (__G, (I.EClo (V1', s1'))) in
+              let sc' () = isParameter (__Q, __X); sc () in
+              ((ltR
+                  (GQ, __D, ((__U, s1), (__V, s2)),
+                    ((__U', (I.Dot ((I.Exp __X), s1'))),
+                      (__V', (I.Dot ((I.Exp __X), s2')))), sc', k))
+                (* enforce that X is only instantiated to parameters *)
+                (* = I.newEVar (I.EClo (V2', s2')) *))
+            else
+              if Subordinate.below ((I.targetFam V1'), (I.targetFam __V))
+              then
+                (let __X = I.newEVar (__G, (I.EClo (V1', s1'))) in
+                 ((ltR
+                     (GQ, __D, ((__U, s1), (__V, s2)),
+                       ((__U', (I.Dot ((I.Exp __X), s1'))),
+                         (__V', (I.Dot ((I.Exp __X), s2')))), sc, k))
+                   (* = I.newEVar (I.EClo (V2', s2')) *)))
+              else false__)
+          (* == I.targetFam V2' *))
+    let rec ltSpineR (GQ) (__D) (__Us, __Vs) (__Ss', __Vs') sc k =
+      ltSpineRW (GQ, __D, (__Us, __Vs), (__Ss', (Whnf.whnf __Vs')), sc, k)
+    let rec ltSpineRW __154__ __155__ __156__ __157__ __158__ __159__ =
+      match (__154__, __155__, __156__, __157__, __158__, __159__) with
+      | (GQ, __D, (__Us, __Vs), ((I.Nil, _), _), _, _) -> false__
+      | (GQ, __D, (__Us, __Vs), ((SClo (__S, s'), s''), __Vs'), sc, k) ->
+          ltSpineR
+            (GQ, __D, (__Us, __Vs), ((__S, (I.comp (s', s''))), __Vs'), sc,
+              k)
+      | (GQ, __D, (__Us, __Vs),
+         ((App (__U', __S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc,
+         k) ->
+          (leAtomicR
+             (GQ, __D, (__Us, __Vs), ((__U', s1'), (V1', s2')), sc, k))
+            ||
             (ltSpineR
-               (GQ, __d, (__Us, __Vs),
-                 ((S', s1'),
-                   (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))), sc, k))
-    let rec leR (GQ, __d, UsVs, UsVs', sc, k) =
-      leRW (GQ, __d, UsVs, (Whnf.whnfEta UsVs'), sc, k)
-    let rec leRW =
-      function
-      | (((__g, Q) as GQ), __d, ((__u, s1), (__v, s2)),
-         ((Lam (Dec (_, V1'), __u'), s1'), (Pi ((Dec (_, V2'), _), __v'), s2')),
+               (GQ, __D, (__Us, __Vs),
+                 ((__S', s1'),
+                   (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), sc,
+                 k))(* cannot happen Sat Apr 20 16:08:30 2002 -bp *)
+    let rec leR (GQ) (__D) (UsVs) (UsVs') sc k =
+      leRW (GQ, __D, UsVs, (Whnf.whnfEta UsVs'), sc, k)
+    let rec leRW __160__ __161__ __162__ __163__ __164__ __165__ =
+      match (__160__, __161__, __162__, __163__, __164__, __165__) with
+      | (((__G, __Q) as GQ), __D, ((__U, s1), (__V, s2)),
+         ((Lam (Dec (_, V1'), __U'), s1'),
+          (Pi ((Dec (_, V2'), _), __V'), s2')),
          sc, k) ->
-          if Subordinate.equiv ((I.targetFam __v), (I.targetFam V1'))
-          then
-            let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
-            let sc' = function | () -> (isParameter (Q, x)) && (sc ()) in
-            leR
-              (GQ, __d, ((__u, s1), (__v, s2)),
-                ((__u', (I.Dot ((I.Exp x), s1'))),
-                  (__v', (I.Dot ((I.Exp x), s2')))), sc', k)
-          else
-            if Subordinate.below ((I.targetFam V1'), (I.targetFam __v))
+          ((if Subordinate.equiv ((I.targetFam __V), (I.targetFam V1'))
             then
-              (let x = I.newEVar (__g, (I.EClo (V1', s1'))) in
-               leR
-                 (GQ, __d, ((__u, s1), (__v, s2)),
-                   ((__u', (I.Dot ((I.Exp x), s1'))),
-                     (__v', (I.Dot ((I.Exp x), s2')))), sc, k))
-            else false__
-      | (GQ, __d, UsVs, UsVs', sc, k) ->
-          (ltR (GQ, __d, UsVs, UsVs', sc, k)) ||
-            (eqR (GQ, __d, UsVs, UsVs', sc, k))
-    let rec eqR (((__g, Q) as GQ), __d, UsVs, UsVs', sc, k) =
-      (CSManager.trail (function | () -> (eq (__g, UsVs, UsVs')) && (sc ())))
-        || (eqR' (GQ, __d, UsVs, UsVs', sc, k))
-    let rec eqR' =
-      function
-      | (GQ, __d, (__Us, ((Pi ((Dec (_, V2'), _), __v'), s2') as __Vs)),
-         (__Us', ((Root _, s2'') as __Vs')), sc, k) -> false__
-      | (GQ, __d, (__Us, ((Root _, s2') as __Vs)),
-         (__Us', ((Pi ((Dec (_, V2''), _), __v''), s2'') as __Vs')), sc, k) ->
+              let __X = I.newEVar (__G, (I.EClo (V1', s1'))) in
+              let sc' () = (isParameter (__Q, __X)) && (sc ()) in
+              ((leR
+                  (GQ, __D, ((__U, s1), (__V, s2)),
+                    ((__U', (I.Dot ((I.Exp __X), s1'))),
+                      (__V', (I.Dot ((I.Exp __X), s2')))), sc', k))
+                (* = I.newEVar (I.EClo (V2', s2')) *)
+                (* enforces that X can only bound to parameter or remain uninstantiated *))
+            else
+              if Subordinate.below ((I.targetFam V1'), (I.targetFam __V))
+              then
+                (let __X = I.newEVar (__G, (I.EClo (V1', s1'))) in
+                 ((leR
+                     (GQ, __D, ((__U, s1), (__V, s2)),
+                       ((__U', (I.Dot ((I.Exp __X), s1'))),
+                         (__V', (I.Dot ((I.Exp __X), s2')))), sc, k))
+                   (* = I.newEVar (I.EClo (V2', s2')) *)))
+              else false__)
+          (* == I.targetFam V2' *))
+      | (GQ, __D, UsVs, UsVs', sc, k) ->
+          (ltR (GQ, __D, UsVs, UsVs', sc, k)) ||
+            (eqR (GQ, __D, UsVs, UsVs', sc, k))(* impossible, if additional invariant assumed (see ltW) *)
+    let rec eqR ((__G, __Q) as GQ) (__D) (UsVs) (UsVs') sc k =
+      (CSManager.trail (fun () -> (eq (__G, UsVs, UsVs')) && (sc ()))) ||
+        (eqR' (GQ, __D, UsVs, UsVs', sc, k))
+    let rec eqR' __166__ __167__ __168__ __169__ __170__ __171__ =
+      match (__166__, __167__, __168__, __169__, __170__, __171__) with
+      | (GQ, __D, (__Us, ((Pi ((Dec (_, V2'), _), __V'), s2') as Vs)),
+         (__Us', ((Root _, s2'') as Vs')), sc, k) -> false__
+      | (GQ, __D, (__Us, ((Root _, s2') as Vs)),
+         (__Us', ((Pi ((Dec (_, V2''), _), V''), s2'') as Vs')), sc, k) ->
           false__
-      | (GQ, __d, (((Root (Const c, S), s), __Vs) as UsVs),
-         (((Root (Const c', S'), s'), __Vs') as UsVs'), sc, k) ->
+      | (GQ, __D, (((Root (Const c, __S), s), __Vs) as UsVs),
+         (((Root (Const c', __S'), s'), __Vs') as UsVs'), sc, k) ->
           if eqCid (c, c')
           then
             eqSpineR
-              (GQ, __d, ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), sc, k)
+              (GQ, __D, ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), sc, k)
           else false__
-      | (GQ, __d, (((Root (Const c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us')
-          then k (GQ, __d, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
-          else false__
-      | (GQ, __d, (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Const c, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us)
-          then k (GQ, __d, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
-          else false__
-      | (GQ, __d, (((Root (Def c, S), s), __Vs) as UsVs),
-         (((Root (Def c', S'), s'), __Vs') as UsVs'), sc, k) ->
+      | (GQ, __D, (((Root (Const c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), sc, k) ->
+          ((if isAtomic (GQ, __Us')
+            then k (GQ, __D, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
+            else false__)
+          (* either leftInstantiate D or atomic reasoning *))
+      | (GQ, __D, (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Const c, __S'), s') as Us'), __Vs'), sc, k) ->
+          ((if isAtomic (GQ, __Us)
+            then k (GQ, __D, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
+            else false__)
+          (* either leftInstantiate D or atomic reasoning *))
+      | (GQ, __D, (((Root (Def c, __S), s), __Vs) as UsVs),
+         (((Root (Def c', __S'), s'), __Vs') as UsVs'), sc, k) ->
           if eqCid (c, c')
           then
             eqSpineR
-              (GQ, __d, ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), sc, k)
+              (GQ, __D, ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), sc, k)
           else false__
-      | (GQ, __d, (((Root (Def c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us')
-          then k (GQ, __d, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
-          else false__
-      | (GQ, __d, (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Def c, S'), s') as __Us'), __Vs'), sc, k) ->
-          if isAtomic (GQ, __Us)
-          then k (GQ, __d, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
-          else false__
-      | (((__g, Q) as GQ), __d, (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (BVar n', S'), s') as __Us'), __Vs'), sc, k) ->
+      | (GQ, __D, (((Root (Def c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), sc, k) ->
+          ((if isAtomic (GQ, __Us')
+            then k (GQ, __D, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
+            else false__)
+          (* either leftInstantiate D or atomic reasoning *))
+      | (GQ, __D, (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Def c, __S'), s') as Us'), __Vs'), sc, k) ->
+          ((if isAtomic (GQ, __Us)
+            then k (GQ, __D, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
+            else false__)
+          (* either leftInstantiate D or atomic reasoning *))
+      | (((__G, __Q) as GQ), __D, (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (BVar n', __S'), s') as Us'), __Vs'), sc, k) ->
           if n = n'
           then
-            let Dec (_, __v') = I.ctxDec (__g, n) in
+            let Dec (_, __V') = I.ctxDec (__G, n) in
             eqSpineR
-              (GQ, __d, ((S, s), (__v', I.id)), ((S', s'), (__v', I.id)), sc, k)
-          else k (GQ, __d, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
-      | (GQ, __d, UsVs, UsVs', sc, k) -> k (GQ, __d, nil, (Eq (UsVs, UsVs')), sc)
-    let rec eqSpineR (GQ, __d, (__Ss, __Vs), (__Ss', __Vs'), sc, k) =
-      eqSpineRW (GQ, __d, (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')), sc, k)
-    let rec eqSpineRW =
-      function
-      | (GQ, __d, ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), sc, k) -> true__
-      | (GQ, __d, ((SClo (S, s'), s''), __Vs), SsVs', sc, k) ->
-          eqSpineR (GQ, __d, ((S, (I.comp (s', s''))), __Vs), SsVs', sc, k)
-      | (GQ, __d, SsVs, ((SClo (S', s'), s''), __Vs'), sc, k) ->
-          eqSpineR (GQ, __d, SsVs, ((S', (I.comp (s', s''))), __Vs'), sc, k)
-      | (GQ, __d, ((App (__u, S), s1), (Pi ((Dec (_, V1), _), V2), s2)),
-         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc, k) ->
+              (GQ, __D, ((__S, s), (__V', I.id)), ((__S', s'), (__V', I.id)),
+                sc, k)
+          else k (GQ, __D, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
+      | (GQ, __D, UsVs, UsVs', sc, k) ->
+          k (GQ, __D, nil, (Eq (UsVs, UsVs')), sc)(* UsVs = Lam *)
+      (* either leftInstantiate D or atomic reasoning *)
+    let rec eqSpineR (GQ) (__D) (__Ss, __Vs) (__Ss', __Vs') sc k =
+      eqSpineRW
+        (GQ, __D, (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')), sc,
+          k)
+    let rec eqSpineRW __172__ __173__ __174__ __175__ __176__ __177__ =
+      match (__172__, __173__, __174__, __175__, __176__, __177__) with
+      | (GQ, __D, ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), sc, k) -> true__
+      | (GQ, __D, ((SClo (__S, s'), s''), __Vs), SsVs', sc, k) ->
+          eqSpineR (GQ, __D, ((__S, (I.comp (s', s''))), __Vs), SsVs', sc, k)
+      | (GQ, __D, SsVs, ((SClo (__S', s'), s''), __Vs'), sc, k) ->
+          eqSpineR
+            (GQ, __D, SsVs, ((__S', (I.comp (s', s''))), __Vs'), sc, k)
+      | (GQ, __D,
+         ((App (__U, __S), s1), (Pi ((Dec (_, __V1), _), __V2), s2)),
+         ((App (__U', __S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), sc,
+         k) ->
           (eqAtomicR
-             (GQ, __d, ((__u, s1), (V1, s2)), ((__u', s1'), (V1', s2')), sc, k))
+             (GQ, __D, ((__U, s1), (__V1, s2)), ((__U', s1'), (V1', s2')),
+               sc, k))
             &&
             (eqSpineR
-               (GQ, __d,
-                 ((S, s1), (V2, (I.Dot ((I.Exp (I.EClo (__u, s1))), s2)))),
-                 ((S', s1'),
-                   (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))), sc, k))
-      | (GQ, __d, SsVs, SsVs', sc, k) -> false__
-    let rec leftDecompose =
-      function
-      | (((__g, Q) as GQ), nil, __d', P) -> rightDecompose (GQ, __d', P)
-      | (GQ, (Less (Arg (UsVs), Arg (UsVs')))::__d, __d', P) ->
-          ltAtomicL (GQ, __d, __d', UsVs, UsVs', P)
-      | (GQ, (Less (Lex (O), Lex (O')))::__d, __d', P) ->
-          ltLexL (GQ, __d, __d', O, O', P)
-      | (GQ, (Less (Simul (O), Simul (O')))::__d, __d', P) ->
-          ltSimulL (GQ, __d, __d', O, O', P)
-      | (GQ, (Leq (Arg (UsVs), Arg (UsVs')))::__d, __d', P) ->
-          leAtomicL (GQ, __d, __d', UsVs, UsVs', P)
-      | (GQ, (Leq (Lex (O), Lex (O')))::__d, __d', P) ->
-          (leftDecompose (GQ, ((Less ((R.Lex O), (R.Lex O'))) :: __d), __d', P))
+               (GQ, __D,
+                 ((__S, s1),
+                   (__V2, (I.Dot ((I.Exp (I.EClo (__U, s1))), s2)))),
+                 ((__S', s1'),
+                   (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), sc,
+                 k))
+      | (GQ, __D, SsVs, SsVs', sc, k) -> false__
+    let rec leftDecompose __178__ __179__ __180__ __181__ =
+      match (__178__, __179__, __180__, __181__) with
+      | (((__G, __Q) as GQ), nil, __D', __P) ->
+          rightDecompose (GQ, __D', __P)
+      | (GQ, (Less (Arg (UsVs), Arg (UsVs')))::__D, __D', __P) ->
+          ltAtomicL (GQ, __D, __D', UsVs, UsVs', __P)
+      | (GQ, (Less (Lex (__O), Lex (__O')))::__D, __D', __P) ->
+          ltLexL (GQ, __D, __D', __O, __O', __P)
+      | (GQ, (Less (Simul (__O), Simul (__O')))::__D, __D', __P) ->
+          ltSimulL (GQ, __D, __D', __O, __O', __P)
+      | (GQ, (Leq (Arg (UsVs), Arg (UsVs')))::__D, __D', __P) ->
+          leAtomicL (GQ, __D, __D', UsVs, UsVs', __P)
+      | (GQ, (Leq (Lex (__O), Lex (__O')))::__D, __D', __P) ->
+          (leftDecompose
+             (GQ, ((Less ((R.Lex __O), (R.Lex __O'))) :: __D), __D', __P))
             &&
-            (leftDecompose (GQ, ((Eq ((R.Lex O), (R.Lex O'))) :: __d), __d', P))
-      | (GQ, (Leq (Simul (O), Simul (O')))::__d, __d', P) ->
-          leSimulL (GQ, __d, __d', O, O', P)
-      | (GQ, (Eq (Arg (UsVs), Arg (UsVs')))::__d, __d', P) ->
-          eqAtomicL (GQ, __d, __d', UsVs, UsVs', P)
-      | (GQ, (Eq (Lex (O), Lex (O')))::__d, __d', P) ->
-          eqsL (GQ, __d, __d', O, O', P)
-      | (GQ, (Eq (Simul (O), Simul (O')))::__d, __d', P) ->
-          eqsL (GQ, __d, __d', O, O', P)
-      | (((__g, Q) as GQ), (Pi (Dec, O))::__d, __d', P) ->
+            (leftDecompose
+               (GQ, ((Eq ((R.Lex __O), (R.Lex __O'))) :: __D), __D', __P))
+      | (GQ, (Leq (Simul (__O), Simul (__O')))::__D, __D', __P) ->
+          leSimulL (GQ, __D, __D', __O, __O', __P)
+      | (GQ, (Eq (Arg (UsVs), Arg (UsVs')))::__D, __D', __P) ->
+          eqAtomicL (GQ, __D, __D', UsVs, UsVs', __P)
+      | (GQ, (Eq (Lex (__O), Lex (__O')))::__D, __D', __P) ->
+          eqsL (GQ, __D, __D', __O, __O', __P)
+      | (GQ, (Eq (Simul (__O), Simul (__O')))::__D, __D', __P) ->
+          eqsL (GQ, __D, __D', __O, __O', __P)
+      | (((__G, __Q) as GQ), (Pi (Dec, __O))::__D, __D', __P) ->
           (if (!Global.chatter) > 3
            then
              (print " Ignoring quantified order ";
-              print (F.makestring_fmt (fmtPredicate (__g, (Pi (Dec, O))))))
+              print (F.makestring_fmt (fmtPredicate (__G, (Pi (Dec, __O))))))
            else ();
-           leftDecompose (GQ, __d, __d', P))
-    let rec ltLexL =
-      function
-      | (GQ, __d, __d', nil, nil, P) -> true__
-      | (GQ, __d, __d', (O)::__l, (O')::__l', P) ->
-          (leftDecompose (GQ, ((Less (O, O')) :: __d), __d', P)) &&
-            (ltLexL (GQ, ((Eq (O, O')) :: __d), __d', __l, __l', P))
-    let rec eqsL =
-      function
-      | (GQ, __d, __d', nil, nil, P) -> true__
-      | (GQ, __d, __d', (O)::__l, (O')::__l', P) ->
-          (leftDecompose (GQ, ((Eq (O, O')) :: __d), __d', P)) &&
-            (eqsL (GQ, __d, __d', __l, __l', P))
-    let rec ltSimulL =
-      function
-      | (GQ, __d, __d', nil, nil, P) -> leftDecompose (GQ, __d, __d', P)
-      | (GQ, __d, __d', (O)::__l, (O')::__l', P) ->
-          (leSimulL (GQ, ((Less (O, O')) :: __d), __d', __l, __l', P)) ||
-            (ltSimulL (GQ, ((Eq (O, O')) :: __d), __d', __l, __l', P))
-    let rec leSimulL =
-      function
-      | (GQ, __d, __d', nil, nil, P) -> leftDecompose (GQ, __d, __d', P)
-      | (GQ, __d, __d', (O)::__l, (O')::__l', P) ->
-          leSimulL (GQ, ((Leq (O, O')) :: __d), __d', __l, __l', P)
-    let rec ltAtomicL (GQ, __d, __d', UsVs, UsVs', P) =
-      ltAtomicLW (GQ, __d, __d', UsVs, (Whnf.whnfEta UsVs'), P)
-    let rec ltAtomicLW =
-      function
-      | (((__g, Q) as GQ), __d, __d', UsVs, (__Us', ((Root _, s') as __Vs')), P) ->
-          ltL (GQ, __d, __d', UsVs, (__Us', __Vs'), P)
-      | (((__g, Q) as GQ), __d, __d', ((__u, s1), (__v, s2)),
-         ((Lam (_, __u'), s1'), (Pi ((Dec', _), __v'), s2')), P) ->
-          let D1 = shiftRCtx __d (function | s -> I.comp (s, I.shift)) in
-          let D1' = shiftACtx __d' (function | s -> I.comp (s, I.shift)) in
+           leftDecompose (GQ, __D, __D', __P))(* drop assumption Pi D. P *)
+      (* eq *)(* le *)(* less *)
+    let rec ltLexL __182__ __183__ __184__ __185__ __186__ __187__ =
+      match (__182__, __183__, __184__, __185__, __186__, __187__) with
+      | (GQ, __D, __D', nil, nil, __P) -> true__
+      | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
+          (leftDecompose (GQ, ((Less (__O, __O')) :: __D), __D', __P)) &&
+            (ltLexL (GQ, ((Eq (__O, __O')) :: __D), __D', __L, __L', __P))
+    let rec eqsL __188__ __189__ __190__ __191__ __192__ __193__ =
+      match (__188__, __189__, __190__, __191__, __192__, __193__) with
+      | (GQ, __D, __D', nil, nil, __P) -> true__
+      | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
+          (leftDecompose (GQ, ((Eq (__O, __O')) :: __D), __D', __P)) &&
+            (eqsL (GQ, __D, __D', __L, __L', __P))
+    let rec ltSimulL __194__ __195__ __196__ __197__ __198__ __199__ =
+      match (__194__, __195__, __196__, __197__, __198__, __199__) with
+      | (GQ, __D, __D', nil, nil, __P) -> leftDecompose (GQ, __D, __D', __P)
+      | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
+          (leSimulL (GQ, ((Less (__O, __O')) :: __D), __D', __L, __L', __P))
+            ||
+            (ltSimulL (GQ, ((Eq (__O, __O')) :: __D), __D', __L, __L', __P))
+    let rec leSimulL __200__ __201__ __202__ __203__ __204__ __205__ =
+      match (__200__, __201__, __202__, __203__, __204__, __205__) with
+      | (GQ, __D, __D', nil, nil, __P) -> leftDecompose (GQ, __D, __D', __P)
+      | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
+          leSimulL (GQ, ((Leq (__O, __O')) :: __D), __D', __L, __L', __P)
+    let rec ltAtomicL (GQ) (__D) (__D') (UsVs) (UsVs') (__P) =
+      ltAtomicLW (GQ, __D, __D', UsVs, (Whnf.whnfEta UsVs'), __P)
+    let rec ltAtomicLW __206__ __207__ __208__ __209__ __210__ __211__ =
+      match (__206__, __207__, __208__, __209__, __210__, __211__) with
+      | (((__G, __Q) as GQ), __D, __D', UsVs, (__Us', ((Root _, s') as Vs')),
+         __P) -> ltL (GQ, __D, __D', UsVs, (__Us', __Vs'), __P)
+      | (((__G, __Q) as GQ), __D, __D', ((__U, s1), (__V, s2)),
+         ((Lam (_, __U'), s1'), (Pi ((Dec', _), __V'), s2')), __P) ->
+          let __D1 = shiftRCtx __D (fun s -> I.comp (s, I.shift)) in
+          let D1' = shiftACtx __D' (fun s -> I.comp (s, I.shift)) in
           let UsVs =
-            ((__u, (I.comp (s1, I.shift))), (__v, (I.comp (s2, I.shift)))) in
-          let UsVs' = ((__u', (I.dot1 s1')), (__v', (I.dot1 s2'))) in
-          let __P' = shiftP P (function | s -> I.comp (s, I.shift)) in
+            ((__U, (I.comp (s1, I.shift))), (__V, (I.comp (s2, I.shift)))) in
+          let UsVs' = ((__U', (I.dot1 s1')), (__V', (I.dot1 s2'))) in
+          let __P' = shiftP __P (fun s -> I.comp (s, I.shift)) in
           ltAtomicL
-            (((I.Decl (__g, (N.decLUName (__g, (I.decSub (Dec', s2')))))),
-               (I.Decl (Q, All))), D1, D1', UsVs, UsVs', __P')
-    let rec leAtomicL (GQ, __d, __d', UsVs, UsVs', P) =
-      leAtomicLW (GQ, __d, __d', UsVs, (Whnf.whnfEta UsVs'), P)
-    let rec leAtomicLW =
-      function
-      | (GQ, __d, __d', UsVs, (__Us', ((Root (H, S), s') as __Vs')), P) ->
-          leL (GQ, __d, __d', UsVs, (__Us', __Vs'), P)
-      | (((__g, Q) as GQ), __d, __d', ((__u, s1), (__v, s2)),
-         ((Lam (_, __u'), s1'), (Pi ((Dec', _), __v'), s2')), P) ->
-          let D1 = shiftRCtx __d (function | s -> I.comp (s, I.shift)) in
-          let D1' = shiftACtx __d' (function | s -> I.comp (s, I.shift)) in
+            (((I.Decl (__G, (N.decLUName (__G, (I.decSub (Dec', s2')))))),
+               (I.Decl (__Q, All))), __D1, D1', UsVs, UsVs', __P')
+    let rec leAtomicL (GQ) (__D) (__D') (UsVs) (UsVs') (__P) =
+      leAtomicLW (GQ, __D, __D', UsVs, (Whnf.whnfEta UsVs'), __P)
+    let rec leAtomicLW __212__ __213__ __214__ __215__ __216__ __217__ =
+      match (__212__, __213__, __214__, __215__, __216__, __217__) with
+      | (GQ, __D, __D', UsVs, (__Us', ((Root (__H, __S), s') as Vs')), __P)
+          -> leL (GQ, __D, __D', UsVs, (__Us', __Vs'), __P)
+      | (((__G, __Q) as GQ), __D, __D', ((__U, s1), (__V, s2)),
+         ((Lam (_, __U'), s1'), (Pi ((Dec', _), __V'), s2')), __P) ->
+          let __D1 = shiftRCtx __D (fun s -> I.comp (s, I.shift)) in
+          let D1' = shiftACtx __D' (fun s -> I.comp (s, I.shift)) in
           let UsVs =
-            ((__u, (I.comp (s1, I.shift))), (__v, (I.comp (s2, I.shift)))) in
-          let UsVs' = ((__u', (I.dot1 s1')), (__v', (I.dot1 s2'))) in
-          let __P' = shiftP P (function | s -> I.comp (s, I.shift)) in
+            ((__U, (I.comp (s1, I.shift))), (__V, (I.comp (s2, I.shift)))) in
+          let UsVs' = ((__U', (I.dot1 s1')), (__V', (I.dot1 s2'))) in
+          let __P' = shiftP __P (fun s -> I.comp (s, I.shift)) in
           leAtomicL
-            (((I.Decl (__g, (N.decLUName (__g, (I.decSub (Dec', s2')))))),
-               (I.Decl (Q, All))), D1, D1', UsVs, UsVs', __P')
-    let rec eqAtomicL (GQ, __d, __d', UsVs, UsVs', P) =
-      eqAtomicLW (GQ, __d, __d', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), P)
-    let rec eqAtomicLW =
-      function
-      | (GQ, __d, __d', (__Us, ((Root _, s) as __Vs)), (__Us', ((Root _, s') as __Vs')),
-         P) -> eqL (GQ, __d, __d', (__Us, __Vs), (__Us', __Vs'), P)
-      | (GQ, __d, __d', (__Us, ((Root _, s) as __Vs)), (__Us', ((Pi _, s') as __Vs')), P)
-          -> true__
-      | (GQ, __d, __d', (__Us, ((Pi _, s) as __Vs)), (__Us', ((Root _, s') as __Vs')), P)
-          -> true__
-      | (GQ, __d, __d', (__Us, ((Pi _, s) as __Vs)), (__Us', ((Pi _, s') as __Vs')), P)
-          -> leftDecompose (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), P)
-    let rec leL (GQ, __d, __d', UsVs, UsVs', P) =
-      (ltAtomicL (GQ, __d, __d', UsVs, UsVs', P)) &&
-        (eqAtomicL (GQ, __d, __d', UsVs, UsVs', P))
-    let rec ltL (GQ, __d, __d', UsVs, (__Us', __Vs'), P) =
-      ltLW (GQ, __d, __d', UsVs, ((Whnf.whnf __Us'), __Vs'), P)
-    let rec ltLW =
-      function
-      | (((__g, Q) as GQ), __d, __d', UsVs,
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), P) ->
+            (((I.Decl (__G, (N.decLUName (__G, (I.decSub (Dec', s2')))))),
+               (I.Decl (__Q, All))), __D1, D1', UsVs, UsVs', __P')
+    let rec eqAtomicL (GQ) (__D) (__D') (UsVs) (UsVs') (__P) =
+      eqAtomicLW
+        (GQ, __D, __D', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), __P)
+    let rec eqAtomicLW __218__ __219__ __220__ __221__ __222__ __223__ =
+      match (__218__, __219__, __220__, __221__, __222__, __223__) with
+      | (GQ, __D, __D', (__Us, ((Root _, s) as Vs)),
+         (__Us', ((Root _, s') as Vs')), __P) ->
+          eqL (GQ, __D, __D', (__Us, __Vs), (__Us', __Vs'), __P)
+      | (GQ, __D, __D', (__Us, ((Root _, s) as Vs)),
+         (__Us', ((Pi _, s') as Vs')), __P) -> true__
+      | (GQ, __D, __D', (__Us, ((Pi _, s) as Vs)),
+         (__Us', ((Root _, s') as Vs')), __P) -> true__
+      | (GQ, __D, __D', (__Us, ((Pi _, s) as Vs)),
+         (__Us', ((Pi _, s') as Vs')), __P) ->
+          leftDecompose
+            (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
+    let rec leL (GQ) (__D) (__D') (UsVs) (UsVs') (__P) =
+      (ltAtomicL (GQ, __D, __D', UsVs, UsVs', __P)) &&
+        (eqAtomicL (GQ, __D, __D', UsVs, UsVs', __P))
+    let rec ltL (GQ) (__D) (__D') (UsVs) (__Us', __Vs') (__P) =
+      ltLW (GQ, __D, __D', UsVs, ((Whnf.whnf __Us'), __Vs'), __P)
+    let rec ltLW __224__ __225__ __226__ __227__ __228__ __229__ =
+      match (__224__, __225__, __226__, __227__, __228__, __229__) with
+      | (((__G, __Q) as GQ), __D, __D', UsVs,
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us')
-          then leftDecompose (GQ, __d, ((Less (UsVs, (__Us', __Vs'))) :: __d'), P)
+          then
+            leftDecompose
+              (GQ, __D, ((Less (UsVs, (__Us', __Vs'))) :: __D'), __P)
           else
-            (let Dec (_, __v') = I.ctxDec (__g, n) in
-             ltSpineL (GQ, __d, __d', UsVs, ((S', s'), (__v', I.id)), P))
-      | (GQ, __d, __d', UsVs, ((Root (Const c, S'), s'), __Vs'), P) ->
-          ltSpineL (GQ, __d, __d', UsVs, ((S', s'), ((I.constType c), I.id)), P)
-      | (GQ, __d, __d', UsVs, ((Root (Def c, S'), s'), __Vs'), P) ->
-          ltSpineL (GQ, __d, __d', UsVs, ((S', s'), ((I.constType c), I.id)), P)
-    let rec ltSpineL (GQ, __d, __d', UsVs, (__Ss', __Vs'), P) =
-      ltSpineLW (GQ, __d, __d', UsVs, (__Ss', (Whnf.whnf __Vs')), P)
-    let rec ltSpineLW =
-      function
-      | (GQ, __d, __d', UsVs, ((I.Nil, _), _), _) -> true__
-      | (GQ, __d, __d', UsVs, ((SClo (S, s'), s''), __Vs'), P) ->
-          ltSpineL (GQ, __d, __d', UsVs, ((S, (I.comp (s', s''))), __Vs'), P)
-      | (GQ, __d, __d', UsVs,
-         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), P) ->
-          (leAtomicL (GQ, __d, __d', UsVs, ((__u', s1'), (V1', s2')), P)) &&
+            (let Dec (_, __V') = I.ctxDec (__G, n) in
+             ltSpineL (GQ, __D, __D', UsVs, ((__S', s'), (__V', I.id)), __P))
+      | (GQ, __D, __D', UsVs, ((Root (Const c, __S'), s'), __Vs'), __P) ->
+          ltSpineL
+            (GQ, __D, __D', UsVs, ((__S', s'), ((I.constType c), I.id)), __P)
+      | (GQ, __D, __D', UsVs, ((Root (Def c, __S'), s'), __Vs'), __P) ->
+          ltSpineL
+            (GQ, __D, __D', UsVs, ((__S', s'), ((I.constType c), I.id)), __P)
+    let rec ltSpineL (GQ) (__D) (__D') (UsVs) (__Ss', __Vs') (__P) =
+      ltSpineLW (GQ, __D, __D', UsVs, (__Ss', (Whnf.whnf __Vs')), __P)
+    let rec ltSpineLW __230__ __231__ __232__ __233__ __234__ __235__ =
+      match (__230__, __231__, __232__, __233__, __234__, __235__) with
+      | (GQ, __D, __D', UsVs, ((I.Nil, _), _), _) -> true__
+      | (GQ, __D, __D', UsVs, ((SClo (__S, s'), s''), __Vs'), __P) ->
+          ltSpineL
+            (GQ, __D, __D', UsVs, ((__S, (I.comp (s', s''))), __Vs'), __P)
+      | (GQ, __D, __D', UsVs,
+         ((App (__U', __S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), __P)
+          ->
+          (leAtomicL (GQ, __D, __D', UsVs, ((__U', s1'), (V1', s2')), __P))
+            &&
             (ltSpineL
-               (GQ, __d, __d', UsVs,
-                 ((S', s1'),
-                   (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))), P))
-    let rec eqL (GQ, __d, __d', UsVs, UsVs', P) =
-      eqLW (GQ, __d, __d', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), P)
-    let rec eqLW =
-      function
-      | (GQ, __d, __d', (__Us, ((Pi ((Dec (_, V2'), _), __v'), s2') as __Vs)),
-         (__Us', ((Pi ((Dec (_, V2''), _), __v''), s2'') as __Vs')), P) ->
-          leftDecompose (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), P)
-      | (GQ, __d, __d', (__Us, ((Pi ((Dec (_, V2'), _), __v'), s2') as __Vs)),
-         (__Us', ((Root _, s2'') as __Vs')), P) -> true__
-      | (GQ, __d, __d', (__Us, ((Root _, s2') as __Vs)),
-         (__Us', ((Pi ((Dec (_, V2''), _), __v''), s2'') as __Vs')), P) -> true__
-      | (GQ, __d, __d', (((Root (Const c, S), s), __Vs) as UsVs),
-         (((Root (Const c', S'), s'), __Vs') as UsVs'), P) ->
+               (GQ, __D, __D', UsVs,
+                 ((__S', s1'),
+                   (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), __P))
+    let rec eqL (GQ) (__D) (__D') (UsVs) (UsVs') (__P) =
+      eqLW (GQ, __D, __D', (Whnf.whnfEta UsVs), (Whnf.whnfEta UsVs'), __P)
+    let rec eqLW __236__ __237__ __238__ __239__ __240__ __241__ =
+      match (__236__, __237__, __238__, __239__, __240__, __241__) with
+      | (GQ, __D, __D', (__Us, ((Pi ((Dec (_, V2'), _), __V'), s2') as Vs)),
+         (__Us', ((Pi ((Dec (_, V2''), _), V''), s2'') as Vs')), __P) ->
+          leftDecompose
+            (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
+      | (GQ, __D, __D', (__Us, ((Pi ((Dec (_, V2'), _), __V'), s2') as Vs)),
+         (__Us', ((Root _, s2'') as Vs')), __P) -> true__
+      | (GQ, __D, __D', (__Us, ((Root _, s2') as Vs)),
+         (__Us', ((Pi ((Dec (_, V2''), _), V''), s2'') as Vs')), __P) ->
+          true__
+      | (GQ, __D, __D', (((Root (Const c, __S), s), __Vs) as UsVs),
+         (((Root (Const c', __S'), s'), __Vs') as UsVs'), __P) ->
           if eqCid (c, c')
           then
             eqSpineL
-              (GQ, __d, __d', ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), P)
+              (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), __P)
           else true__
-      | (GQ, __d, __d', (((Root (Const c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), P) ->
+      | (GQ, __D, __D', (((Root (Const c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us')
-          then leftDecompose (GQ, __d, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __d'), P)
+          then
+            leftDecompose
+              (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P)
           else true__
-      | (GQ, __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Const c, S'), s') as __Us'), __Vs'), P) ->
+      | (GQ, __D, __D', (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Const c, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us)
-          then leftDecompose (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), P)
+          then
+            leftDecompose
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
           else true__
-      | (GQ, __d, __d', (((Root (Def c, S), s), __Vs) as UsVs),
-         (((Root (Def c', S'), s'), __Vs') as UsVs'), P) ->
+      | (GQ, __D, __D', (((Root (Def c, __S), s), __Vs) as UsVs),
+         (((Root (Def c', __S'), s'), __Vs') as UsVs'), __P) ->
           if eqCid (c, c')
           then
             eqSpineL
-              (GQ, __d, __d', ((S, s), ((I.constType c), I.id)),
-                ((S', s'), ((I.constType c'), I.id)), P)
+              (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
+                ((__S', s'), ((I.constType c'), I.id)), __P)
           else true__
-      | (GQ, __d, __d', (((Root (Def c, S), s) as __Us), __Vs),
-         (((Root (BVar n, S'), s') as __Us'), __Vs'), P) ->
+      | (GQ, __D, __D', (((Root (Def c, __S), s) as Us), __Vs),
+         (((Root (BVar n, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us')
-          then leftDecompose (GQ, __d, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __d'), P)
+          then
+            leftDecompose
+              (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P)
           else true__
-      | (GQ, __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (Def c, S'), s') as __Us'), __Vs'), P) ->
+      | (GQ, __D, __D', (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (Def c, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us)
-          then leftDecompose (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), P)
+          then
+            leftDecompose
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
           else true__
-      | (((__g, Q) as GQ), __d, __d', (((Root (BVar n, S), s) as __Us), __Vs),
-         (((Root (BVar n', S'), s') as __Us'), __Vs'), P) ->
+      | (((__G, __Q) as GQ), __D, __D',
+         (((Root (BVar n, __S), s) as Us), __Vs),
+         (((Root (BVar n', __S'), s') as Us'), __Vs'), __P) ->
           if n = n'
           then
-            let Dec (_, __v') = I.ctxDec (__g, n) in
+            let Dec (_, __V') = I.ctxDec (__G, n) in
             eqSpineL
-              (GQ, __d, __d', ((S, s), (__v', I.id)), ((S', s'), (__v', I.id)), P)
-          else leftDecompose (GQ, __d, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __d'), P)
-      | (GQ, __d, __d', UsVs, UsVs', P) ->
-          leftDecompose (GQ, __d, ((Eq (UsVs, UsVs')) :: __d'), P)
-    let rec eqSpineL (GQ, __d, __d', (__Ss, __Vs), (__Ss', __Vs'), P) =
-      eqSpineLW (GQ, __d, __d', (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')), P)
-    let rec eqSpineLW =
-      function
-      | (GQ, __d, __d', ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), P) ->
-          leftDecompose (GQ, __d, __d', P)
-      | (GQ, __d, __d', ((SClo (S, s'), s''), __Vs), SsVs', P) ->
-          eqSpineL (GQ, __d, __d', ((S, (I.comp (s', s''))), __Vs), SsVs', P)
-      | (GQ, __d, __d', SsVs, ((SClo (S', s'), s''), __Vs'), P) ->
-          eqSpineL (GQ, __d, __d', SsVs, ((S', (I.comp (s', s''))), __Vs'), P)
-      | (GQ, __d, __d', ((App (__u, S), s1), (Pi ((Dec (_, V1), _), V2), s2)),
-         ((App (__u', S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), P) ->
-          let D1 =
-            (Eq
-               ((R.Arg ((__u, s1), (V1, s2))), (R.Arg ((__u', s1'), (V1', s2')))))
-              :: __d in
-          eqSpineL
-            (GQ, D1, __d',
-              ((S, s1), (V2, (I.Dot ((I.Exp (I.EClo (__u, s1))), s2)))),
-              ((S', s1'), (V2', (I.Dot ((I.Exp (I.EClo (__u', s1'))), s2')))),
-              P)
-    let rec deduce (__g, Q, __d, P) = leftDecompose ((__g, Q), __d, nil, P)
-    (* Reasoning about order relations *)
-    (*
-    Typing context        __g
-    mixed prefix context  Q  := . | All | Existental
-
-    Orders                0  := __u[s1] : __v[s2] | Lex O1 ... On | Simul O1 ... On
-    Order Relation        P  := O < O' | O <= O' | O = O'
-
-    Atomic Order Relation __P' := __u[s1] : __v[s2] <  __u'[s1'] : __v'[s2'] |
-                                __u[s1] : __v[s2] <= __u'[s1'] : __v'[s2'] |
-                                __u[s1] : __v[s2] =  __u'[s1'] : __v'[s2']
-
-    Order Relation Ctx    __d  := . | R , __d
-    Atomic Order Rel. Ctx __d' := . | R',  __d'
-
-    Invariant:
-
-    sometimes we write __g |- P as an abbreviation
-
-    if P = (O < O')    then __g |- O and __g |- O'
-    if P = (O <= O')    then __g |- O and __g |- O'
-    if P = (O = O')    then __g |- O and __g |- O'
-
-    if O = Lex O1 .. On  then __g |- O1 and ....G |- On
-    if O = Simul O1 .. On  then __g |- O1 and ....G |- On
-
-    if O = __u[s1] : __v[s2]
-      then     __g : Q
-           and __g |- s1 : G1, G1 |- __u : V1
-           and __g |- s2 : G2   G2 |- __v : __l
-           and __g |- __u[s1] : __v[s2]
-
-  *)
-    (*--------------------------------------------------------------------*)
-    (* Printing atomic orders *)
-    (*--------------------------------------------------------------------*)
-    (* shifting substitutions *)
-    (* shiftO O f = O'
-
-      if O is an order
-         then we shift the substitutions which are associated
-         with its terms by applying f to it
-    *)
-    (*--------------------------------------------------------------------*)
-    (* Printing *)
-    (* F.String "Pi predicate"  *)
-    (*--------------------------------------------------------------------*)
-    (* init () = true
-
-       Invariant:
-       The inital constraint continuation
-    *)
-    (* isParameter (Q, x) = B
-
-       Invariant:
-       If   __g |- x : __v
-       and  __g : Q
-       then B holds iff x is unrestricted (uninstantiated and free
-       of constraints, or lowered only) or instantiated to a universal parameter
-    *)
-    (* isFreeEVar (__Us) = true
-       iff __Us represents a possibly lowered uninstantiated EVar.
-
-       Invariant: it participated only in matching, not full unification
-    *)
-    (* constraints must be empty *)
-    (* isAtomic (__g, x) = true
-       Invariant:
-       If __g |- x : __v
-       and __g : Q
-       then B holds iff x is an atomic term which is not a parameter
-     *)
-    (* should disallow orelse ? *)
-    (*      | isAtomicW (GQ, (x as (I.EClo _))) = true    existential var *)
-    (*-----------------------------------------------------------*)
-    (* eq (__g, ((__u, s1), (__v, s2)), ((__u', s1'), (__v', s2')), sc) = B
-
-       Invariant:
-       B holds  iff
-            __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s' : G3  G3 |- __u' : __v'
-       and  __u[s1] is unifiable with to __u'[s']
-       and  all restrictions in sc are satisfied
-       and __v[s2] is atomic
-       and only __u'[s'] contains EVars
-    *)
-    (* lookupEq (GQ, __d, UsVs, UsVs', sc) = B
-
-     B holds iff
-
-     and  __d is an atomic order relation ctx
-     and  UsVs and UsVs' are atomic and may contain EVars
-
-          __g : Q
-     and  __g |- s1 : G1   G1 |- __u : V1
-     and  __g |- s2 : G2   G2 |- __v : __l
-     and  __g |- __u[s1] : __v [s2]
-     and  __g |- s' : G3  G3 |- __u' : __v'
-
-     if there exists Eq(UsVs1, UsVs1') in __d
-        s.t. UsVs1 unifies with UsVs and
-             UsVs1' unifies with UsVs' and
-             all restrictions in sc are satisfied
-     or
-     if there exists Eq(UsVs1, UsVs1') in __d
-        s.t. UsVs1' unifies with UsVs and
-             UsVs1 unifies with UsVs' and
-             all restrictions in sc are satisfied
-             (symmetry)
-
-
-    *)
-    (* lookupLt (GQ, __d, UsVs, UsVs', sc) = B
-
-     B holds iff
-
-     and  __d is an atomic order relation ctx
-     and  UsVs and UsVs' are atomic and may contain EVars
-
-          __g : Q
-     and  __g |- s1 : G1   G1 |- __u : V1
-     and  __g |- s2 : G2   G2 |- __v : __l
-     and  __g |- __u[s1] : __v [s2]
-     and  __g |- s' : G3  G3 |- __u' : __v'
-
-     if there exists Less(UsVs1, UsVs1') in __d
-        s.t. UsVs1 unifies with UsVs and
-             UsVs1' unifies with UsVs' and
-             all restrictions in sc are satisfied
-    *)
-    (*  eqAtomic (GQ, __d, __d', UsVs, UsVs', sc) = B
-
-        B iff
-            UsVs unifies with UsVs'                (identity)
-        or  __d, UsVs = UsVs', __d' ---> UsVs = UsVs'  (ctx lookup)
-        or  __d, UsVs' = UsVs, __d' ---> UsVs = UsVs'  (ctx lookup + symmetry)
-        or  __d, __d' ---> UsVs = UsVs' by transitivity
-
-     *)
-    (* transEq (GQ, __d, __d', UsVs, UsVs', sc) = B
-
-     B iff
-        if __d, UsVs' = UsVs1 ; __d' ---> UsVs = UsVs'
-          then  __d, __d' ---> UsVs = UsVs1            (transEq1)
-
-        or
-
-        if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'  (transEq2)
-          then  __d, __d' ---> UsVs = UsVs1
-
-       or
-
-       if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'
-         then __d; UsVs1 = UsVs' __d' ---> UsVs = UsVs'
-   *)
-    (* ltAtomic (GQ, __d, __d', UsVs, UsVs', sc) = B
-
-     B iff
-        if __d, UsVs <UsVs' ; __d' ---> UsVs < UsVs'   (identity)
-
-        or
-
-        if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'  (transEq2)
-          then  __d, __d' ---> UsVs = UsVs1
-
-       or
-
-       if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'
-         then __d; UsVs1 = UsVs' __d' ---> UsVs = UsVs'
-   *)
-    (* transLt (GQ, __d, __d', UsVs, UsVs', sc) = B
-
-     B iff
-        if __d, UsVs' = UsVs1 ; __d' ---> UsVs = UsVs'
-          then  __d, __d' ---> UsVs = UsVs1            (transEq1)
-
-        or
-
-        if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'  (transEq2)
-          then  __d, __d' ---> UsVs = UsVs1
-
-       or
-
-       if __d, UsVs1 = UsVs'; __d' ---> UsVs = UsVs'
-         then __d; UsVs1 = UsVs' __d' ---> UsVs = UsVs'
-   *)
-    (* atomic (GQ, __d, P) = B
-
-     An atomic order context __d' is maximally decomposed iff
-
-          T := Root(c, Nil) | Root(n, Nil)
-    and   T' := Root(c,S) | Root(n, S)
-    and   all atomic order relations in __d' are
-          either T' < T or T1' = T1'
-
-   An atomic order __P' is maximally decomposed iff
-          T := Root(c, nil) | Root(n, Nil)
-    and   T' := Root(c,S) | Root(n, S)
-    and   T' < T or T1 = T1
-
-    Invariant:
-
-    B iff
-          __d and P are maximally decomposed,
-      and they may contain EVars
-      and __g : Q
-      and __g |- P
-      and __g |- __d
-      and __d --> P
-
-      *)
-    (*-----------------------------------------------------------*)
-    (* leftInstantiate ((__g,Q), __d, __d', P, sc) = B
-
-     B iff
-           __g : Q
-       and __g |- __d
-       and __g |- __d'
-       and __g |- P
-
-       and  __d is an atomic order relation ctx, which does not
-              contain any EVars
-       and  __d' is an atomic order relation ctx, which may
-              contain EVars
-       and  __P' is a atomic order relation
-
-       and  __d --> P
-
-    __d' accumulates all orders
-    *)
-    (* should never happen by invariant *)
-    (* ltInstL ((__g, Q), __d, __d', UsVs, UsVs', P, sc) = B
-     Invariant:
-       B holds  iff
-            __g : Q
-       and  __d is an atomic order relation ctx
-       and  __d' is an atomic order relation ctx
-       and  __P' is a atomic order relation
-
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v [s2]
-       and  __g |- s' : G3  G3 |- __u' : __v'
-       and  sc is a constraint continuation representing restrictions on EVars
-       and  __v[s2] atomic
-       and  only __u[s1] contains EVars
-       and  __d, __d', __u[s1] < __u'[s'] ---> P
-    *)
-    (* == I.targetFam V2' *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* enforces that x can only bound to parameter or remain uninstantiated *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* impossible, if additional invariant assumed (see ltW) *)
-    (* leInstL ((__g, Q), __d, __d', UsVs, UsVs', __P', sc) = B
-     Invariant:
-       B holds  iff
-            __g : Q
-       and  __d is an atomic order relation ctx
-       and  __d' is an atomic order relation ctx
-       and  __P' is a atomic order relation
-
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v [s2]
-       and  __g |- s' : G3  G3 |- __u' : __v'
-       and  sc is a constraint continuation representing restrictions on EVars
-       and  __v[s2] atomic
-       and  only __u[s1] contains EVars
-       and  __d, __d', __u[s1] <= __u'[s'] ---> __P'
-    *)
-    (* == I.targetFam V2' *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* enforces that x can only bound to parameter or remain uninstantiated *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* impossible, if additional invariant assumed (see ltW) *)
-    (* eqInstL ((__g, Q), __d, __d', UsVs, UsVs', P, sc) = B
-
-     Invariant:
-       B holds  iff
-            __g : Q
-       and  __d is an atomic order relation ctx
-       and  __d' is an atomic order relation ctx
-       and  __P' is a atomic order relation
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v [s2]
-       and  __g |- s' : G3  G3 |- __u' : __v'
-       and  sc is a constraint continuation representing restrictions on EVars
-       and  __v[s2] atomic
-       and  only __u[s1] and __u'[s'] contain EVars
-       and  __d, __d', __u[s1] = __u'[s'] ---> __P'
-    *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* eqIL ((__g, Q), __d, __d', UsVs, UsVs', P, sc) = B
-
-     Invariant:
-       B holds  iff
-            __g : Q
-       and  __d is an atomic order relation ctx
-       and  __d' is an atomic order relation ctx
-       and  __P' is a atomic order relation
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v [s2]
-       and  __g |- s' : G3  G3 |- __u' : __v'
-       and  sc is a constraint continuation representing restrictions on EVars
-       and  __v[s2] atomic
-       and  only __u[s1] and __u'[s'] contain EVars
-       and  __d, __d', __u[s1] = __u'[s'] ---> __P'
-       and __u, __u' will be maximally unfolded
-    *)
-    (* (__Us, __Vs as (I.Pi _ , _)) and (__Us', __Vs' as (I.Root _, _))
-           or the other way
-         *)
-    (*--------------------------------------------------------------*)
-    (* rightDecompose (GQ, __d', P) = B
-
-    B iff
-        __g : Q
-    and __d is maximally unfolded, but does not contain any EVars
-    and P is a order relation
-    and __g |- P
-    and __d --> P
-
-    *)
-    (* ordLtR (GQ, __d, O1, O2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- O1 augmented subterm
-       and  __g |- O2 augmented subterm not containing any EVars
-       then B' holds iff __d --> O1 < O2
-    *)
-    (* ordLeR (GQ, __d, O1, O2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- O1 augmented subterm
-       and  __g |- O2 augmented subterm not containing any EVars
-       then B' holds iff __d --> O1 <= O2
-    *)
-    (* ordEqR (GQ, __d, O1, O2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- O1 augmented subterm
-       and  __g |- O2 augmented subterm not containing any EVars
-       then B' holds iff __d --> O1 = O2
-    *)
-    (* ordEqsR (GQ, __d', L1, L2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- L1 list of augmented subterms
-       and  __g |- L2 list of augmented subterms not containing any EVars
-       then B' holds iff __d' --> L1 = L2
-    *)
-    (* ltLexR (GQ, __d', L1, L2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- L1 list of augmented subterms
-       and  __g |- L2 list of augmented subterms not contianing any EVars
-       then B' holds iff __d' --> L1 is lexically smaller than L2
-    *)
-    (* ltSimulR (GQ, __d, L1, L2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- L1 list of augmented subterms
-       and  __g |- L2 list of augmented subterms not contianing any EVars
-       then B' holds iff __d implies that L1 is simultaneously smaller than L2
-    *)
-    (* leSimulR (__g, Q, L1, L2) = B'
-
-       Invariant:
-       If   __g : Q
-       and  __g |- L1 list of augmented subterms
-       and  __g |- L2 list of augmented subterms not containing any EVars
-       then B' holds iff __d implies that L1 is simultaneously less than or equal to L2
-    *)
-    (*--------------------------------------------------------------*)
-    (* Atomic Orders (Right) *)
-    (* ltAtomicR (GQ, (__d, __d'), UsVs, UsVs', sc, k) = B
-     Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d' implies __u[s1] is a strict subterm of __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and k is a continuation describing what happens when
-           UsVs and UsVs' are maximally unfolded
-    *)
-    (* leAtomicR (GQ, __d, UsVs, UsVs', sc, k) = B
-     Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d implies __u[s1] is a subterm of __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and k is a continuation describing what happens when
-           UsVs and UsVs' are maximally unfolded
-    *)
-    (* eqAtomicR (GQ, __d, UsVs, UsVs', sc, k) = B
-     Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d implies __u[s1] is structurally equivalent to __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and k is a continuation describing what happens when
-           UsVs and UsVs' are maximally unfolded
-    *)
-    (* Dec = Dec' *)
-    (* mismatch: not equal *)
-    (* Fri Feb 25 21:26:39 2005 -fp !!! *)
-    (* ltR (GQ, __d, UsVs, UsVs', sc, k) = B
-
-       Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d' --> __u[s1] is a strict subterm of __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and __u'[s'] will be maximally unfolded
-       and k is a continuation describing what happens when
-           UsVs and UsVs' are maximally unfolded
-
-    *)
-    (* either leftInstantiate __d or  atomic reasoning *)
-    (* either leftInstantiate __d or  atomic reasoning *)
-    (* either leftInstantiate __d or  atomic reasoning *)
-    (* == I.targetFam V2' *)
-    (* enforce that x is only instantiated to parameters *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* possibly redundant if lhs always subordinate to rhs *)
-    (* cannot happen Sat Apr 20 16:08:30 2002 -bp *)
-    (* leR (GQ, __d, UsVs, UsVs', sc, k) = B
-
-       Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d' --> __u[s1] is a subterm of __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and __u'[s'] will be maximally unfolded
-    *)
-    (* == I.targetFam V2' *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* enforces that x can only bound to parameter or remain uninstantiated *)
-    (* = I.newEVar (I.EClo (V2', s2')) *)
-    (* impossible, if additional invariant assumed (see ltW) *)
-    (* eqR (GQ, __d, UsVs, UsVs', sc, k) = B
-
-       Invariant:
-       B' holds  iff
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-       and  __d' --> __u[s1] = __u'[s1']
-       and  sc is a constraint continuation representing restrictions on EVars
-       and only __u'[s'] contains EVars
-       and __u'[s'] will be maximally unfolded
-    *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (* UsVs = Lam *)
-    (* either leftInstantiate __d or atomic reasoning *)
-    (*--------------------------------------------------------------*)
-    (* leftDecompose (__g, Q, __d, __d', P) = B
-
-      if __g : Q and
-         __d --> P  where __d might contain orders (lex and simul)
-
-      then __d' --> P
-           where all orders in __d' are atomic
-
-      __d' accumulates all orders which are maximally unfolded,
-      but do not contain any EVars
-
-      maximally unfolded orders not containing EVars are:
-
-      Less: R < __l
-
-      __l := Root(c, Nil) | Root(n, Nil)
-      R := Root(c, S) | Root(n, S) | Lam(x:A, R)
-      S := . | App(R, S)
-
-
-      Eq : R = __l
-      R := Root(n, Nil) | Lam(x:A, R)
-      __l := Root(c, S) | Root(n, S) | Lam(x:A, R)
-      S := . | App(R, S)
-
-    *)
-    (* less *)
-    (* le *)
-    (* eq *)
-    (* drop assumption Pi D. P *)
-    (*--------------------------------------------------------------*)
-    (* Lexicographic and Simultanous Orders (left)*)
-    (* If __d, __d', Lex O1, ....On < Lex O'1, ....O'n --> P
-      then
-            __d, __d', O1 < O1' --> P
-        and __d, __d', O1 = O1', O2 < O2 --> P
-
-        ...
-        and __d, __d', O1 = O1', .., O_n-1 = O'n-1, O_n < O'n --> P
-    *)
-    (* If __d, __d', Lex O1, ....On = Lex O'1, ....O'n --> P
-      If __d, __d', Simul O1, ....On = Simul O'1, ....O'n --> P
-      then
-            __d, __d', O1 = O1' --> P
-        and __d, __d', O2 = O2' --> P
-
-        ...
-        and __d, __d', On = On' --> P
-    *)
-    (*--------------------------------------------------------------*)
-    (* Atomic Orders (left) *)
-    (* __u := Root(c, S) | Root(n, S) | Lam(x:A, __u) *)
-    (* ltAtomicL (GQ as (__g, Q), __d, __d', ((__u, s1), (__v, s2)), ((__u', s1'), (__v', s2')), P) = B
-
-     B holds iff
-
-            __g : Q
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-
-       and  __g |- __d, __d', (__u[s1]:__v[s2]) < __u'[s1']:__v'[s2']) --> P
-
-
-       if __g |- __d, __d', (__Us:__Vs) < (\x1:A1....\xn:An. __u'[s1']: __v'[s2']) --> P and
-               (n >= 0)
-       then
-          __g, a1:A1, .... an:An |-
-             __d^n, __d'^n, (__Us^n:__Vs^n) < __u'[a1... an . s1'^n]:__v'[a1. ... . an . s2'^n] --> P^n
-
-       where __d^n, (__Us^n, P^n) means all substitutions in __d (__u, P etc)
-             are shifted by n
-    *)
-    (* see invariant for ltAtomic *)
-    (*  *)
-    (*--------------------------------------------------------------*)
-    (* __u' := Root(c, S) | Root(n, S) *)
-    (* add definitions! *)
-    (*  If __d, __d', __u < Root(c, S) --> P
-      then __d, __d', __u <= S' --> P
-   *)
-    (*  eqL (GQ, __d, __d', UsVs, UsVs', P) = B
-
-       B holds iff
-
-            __g : Q
-
-       and  __d is an Order relation ctx
-       and  __d' is an atomic order relation ctx
-       and  P is a order relation
-
-       and  __g |- s1 : G1   G1 |- __u : V1
-       and  __g |- s2 : G2   G2 |- __v : __l
-       and  __g |- __u[s1] : __v[s2]
-       and  __g |- s1' : G3   G3 |- __u' : V1'
-       and  __g |- s2' : G4   G4 |- __v' : __l
-       and  __g |- __u'[s1'] : __v'[s2']
-
-       and __d, __d', __u[s1] = __u'[s1'] --> P
-
-       note: __d, __d', UsVs, UsVs' and P do not
-             contain any EVars
-   *)
-    (*
-     | eqLW (GQ, __d, __d', UsVs as ((I.Root (I.BVar n, I.Nil), s), __Vs),
-            UsVs' as ((I.Root (I.BVar n', I.Nil), s'), __Vs'), P) =
+              (GQ, __D, __D', ((__S, s), (__V', I.id)),
+                ((__S', s'), (__V', I.id)), __P)
+          else
+            leftDecompose
+              (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
+      | (GQ, __D, __D', UsVs, UsVs', __P) ->
+          leftDecompose (GQ, __D, ((Eq (UsVs, UsVs')) :: __D'), __P)(* UsVs = Lam *)
+      (*
+     | eqLW (GQ, D, D', UsVs as ((I.Root (I.BVar n, I.Nil), s), Vs),
+            UsVs' as ((I.Root (I.BVar n', I.Nil), s'), Vs'), P) =
          if (n = n')
-           then leftDecompose (GQ, __d, __d', P)
+           then leftDecompose (GQ, D, D', P)
          else
-           leftDecompose (GQ, __d, (Eq(UsVs, UsVs') :: __d'), P)
+           leftDecompose (GQ, D, (Eq(UsVs, UsVs') :: D'), P)
 
 *)
-    (* UsVs = Lam *)
-    (*--------------------------------------------------------------*)
-    (* Infer: __d --> P *)
-    (* deduce (__g, Q, __d, P) = B
-
-      B iff
-         __g :  Q
-     and __g |- __d
-     and __g |- P
-     and __d implies P
-    *)
+    let rec eqSpineL (GQ) (__D) (__D') (__Ss, __Vs) (__Ss', __Vs') (__P) =
+      eqSpineLW
+        (GQ, __D, __D', (__Ss, (Whnf.whnf __Vs)), (__Ss', (Whnf.whnf __Vs')),
+          __P)
+    let rec eqSpineLW __242__ __243__ __244__ __245__ __246__ __247__ =
+      match (__242__, __243__, __244__, __245__, __246__, __247__) with
+      | (GQ, __D, __D', ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), __P) ->
+          leftDecompose (GQ, __D, __D', __P)
+      | (GQ, __D, __D', ((SClo (__S, s'), s''), __Vs), SsVs', __P) ->
+          eqSpineL
+            (GQ, __D, __D', ((__S, (I.comp (s', s''))), __Vs), SsVs', __P)
+      | (GQ, __D, __D', SsVs, ((SClo (__S', s'), s''), __Vs'), __P) ->
+          eqSpineL
+            (GQ, __D, __D', SsVs, ((__S', (I.comp (s', s''))), __Vs'), __P)
+      | (GQ, __D, __D',
+         ((App (__U, __S), s1), (Pi ((Dec (_, __V1), _), __V2), s2)),
+         ((App (__U', __S'), s1'), (Pi ((Dec (_, V1'), _), V2'), s2')), __P)
+          ->
+          let __D1 =
+            (Eq
+               ((R.Arg ((__U, s1), (__V1, s2))),
+                 (R.Arg ((__U', s1'), (V1', s2')))))
+              :: __D in
+          eqSpineL
+            (GQ, __D1, __D',
+              ((__S, s1), (__V2, (I.Dot ((I.Exp (I.EClo (__U, s1))), s2)))),
+              ((__S', s1'),
+                (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), __P)
+    let rec deduce (__G) (__Q) (__D) (__P) =
+      leftDecompose ((__G, __Q), __D, nil, __P)
     let deduce = deduce
     let shiftRCtx = shiftRCtx
     let shiftPred = shiftP

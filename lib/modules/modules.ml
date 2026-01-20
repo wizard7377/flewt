@@ -2,9 +2,7 @@
 module ModSyn =
   (Make_ModSyn)(struct
                   module Global = Global
-                  (*! structure IntSyn' = IntSyn !*)
                   module Names' = Names
-                  (*! structure Paths' = Paths !*)
                   module Origins = Origins
                   module Whnf = Whnf
                   module Strict = Strict

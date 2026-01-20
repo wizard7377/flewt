@@ -1,23 +1,17 @@
 
 module State =
   (Make_State)(struct
-                 (*! structure IntSyn' = IntSyn !*)
-                 (*! structure Tomega' = Tomega !*)
                  module WorldSyn' = WorldSyn
                  module Formatter = Formatter
                end)
 module Introduce =
   (Make_Introduce)(struct
-                     (*! structure IntSyn' = IntSyn !*)
-                     (*! structure Tomega' = Tomega !*)
                      module TomegaNames = TomegaNames
                      module State' = State
                    end)
 module Elim =
   (Make_Elim)(struct
                 module Data = Data
-                (*! structure IntSyn' = IntSyn !*)
-                (*! structure Tomega' = Tomega !*)
                 module State' = State
                 module Whnf = Whnf
                 module Abstract = Abstract
@@ -26,17 +20,10 @@ module Elim =
                 module Index = Index
                 module TypeCheck = TypeCheck
               end)
-module FixedPoint =
-  (Make_FixedPoint)(struct
-                      (*! structure IntSyn' = IntSyn !*)
-                      (*! structure Tomega' = Tomega !*)
-                      module State' = State
-                    end)
+module FixedPoint = (Make_FixedPoint)(struct module State' = State end)
 module Split =
   (Make_Split)(struct
                  module Global = Global
-                 (*! structure IntSyn' = IntSyn !*)
-                 (*! structure Tomega' = Tomega !*)
                  module State' = State
                  module Whnf = Whnf
                  module Abstract = Abstract
@@ -52,8 +39,6 @@ module Search =
   (Make_Search)(struct
                   module Global = Global
                   module Data = Data
-                  (*! structure IntSyn' = IntSyn !*)
-                  (*! structure Tomega' = Tomega !*)
                   module State' = State
                   module Abstract = Abstract
                   module Conv = Conv
@@ -71,8 +56,6 @@ module Search =
 module Fill =
   (Make_Fill)(struct
                 module Data = Data
-                (*! structure IntSyn' = IntSyn !*)
-                (*! structure Tomega' = Tomega !*)
                 module State' = State
                 module Whnf = Whnf
                 module Abstract = Abstract
@@ -82,35 +65,10 @@ module Fill =
                 module Search = Search
                 module TypeCheck = TypeCheck
               end)
-module Weaken =
-  (Make_Weaken)(struct
-                  (*! structure IntSyn' = IntSyn !*)
-                  module Whnf = Whnf
-                end)
-(*
-structure Recurse = Recurse
-  (structure Global = Global
-   structure Data = Data
-   structure State' = State
-   structure Whnf = Whnf
-   structure Conv = Conv
-   structure Names = Names
-   structure Subordinate = Subordinate
-   structure Print = Print
-   structure Formatter = Formatter
-   structure TomegaPrint = TomegaPrint
-   structure Abstract = Abstract
-   structure Unify = UnifyTrail
-   structure Constraints = Constraints
-   structure Index = Index
-   structure Search = Search
-   structure TypeCheck = TypeCheck)
-*)
+module Weaken = (Make_Weaken)(struct module Whnf = Whnf end)
 module Interactive =
   (Make_Interactive)(struct
                        module Global = Global
-                       (*! structure IntSyn' = IntSyn !*)
-                       (*! structure Tomega' = Tomega !*)
                        module State' = State
                        module Ring = Ring
                        module Formatter = Formatter

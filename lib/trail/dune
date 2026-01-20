@@ -3,5 +3,5 @@
   true)
  (public_name flewt.trail)
  (name trail)
- (libraries base)
+ (libraries)
  (modules notrail trail_core))

@@ -1,28 +1,25 @@
 
-(* Heuristics : Version 1.3 *)
-(* Author: Carsten Schuermann *)
 module Heuristic : HEURISTIC =
   struct
     type nonrec index =
-      < sd: int  ;ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
-    (* Splitting depth *)
-    (* Induction variable *)
-    (* Number of cases *)
-    (* maximal number of cases *)
-    (* 0 = non-recursive
+      <
+        sd: int
+          (* 0 = non-recursive
                                            1 = recursive *)
-    (* Position (left to right) *)
+          (* maximal number of cases *)(* Number of cases *)
+          (* Induction variable *)(* Splitting depth *) ;
+        ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
     let rec recToString = function | 0 -> "non-rec = 2" | 1 -> "rec = 1"
     let rec realFmt r = Real.fmt (StringCvt.FIX (Some 2)) r
-    let rec ratio =
-      function
+    let rec ratio __0__ __1__ =
+      match (__0__, __1__) with
       | (0, 0) -> 1.0
       | (c, 0) -> 1.1
       | (c, m) -> (Real.fromInt c) / (Real.fromInt m)
-    let rec sqr (x : real) = x * x
+    let rec sqr x = x * x
     let rec sum =
       function
-      | { sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
+      | { sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
           c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
           m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           if c1 = 0
@@ -65,34 +62,36 @@ module Heuristic : HEURISTIC =
           r = 0; p = p1; r = 0; p = p1; p = p1 } ->
           { sd = k1; ind = i; c = c1; m = m1; r = 2; p = p1 }
     let rec ccompare
-      ({ sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1; ind = i1; 
-         c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
-         m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 },
-       { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2; ind = i2; 
-         c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
-         m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 })
+      { sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1; ind = i1; 
+        c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
+        m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 }
+      { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2; ind = i2; 
+        c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
+        m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 }
       =
-      match ((Real.compare
-                ((sum { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2 }),
-                  (sum { sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1 }))),
-              (Int.compare (p1, p2)))
-      with
-      | (EQUAL, result) -> result
-      | (result, _) -> result
+      ((match ((Real.compare
+                  ((sum { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2 }),
+                    (sum
+                       { sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1 }))),
+                (Int.compare (p1, p2)))
+        with
+        | (EQUAL, result) -> result
+        | (result, _) -> result)
+      (* p                 *))
     let rec compare
-      ({ sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1; ind = i1; 
-         c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
-         m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 },
-       { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2; ind = i2; 
-         c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
-         m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 })
+      { sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1; ind = i1; 
+        c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
+        m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 }
+      { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2; ind = i2; 
+        c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
+        m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 }
       =
       ccompare
         ((conv { sd = k1; ind = i1; c = c1; m = m1; r = r1; p = p1 }),
           (conv { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2 }))
     let rec indexToString =
       function
-      | { sd = s1; ind = None; c = c1; m = m1; r = 0; p = p1; ind = None;
+      | { sd = s1; ind = NONE; c = c1; m = m1; r = 0; p = p1; ind = NONE;
           c = c1; m = m1; r = 0; p = p1; c = c1; m = m1; r = 0; p = p1;
           m = m1; r = 0; p = p1; r = 0; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 3))) ^
@@ -112,9 +111,9 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = None; c = c1; m = m1; r = 2; p = p1 }))
+             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 2; p = p1 }))
             ^ " )"
-      | { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1; ind = None;
+      | { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1; ind = NONE;
           c = c1; m = m1; r = 1; p = p1; c = c1; m = m1; r = 1; p = p1;
           m = m1; r = 1; p = p1; r = 1; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 1))) ^
@@ -134,7 +133,7 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1 }))
+             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1 }))
             ^ " )"
       | { sd = s1; ind = Some idx; c = c1; m = m1; r = 0; p = p1;
           ind = Some idx; c = c1; m = m1; r = 0; p = p1; c = c1; m = m1;
@@ -190,11 +189,6 @@ module Heuristic : HEURISTIC =
              (sum
                 { sd = s1; ind = (Some idx); c = c1; m = m1; r = 1; p = p1 }))
             ^ ")"
-    (* sum of the parameters k1 + m1/c1 + 1/ind + r1 *)
-    (* the higher the sum the more preferred it is;  *)
-    (* - bp Sep 21 1999 - weight splitting depth higher *)
-    (* associate a higher value to non-rec than to rec  *)
-    (* p                 *)
     let compare = compare
     let indexToString = indexToString
   end ;;

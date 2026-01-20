@@ -1,9 +1,4 @@
 
-(* time-limit.sml
- *
- * COPYRIGHT (c) 1993 by AT&T Bell Laboratories.  See COPYRIGHT file for details.
- * Modified: Brigitte Pientka
- *)
 module TimeLimit :
   sig
     exception TimeOut 
@@ -11,22 +6,20 @@ module TimeLimit :
   end =
   struct
     exception TimeOut 
-    let rec timeLimit arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (None, f, x) -> f x
+    let rec timeLimit __0__ __1__ __2__ =
+      match (__0__, __1__, __2__) with
+      | (NONE, f, x) -> f x
       | (Some t, f, x) ->
           let _ = print (((^) "TIME LIMIT : " Time.toString t) ^ "sec \n") in
           let setitimer = SMLofNJ.IntervalTimer.setIntTimer in
           let rec timerOn () = ignore (setitimer (Some t)) in
-          let rec timerOff () = ignore (setitimer None) in
+          let rec timerOff () = ignore (setitimer NONE) in
           let escapeCont =
             SMLofNJ.Cont.callcc
-              (function
-               | k ->
-                   (SMLofNJ.Cont.callcc
-                      (function | k' -> SMLofNJ.Cont.throw k k');
-                    timerOff ();
-                    raise TimeOut)) in
+              (fun k ->
+                 SMLofNJ.Cont.callcc (fun k' -> SMLofNJ.Cont.throw k k');
+                 timerOff ();
+                 raise TimeOut) in
           let rec handler _ = escapeCont in
           (Signals.setHandler (Signals.sigALRM, (Signals.HANDLER handler));
            timerOn ();

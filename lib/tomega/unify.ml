@@ -1,24 +1,15 @@
 
-(* Unification on Formulas *)
-(* Author: Carsten Schuermann *)
 module type TOMEGAUNIFY  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure Tomega : TOMEGA !*)
     exception Unify of string 
     val unifyFor :
-      (Tomega.__Dec IntSyn.__Ctx * Tomega.__For * Tomega.__For) -> unit
+      Tomega.__Dec IntSyn.__Ctx -> Tomega.__For -> Tomega.__For -> unit
   end;;
 
 
 
 
-(* Unification on Formulas *)
-(* Author: Carsten Schuermann *)
 module TomegaUnify(TomegaUnify:sig
-                                 (*! structure IntSyn' : INTSYN !*)
-                                 (*! structure Tomega' : TOMEGA !*)
-                                 (*! sharing Tomega'.IntSyn = IntSyn' !*)
                                  module Abstract : ABSTRACT
                                  module TypeCheck : TYPECHECK
                                  module Conv : CONV
@@ -27,66 +18,32 @@ module TomegaUnify(TomegaUnify:sig
                                  module Print : PRINT
                                  module TomegaPrint : TOMEGAPRINT
                                  module Subordinate : SUBORDINATE
-                                 (*! sharing Abstract.IntSyn = IntSyn' !*)
-                                 (*! sharing TypeCheck.IntSyn = IntSyn' !*)
-                                 (*! sharing Conv.IntSyn = IntSyn' !*)
-                                 (*! sharing Normalize.IntSyn = IntSyn' !*)
-                                 (*! sharing Normalize.Tomega = Tomega' !*)
-                                 (*! sharing Whnf.IntSyn = IntSyn' !*)
-                                 (*! sharing Print.IntSyn = IntSyn' !*)
-                                 (*! sharing TomegaPrint.IntSyn = IntSyn' !*)
-                                 (*! sharing TomegaPrint.Tomega = Tomega' !*)
-                                 (*! sharing Subordinate.IntSyn = IntSyn' !*)
                                  module Weaken : WEAKEN
                                end) : TOMEGAUNIFY =
   struct
-    (*! sharing Weaken.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure Tomega = Tomega' !*)
     exception Unify of string 
     module I = IntSyn
     module T = Tomega
-    let rec unifyFor (Psi, __F1, __F2) =
+    let rec unifyFor (Psi) (__F1) (__F2) =
       unifyForN (Psi, (T.forSub (__F1, T.id)), (T.forSub (__F2, T.id)))
-    let rec unifyForN =
-      function
+    let rec unifyForN __0__ __1__ __2__ =
+      match (__0__, __1__, __2__) with
       | (Psi, T.True, T.True) -> ()
-      | (Psi, Ex ((D1, _), __F1), Ex ((D2, _), __F2)) ->
-          (unifyDec (Psi, (T.UDec D1), (T.UDec D2));
-           unifyFor ((I.Decl (Psi, (T.UDec D1))), __F1, __F2))
-      | (Psi, All ((D1, _), __F1), All ((D2, _), __F2)) ->
-          (unifyDec (Psi, D1, D2); unifyFor ((I.Decl (Psi, D1)), __F1, __F2))
-      | (Psi, FVar (_, r), F) -> (:=) r Some F
-      | (Psi, F, FVar (_, r)) -> (:=) r Some F
+      | (Psi, Ex ((__D1, _), __F1), Ex ((__D2, _), __F2)) ->
+          (unifyDec (Psi, (T.UDec __D1), (T.UDec __D2));
+           unifyFor ((I.Decl (Psi, (T.UDec __D1))), __F1, __F2))
+      | (Psi, All ((__D1, _), __F1), All ((__D2, _), __F2)) ->
+          (unifyDec (Psi, __D1, __D2);
+           unifyFor ((I.Decl (Psi, __D1)), __F1, __F2))
+      | (Psi, FVar (_, r), __F) -> (:=) r Some __F
+      | (Psi, __F, FVar (_, r)) -> (:=) r Some __F
       | (Psi, _, _) -> raise (Unify "Formula mismatch")
-    let rec unifyDec =
-      function
-      | (Psi, UDec (D1), UDec (D2)) ->
-          if Conv.convDec ((D1, I.id), (D2, I.id))
+    let rec unifyDec __3__ __4__ __5__ =
+      match (__3__, __4__, __5__) with
+      | (Psi, UDec (__D1), UDec (__D2)) ->
+          if Conv.convDec ((__D1, I.id), (__D2, I.id))
           then ()
           else raise (Unify "Declaration mismatch")
       | (Psi, PDec (_, __F1), PDec (_, __F2)) -> unifyFor (Psi, __F1, __F2)
-    (* unifyFor (Psi, __F1, __F2) = R
-
-       Invariant:
-       If   __F1, __F2 contain free variables X1 ... Xn
-       and  Psi |- __F1 for
-       and  Psi |- __F2 for
-       and  there exists an instantiation I for X1 ...Xn such that
-       and  Psi[I] |- __F1[I] = __F2[I]
-       then R = ()
-       otherwise exception Unify is raised
-    *)
-    (* unifyDec (Psi, D1, D2) = R
-
-       Invariant:
-       If   D1, D2 contain free variables X1 ... Xn
-       and  Psi |- D1 dec
-       and  Psi |- D2 dec
-       and  there exists an instantiation I for X1 ...Xn such that
-       and  Psi[I] |- D1[I] = D2[I]
-       then R = ()
-       otherwise exception Unify is raised
-    *)
     let unifyFor = unifyFor
   end ;;

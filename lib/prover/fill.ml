@@ -1,10 +1,6 @@
 
-(* Filling: Version 1.4 *)
-(* Author: Carsten Schuermann *)
 module type FILL  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure Tomega : TOMEGA !*)
     module State : STATE
     exception Error of string 
     type nonrec operator
@@ -16,9 +12,6 @@ module type FILL  =
 
 
 
-(* Filling *)
-(* Author: Carsten Schuermann *)
-(* Date: Thu Mar 16 13:08:33 2006 *)
 module Fill(Fill:sig
                    module Data : DATA
                    module State' : STATE
@@ -26,144 +19,107 @@ module Fill(Fill:sig
                    module TypeCheck : TYPECHECK
                    module Search : SEARCH
                    module Whnf : WHNF
-                   (*! structure IntSyn' : INTSYN !*)
-                   (*! structure Tomega' : TOMEGA !*)
-                   (*! sharing Tomega'.IntSyn = IntSyn' !*)
-                   (*! sharing State'.IntSyn = IntSyn' !*)
-                   (*! sharing State'.Tomega = Tomega' !*)
-                   (*! sharing Abstract.IntSyn = IntSyn' !*)
-                   (*! sharing Abstract.Tomega = Tomega' !*)
-                   (*! sharing TypeCheck.IntSyn = IntSyn' !*)
-                   (*! sharing Search.IntSyn = IntSyn' !*)
-                   (*! sharing Search.Tomega = Tomega' !*)
-                   (*! sharing Whnf.IntSyn = IntSyn' !*)
                    module Unify : UNIFY
                  end) : FILL =
   struct
-    (*! sharing Unify.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure Tomega = Tomega' !*)
     module State = State'
     exception Error of string 
     type __Operator =
       | FillWithConst of (IntSyn.__Exp * IntSyn.cid) 
       | FillWithBVar of (IntSyn.__Exp * int) 
-    (* Representation Invariant:  FillWithBVar (x, n) :
-           x is an evar GX |- x : VX
-           GX |- n : W
-           and VX and W are unifiable
-       *)
     type nonrec operator = __Operator
     module S = State
     module T = Tomega
     module I = IntSyn
     exception Success of int 
-    let rec expand (FocusLF (EVar (r, __g, __v, _) as y)) =
-      let rec try__ =
-        function
-        | (((Root _, _) as __Vs), __Fs, O) ->
+    let rec expand (FocusLF (EVar (r, __G, __V, _) as Y)) =
+      let rec try__ __0__ __1__ __2__ =
+        match (__0__, __1__, __2__) with
+        | (((Root _, _) as Vs), __Fs, __O) ->
             (try
                CSManager.trail
-                 (function | () -> (Unify.unify (__g, __Vs, (__v, I.id)); O :: __Fs))
+                 (fun () -> Unify.unify (__G, __Vs, (__V, I.id)); __O :: __Fs)
              with | Unify _ -> __Fs)
-        | ((Pi ((Dec (_, V1), _), V2), s), __Fs, O) ->
-            let x = I.newEVar (__g, (I.EClo (V1, s))) in
-            try__ ((V2, (I.Dot ((I.Exp x), s))), __Fs, O)
-        | ((EClo (__v, s'), s), __Fs, O) -> try__ ((__v, (I.comp (s', s))), __Fs, O) in
-      let rec matchCtx =
-        function
+        | ((Pi ((Dec (_, __V1), _), __V2), s), __Fs, __O) ->
+            let __X = I.newEVar (__G, (I.EClo (__V1, s))) in
+            try__ ((__V2, (I.Dot ((I.Exp __X), s))), __Fs, __O)
+        | ((EClo (__V, s'), s), __Fs, __O) ->
+            try__ ((__V, (I.comp (s', s))), __Fs, __O) in
+      let rec matchCtx __3__ __4__ __5__ =
+        match (__3__, __4__, __5__) with
         | (I.Null, _, __Fs) -> __Fs
-        | (Decl (__g, Dec (x, __v)), n, __Fs) ->
+        | (Decl (__G, Dec (x, __V)), n, __Fs) ->
             matchCtx
-              (__g, (n + 1),
+              (__G, (n + 1),
                 (try__
-                   ((__v, (I.Shift (n + 1))), __Fs, (FillWithBVar (y, (n + 1))))))
-        | (Decl (__g, NDec _), n, __Fs) -> matchCtx (__g, (n + 1), __Fs) in
-      let rec matchSig =
-        function
+                   ((__V, (I.Shift (n + 1))), __Fs,
+                     (FillWithBVar (__Y, (n + 1))))))
+        | (Decl (__G, NDec _), n, __Fs) -> matchCtx (__G, (n + 1), __Fs) in
+      let rec matchSig __6__ __7__ =
+        match (__6__, __7__) with
         | (nil, __Fs) -> __Fs
-        | ((Const c)::__l, __Fs) ->
+        | ((Const c)::__L, __Fs) ->
             matchSig
-              (__l,
-                (try__ (((I.constType c), I.id), __Fs, (FillWithConst (y, c))))) in
-      matchCtx (__g, 0, (matchSig ((Index.lookup (I.targetFam __v)), nil)))
-    let rec apply =
-      function
-      | FillWithBVar ((EVar (r, __g, __v, _) as y), n) ->
-          let rec doit =
-            function
-            | (((Root _, _) as __Vs), k) ->
-                (Unify.unify (__g, __Vs, (__v, I.id)); k I.Nil)
-            | ((Pi ((Dec (_, V1), _), V2), s), k) ->
-                let x = I.newEVar (__g, (I.EClo (V1, s))) in
-                doit
-                  ((V2, (I.Dot ((I.Exp x), s))),
-                    (function | S -> k (I.App (x, S))))
-            | ((EClo (__v, t), s), k) -> doit ((__v, (I.comp (t, s))), k) in
-          let Dec (_, W) = I.ctxDec (__g, n) in
-          doit
-            ((W, I.id),
-              (function
-               | S ->
-                   Unify.unify
-                     (__g, (y, I.id), ((I.Root ((I.BVar n), S)), I.id))))
-      | FillWithConst ((EVar (r, G0, __v, _) as y), c) ->
-          let rec doit =
-            function
-            | (((Root _, _) as __Vs), k) ->
-                (Unify.unify (G0, __Vs, (__v, I.id)); k I.Nil)
-            | ((Pi ((Dec (_, V1), _), V2), s), k) ->
-                let x = I.newEVar (G0, (I.EClo (V1, s))) in
-                doit
-                  ((V2, (I.Dot ((I.Exp x), s))),
-                    (function | S -> k (I.App (x, S)))) in
-          let W = I.constType c in
-          doit
-            ((W, I.id),
-              (function
-               | S ->
-                   Unify.unify
-                     (G0, (y, I.id), ((I.Root ((I.Const c), S)), I.id))))
-    let rec menu =
-      function
-      | FillWithBVar ((EVar (_, __g, _, _) as x), n) ->
-          (match I.ctxLookup ((Names.ctxName __g), n) with
-           | Dec (Some x, _) ->
-               (((^) "Fill " Names.evarName (__g, x)) ^ " with variable ") ^ x)
-      | FillWithConst ((EVar (_, __g, _, _) as x), c) ->
-          (^) (((^) "Fill " Names.evarName (__g, x)) ^ " with constant ")
-            IntSyn.conDecName (IntSyn.sgnLookup c)
-    (* expand' S = op'
-
-       Invariant:
-       If   |- S state
-       then op' satifies representation invariant.
-    *)
-    (* y is lowered *)
-    (* matchCtx (__g, n, __Fs) = __Fs'
+              (__L,
+                (try__
+                   (((I.constType c), I.id), __Fs, (FillWithConst (__Y, c))))) in
+      ((matchCtx (__G, 0, (matchSig ((Index.lookup (I.targetFam __V)), nil))))
+        (* matchCtx (G, n, Fs) = Fs'
 
            Invariant:
-           If G0 = __g, __g' and |__g'| = n and __Fs a list of filling operators that
-           satisfy the representation invariant, then __Fs' is a list of filling operators
+           If G0 = G, G' and |G'| = n and Fs a list of filling operators that
+           satisfy the representation invariant, then Fs' is a list of filling operators
            that satisfy the representation invariant.
-        *)
-    (* apply op = ()
-
-       Invariant:
-       If op is a filling operator that satisfies the representation invariant.
-       The apply operation is guaranteed to always succeed.
-    *)
-    (* y is lowered *)
-    (* Invariant : __g |- s : __g'   __g' |- __v : type *)
-    (* Unify must succeed *)
-    (* Unify must succeed *)
-    (* menu op = s'
-
-       Invariant:
-       If op is a filling operator
-       then s' is a string describing the operation in plain text
-    *)
-    (* Invariant: Context is named  --cs Fri Mar  3 14:31:08 2006 *)
+        *))
+      (* Y is lowered *)
+    let rec apply =
+      function
+      | FillWithBVar ((EVar (r, __G, __V, _) as Y), n) ->
+          let rec doit __8__ __9__ =
+            match (__8__, __9__) with
+            | (((Root _, _) as Vs), k) ->
+                (Unify.unify (__G, __Vs, (__V, I.id)); k I.Nil)
+            | ((Pi ((Dec (_, __V1), _), __V2), s), k) ->
+                let __X = I.newEVar (__G, (I.EClo (__V1, s))) in
+                doit
+                  ((__V2, (I.Dot ((I.Exp __X), s))),
+                    (fun (__S) -> k (I.App (__X, __S))))
+            | ((EClo (__V, t), s), k) -> doit ((__V, (I.comp (t, s))), k)
+            (* Unify must succeed *) in
+          let Dec (_, __W) = I.ctxDec (__G, n) in
+          ((doit
+              ((__W, I.id),
+                (fun (__S) ->
+                   Unify.unify
+                     (__G, (__Y, I.id), ((I.Root ((I.BVar n), __S)), I.id)))))
+            (* Invariant : G |- s : G'   G' |- V : type *))
+      | FillWithConst ((EVar (r, __G0, __V, _) as Y), c) ->
+          let rec doit __10__ __11__ =
+            match (__10__, __11__) with
+            | (((Root _, _) as Vs), k) ->
+                (Unify.unify (__G0, __Vs, (__V, I.id)); k I.Nil)
+            | ((Pi ((Dec (_, __V1), _), __V2), s), k) ->
+                let __X = I.newEVar (__G0, (I.EClo (__V1, s))) in
+                doit
+                  ((__V2, (I.Dot ((I.Exp __X), s))),
+                    (fun (__S) -> k (I.App (__X, __S))))(* Unify must succeed *) in
+          let __W = I.constType c in
+          doit
+            ((__W, I.id),
+              (fun (__S) ->
+                 Unify.unify
+                   (__G0, (__Y, I.id), ((I.Root ((I.Const c), __S)), I.id))))
+      (* Y is lowered *)
+    let rec menu =
+      function
+      | FillWithBVar ((EVar (_, __G, _, _) as X), n) ->
+          (match I.ctxLookup ((Names.ctxName __G), n) with
+           | Dec (Some x, _) ->
+               (((^) "Fill " Names.evarName (__G, __X)) ^ " with variable ")
+                 ^ x)
+      | FillWithConst ((EVar (_, __G, _, _) as X), c) ->
+          (^) (((^) "Fill " Names.evarName (__G, __X)) ^ " with constant ")
+            IntSyn.conDecName (IntSyn.sgnLookup c)(* Invariant: Context is named  --cs Fri Mar  3 14:31:08 2006 *)
     let expand = expand
     let apply = apply
     let menu = menu

@@ -1,104 +1,61 @@
 
-(* Front End Interface *)
-(* Author: Frank Pfenning *)
 module type TWELF  =
   sig
     module Print :
     sig
       val implicit : bool ref
-      (* false, print implicit args *)
       val printInfix : bool ref
-      (* false, print fully explicit form infix when possible *)
       val depth : int option ref
-      (* None, limit print depth *)
       val length : int option ref
-      (* None, limit argument length *)
       val indent : int ref
-      (* 3, indentation of subterms *)
       val width : int ref
-      (* 80, line width *)
       val noShadow : bool ref
-      (* if true, don't print shadowed constants as "%const%" *)
       val sgn : unit -> unit
-      (* print signature *)
       val prog : unit -> unit
-      (* print signature as program *)
       val subord : unit -> unit
-      (* print subordination relation *)
       val def : unit -> unit
-      (* print information about definitions *)
       val domains : unit -> unit
-      (* print available constraint domains *)
-      module TeX :
-      sig
-        (* print in TeX format *)
-        val sgn : unit -> unit
-        (* print signature *)
-        val prog : unit -> unit
-      end
+      module TeX : sig val sgn : unit -> unit val prog : unit -> unit end
     end
     module Trace :
     sig
-      (* print signature as program *)
       type 'a __Spec =
         | None 
         | Some of 'a list 
         | All 
-      (* trace all clauses and families *)
       val trace : string __Spec -> unit
-      (* trace clauses and families *)
       val break : string __Spec -> unit
-      (* break at clauses and families *)
       val detail : int ref
-      (* 0 = none, 1 = default, 2 = unify *)
       val show : unit -> unit
-      (* show trace, break, and detail *)
       val reset : unit -> unit
     end
     module Table :
     sig
-      (* trace and breakpoint spec *)
-      (* no tracing, default *)
-      (* list of clauses and families *)
-      (* reset trace, break, and detail *)
       type __Strategy =
         | Variant 
         | Subsumption 
-      (* Variant | Subsumption *)
       val strategy : __Strategy ref
-      (* strategy used for %querytabled *)
       val strengthen : bool ref
-      (* strengthenng used %querytabled *)
       val resetGlobalTable : unit -> unit
-      (* reset global table           *)
       val top : unit -> unit
     end
     module Timers :
     sig
-      (* top-level for interactive tabled queries *)
       val show : unit -> unit
-      (* show and reset timers *)
       val reset : unit -> unit
-      (* reset timers *)
       val check : unit -> unit
     end
     module OS :
     sig
-      (* display, but not no reset *)
       val chDir : string -> unit
-      (* change working directory *)
       val getDir : unit -> string
-      (* get working directory *)
       val exit : unit -> unit
     end
     module Compile :
-    sig
-      (* exit Twelf and ML *)
-      type __Opt =
-        | No 
-        | LinearHeads 
-        | Indexing 
-      val optimize : __Opt ref
+    sig type __Opt =
+          | No 
+          | LinearHeads 
+          | Indexing  val optimize : __Opt ref
     end
     module Recon :
     sig
@@ -113,68 +70,41 @@ module type TWELF  =
       type __Strategy =
         | RFS 
         | FRS 
-      (* F=Filling, R=Recursion, S=Splitting *)
       val strategy : __Strategy ref
-      (* FRS, strategy used for %prove *)
       val maxSplit : int ref
-      (* 2, bound on splitting  *)
       val maxRecurse : int ref
     end
     val chatter : int ref
-    (* 3, chatter level *)
     val doubleCheck : bool ref
-    (* false, check after reconstruction *)
     val unsafe : bool ref
-    (* false, allows %assert *)
     val autoFreeze : bool ref
-    (* false, freezes families in meta-theorems *)
     val timeLimit : Time.time option ref
-    (* NONEe, allows timeLimit in seconds *)
     type __Status =
       | OK 
       | ABORT 
-    (* return status *)
     val reset : unit -> unit
-    (* reset global signature *)
     val loadFile : string -> __Status
-    (* load file *)
     val loadString : string -> __Status
-    (* load string *)
     val readDecl : unit -> __Status
-    (* read declaration interactively *)
     val decl : string -> __Status
-    (* print declaration of constant *)
     val top : unit -> unit
-    (* top-level for interactive queries *)
     module Config :
     sig
-      (* 10, bound on recursion *)
       type nonrec config
-      (* configuration *)
       val suffix : string ref
-      (* suffix of configuration files *)
       val read : string -> config
-      (* read config file *)
-      val readWithout : (string * config) -> config
-      (* read config file, minus contents of another *)
+      val readWithout : string -> config -> config
       val load : config -> __Status
-      (* reset and load configuration *)
       val append : config -> __Status
-      (* load configuration (w/o reset) *)
       val define : string list -> config
     end
     val make : string -> __Status
-    (* read and load configuration *)
     val version : string
   end;;
 
 
 
 
-(* Front End Interface *)
-(* Author: Frank Pfenning *)
-(* Modified: Carsten Schuermann, Jeff Polakow *)
-(* Modified: Brigitte Pientka, Roberto Virga *)
 module Twelf(Twelf:sig
                      module Global : GLOBAL
                      module Timers : TIMERS
@@ -234,87 +164,9 @@ module Twelf(Twelf:sig
                      module CSInstaller : CS_INSTALLER
                      module Compat : COMPAT
                      module UnknownExn : UNKNOWN_EXN
-                     (*! sharing Whnf.IntSyn = IntSyn' !*)
-                     (*! sharing Print.IntSyn = IntSyn' !*)
-                     (*! sharing Names.IntSyn = IntSyn' !*)
-                     (*! structure Paths : PATHS !*)
-                     (*! sharing Origins.Paths = Paths !*)
-                     (*! sharing Lexer.Paths = Paths !*)
-                     (*! structure Parsing : PARSING !*)
-                     (*! sharing Lexer = Lexer !*)
-                     (*! sharing Parser.ExtSyn.Paths = Paths !*)
-                     (*! sharing Strict.IntSyn = IntSyn' !*)
-                     (*! sharing Strict.Paths = Paths !*)
-                     (*! sharing Constraints.IntSyn = IntSyn' !*)
-                     (*! sharing Abstract.IntSyn = IntSyn' !*)
-                     (*! sharing ReconTerm.IntSyn = IntSyn' !*)
-                     (*! sharing ReconTerm.Paths = Paths !*)
-                     (* sharing type ReconTerm.Paths.occConDec = Origins.Paths.occConDec *)
-                     (*! sharing ReconConDec.IntSyn = IntSyn' !*)
-                     (*! sharing ReconConDec.Paths = Paths !*)
-                     (*! sharing ModeSyn.IntSyn = IntSyn' !*)
-                     (*! sharing ModeCheck.IntSyn = IntSyn' !*)
-                     (*! sharing ModeCheck.ModeSyn = ModeSyn !*)
-                     (*! sharing ModeCheck.Paths = Paths !*)
-                     (*! sharing ReconMode.ModeSyn = ModeSyn !*)
-                     (*! sharing ReconMode.Paths = Paths !*)
-                     (*! sharing ModePrint.ModeSyn = ModeSyn !*)
-                     (*! sharing ModeDec.ModeSyn = ModeSyn !*)
-                     (*! sharing ModeDec.Paths = Paths !*)
-                     (*! sharing Unique.ModeSyn = ModeSyn !*)
-                     (*! sharing Cover.IntSyn = IntSyn' !*)
-                     (*! sharing Cover.ModeSyn = ModeSyn !*)
-                     (*! sharing Converter.IntSyn = IntSyn' !*)
-                     (*! sharing Converter.Tomega = Tomega !*)
-                     (*! sharing TomegaPrint.IntSyn = IntSyn' !*)
-                     (*! sharing TomegaPrint.Tomega = Tomega !*)
-                     (*! sharing TomegaCoverage.IntSyn = IntSyn' !*)
-                     (*! sharing TomegaCoverage.Tomega = Tomega !*)
-                     (*! sharing TomegaTypeCheck.IntSyn = IntSyn' !*)
-                     (*! sharing TomegaTypeCheck.Tomega = Tomega !*)
-                     (*! sharing Total.IntSyn = IntSyn' !*)
-                     (*! sharing Reduces.IntSyn = IntSyn' !*)
-                     (*! sharing Index.IntSyn = IntSyn' !*)
-                     (*! sharing IndexSkolem.IntSyn = IntSyn' !*)
-                     (*! sharing Subordinate.IntSyn = IntSyn' !*)
-                     (*! structure CompSyn' : COMPSYN !*)
-                     (*! sharing CompSyn'.IntSyn = IntSyn' !*)
-                     (*! sharing Compile.IntSyn = IntSyn' !*)
-                     (*! sharing Compile.CompSyn = CompSyn' !*)
-                     (*! sharing AbsMachine.IntSyn = IntSyn' !*)
-                     (*! sharing AbsMachine.CompSyn = CompSyn' !*)
-                     (*! structure TableParam : TABLEPARAM !*)
-                     (*! sharing Tabled.IntSyn = IntSyn' !*)
-                     (*! sharing Tabled.CompSyn = CompSyn' !*)
-                     (*! sharing Solve.IntSyn = IntSyn' !*)
-                     (*! sharing Fquery.IntSyn = IntSyn' !*)
-                     (*! sharing Solve.Paths = Paths !*)
-                     (*! sharing ThmSyn.Paths = Paths !*)
-                     (*! sharing Thm.Paths = Paths !*)
-                     (*! sharing ReconThm.Paths = Paths !*)
-                     (*! sharing ReconThm.ThmSyn.ModeSyn = ModeSyn !*)
-                     (* -bp *)
-                     (* -bp *)
-                     (* -bp *)
-                     (*! sharing TabledSyn.IntSyn = IntSyn' !*)
-                     (*! sharing WorldSyn.IntSyn = IntSyn' !*)
-                     (*   structure WorldPrint : WORLDPRINT *)
-                     (*! sharing WorldPrint.Tomega = Tomega !*)
-                     (*! sharing ModSyn.IntSyn = IntSyn' !*)
-                     (*! sharing ModSyn.Paths = Paths !*)
-                     (*! structure FunSyn : FUNSYN !*)
-                     (*! sharing FunSyn.IntSyn = IntSyn' !*)
-                     (*! sharing Skolem.IntSyn = IntSyn' !*)
-                     (*! sharing Prover.IntSyn = IntSyn' !*)
-                     (*! sharing ClausePrint.IntSyn = IntSyn' !*)
-                     (*! sharing PrintTeX.IntSyn = IntSyn' !*)
-                     (*! sharing ClausePrintTeX.IntSyn = IntSyn' !*)
-                     (*! sharing CSManager.IntSyn = IntSyn' !*)
-                     (*! sharing CSManager.ModeSyn = ModeSyn !*)
                      module Msg : MSG
                    end) : TWELF =
   struct
-    (*! structure IntSyn = IntSyn' !*)
     module S = Parser.Stream
     let rec msg s = Msg.message s
     let rec chmsg n s = Global.chMessage n s msg
@@ -351,11 +203,11 @@ module Twelf(Twelf:sig
     type __Status =
       | OK 
       | ABORT 
-    let rec abort chlev msg = chmsg chlev (function | () -> msg); ABORT
-    let rec abortFileMsg chlev (fileName, msg) =
+    let rec abort chlev msg = chmsg chlev (fun () -> msg); ABORT
+    let rec abortFileMsg chlev fileName msg =
       abort chlev (((fileName ^ ":") ^ msg) ^ "\n")
-    let rec abortIO =
-      function
+    let rec abortIO __0__ __1__ =
+      match (__0__, __1__) with
       | (fileName,
          { cause = SysErr (m, _); function__ = f; name = n; function__ = f;
            name = n; name = n })
@@ -367,62 +219,68 @@ module Twelf(Twelf:sig
              (((("IO Error on file " ^ fileName) ^ " from function ") ^ f) ^
                 "\n");
            ABORT)
-    let rec joinregion =
-      function
+    let rec joinregion __2__ __3__ =
+      match (__2__, __3__) with
       | (r, nil) -> r
       | (r, r'::rs) -> joinregion ((Paths.join (r, r')), rs)
     let rec joinregions (r::rs) = joinregion (r, rs)
     let rec constraintsMsg cnstrL =
       (^) "Typing ambiguous -- unresolved constraints\n" Print.cnstrsToString
         cnstrL
-    let rec handleExceptions chlev fileName (f : 'a -> __Status) (x : 'a) =
-      try f x
-      with | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg ->
-          abort 0
-            ((("Double-checking types fails: " ^ msg) ^ "\n") ^
-               "This indicates a bug in Twelf.\n")
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abort chlev (msg ^ "\n")
-      | Error msg -> abort chlev (msg ^ "\n")
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abort chlev (msg ^ "\n")
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abort chlev (("Signature error: " ^ msg) ^ "\n")
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | AbortQuery msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abort chlev (msg ^ "\n")
-      | Error msg -> abort chlev (msg ^ "\n")
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg -> abortFileMsg chlev (fileName, msg)
-      | Error msg ->
-          abort chlev (("Constraint Solver Manager error: " ^ msg) ^ "\n")
-      | exn -> (abort 0 (UnknownExn.unknownExn exn); raise exn)
-    let (context : Names.namespace option ref) = ref None
-    let rec installConst fromCS (cid, fileNameocOpt) =
+    let rec handleExceptions chlev fileName f x =
+      ((try f x
+        with | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg ->
+            abort 0
+              ((("Double-checking types fails: " ^ msg) ^ "\n") ^
+                 "This indicates a bug in Twelf.\n")
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abort chlev (msg ^ "\n")
+        | Error msg -> abort chlev (msg ^ "\n")
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abort chlev (msg ^ "\n")
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abort chlev (("Signature error: " ^ msg) ^ "\n")
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | AbortQuery msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abort chlev (msg ^ "\n")
+        | Error msg -> abort chlev (msg ^ "\n")
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg -> abortFileMsg chlev (fileName, msg)
+        | Error msg ->
+            abort chlev (("Constraint Solver Manager error: " ^ msg) ^ "\n")
+        | exn -> (abort 0 (UnknownExn.unknownExn exn); raise exn))
+      (* | Constraints.Error (cnstrL) => abortFileMsg (fileName, constraintsMsg cnstrL) *)
+      (* Total includes filename *)(* Reduces includes filename *)
+      (* ModeCheck includes filename *)(* - Not supported in polyML ABP - 4/20/03
+              * | IO.Io (ioError) => abortIO (fileName, ioError)
+              *)
+      (* includes filename *)(* includes filename *))
+    let (context : Names.namespace option ref) = ref NONE
+    let rec installConst fromCS cid fileNameocOpt =
       let _ = Origins.installOrigin (cid, fileNameocOpt) in
       let _ = Index.install fromCS (IntSyn.Const cid) in
       let _ = IndexSkolem.install fromCS (IntSyn.Const cid) in
       let _ = Timers.time Timers.compiling Compile.install fromCS cid in
       let _ = Timers.time Timers.subordinate Subordinate.install cid in
       let _ = Timers.time Timers.subordinate Subordinate.installDef cid in ()
-    let rec installConDec fromCS
-      (conDec, ((fileName, ocOpt) as fileNameocOpt), r) =
+    let rec installConDec fromCS conDec ((fileName, ocOpt) as fileNameocOpt)
+      r =
       let _ =
         Timers.time Timers.modes ModeCheck.checkD (conDec, fileName, ocOpt) in
       let cid = IntSyn.sgnAdd conDec in
@@ -442,36 +300,40 @@ module Twelf(Twelf:sig
       let _ = Origins.installLinesInfo (fileName, (Paths.getLinesInfo ())) in
       let _ = if (!Global.style) >= 1 then StyleCheck.checkConDec cid else () in
       cid
-    let rec installBlockDec fromCS
-      (conDec, ((fileName, ocOpt) as fileNameocOpt), r) =
+    let rec installBlockDec fromCS conDec
+      ((fileName, ocOpt) as fileNameocOpt) r =
       let cid = IntSyn.sgnAdd conDec in
       let _ =
         try
-          match (fromCS, (!context)) with
-          | (IntSyn.Ordinary, Some namespace) ->
-              Names.insertConst (namespace, cid)
-          | _ -> ()
+          ((match (fromCS, (!context)) with
+            | (IntSyn.Ordinary, Some namespace) ->
+                Names.insertConst (namespace, cid)
+            | _ -> ())
+          (* (Clause, _) should be impossible *))
         with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
       let _ = Names.installConstName cid in
       let _ =
         try Timers.time Timers.subordinate Subordinate.installBlock cid
         with | Error msg -> raise (Subordinate.Error (Paths.wrap (r, msg))) in
       let _ = Origins.installLinesInfo (fileName, (Paths.getLinesInfo ())) in
-      cid
-    let rec installBlockDef fromCS
-      (conDec, ((fileName, ocOpt) as fileNameocOpt), r) =
+      ((cid)
+        (* val _ = Origins.installOrigin (cid, fileNameocOpt) *))
+    let rec installBlockDef fromCS conDec
+      ((fileName, ocOpt) as fileNameocOpt) r =
       let cid = IntSyn.sgnAdd conDec in
       let _ =
         try
-          match (fromCS, (!context)) with
-          | (IntSyn.Ordinary, Some namespace) ->
-              Names.insertConst (namespace, cid)
-          | _ -> ()
+          ((match (fromCS, (!context)) with
+            | (IntSyn.Ordinary, Some namespace) ->
+                Names.insertConst (namespace, cid)
+            | _ -> ())
+          (* (Clause, _) should be impossible *))
         with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
       let _ = Names.installConstName cid in
       let _ = Origins.installLinesInfo (fileName, (Paths.getLinesInfo ())) in
-      cid
-    let rec installStrDec (strdec, module__, r, isDef) =
+      ((cid)
+        (* val _ = Origins.installOrigin (cid, fileNameocOpt) *))
+    let rec installStrDec strdec module__ r isDef =
       let rec installAction ((cid, _) as data) =
         installConst IntSyn.Ordinary data;
         if (!Global.chatter) >= 4
@@ -483,7 +345,7 @@ module Twelf(Twelf:sig
             (strdec, module__, (!context), installAction, isDef)
         with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
       ()
-    let rec includeSig (module__, r, isDef) =
+    let rec includeSig module__ r isDef =
       let rec installAction ((cid, _) as data) =
         installConst IntSyn.Ordinary data;
         if (!Global.chatter) >= 4
@@ -495,21 +357,19 @@ module Twelf(Twelf:sig
       ()
     let rec cidToString a = Names.qidToString (Names.constQid a)
     let rec invalidate uninstallFun cids msg =
-      let uninstalledCids = List.filter (function | a -> uninstallFun a) cids in
+      let uninstalledCids = List.filter (fun a -> uninstallFun a) cids in
       let _ =
         match uninstalledCids with
         | nil -> ()
         | _ ->
             chmsg 4
-              (function
-               | () ->
-                   (^) (("Invalidated " ^ msg) ^ " properties of families")
-                     List.foldr
-                     ((function | (a, s) -> ((^) " " cidToString a) ^ s))
-                     "\n" uninstalledCids) in
+              (fun () ->
+                 (^) (("Invalidated " ^ msg) ^ " properties of families")
+                   List.foldr (fun a -> fun s -> ((^) " " cidToString a) ^ s)
+                   "\n" uninstalledCids) in
       ()
-    let rec install1 =
-      function
+    let rec install1 __6__ __7__ =
+      match (__6__, __7__) with
       | (fileName, (ConDec condec, r)) ->
           (try
              let (optConDec, ocOpt) =
@@ -521,18 +381,22 @@ module Twelf(Twelf:sig
                    let cid =
                      installBlockDec IntSyn.Ordinary
                        (conDec, (fileName, ocOpt), r) in
-                   ()
+                   ((())(* allocate new cid. *))
                | Some (BlockDef _ as conDec) ->
                    let cid =
                      installBlockDef IntSyn.Ordinary
                        (conDec, (fileName, ocOpt), r) in
-                   ()
+                   ((())(* allocate new cid. *))
                | Some conDec ->
                    let cid =
                      installConDec IntSyn.Ordinary
                        (conDec, (fileName, ocOpt), r) in
-                   ()
-               | None -> () in
+                   ((())
+                     (* names are assigned in ReconConDec *)
+                     (* val conDec' = nameConDec (conDec) *)
+                     (* should print here, not in ReconConDec *)
+                     (* allocate new cid after checking modes! *))
+               | NONE -> ()(* anonymous definition for type-checking *) in
              icd optConDec
            with
            | Error eqns ->
@@ -549,8 +413,12 @@ module Twelf(Twelf:sig
                    let cid =
                      installConDec IntSyn.Ordinary
                        (conDec, (fileName, ocOpt), r) in
-                   ()
-               | None -> () in
+                   ((())
+                     (* names are assigned in ReconConDec *)
+                     (* val conDec' = nameConDec (conDec) *)
+                     (* should print here, not in ReconConDec *)
+                     (* allocate new cid after checking modes! *))
+               | NONE -> ()(* anonymous definition for type-checking *) in
              icd optConDec
            with
            | Error eqns ->
@@ -568,8 +436,9 @@ module Twelf(Twelf:sig
                      installConDec IntSyn.Clause
                        (conDec, (fileName, ocOpt), r) in
                    ()
-               | None -> () in
-             icd optConDec
+               | NONE -> ()(* anonymous definition for type-checking: ignore %clause *) in
+             ((icd optConDec)
+               (* val _ = print "%clause " *))
            with
            | Error eqns ->
                raise
@@ -581,10 +450,12 @@ module Twelf(Twelf:sig
                with
                | AbortQuery msg ->
                    raise (Solve.AbortQuery (Paths.wrap (r, msg))) in
-             let rec icd (conDec, ocOpt) =
+             let rec icd conDec ocOpt =
                let cid =
                  installConDec IntSyn.Ordinary (conDec, (fileName, ocOpt), r) in
-               () in
+               ((())
+                 (* should print here, not in ReconQuery *)
+                 (* allocate new cid after checking modes! *)(* allocate cid after strictness has been checked! *)) in
              List.app icd conDecL
            with
            | Error eqns ->
@@ -612,21 +483,19 @@ module Twelf(Twelf:sig
             if not (!Global.unsafe)
             then raise (Thm.Error "%trustme not safe: Toggle `unsafe' flag")
             else () in
-          let _ = chmsg 3 (function | () -> "[%trustme ...\n") in
+          let _ = chmsg 3 (fun () -> "[%trustme ...\n") in
           let _ =
-            match handleExceptions 4 fileName
-                    (function | args -> (install1 args; OK))
+            match handleExceptions 4 fileName (fun args -> install1 args; OK)
                     (fileName, (dec, r))
             with
-            | OK -> chmsg 3 (function | () -> "trustme subject succeeded\n")
+            | OK -> chmsg 3 (fun () -> "trustme subject succeeded\n")
             | ABORT ->
-                chmsg 3
-                  (function | () -> "trustme subject failed; continuing\n") in
-          let _ = chmsg 3 (function | () -> "%]\n") in ()
+                chmsg 3 (fun () -> "trustme subject failed; continuing\n") in
+          let _ = chmsg 3 (fun () -> "%]\n") in ()
       | (fileName, (SubordDec qidpairs, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | None ->
+            | NONE ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -635,8 +504,7 @@ module Twelf(Twelf:sig
             | Some cid -> cid in
           let cidpairs =
             try
-              List.map
-                (function | (qid1, qid2) -> ((toCid qid1), (toCid qid2)))
+              List.map (fun qid1 -> fun qid2 -> ((toCid qid1), (toCid qid2)))
                 qidpairs
             with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
           let _ =
@@ -647,8 +515,8 @@ module Twelf(Twelf:sig
           then
             msg
               ((^) "%subord" List.foldr
-                 (function
-                  | ((a1, a2), s) ->
+                 (fun (a1, a2) ->
+                    fun s ->
                       (((^) (((^) " (" Names.qidToString (Names.constQid a1))
                                ^ " ")
                           Names.qidToString (Names.constQid a2))
@@ -659,7 +527,7 @@ module Twelf(Twelf:sig
       | (fileName, (FreezeDec qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | None ->
+            | NONE ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -673,24 +541,25 @@ module Twelf(Twelf:sig
             try Subordinate.freeze cids
             with
             | Error msg -> raise (Subordinate.Error (Paths.wrap (r, msg))) in
-          (if (!Global.chatter) >= 3
-           then
-             msg
-               ((^) "%freeze" List.foldr
-                  (function
-                   | (a, s) ->
-                       ((^) " " Names.qidToString (Names.constQid a)) ^ s)
-                  ".\n" cids)
-           else ();
-           if (!Global.chatter) >= 4
-           then
-             msg
-               ((^) "Frozen:" List.foldr
-                  (function
-                   | (a, s) ->
-                       ((^) " " Names.qidToString (Names.constQid a)) ^ s)
-                  "\n" frozen)
-           else ())
+          (((if (!Global.chatter) >= 3
+             then
+               msg
+                 ((^) "%freeze" List.foldr
+                    (fun a ->
+                       fun s ->
+                         ((^) " " Names.qidToString (Names.constQid a)) ^ s)
+                    ".\n" cids)
+             else ();
+             if (!Global.chatter) >= 4
+             then
+               msg
+                 ((^) "Frozen:" List.foldr
+                    (fun a ->
+                       fun s ->
+                         ((^) " " Names.qidToString (Names.constQid a)) ^ s)
+                    "\n" frozen)
+             else ()))
+            (* Subordinate.installFrozen cids *))
       | (fileName, (ThawDec qids, r)) ->
           let _ =
             if not (!Global.unsafe)
@@ -698,7 +567,7 @@ module Twelf(Twelf:sig
             else () in
           let rec toCid qid =
             match Names.constLookup qid with
-            | None ->
+            | NONE ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -717,26 +586,27 @@ module Twelf(Twelf:sig
             then
               msg
                 ((^) "%thaw" List.foldr
-                   (function | (a, s) -> ((^) " " cidToString a) ^ s) ".\n"
-                   cids)
+                   (fun a -> fun s -> ((^) " " cidToString a) ^ s) ".\n" cids)
             else () in
           let _ =
             if (!Global.chatter) >= 4
             then
               msg
                 ((^) "Thawed" List.foldr
-                   (function | (a, s) -> ((^) " " cidToString a) ^ s) "\n"
+                   (fun a -> fun s -> ((^) " " cidToString a) ^ s) "\n"
                    thawed)
             else () in
           let _ = invalidate WorldSyn.uninstall thawed "world" in
           let _ = invalidate Thm.uninstallTerminates thawed "termination" in
           let _ = invalidate Thm.uninstallReduces thawed "reduction" in
           let _ = invalidate UniqueTable.uninstallMode thawed "uniqueness" in
-          let _ = invalidate Total.uninstall thawed "totality" in ()
+          let _ = invalidate Total.uninstall thawed "totality" in ((())
+            (* invalidate prior meta-theoretic properteis of signatures *)
+            (* exempt only %mode [incremental], %covers [not stored] *))
       | (fileName, (DeterministicDec qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | None ->
+            | NONE ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -754,15 +624,15 @@ module Twelf(Twelf:sig
                ((^) ((if (!Global.chatter) >= 4 then "%" else "") ^
                        "%deterministic")
                   List.foldr
-                  (function
-                   | (a, s) ->
+                  (fun a ->
+                     fun s ->
                        ((^) " " Names.qidToString (Names.constQid a)) ^ s)
                   ".\n" cids)
            else ())
       | (fileName, (Compile qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | None ->
+            | NONE ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -780,15 +650,16 @@ module Twelf(Twelf:sig
                 let _ = ModeCheck.checkFreeOut (a, ms) in checkFreeOut La in
           let _ = checkFreeOut cids in
           let (lemma, projs, sels) = Converter.installPrg cids in
-          let P = Tomega.lemmaDef lemma in
-          let F = Converter.convertFor cids in
-          let _ = TomegaTypeCheck.checkPrg (IntSyn.Null, (P, F)) in
+          let __P = Tomega.lemmaDef lemma in
+          let __F = Converter.convertFor cids in
+          let _ = TomegaTypeCheck.checkPrg (IntSyn.Null, (__P, __F)) in
           let rec f cid = IntSyn.conDecName (IntSyn.sgnLookup cid) in
           let _ =
             if (!Global.chatter) >= 2
             then
               msg
-                (((^) "\n" TomegaPrint.funToString (((map f cids), projs), P))
+                (((^) "\n" TomegaPrint.funToString
+                    (((map f cids), projs), __P))
                    ^ "\n")
             else () in
           let _ =
@@ -798,15 +669,17 @@ module Twelf(Twelf:sig
                 ((^) ((if (!Global.chatter) >= 4 then "%" else "") ^
                         "%compile")
                    List.foldr
-                   (function
-                    | (a, s) ->
+                   (fun a ->
+                      fun s ->
                         ((^) " " Names.qidToString (Names.constQid a)) ^ s)
                    ".\n" cids)
             else () in
-          ()
+          ((())
+            (* MOVED -- ABP 4/4/03 *)(* ******************************************* *)
+            (* ******************************************* *))
       | (fileName, (FixDec ((qid, r), fixity), _)) ->
           (match Names.constLookup qid with
-           | None ->
+           | NONE ->
                raise
                  (Names.Error
                     (((^) "Undeclared identifier " Names.qidToString
@@ -827,7 +700,7 @@ module Twelf(Twelf:sig
                 with | Error msg -> raise (Names.Error (Paths.wrap (r, msg)))))
       | (fileName, (NamePref ((qid, r), namePref), _)) ->
           (match Names.constLookup qid with
-           | None ->
+           | NONE ->
                raise
                  (Names.Error
                     (((^) "Undeclared identifier " Names.qidToString
@@ -841,47 +714,49 @@ module Twelf(Twelf:sig
           let _ = ReconTerm.checkErrors r in
           let _ =
             List.app
-              (function
-               | (((a, _) as mdec), r) ->
-                   (match ModeTable.modeLookup a with
-                    | None -> ()
-                    | Some _ ->
-                        if Subordinate.frozen [a]
-                        then
-                          raise
-                            (ModeTable.Error
-                               (Paths.wrap
-                                  (r,
-                                    ((^) "Cannot redeclare mode for frozen constant "
-                                       Names.qidToString (Names.constQid a)))))
-                        else ())) mdecs in
+              (fun ((a, _) as mdec) ->
+                 fun r ->
+                   match ModeTable.modeLookup a with
+                   | NONE -> ()
+                   | Some _ ->
+                       if Subordinate.frozen [a]
+                       then
+                         raise
+                           (ModeTable.Error
+                              (Paths.wrap
+                                 (r,
+                                   ((^) "Cannot redeclare mode for frozen constant "
+                                      Names.qidToString (Names.constQid a)))))
+                       else ()) mdecs in
           let _ =
             List.app
-              (function
-               | (((a, _) as mdec), r) ->
-                   (try
-                      match IntSyn.conDecStatus (IntSyn.sgnLookup a) with
-                      | IntSyn.Normal -> ModeTable.installMode mdec
-                      | _ ->
-                          raise
-                            (ModeTable.Error
-                               "Cannot declare modes for foreign constants")
-                    with
-                    | Error msg ->
-                        raise (ModeTable.Error (Paths.wrap (r, msg))))) mdecs in
-          let _ = List.app (function | mdec -> ModeDec.checkPure mdec) mdecs in
+              (fun ((a, _) as mdec) ->
+                 fun r ->
+                   try
+                     match IntSyn.conDecStatus (IntSyn.sgnLookup a) with
+                     | IntSyn.Normal -> ModeTable.installMode mdec
+                     | _ ->
+                         raise
+                           (ModeTable.Error
+                              "Cannot declare modes for foreign constants")
+                   with
+                   | Error msg ->
+                       raise (ModeTable.Error (Paths.wrap (r, msg)))) mdecs in
+          let _ = List.app (fun mdec -> ModeDec.checkPure mdec) mdecs in
           let _ =
             List.app
-              (function
-               | (mdec, r) ->
-                   (try ModeCheck.checkMode mdec
-                    with | Error msg -> raise (ModeCheck.Error msg))) mdecs in
+              (fun mdec ->
+                 fun r ->
+                   ((try ModeCheck.checkMode mdec
+                     with | Error msg -> raise (ModeCheck.Error msg))
+                   (* exception comes with location *)))
+              mdecs in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
                 (((^) "%mode " ModePrint.modesToString
-                    (List.map (function | (mdec, r) -> mdec) mdecs))
+                    (List.map (fun mdec -> fun r -> mdec) mdecs))
                    ^ ".\n")
             else () in
           ()
@@ -890,235 +765,293 @@ module Twelf(Twelf:sig
           let _ = ReconTerm.checkErrors r in
           let _ =
             List.app
-              (function
-               | (((a, _) as mdec), r) ->
-                   (try
-                      match IntSyn.conDecStatus (IntSyn.sgnLookup a) with
-                      | IntSyn.Normal -> UniqueTable.installMode mdec
-                      | _ ->
-                          raise
-                            (UniqueTable.Error
-                               "Cannot declare modes for foreign constants")
-                    with
-                    | Error msg -> raise (Unique.Error (Paths.wrap (r, msg)))))
+              (fun ((a, _) as mdec) ->
+                 fun r ->
+                   try
+                     match IntSyn.conDecStatus (IntSyn.sgnLookup a) with
+                     | IntSyn.Normal -> UniqueTable.installMode mdec
+                     | _ ->
+                         raise
+                           (UniqueTable.Error
+                              "Cannot declare modes for foreign constants")
+                   with
+                   | Error msg -> raise (Unique.Error (Paths.wrap (r, msg))))
               mdecs in
           let _ =
             List.app
-              (function
-               | (mdec, r) ->
-                   (try Timers.time Timers.coverage Unique.checkUnique mdec
-                    with
-                    | Error msg -> raise (Unique.Error (Paths.wrap (r, msg)))))
+              (fun mdec ->
+                 fun r ->
+                   try Timers.time Timers.coverage Unique.checkUnique mdec
+                   with
+                   | Error msg -> raise (Unique.Error (Paths.wrap (r, msg))))
               mdecs in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
                 (((^) "%unique " ModePrint.modesToString
-                    (List.map (function | (mdec, r) -> mdec) mdecs))
+                    (List.map (fun mdec -> fun r -> mdec) mdecs))
                    ^ ".\n")
             else () in
-          ()
+          ((())
+            (* convert all UniqueTable.Error to Unique.Error *)(* Timing added to coverage --- fix !!! -fp Sun Aug 17 12:17:51 2003 *)
+            (* %unique does not auto-freeze, since family must already be frozen *))
       | (fileName, (CoversDec mterms, r)) ->
           let mdecs = List.map ReconMode.modeToMode mterms in
           let _ = ReconTerm.checkErrors r in
-          let _ = List.app (function | mdec -> ModeDec.checkPure mdec) mdecs in
+          let _ = List.app (fun mdec -> ModeDec.checkPure mdec) mdecs in
           let _ =
             List.app
-              (function
-               | (mdec, r) ->
-                   (try Timers.time Timers.coverage Cover.checkCovers mdec
-                    with
-                    | Error msg -> raise (Cover.Error (Paths.wrap (r, msg)))))
+              (fun mdec ->
+                 fun r ->
+                   try Timers.time Timers.coverage Cover.checkCovers mdec
+                   with
+                   | Error msg -> raise (Cover.Error (Paths.wrap (r, msg))))
               mdecs in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
                 (((^) "%covers " ModePrint.modesToString
-                    (List.map (function | (mdec, r) -> mdec) mdecs))
+                    (List.map (fun mdec -> fun r -> mdec) mdecs))
                    ^ ".\n")
             else () in
-          ()
+          ((())(* MERGE Fri Aug 22 13:43:12 2003 -cs *))
       | (fileName, (TotalDec lterm, r)) ->
-          let (T, ((r, rs) as rrs)) = ReconThm.tdeclTotDecl lterm in
-          let La = Thm.installTotal (T, rrs) in
+          let (__T, ((r, rs) as rrs)) = ReconThm.tdeclTotDecl lterm in
+          let La = Thm.installTotal (__T, rrs) in
           let _ = map Total.install La in
           let _ =
-            try map Total.checkFam La
-            with | Error msg -> raise (Total.Error msg)
-            | Error msg -> raise (Cover.Error (Paths.wrap (r, msg)))
-            | Error msg -> raise (Reduces.Error msg)
-            | Error msg -> raise (Subordinate.Error (Paths.wrap (r, msg))) in
+            ((try map Total.checkFam La
+              with | Error msg -> raise (Total.Error msg)
+              | Error msg -> raise (Cover.Error (Paths.wrap (r, msg)))
+              | Error msg -> raise (Reduces.Error msg)
+              | Error msg -> raise (Subordinate.Error (Paths.wrap (r, msg))))
+            (* include region and file *)(*                     | Cover.Error (msg) => covererror (result1, msg)  disabled -cs Thu Jan 29 16:35:13 2004 *)
+            (* includes filename *)) in
           let _ =
             if (!Global.chatter) >= 3
-            then msg (((^) "%total " ThmPrint.tDeclToString T) ^ ".\n")
+            then msg (((^) "%total " ThmPrint.tDeclToString __T) ^ ".\n")
             else () in
-          ()
+          ((())
+            (* Mon Dec  2 17:20:18 2002 -fp *)(* coverage checker appears to be safe now *)
+            (*
+          val _ = if not (!Global.unsafe)
+                    then raise Total.Error (Paths.wrapLoc (Paths.Loc (fileName, r), "%total not safe: Toggle `unsafe' flag"))
+                  else ()
+          *)
+            (* ******************************************* *)(*  Temporarily disabled -- cs Thu Oct 30 12:46:44 2003
+          fun checkFreeOut nil = ()
+            | checkFreeOut (a :: La) =
+              let
+                val Some ms = ModeTable.modeLookup a
+                val _ = ModeCheck.checkFreeOut (a, ms)
+              in
+                checkFreeOut La
+              end
+          val _ = checkFreeOut La
+          val (lemma, projs, sels) = Converter.installPrg La
+
+
+           ABP 2/28/03 -- factoring *)
+            (*      val result1 = NONE *)(* pre-install for recursive checking *)
+            (*        val _ = case (result1)
+                    of NONE => ()
+                     | Some msg => raise Cover.Error (Paths.wrap (r, "Relational coverage succeeds, funcational fails:\n This indicates a bug in the functional checker.\n[Functional] " ^ msg))
+*)
+            (* %total does not auto-freeze, since the predicate must already be frozen *))
       | (fileName, (TerminatesDec lterm, _)) ->
-          let (T, ((r, rs) as rrs)) = ReconThm.tdeclTotDecl lterm in
-          let TDecl (_, Callpats callpats) = T in
-          let La = Thm.installTerminates (T, rrs) in
+          let (__T, ((r, rs) as rrs)) = ReconThm.tdeclTotDecl lterm in
+          let TDecl (_, Callpats callpats) = __T in
+          let La = Thm.installTerminates (__T, rrs) in
           let _ = map (Timers.time Timers.terminate Reduces.checkFam) La in
           let _ =
             if !Global.autoFreeze then (Subordinate.freeze La; ()) else () in
           let _ =
             if (!Global.chatter) >= 3
-            then msg (((^) "%terminates " ThmPrint.tDeclToString T) ^ ".\n")
+            then
+              msg (((^) "%terminates " ThmPrint.tDeclToString __T) ^ ".\n")
             else () in
-          ()
+          ((())
+            (* allow re-declaration since safe? *)(* Thu Mar 10 13:45:42 2005 -fp *)
+            (*
+          val _ = ListPair.app (fn ((a, _), r) =>
+                            if Subordinate.frozen [a]
+                              andalso ((Order.selLookup a; true) handle Order.Error _ => false)
+                            then raise Total.Error (fileName ^ ":"
+                                       ^ Paths.wrap (r, "Cannot redeclare termination order for frozen constant "
+                                                   ^ Names.qidToString (Names.constQid a)))
+                            else ())
+                  (callpats, rs)
+          *))
       | (fileName, (ReducesDec lterm, _)) ->
-          let (R, ((r, rs) as rrs)) = ReconThm.rdeclTorDecl lterm in
-          let RDecl (_, Callpats callpats) = R in
-          let La = Thm.installReduces (R, rrs) in
+          let (__R, ((r, rs) as rrs)) = ReconThm.rdeclTorDecl lterm in
+          let RDecl (_, Callpats callpats) = __R in
+          let La = Thm.installReduces (__R, rrs) in
           let _ =
             map (Timers.time Timers.terminate Reduces.checkFamReduction) La in
           let _ =
             if !Global.autoFreeze then (Subordinate.freeze La; ()) else () in
           let _ =
             if (!Global.chatter) >= 3
-            then msg (((^) "%reduces " ThmPrint.rDeclToString R) ^ ".\n")
+            then msg (((^) "%reduces " ThmPrint.rDeclToString __R) ^ ".\n")
             else () in
-          ()
+          ((())
+            (* allow re-declaration since safe? *)(* Thu Mar 10 14:06:13 2005 -fp *)
+            (*
+          val _ = ListPair.app (fn ((a, _), r) =>
+                            if Subordinate.frozen [a]
+                              andalso ((Order.selLookupROrder a; true) handle Order.Error _ => false)
+                            then raise Total.Error (fileName ^ ":"
+                                       ^ Paths.wrap (r, "Cannot redeclare reduction order for frozen constant "
+                                                   ^ Names.qidToString (Names.constQid a)))
+                            else ())
+                  (callpats, rs)
+          *)
+            (*  -bp6/12/99.   *))
       | (fileName, (TabledDec tdecl, _)) ->
-          let (T, r) = ReconThm.tableddeclTotabledDecl tdecl in
-          let La = Thm.installTabled T in
+          let (__T, r) = ReconThm.tableddeclTotabledDecl tdecl in
+          let La = Thm.installTabled __T in
           let _ =
             if (!Global.chatter) >= 3
-            then msg (((^) "%tabled " ThmPrint.tabledDeclToString T) ^ ".\n")
+            then
+              msg (((^) "%tabled " ThmPrint.tabledDeclToString __T) ^ ".\n")
             else () in
-          ()
+          ((())(*  -bp6/12/99.   *))
       | (fileName, (KeepTableDec tdecl, _)) ->
-          let (T, r) = ReconThm.keepTabledeclToktDecl tdecl in
-          let La = Thm.installKeepTable T in
+          let (__T, r) = ReconThm.keepTabledeclToktDecl tdecl in
+          let La = Thm.installKeepTable __T in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
-                (((^) "%keeptabled " ThmPrint.keepTableDeclToString T) ^
+                (((^) "%keeptabled " ThmPrint.keepTableDeclToString __T) ^
                    ".\n")
             else () in
           ()
       | (fileName, (TheoremDec tdec, r)) ->
           let Tdec = ReconThm.theoremDecToTheoremDec tdec in
           let _ = ReconTerm.checkErrors r in
-          let (GBs, (ConDec (name, _, k, _, __v, __l) as E)) =
+          let (GBs, (ConDec (name, _, k, _, __V, __L) as E)) =
             ThmSyn.theoremDecToConDec (Tdec, r) in
           let _ = FunSyn.labelReset () in
           let _ =
             List.foldr
-              (function
-               | ((G1, G2), k) ->
+              (fun (__G1, __G2) ->
+                 fun k ->
                    FunSyn.labelAdd
                      (FunSyn.LabelDec
-                        ((Int.toString k), (FunSyn.ctxToList G1),
-                          (FunSyn.ctxToList G2)))) 0 GBs in
-          let cid = installConDec IntSyn.Ordinary (E, (fileName, None), r) in
+                        ((Int.toString k), (FunSyn.ctxToList __G1),
+                          (FunSyn.ctxToList __G2)))) 0 GBs in
+          let cid = installConDec IntSyn.Ordinary (__E, (fileName, NONE), r) in
           let MS = ThmSyn.theoremDecToModeSpine (Tdec, r) in
           let _ = ModeTable.installMode (cid, MS) in
           let _ =
             if (!Global.chatter) >= 3
-            then msg (((^) "%theorem " Print.conDecToString E) ^ "\n")
+            then msg (((^) "%theorem " Print.conDecToString __E) ^ "\n")
             else () in
           ()
       | (fileName, (ProveDec lterm, r)) ->
-          let (PDecl (depth, T), rrs) = ReconThm.proveToProve lterm in
-          let La = Thm.installTerminates (T, rrs) in
+          let (PDecl (depth, __T), rrs) = ReconThm.proveToProve lterm in
+          let La = Thm.installTerminates (__T, rrs) in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
                 (((("%prove " ^ (Int.toString depth)) ^ " ") ^
-                    (ThmPrint.tDeclToString T))
+                    (ThmPrint.tDeclToString __T))
                    ^ ".\n")
             else () in
           let _ = Prover.init (depth, La) in
           let _ =
-            if (!Global.chatter) >= 3
-            then
-              map
-                (function
-                 | a ->
+            ((if (!Global.chatter) >= 3
+              then
+                map
+                  (fun a ->
                      msg
                        (("%mode " ^
                            (ModePrint.modeToString
                               (a, (valOf (ModeTable.modeLookup a)))))
                           ^ ".\n")) La
-            else [()] in
+              else [()])
+            (* mode must be declared!*)) in
           let _ =
             try Prover.auto ()
             with
             | Error msg ->
                 raise (Prover.Error (Paths.wrap ((joinregion rrs), msg))) in
           let _ = if (!Global.chatter) >= 3 then msg "%QED\n" else () in
-          (Prover.install
-             (function
-              | E -> installConDec IntSyn.Ordinary (E, (fileName, None), r));
-           Skolem.install La)
+          (((Prover.install
+               (fun (__E) ->
+                  installConDec IntSyn.Ordinary (__E, (fileName, NONE), r));
+             Skolem.install La))
+            (* La is the list of type constants *)(* times itself *))
       | (fileName, (EstablishDec lterm, r)) ->
-          let (PDecl (depth, T), rrs) = ReconThm.establishToEstablish lterm in
-          let La = Thm.installTerminates (T, rrs) in
+          let (PDecl (depth, __T), rrs) = ReconThm.establishToEstablish lterm in
+          let La = Thm.installTerminates (__T, rrs) in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
                 (((("%prove " ^ (Int.toString depth)) ^ " ") ^
-                    (ThmPrint.tDeclToString T))
+                    (ThmPrint.tDeclToString __T))
                    ^ ".\n")
             else () in
           let _ = Prover.init (depth, La) in
           let _ =
-            if (!Global.chatter) >= 3
-            then
-              map
-                (function
-                 | a ->
+            ((if (!Global.chatter) >= 3
+              then
+                map
+                  (fun a ->
                      msg
                        (("%mode " ^
                            (ModePrint.modeToString
                               (a, (valOf (ModeTable.modeLookup a)))))
                           ^ ".\n")) La
-            else [()] in
+              else [()])
+            (* mode must be declared!*)) in
           let _ =
             try Prover.auto ()
             with
             | Error msg ->
                 raise (Prover.Error (Paths.wrap ((joinregion rrs), msg))) in
-          Prover.install
-            (function
-             | E -> installConDec IntSyn.Ordinary (E, (fileName, None), r))
+          ((Prover.install
+              (fun (__E) ->
+                 installConDec IntSyn.Ordinary (__E, (fileName, NONE), r)))
+            (* La is the list of type constants *)(* times itself *))
       | (fileName, (AssertDec aterm, _)) ->
           let _ =
             if not (!Global.unsafe)
             then
               raise (ThmSyn.Error "%assert not safe: Toggle `unsafe' flag")
             else () in
-          let ((Callpats (__l) as cp), rrs) = ReconThm.assertToAssert aterm in
-          let La = map (function | (c, P) -> c) __l in
+          let ((Callpats (__L) as cp), rrs) = ReconThm.assertToAssert aterm in
+          let La = map (fun c -> fun (__P) -> c) __L in
           let _ =
             if (!Global.chatter) >= 3
             then msg (("%assert " ^ (ThmPrint.callpatsToString cp)) ^ ".\n")
             else () in
           let _ =
-            if (!Global.chatter) >= 3
-            then
-              map
-                (function
-                 | a ->
+            ((if (!Global.chatter) >= 3
+              then
+                map
+                  (fun a ->
                      msg
                        (("%mode " ^
                            (ModePrint.modeToString
                               (a, (valOf (ModeTable.modeLookup a)))))
                           ^ ".\n")) La
-            else [()] in
-          Skolem.install La
+              else [()])
+            (* mode must be declared!*)) in
+          ((Skolem.install La)
+            (* La is the list of type constants *))
       | (fileName, (WorldDec wdecl, _)) ->
           let (WDecl (qids, (Callpats cpa as cp)), rs) =
             ReconThm.wdeclTowDecl wdecl in
           let _ =
             ListPair.app
-              (function
-               | ((a, _), r) ->
+              (fun (a, _) ->
+                 fun r ->
                    if Subordinate.frozen [a]
                    then
                      raise
@@ -1128,105 +1061,130 @@ module Twelf(Twelf:sig
                                ((^) "Cannot declare worlds for frozen family "
                                   Names.qidToString (Names.constQid a)))))
                    else ()) (cpa, rs) in
-          let rec flatten arg__0 arg__1 =
-            match (arg__0, arg__1) with
-            | (nil, F) -> F
-            | (cid::__l, F) ->
+          let rec flatten __4__ __5__ =
+            match (__4__, __5__) with
+            | (nil, __F) -> __F
+            | (cid::__L, __F) ->
                 (match IntSyn.sgnLookup cid with
-                 | BlockDec _ -> flatten __l (cid :: F)
-                 | BlockDef (_, _, __l') -> flatten (__l @ __l') F) in
-          let W =
+                 | BlockDec _ -> flatten __L (cid :: __F)
+                 | BlockDef (_, _, __L') -> flatten (__L @ __L') __F) in
+          let __W =
             Tomega.Worlds
               (flatten
                  (List.map
-                    (function
-                     | qid ->
-                         (match Names.constLookup qid with
-                          | None ->
-                              raise
-                                (Names.Error
-                                   (((^) "Undeclared label "
-                                       Names.qidToString
-                                       (valOf (Names.constUndef qid)))
-                                      ^ "."))
-                          | Some cid -> cid)) qids) nil) in
+                    (fun qid ->
+                       match Names.constLookup qid with
+                       | NONE ->
+                           raise
+                             (Names.Error
+                                (((^) "Undeclared label " Names.qidToString
+                                    (valOf (Names.constUndef qid)))
+                                   ^ "."))
+                       | Some cid -> cid) qids) nil) in
           let _ =
-            try List.app (function | (a, _) -> WorldSyn.install (a, W)) cpa
-            with
-            | Error msg ->
-                raise
-                  (WorldSyn.Error
-                     (Paths.wrapLoc
-                        ((Paths.Loc (fileName, (joinregions rs))), msg))) in
+            ((try List.app (fun a -> fun _ -> WorldSyn.install (a, __W)) cpa
+              with
+              | Error msg ->
+                  raise
+                    (WorldSyn.Error
+                       (Paths.wrapLoc
+                          ((Paths.Loc (fileName, (joinregions rs))), msg))))
+            (* error location inaccurate here *)) in
           let _ =
             if !Global.autoFreeze
             then
-              (Subordinate.freeze (List.map (function | (a, _) -> a) cpa); ())
+              (Subordinate.freeze (List.map (fun a -> fun _ -> a) cpa); ())
             else () in
           let _ =
             if (!Global.chatter) >= 3
             then
               msg
-                (((^) (((^) "%worlds " Print.worldsToString W) ^ " ")
+                (((^) (((^) "%worlds " Print.worldsToString __W) ^ " ")
                     ThmPrint.callpatsToString cp)
                    ^ ".\n")
             else () in
-          (Timers.time Timers.worlds
-             (map (function | (a, _) -> WorldSyn.worldcheck W a)) cpa;
-           ())
+          (((Timers.time Timers.worlds
+               (map (fun a -> fun _ -> WorldSyn.worldcheck __W a)) cpa;
+             ()))
+            (*if !Global.doubleCheck
+             then (map (fn (a,_) => Worldify.worldify a) cpa; ())
+           else  ()  --cs Sat Aug 27 22:04:29 2005 *))
       | (fileName, ((SigDef _, _) as declr)) ->
-          install1WithSig (fileName, None, declr)
+          install1WithSig (fileName, NONE, declr)
       | (fileName, ((StructDec _, _) as declr)) ->
-          install1WithSig (fileName, None, declr)
+          install1WithSig (fileName, NONE, declr)
       | (fileName, ((Include _, _) as declr)) ->
-          install1WithSig (fileName, None, declr)
+          install1WithSig (fileName, NONE, declr)
       | (fileName, ((Open _, _) as declr)) ->
-          install1WithSig (fileName, None, declr)
+          install1WithSig (fileName, NONE, declr)
       | (fileName, (Use name, r)) ->
           (match !context with
-           | None -> CSManager.useSolver name
+           | NONE -> CSManager.useSolver name
            | _ ->
                raise
                  (ModSyn.Error
                     (Paths.wrap
                        (r, "%use declaration needs to be at top level"))))
-    let rec install1WithSig =
-      function
+      (* Assert declaration *)(* Establish declaration *)
+      (* Prove declaration *)(* Theorem declaration *)
+      (* %keepTable declaration *)(* Tabled declaration *)
+      (* Reduces declaration *)(* -bp *)
+      (* Termination declaration *)(* time activities separately in total.fun *)
+      (* Total declaration *)(* Coverage declaration *)
+      (* Unique declaration *)(* Mode declaration *)
+      (* Name preference declaration for printing *)
+      (* Fixity declaration for operator precedence parsing *)(* -ABP 4/4/03 *)
+      (* %compile <qids> *)(* %deterministic <qid> ... *)
+      (* %thaw <qid> ... *)(* %freeze <qid> ... *)
+      (* %subord (<qid> <qid>) ... *)(* %trustme <decl> *)
+      (* Solve.query might raise Solve.AbortQuery (msg) *)
+      (* %queryTabled <expected> <try> A or %query <expected> <try> X : A *)
+      (* Solve.query might raise Fquery.AbortQuery (msg) *)
+      (* %fquery <expected> <try> A or %fquery <expected> <try> X : A *)
+      (* Solve.query might raise Solve.AbortQuery (msg) *)
+      (* %query <expected> <try> A or %query <expected> <try> X : A *)
+      (* Solve declarations %solve c : A *)(* these are like definitions, but entered into the program table *)
+      (* Clauses %clause c = U or %clause c : V = U or %clause c : V *)
+      (* Abbreviations %abbrev c = U and %abbrev c : V = U *)(* Constant declarations c : V, c : V = U plus variations *)
+    let rec install1WithSig __8__ __9__ __10__ =
+      match (__8__, __9__, __10__) with
       | (fileName, moduleOpt, (SigDef sigdef, r)) ->
           let (idOpt, module__, wherecls) =
             ReconModule.sigdefToSigdef (sigdef, moduleOpt) in
           let module' =
             foldl
-              (function
-               | (inst, module__) -> ReconModule.moduleWhere (module__, inst))
+              (fun inst ->
+                 fun module__ -> ReconModule.moduleWhere (module__, inst))
               module__ wherecls in
           let name =
             try
-              match idOpt with
-              | Some id -> (ModSyn.installSigDef (id, module'); id)
-              | None -> "_"
+              ((match idOpt with
+                | Some id -> (ModSyn.installSigDef (id, module'); id)
+                | NONE -> "_")
+              (* anonymous *))
             with | Error msg -> raise (ModSyn.Error (Paths.wrap (r, msg))) in
           let _ =
             if (!Global.chatter) >= 3
             then msg (("%sig " ^ name) ^ " = { ... }.\n")
             else () in
-          ()
+          ((())(* FIX: should probably time this -kw *))
       | (fileName, moduleOpt, (StructDec structdec, r)) ->
           (match ReconModule.structdecToStructDec (structdec, moduleOpt) with
            | StructDec (idOpt, module__, wherecls) ->
                let module' =
                  foldl
-                   (function
-                    | (inst, module__) ->
+                   (fun inst ->
+                      fun module__ ->
                         ReconModule.moduleWhere (module__, inst)) module__
                    wherecls in
                let name =
-                 match idOpt with
-                 | Some id ->
-                     (installStrDec
-                        ((IntSyn.StrDec (id, None)), module', r, false__);
-                      id)
-                 | None -> "_" in
+                 ((match idOpt with
+                   | Some id ->
+                       (installStrDec
+                          ((IntSyn.StrDec (id, NONE)), module', r, false__);
+                        id)
+                   | NONE -> "_")
+                 (* anonymous *)) in
                let _ =
                  if (!Global.chatter) = 3
                  then msg (("%struct " ^ name) ^ " : { ... }.\n")
@@ -1236,12 +1194,13 @@ module Twelf(Twelf:sig
                let ns = Names.getComponents mid in
                let module__ = ModSyn.abstractModule (ns, (Some mid)) in
                let name =
-                 match idOpt with
-                 | Some id ->
-                     (installStrDec
-                        ((IntSyn.StrDec (id, None)), module__, r, true__);
-                      id)
-                 | None -> "_" in
+                 ((match idOpt with
+                   | Some id ->
+                       (installStrDec
+                          ((IntSyn.StrDec (id, NONE)), module__, r, true__);
+                        id)
+                   | NONE -> "_")
+                 (* anonymous *)) in
                let _ =
                  if (!Global.chatter) = 3
                  then
@@ -1256,14 +1215,14 @@ module Twelf(Twelf:sig
             ReconModule.sigexpToSigexp (sigexp, moduleOpt) in
           let module' =
             foldl
-              (function
-               | (inst, module__) -> ReconModule.moduleWhere (module__, inst))
+              (fun inst ->
+                 fun module__ -> ReconModule.moduleWhere (module__, inst))
               module__ wherecls in
           let _ = includeSig (module', r, false__) in
           let _ =
             if (!Global.chatter) = 3 then msg "%include { ... }.\n" else () in
           ()
-      | (fileName, None, (Open strexp, r)) ->
+      | (fileName, NONE, (Open strexp, r)) ->
           let mid = ReconModule.strexpToStrexp strexp in
           let ns = Names.getComponents mid in
           let module__ = ModSyn.abstractModule (ns, (Some mid)) in
@@ -1275,8 +1234,9 @@ module Twelf(Twelf:sig
                 (((^) "%open " Names.qidToString (Names.structQid mid)) ^
                    ".\n")
             else () in
-          ()
-    let rec installSubsig (fileName, s) =
+          ()(* Open declaration *)(* Include declaration *)
+      (* Structure declaration *)(* Signature declaration *)
+    let rec installSubsig fileName s =
       let namespace = Names.newNamespace () in
       let (mark, markStruct) = IntSyn.sgnSize () in
       let markSigDef = ModSyn.sigDefSize () in
@@ -1294,7 +1254,7 @@ module Twelf(Twelf:sig
       let result =
         try
           let s' = install s in
-          let module__ = ModSyn.abstractModule (namespace, None) in
+          let module__ = ModSyn.abstractModule (namespace, NONE) in
           let _ =
             if (!Global.chatter) >= 4
             then msg "% end subsignature\n\n"
@@ -1306,49 +1266,54 @@ module Twelf(Twelf:sig
       let _ = Index.resetFrom mark in
       let _ = IndexSkolem.resetFrom mark in
       let _ = ModSyn.resetFrom markSigDef in
-      match result with
-      | Value (module__, s') ->
-          let Cons (declr, s'') = Timers.time Timers.parsing S.expose s' in
-          (install1WithSig (fileName, (Some module__), declr); s'')
-      | Exception exn -> raise exn
+      ((match result with
+        | Value (module__, s') ->
+            let Cons (declr, s'') = Timers.time Timers.parsing S.expose s' in
+            (install1WithSig (fileName, (Some module__), declr); s'')
+        | Exception exn -> raise exn)
+        (* val _ = ModeTable.resetFrom mark *)(* val _ = Total.resetFrom mark *)
+        (* val _ = Subordinate.resetFrom mark  ouch! *)
+        (* val _ = Reduces.resetFrom mark *)(* Origins, CompSyn, FunSyn harmless? -kw *)
+        (* val _ = IntSyn.resetFrom (mark, markStruct)
+             FIX: DON'T eliminate out-of-scope cids for now -kw *))
     let rec loadFile fileName =
       handleExceptions 0 fileName (withOpenIn fileName)
-        (function
-         | instream ->
-             let _ = ReconTerm.resetErrors fileName in
-             let rec install s =
-               install' (Timers.time Timers.parsing S.expose s)
-             and install' =
-               function
-               | S.Empty -> OK
-               | Cons ((Parser.BeginSubsig, _), s') ->
-                   install (installSubsig (fileName, s'))
-               | Cons (decl, s') -> (install1 (fileName, decl); install s') in
-             install (Parser.parseStream instream))
+        (fun instream ->
+           let _ = ReconTerm.resetErrors fileName in
+           let rec install s =
+             install' (Timers.time Timers.parsing S.expose s)
+           and install' =
+             function
+             | S.Empty -> OK
+             | Cons ((Parser.BeginSubsig, _), s') ->
+                 install (installSubsig (fileName, s'))
+             | Cons (decl, s') -> (install1 (fileName, decl); install s')
+           (* now done in installConDec *)(* Origins.installLinesInfo (fileName, Paths.getLinesInfo ()) *) in
+           install (Parser.parseStream instream))
     let rec loadString str =
       handleExceptions 0 "string"
-        (function
-         | () ->
-             let _ = ReconTerm.resetErrors "string" in
-             let rec install s =
-               install' (Timers.time Timers.parsing S.expose s)
-             and install' =
-               function
-               | S.Empty -> OK
-               | Cons ((Parser.BeginSubsig, _), s') ->
-                   (installSubsig ("string", s'); install s')
-               | Cons (decl, s') -> (install1 ("string", decl); install s') in
-             install (Parser.parseStream (TextIO.openString str))) ()
+        (fun () ->
+           let _ = ReconTerm.resetErrors "string" in
+           let rec install s =
+             install' (Timers.time Timers.parsing S.expose s)
+           and install' =
+             function
+             | S.Empty -> OK
+             | Cons ((Parser.BeginSubsig, _), s') ->
+                 (installSubsig ("string", s'); install s')
+             | Cons (decl, s') -> (install1 ("string", decl); install s') in
+           install (Parser.parseStream (TextIO.openString str))) ()
     let rec sLoop () = if Solve.qLoop () then OK else ABORT
     let rec topLoop () =
-      match handleExceptions 0 "stdIn" sLoop () with
-      | ABORT -> topLoop ()
-      | OK -> ()
+      ((match handleExceptions 0 "stdIn" sLoop () with
+        | ABORT -> topLoop ()
+        | OK -> ())
+      (* "stdIn" as fake fileName *))
     let rec top () = topLoop ()
-    let rec installCSMDec (conDec, optFixity, mdecL) =
-      let _ = ModeCheck.checkD (conDec, "%use", None) in
+    let rec installCSMDec conDec optFixity mdecL =
+      let _ = ModeCheck.checkD (conDec, "%use", NONE) in
       let cid =
-        installConDec IntSyn.FromCS (conDec, ("", None), (Paths.Reg (0, 0))) in
+        installConDec IntSyn.FromCS (conDec, ("", NONE), (Paths.Reg (0, 0))) in
       let _ =
         if (!Global.chatter) >= 3
         then msg ((Print.conDecToString conDec) ^ "\n")
@@ -1366,53 +1331,53 @@ module Twelf(Twelf:sig
                      Names.qidToString (Names.constQid cid))
                     ^ ".\n")
              else ())
-        | None -> () in
-      let _ =
-        List.app (function | mdec -> ModeTable.installMmode (cid, mdec))
-          mdecL in
-      cid
+        | NONE -> () in
+      let _ = List.app (fun mdec -> ModeTable.installMmode (cid, mdec)) mdecL in
+      ((cid)(* put a more reasonable region here? -kw *))
     let _ = CSManager.setInstallFN installCSMDec
     let rec reset () =
-      IntSyn.sgnReset ();
-      Names.reset ();
-      Origins.reset ();
-      ModeTable.reset ();
-      UniqueTable.reset ();
-      Index.reset ();
-      IndexSkolem.reset ();
-      Subordinate.reset ();
-      Total.reset ();
-      WorldSyn.reset ();
-      Reduces.reset ();
-      TabledSyn.reset ();
-      FunSyn.labelReset ();
-      CompSyn.sProgReset ();
-      CompSyn.detTableReset ();
-      Compile.sProgReset ();
-      ModSyn.reset ();
-      CSManager.resetSolvers ();
-      context := None
+      ((IntSyn.sgnReset ();
+        Names.reset ();
+        Origins.reset ();
+        ModeTable.reset ();
+        UniqueTable.reset ();
+        Index.reset ();
+        IndexSkolem.reset ();
+        Subordinate.reset ();
+        Total.reset ();
+        WorldSyn.reset ();
+        Reduces.reset ();
+        TabledSyn.reset ();
+        FunSyn.labelReset ();
+        CompSyn.sProgReset ();
+        CompSyn.detTableReset ();
+        Compile.sProgReset ();
+        ModSyn.reset ();
+        CSManager.resetSolvers ();
+        context := NONE)
+      (* -fp Wed Mar  9 20:24:45 2005 *)(* -fp *)
+      (* -fp *)(* -bp *)(* -bp *)
+      (* necessary? -fp; yes - bp*)(*  -bp *)(* resetting substitution trees *))
     let rec readDecl () =
       handleExceptions 0 "stdIn"
-        (function
-         | () ->
-             let _ = ReconTerm.resetErrors "stdIn" in
-             let rec install s =
-               install' (Timers.time Timers.parsing S.expose s)
-             and install' =
-               function
-               | S.Empty -> ABORT
-               | Cons ((Parser.BeginSubsig, _), s') ->
-                   (installSubsig ("stdIn", s'); OK)
-               | Cons (decl, s') -> (install1 ("stdIn", decl); OK) in
-             install (Parser.parseStream TextIO.stdIn)) ()
+        (fun () ->
+           let _ = ReconTerm.resetErrors "stdIn" in
+           let rec install s =
+             install' (Timers.time Timers.parsing S.expose s)
+           and install' =
+             function
+             | S.Empty -> ABORT
+             | Cons ((Parser.BeginSubsig, _), s') ->
+                 (installSubsig ("stdIn", s'); OK)
+             | Cons (decl, s') -> (install1 ("stdIn", decl); OK) in
+           install (Parser.parseStream TextIO.stdIn)) ()
     let rec decl id =
       match Names.stringToQid id with
-      | None ->
+      | NONE ->
           (msg (id ^ " is not a well-formed qualified identifier\n"); ABORT)
       | Some qid ->
           (match Names.constLookup qid with
-           | None ->
+           | NONE ->
                (msg
                   ((Names.qidToString (valOf (Names.constUndef qid))) ^
                      " has not been declared\n");
@@ -1420,7 +1385,9 @@ module Twelf(Twelf:sig
            | Some cid -> decl' cid)
     let rec decl' cid =
       let conDec = IntSyn.sgnLookup cid in
-      msg ((Print.conDecToString conDec) ^ "\n"); OK
+      ((msg ((Print.conDecToString conDec) ^ "\n"); OK)
+        (* val fixity = Names.getFixity (cid) *)(* can't get name preference right now *)
+        (* val mode = ModeTable.modeLookup (cid) *)(* can't get termination declaration *))
     module ModFile :
       sig
         type nonrec mfile
@@ -1433,35 +1400,35 @@ module Twelf(Twelf:sig
       end =
       struct
         type nonrec mfile = (string * Time.time option ref)
-        let rec create file = (file, (ref None))
-        let rec fileName (file, _) = file
-        let rec editName edit (file, mtime) = ((edit file), mtime)
-        let rec modified =
-          function
-          | (_, ref (None)) -> true__
-          | (file, ref (Some time)) ->
+        let rec create file = (file, (ref NONE))
+        let rec fileName file _ = file
+        let rec editName edit file mtime = ((edit file), mtime)
+        let rec modified __11__ __12__ =
+          match (__11__, __12__) with
+          | (_, { contents = NONE }) -> true__
+          | (file, { contents = Some time }) ->
               (match Time.compare (time, (OS.FileSys.modTime file)) with
                | EQUAL -> false__
                | _ -> true__)
-        let rec makeModified (_, mtime) = mtime := None
-        let rec makeUnmodified (file, mtime) =
+        let rec makeModified _ mtime = mtime := NONE
+        let rec makeUnmodified file mtime =
           (:=) mtime Some (OS.FileSys.modTime file)
       end 
     module Config =
       struct
         type nonrec config = (string * ModFile.mfile list)
         let suffix = ref "cfg"
-        let rec mkRel (prefix, path) =
+        let rec mkRel prefix path =
           OS.Path.mkCanonical
             (if OS.Path.isAbsolute path
              then path
              else OS.Path.concat (prefix, path))
         let rec read config =
-          let rec appendUniq (l1, l2) =
+          let rec appendUniq l1 l2 =
             let rec appendUniq' =
               function
               | x::l2 ->
-                  if List.exists (function | y -> x = y) l1
+                  if List.exists (fun y -> x = y) l1
                   then appendUniq' l2
                   else (::) x appendUniq' l2
               | nil -> List.rev l1 in
@@ -1475,65 +1442,77 @@ module Twelf(Twelf:sig
           let rec fromUnixPath path =
             let vol = OS.Path.getVolume config in
             let isAbs = String.isPrefix "/" path in
-            let arcs = String.tokens (function | c -> c = '/') path in
+            let arcs = String.tokens (fun c -> c = '/') path in
             OS.Path.toString { isAbs; vol; arcs } in
-          let rec read' (sources, configs) config =
+          let rec read' sources configs config =
             withOpenIn config
-              (function
-               | instream ->
-                   let { dir = configDir; file = _; file = _ } =
-                     OS.Path.splitDirFile config in
-                   let rec parseItem (sources, configs) item =
-                     if isConfig item
-                     then
-                       (if
-                          List.exists (function | config' -> item = config')
-                            configs
+              (fun instream ->
+                 let { dir = configDir; file = _; file = _ } =
+                   OS.Path.splitDirFile config in
+                 let rec parseItem sources configs item =
+                   if isConfig item
+                   then
+                     (((if
+                          List.exists (fun config' -> item = config') configs
                         then (sources, configs)
-                        else read' (sources, (item :: configs)) item)
-                     else
-                       if
-                         List.exists (function | source' -> item = source')
-                           sources
+                        else read' (sources, (item :: configs)) item))
+                     (* we have already read this one *))
+                   else
+                     ((if List.exists (fun source' -> item = source') sources
                        then (sources, configs)
-                       else ((sources @ [item]), configs) in
-                   let rec parseLine (sources, configs) line =
-                     if Substring.isEmpty line
+                       else ((sources @ [item]), configs))
+                     (* we have already collected this one *)) in
+                 let rec parseLine sources configs line =
+                   ((if Substring.isEmpty line
                      then (sources, configs)
                      else
                        (let line' = Substring.dropl Char.isSpace line in
-                        parseLine' (sources, configs) line')
-                   and parseLine' (sources, configs) line =
-                     if
-                       (Substring.isEmpty line) ||
-                         ((Substring.sub (line, 0)) = '%')
+                        parseLine' (sources, configs) line'))
+                   (* end of file *))
+                 and parseLine' sources configs line =
+                   ((if
+                       (((Substring.isEmpty line) ||
+                           ((Substring.sub (line, 0)) = '%'))
+                       (* empty line *))
                      then parseStream (sources, configs)
                      else
                        (let line' =
                           Substring.string
                             (Substring.takel (not o Char.isSpace) line) in
                         let item = mkRel (configDir, (fromUnixPath line')) in
-                        parseStream (parseItem (sources, configs) item))
-                   and parseStream (sources, configs) =
-                     let line =
-                       Compat.Substring.full (Compat.inputLine97 instream) in
-                     parseLine (sources, configs) line in
-                   parseStream (sources, configs)) in
+                        parseStream (parseItem (sources, configs) item)))
+                   (* comment *))
+                 and parseStream sources configs =
+                   let line =
+                     Compat.Substring.full (Compat.inputLine97 instream) in
+                   parseLine (sources, configs) line in
+                 parseStream (sources, configs)) in
           let pwdir = OS.FileSys.getDir () in
-          (pwdir,
-            (List.map ModFile.create
-               ((fun (r, _) -> r) (read' (nil, [config]) config))))
-        let rec readWithout (s, c) =
+          (((pwdir,
+              (List.map ModFile.create
+                 ((fun r -> r.1) (read' (nil, [config]) config)))))
+            (* appendUniq (list1, list2) appends list2 to list1, removing all
+               elements of list2 which are already in list1.
+            *)
+            (* isConfig (item) is true iff item has the suffix of a
+               configuration file.
+            *)
+            (* fromUnixPath path transforms path (assumed to be in Unix form)
+               to the local OS conventions.
+            *)
+            (*
+            handle IO.Io (ioError) => (abortIO (configFile, ioError); raise IO.io (ioError))
+          *))
+        let rec readWithout s c =
           let (d, fs) = read s in
           let (d', fs') = c in
-          let fns' =
-            map (function | m -> mkRel (d', (ModFile.fileName m))) fs' in
+          let fns' = map (fun m -> mkRel (d', (ModFile.fileName m))) fs' in
           let rec redundant m =
             let n = mkRel (d, (ModFile.fileName m)) in
-            List.exists (function | n' -> n = n') fns' in
+            List.exists (fun n' -> n = n') fns' in
           (d, (List.filter (not o redundant) fs))
-        let rec loadAbort =
-          function
+        let rec loadAbort __13__ __14__ =
+          match (__13__, __14__) with
           | (mfile, OK) ->
               let status = loadFile (ModFile.fileName mfile) in
               ((match status with
@@ -1543,7 +1522,7 @@ module Twelf(Twelf:sig
           | (_, ABORT) -> ABORT
         let rec load ((_, sources) as config) =
           reset (); List.app ModFile.makeModified sources; append config
-        let rec append (pwdir, sources) =
+        let rec append pwdir sources =
           let rec fromFirstModified =
             function
             | nil -> nil
@@ -1556,291 +1535,12 @@ module Twelf(Twelf:sig
             then sources
             else List.map (ModFile.editName mkAbsolute) sources in
           let sources'' = fromFirstModified sources' in
-          List.foldl loadAbort OK sources''
+          ((List.foldl loadAbort OK sources'')
+            (* allow shorter messages if safe *))
         let rec define sources =
           ((OS.FileSys.getDir ()), (List.map ModFile.create sources))
       end
     let rec make fileName = Config.load (Config.read fileName)
-    (* result of a computation *)
-    (* val withOpenIn : string -> (TextIO.instream -> 'a) -> 'a *)
-    (* withOpenIn fileName (fn instream => body) = x
-       opens fileName for input to obtain instream and evaluates body.
-       The file is closed during normal and abnormal exit of body.
-    *)
-    (* evarInstToString __Xs = msg
-       formats instantiated EVars as a substitution.
-       Abbreviate as empty string if chatter level is < 3.
-    *)
-    (* expToString (__g, __u) = msg
-       formats expression as a string.
-       Abbreviate as empty string if chatter level is < 3.
-    *)
-    (* status ::= OK | ABORT  is the return status of various operations *)
-    (* should move to paths, or into the prover module... but not here! -cs *)
-    (* val handleExceptions : int -> string -> ('a -> Status) -> 'a -> Status *)
-    (* handleExceptions chlev filename f x = f x
-       where standard exceptions are handled and an appropriate error message is
-       issued if chatter level is greater or equal to chlev.
-       Unrecognized exceptions are re-raised.
-    *)
-    (* | Constraints.Error (cnstrL) => abortFileMsg (fileName, constraintsMsg cnstrL) *)
-    (* Total includes filename *)
-    (* Reduces includes filename *)
-    (* ModeCheck includes filename *)
-    (* - Not supported in polyML ABP - 4/20/03
-              * | IO.Io (ioError) => abortIO (fileName, ioError)
-              *)
-    (* includes filename *)
-    (* includes filename *)
-    (* During elaboration of a signature expression, each constant
-       that that the user declares is added to this table.  At top level,
-       however, the reference holds None (in particular, shadowing is
-       allowed).
-    *)
-    (* installConDec fromCS (conDec, ocOpt)
-       installs the constant declaration conDec which originates at ocOpt
-       in various global tables, including the global signature.
-       Note: if fromCS = FromCS then the declaration comes from a Constraint
-       Solver and some limitations on the types are lifted.
-    *)
-    (* (Clause, _) should be impossible *)
-    (* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
-    (* (Clause, _) should be impossible *)
-    (* val _ = Origins.installOrigin (cid, fileNameocOpt) *)
-    (* install1 (decl) = ()
-       Installs one declaration
-       Effects: global state
-                may raise standard exceptions
-    *)
-    (* Constant declarations c : __v, c : __v = __u plus variations *)
-    (* allocate new cid. *)
-    (* allocate new cid. *)
-    (* names are assigned in ReconConDec *)
-    (* val conDec' = nameConDec (conDec) *)
-    (* should print here, not in ReconConDec *)
-    (* allocate new cid after checking modes! *)
-    (* anonymous definition for type-checking *)
-    (* Abbreviations %abbrev c = __u and %abbrev c : __v = __u *)
-    (* names are assigned in ReconConDec *)
-    (* val conDec' = nameConDec (conDec) *)
-    (* should print here, not in ReconConDec *)
-    (* allocate new cid after checking modes! *)
-    (* anonymous definition for type-checking *)
-    (* Clauses %clause c = __u or %clause c : __v = __u or %clause c : __v *)
-    (* these are like definitions, but entered into the program table *)
-    (* val _ = print "%clause " *)
-    (* anonymous definition for type-checking: ignore %clause *)
-    (* Solve declarations %solve c : A *)
-    (* should print here, not in ReconQuery *)
-    (* allocate new cid after checking modes! *)
-    (* allocate cid after strictness has been checked! *)
-    (* %query <expected> <try> A or %query <expected> <try> x : A *)
-    (* Solve.query might raise Solve.AbortQuery (msg) *)
-    (* %fquery <expected> <try> A or %fquery <expected> <try> x : A *)
-    (* Solve.query might raise Fquery.AbortQuery (msg) *)
-    (* %queryTabled <expected> <try> A or %query <expected> <try> x : A *)
-    (* Solve.query might raise Solve.AbortQuery (msg) *)
-    (* %trustme <decl> *)
-    (* %subord (<qid> <qid>) ... *)
-    (* %freeze <qid> ... *)
-    (* Subordinate.installFrozen cids *)
-    (* %thaw <qid> ... *)
-    (* invalidate prior meta-theoretic properteis of signatures *)
-    (* exempt only %mode [incremental], %covers [not stored] *)
-    (* %deterministic <qid> ... *)
-    (* %compile <qids> *)
-    (* -ABP 4/4/03 *)
-    (* MOVED -- ABP 4/4/03 *)
-    (* ******************************************* *)
-    (* ******************************************* *)
-    (* Fixity declaration for operator precedence parsing *)
-    (* Name preference declaration for printing *)
-    (* Mode declaration *)
-    (* exception comes with location *)
-    (* Unique declaration *)
-    (* convert all UniqueTable.Error to Unique.Error *)
-    (* Timing added to coverage --- fix !!! -fp Sun Aug 17 12:17:51 2003 *)
-    (* %unique does not auto-freeze, since family must already be frozen *)
-    (* Coverage declaration *)
-    (* MERGE Fri Aug 22 13:43:12 2003 -cs *)
-    (* Total declaration *)
-    (* time activities separately in total.fun *)
-    (* Mon Dec  2 17:20:18 2002 -fp *)
-    (* coverage checker appears to be safe now *)
-    (*
-          val _ = if not (!Global.unsafe)
-                    then raise Total.Error (Paths.wrapLoc (Paths.Loc (fileName, r), "%total not safe: Toggle `unsafe' flag"))
-                  else ()
-          *)
-    (* ******************************************* *)
-    (*  Temporarily disabled -- cs Thu Oct 30 12:46:44 2003
-          fun checkFreeOut nil = ()
-            | checkFreeOut (a :: La) =
-              let
-                val Some ms = ModeTable.modeLookup a
-                val _ = ModeCheck.checkFreeOut (a, ms)
-              in
-                checkFreeOut La
-              end
-          val _ = checkFreeOut La
-          val (lemma, projs, sels) = Converter.installPrg La
-
-
-           ABP 2/28/03 -- factoring *)
-    (*      val result1 = None *)
-    (* pre-install for recursive checking *)
-    (* include region and file *)
-    (*                     | Cover.Error (msg) => covererror (result1, msg)  disabled -cs Thu Jan 29 16:35:13 2004 *)
-    (* includes filename *)
-    (*        val _ = case (result1)
-                    of None => ()
-                     | Some msg => raise Cover.Error (Paths.wrap (r, "Relational coverage succeeds, funcational fails:\n This indicates a bug in the functional checker.\n[Functional] " ^ msg))
-*)
-    (* %total does not auto-freeze, since the predicate must already be frozen *)
-    (* Termination declaration *)
-    (* allow re-declaration since safe? *)
-    (* Thu Mar 10 13:45:42 2005 -fp *)
-    (*
-          val _ = ListPair.app (fn ((a, _), r) =>
-                            if Subordinate.frozen [a]
-                              andalso ((Order.selLookup a; true) handle Order.Error _ => false)
-                            then raise Total.Error (fileName ^ ":"
-                                       ^ Paths.wrap (r, "Cannot redeclare termination order for frozen constant "
-                                                   ^ Names.qidToString (Names.constQid a)))
-                            else ())
-                  (callpats, rs)
-          *)
-    (* -bp *)
-    (* Reduces declaration *)
-    (* allow re-declaration since safe? *)
-    (* Thu Mar 10 14:06:13 2005 -fp *)
-    (*
-          val _ = ListPair.app (fn ((a, _), r) =>
-                            if Subordinate.frozen [a]
-                              andalso ((Order.selLookupROrder a; true) handle Order.Error _ => false)
-                            then raise Total.Error (fileName ^ ":"
-                                       ^ Paths.wrap (r, "Cannot redeclare reduction order for frozen constant "
-                                                   ^ Names.qidToString (Names.constQid a)))
-                            else ())
-                  (callpats, rs)
-          *)
-    (*  -bp6/12/99.   *)
-    (* Tabled declaration *)
-    (*  -bp6/12/99.   *)
-    (* %keepTable declaration *)
-    (* Theorem declaration *)
-    (* Prove declaration *)
-    (* La is the list of type constants *)
-    (* mode must be declared!*)
-    (* times itself *)
-    (* Establish declaration *)
-    (* La is the list of type constants *)
-    (* mode must be declared!*)
-    (* times itself *)
-    (* Assert declaration *)
-    (* La is the list of type constants *)
-    (* mode must be declared!*)
-    (* error location inaccurate here *)
-    (*if !Global.doubleCheck
-             then (map (fn (a,_) => Worldify.worldify a) cpa; ())
-           else  ()  --cs Sat Aug 27 22:04:29 2005 *)
-    (* Signature declaration *)
-    (* FIX: should probably time this -kw *)
-    (* anonymous *)
-    (* Structure declaration *)
-    (* anonymous *)
-    (* anonymous *)
-    (* Include declaration *)
-    (* Open declaration *)
-    (* val _ = ModeTable.resetFrom mark *)
-    (* val _ = Total.resetFrom mark *)
-    (* val _ = Subordinate.resetFrom mark  ouch! *)
-    (* val _ = Reduces.resetFrom mark *)
-    (* Origins, CompSyn, FunSyn harmless? -kw *)
-    (* val _ = IntSyn.resetFrom (mark, markStruct)
-             FIX: DON'T eliminate out-of-scope cids for now -kw *)
-    (* loadFile (fileName) = status
-       reads and processes declarations from fileName in order, issuing
-       error messages and finally returning the status (either OK or
-       ABORT).
-    *)
-    (* Origins.installLinesInfo (fileName, Paths.getLinesInfo ()) *)
-    (* now done in installConDec *)
-    (* loadString (str) = status
-       reads and processes declarations from str, issuing
-       error messages and finally returning the status (either OK or
-       ABORT).
-    *)
-    (* Interactive Query Top Level *)
-    (* "stdIn" as fake fileName *)
-    (* top () = () starts interactive query loop *)
-    (* put a more reasonable region here? -kw *)
-    (* reset () = () clears all global tables, including the signature *)
-    (* -fp Wed Mar  9 20:24:45 2005 *)
-    (* -fp *)
-    (* -fp *)
-    (* -bp *)
-    (* -bp *)
-    (* necessary? -fp; yes - bp*)
-    (*  -bp *)
-    (* resetting substitution trees *)
-    (* decl (id) = () prints declaration of constant id *)
-    (* val fixity = Names.getFixity (cid) *)
-    (* can't get name preference right now *)
-    (* val mode = ModeTable.modeLookup (cid) *)
-    (* can't get termination declaration *)
-    (* Support tracking file modification times for smart re-appending. *)
-    (* config = ["fileName1",...,"fileName<n>"] *)
-    (* Files will be read in the order given! *)
-    (* A configuration (pwdir, sources) consists of an absolute directory
-         pwdir and a list of source file names (which are interpreted
-         relative to pwdir) along with their modification times.
-         pwdir will be the current working directory
-         when a configuration is loaded, which may not be same as the
-         directory in which the configuration file is located.
-
-         This representation allows shorter file names in chatter and
-         error messages.
-      *)
-    (* suffix of configuration files: "cfg" by default *)
-    (* mkRel transforms a relative path into an absolute one
-               by adding the specified prefix. If the path is already
-               absolute, no prefix is added to it.
-            *)
-    (* more efficient recursive version  Sat 08/26/2002 -rv *)
-    (* appendUniq (list1, list2) appends list2 to list1, removing all
-               elements of list2 which are already in list1.
-            *)
-    (* isConfig (item) is true iff item has the suffix of a
-               configuration file.
-            *)
-    (* fromUnixPath path transforms path (assumed to be in Unix form)
-               to the local OS conventions.
-            *)
-    (* we have already read this one *)
-    (* we have already collected this one *)
-    (* end of file *)
-    (* empty line *)
-    (* comment *)
-    (*
-            handle IO.Io (ioError) => (abortIO (configFile, ioError); raise IO.io (ioError))
-          *)
-    (* Read a config file s but omit everything that is already in config c
-         XXX: naive and inefficient implementation *)
-    (* load (config) = Status
-         resets the global signature and then reads the files in config
-         in order, stopping at the first error.
-      *)
-    (* append (config) = Status
-         reads the files in config in order, beginning at the first
-         modified file, stopping at the first error.
-      *)
-    (* allow shorter messages if safe *)
-    (* structure Config *)
-    (* make (configFile)
-       read and then load configuration from configFile
-    *)
-    (* re-exporting environment parameters and utilities defined elsewhere *)
     module Print :
       sig
         val implicit : bool ref
@@ -1858,21 +1558,6 @@ module Twelf(Twelf:sig
         module TeX : sig val sgn : unit -> unit val prog : unit -> unit end
       end =
       struct
-        (* false, print implicit args *)
-        (* false, print fully explicit form infix when possible *)
-        (* None, limit print depth *)
-        (* None, limit argument length *)
-        (* 3, indentation of subterms *)
-        (* 80, line width *)
-        (* if true, don't print shadowed constants as "%const%" *)
-        (* print signature *)
-        (* print signature as program *)
-        (* print subordination relation *)
-        (* print information about definitions *)
-        (* print available constraint domains *)
-        (* print in TeX format *)
-        (* print signature *)
-        (* print signature as program *)
         let implicit = Print.implicit
         let printInfix = Print.printInfix
         let depth = Print.printDepth
@@ -1897,40 +1582,25 @@ module Twelf(Twelf:sig
           | None 
           | Some of 'a list 
           | All 
-        (* trace all clauses and families *)
         val trace : string __Spec -> unit
-        (* clauses and families *)
         val break : string __Spec -> unit
-        (* clauses and families *)
         val detail : int ref
-        (* 0 = none, 1 = default, 2 = unify *)
         val show : unit -> unit
-        (* show trace, break, and detail *)
         val reset : unit -> unit
       end = Trace 
     module Timers :
       sig
-        (* trace specification *)
-        (* no tracing *)
-        (* list of clauses and families *)
-        (* reset trace, break, and detail *)
         val show : unit -> unit
-        (* show and reset timers *)
         val reset : unit -> unit
-        (* reset timers *)
         val check : unit -> unit
       end = Timers 
     module OS :
       sig
-        (* display, but not no reset *)
         val chDir : string -> unit
         val getDir : unit -> string
         val exit : unit -> unit
       end =
       struct
-        (* change working directory *)
-        (* get working directory *)
-        (* exit Twelf and ML *)
         let chDir = OS.FileSys.chDir
         let getDir = OS.FileSys.getDir
         let rec exit () = OS.Process.exit OS.Process.success
@@ -1969,13 +1639,7 @@ module Twelf(Twelf:sig
         val maxRecurse : int ref
       end =
       struct
-        (* F=Filling, R=Recursion, S=Splitting *)
-        (* FRS or RFS *)
-        (* FRS, strategy used for %prove *)
-        (* 2, bound on splitting  *)
-        (* 10, bound on recursion *)
         type __Strategy = MetaGlobal.__Strategy
-        (* FRS or RFS *)
         let strategy = MetaGlobal.strategy
         let maxSplit = MetaGlobal.maxSplit
         let maxRecurse = MetaGlobal.maxRecurse
@@ -1995,24 +1659,17 @@ module Twelf(Twelf:sig
     module Config :
       sig
         type nonrec config
-        (* configuration *)
         val suffix : string ref
-        (* suffix of configuration files *)
         val read : string -> config
-        (* read configuration from config file *)
-        val readWithout : (string * config) -> config
-        (* read config file, minus contents of another *)
+        val readWithout : string -> config -> config
         val load : config -> __Status
-        (* reset and load configuration *)
         val append : config -> __Status
-        (* load configuration (w/o reset) *)
         val define : string list -> config
       end = Config 
     let make = make
     let version = Version.version_string
     module Table :
       sig
-        (* explicitly define configuration *)
         type __Strategy = TableParam.__Strategy
         val strategy : __Strategy ref
         val strengthen : bool ref
@@ -2024,7 +1681,6 @@ module Twelf(Twelf:sig
         let strategy = TableParam.strategy
         let strengthen = TableParam.strengthen
         let resetGlobalTable = TableParam.resetGlobalTable
-        (* top () = () starts interactive query loop *)
         let rec top () =
           let rec sLoopT () = if Solve.qLoopT () then OK else ABORT in
           let rec topLoopT () =

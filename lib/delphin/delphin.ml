@@ -1,10 +1,8 @@
 
-(* Delphin Frontend *)
-(* Author: Carsten Schuermann *)
 module type DELPHIN  =
   sig
     val version : string
-    val loadFile : (string * string) -> unit
+    val loadFile : string -> string -> unit
     val top : unit -> unit
     val runSimpleTest : string -> string list -> string list -> unit
     val eval : Tomega.__Prg -> Tomega.__Prg
@@ -13,10 +11,7 @@ module type DELPHIN  =
 
 
 
-(* Delphin Frontend *)
-(* Author: Carsten Schuermann *)
 module Delphin(Delphin:sig
-                         (* structure Tomega : TOMEGA *)
                          module Parser : PARSER
                          module DextSyn : DEXTSYN
                          module Parse : PARSE
@@ -31,137 +26,124 @@ module Delphin(Delphin:sig
     module T = Tomega
     let rec chatter chlev f =
       if (!Global.chatter) >= chlev then print (f ()) else ()
-    let rec loadFile (s1, s2) =
+    let rec loadFile s1 s2 =
       let _ = Twelf.reset () in
       let _ = Twelf.loadFile s1 in
-      let _ = chatter 1 (function | () -> ("[Opening file " ^ s2) ^ "]\n") in
+      let _ = chatter 1 (fun () -> ("[Opening file " ^ s2) ^ "]\n") in
       let _ = Trans.internalizeSig () in
-      let _ = chatter 4 (function | () -> "[Parsing ...") in
+      let _ = chatter 4 (fun () -> "[Parsing ...") in
       let Ast (EDs) = Parse.gparse s2 in
-      let _ = chatter 4 (function | () -> "]\n[Translation ...") in
-      let P = Trans.transDecs EDs in
-      let _ = chatter 4 (function | () -> "]\n[Externalization ...") in
-      let __P' = Trans.externalizePrg P in
-      let _ = chatter 4 (function | () -> "]\n") in
-      let _ = chatter 4 (function | () -> "[Operational Semantics ...") in
-      let __v = Opsem.topLevel __P' in
-      let _ = chatter 4 (function | () -> "]\n") in
-      let _ = chatter 1 (function | () -> ("[Closing file " ^ s2) ^ "]\n") in
-      __v
+      let _ = chatter 4 (fun () -> "]\n[Translation ...") in
+      let __P = Trans.transDecs EDs in
+      let _ = chatter 4 (fun () -> "]\n[Externalization ...") in
+      let __P' = Trans.externalizePrg __P in
+      let _ = chatter 4 (fun () -> "]\n") in
+      let _ = chatter 4 (fun () -> "[Operational Semantics ...") in
+      let __V = Opsem.topLevel __P' in
+      let _ = chatter 4 (fun () -> "]\n") in
+      let _ = chatter 1 (fun () -> ("[Closing file " ^ s2) ^ "]\n") in ((__V)
+        (*      val _ = print "* Type reconstruction done\n" *)
+        (*      val _ = raise What P'
+        val _ = print "* Externalization done\n" *)
+        (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (P', Tomega.True))
+        val _ = print "* Typechecking done\n"
+*)
+        (* was evalPrg --cs Mon Jun 30 12:09:21 2003*)
+        (*      val _ = print "* Operational semantics done\n" *))
     let rec top () = loop ()
     let rec loop () =
-      let _ = print prompt in let Ast (ED) = Parse.sparse () in loop ()
+      let _ = print prompt in
+      let Ast (ED) = Parse.sparse () in ((loop ())
+        (*         val res = Trans.transDecs ED    *))
     let rec runSimpleTest sourcesFile funcList args =
       let rec test =
         function
         | name::[] as names ->
             let La =
               map
-                (function
-                 | x ->
-                     valOf (Names.constLookup (valOf (Names.stringToQid x))))
+                (fun x ->
+                   valOf (Names.constLookup (valOf (Names.stringToQid x))))
                 names in
             let (lemma, projs, sels) = Converter.installPrg La in
-            let P = Tomega.lemmaDef lemma in
-            let F = Converter.convertFor La in
-            let _ = TomegaTypeCheck.checkPrg (I.Null, (P, F)) in
+            let __P = Tomega.lemmaDef lemma in
+            let __F = Converter.convertFor La in
+            let _ = TomegaTypeCheck.checkPrg (I.Null, (__P, __F)) in
             let _ =
               TextIO.print
                 (((^) "\n" TomegaPrint.funToString
                     (((map
-                         (function
-                          | cid -> IntSyn.conDecName (IntSyn.sgnLookup cid))
-                         La), projs), P))
+                         (fun cid -> IntSyn.conDecName (IntSyn.sgnLookup cid))
+                         La), projs), __P))
                    ^ "\n") in
-            (P, F)
+            (((__P, __F))
+              (*           val P = Redundant.convert (Tomega.lemmaDef lemma) *))
         | names ->
             let La =
               map
-                (function
-                 | x ->
-                     valOf (Names.constLookup (valOf (Names.stringToQid x))))
+                (fun x ->
+                   valOf (Names.constLookup (valOf (Names.stringToQid x))))
                 names in
             let (lemma, projs, sels) = Converter.installPrg La in
-            let P = Redundant.convert (Tomega.lemmaDef lemma) in
-            let F = Converter.convertFor La in
-            let _ = TomegaTypeCheck.checkPrg (I.Null, (P, F)) in
+            let __P = Redundant.convert (Tomega.lemmaDef lemma) in
+            let __F = Converter.convertFor La in
+            let _ = TomegaTypeCheck.checkPrg (I.Null, (__P, __F)) in
             let _ =
               TextIO.print
                 (((^) "\n" TomegaPrint.funToString
                     (((map
-                         (function
-                          | cid -> IntSyn.conDecName (IntSyn.sgnLookup cid))
-                         La), projs), P))
+                         (fun cid -> IntSyn.conDecName (IntSyn.sgnLookup cid))
+                         La), projs), __P))
                    ^ "\n") in
-            ((Tomega.lemmaDef (hd sels)), F) in
-      let rec checkDec (u, (UDec (Dec (_, __v)) as __d)) =
-        print "$"; TypeCheck.typeCheck (I.Null, (u, __v)) in
-      let rec makeSpine =
-        function
-        | ([], F) -> (T.Nil, F)
-        | (x::__l, (And (__F1, __F2) as __F')) ->
-            let (S', __F') =
+            ((((Tomega.lemmaDef (hd sels)), __F))
+              (* val P = Tomega.lemmaDef lemma *)) in
+      let rec checkDec u (UDec (Dec (_, __V)) as D) =
+        print "$"; TypeCheck.typeCheck (I.Null, (u, __V)) in
+      let rec makeSpine __0__ __1__ =
+        match (__0__, __1__) with
+        | ([], __F) -> (T.Nil, __F)
+        | (x::__L, (And (__F1, __F2) as F')) ->
+            let (__S', __F') =
               makeSpine
-                (__l,
+                (__L,
                   (T.forSub
                      (__F',
                        (T.Dot ((T.Exp (I.Root ((I.Def x), I.Nil))), T.id))))) in
-            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), __F')
-        | (x::__l, All ((__d, _), __F')) ->
-            let _ = checkDec ((I.Root ((I.Def x), I.Nil)), __d) in
-            let (S', __F') =
+            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), __S')), __F')
+        | (x::__L, All ((__D, _), __F')) ->
+            let _ = checkDec ((I.Root ((I.Def x), I.Nil)), __D) in
+            let (__S', __F') =
               makeSpine
-                (__l,
+                (__L,
                   (T.forSub
                      (__F',
                        (T.Dot ((T.Exp (I.Root ((I.Def x), I.Nil))), T.id))))) in
-            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), S')), __F') in
+            ((T.AppExp ((I.Root ((I.Def x), I.Nil)), __S')), __F') in
       let _ = Twelf.make sourcesFile in
-      let (P, F) = test funcList in
-      let _ = print ((TomegaPrint.forToString (I.Null, F)) ^ "\n") in
+      let (__P, __F) = test funcList in
+      let _ = print ((TomegaPrint.forToString (I.Null, __F)) ^ "\n") in
       let xs =
         map
-          (function
-           | a -> valOf (Names.constLookup (valOf (Names.stringToQid a))))
+          (fun a -> valOf (Names.constLookup (valOf (Names.stringToQid a))))
           args in
-      let (S', __F') = makeSpine (xs, F) in
-      let __P' = T.Redex (P, S') in
+      let (__S', __F') = makeSpine (xs, __F) in
+      let __P' = T.Redex (__P, __S') in
       let _ = TomegaTypeCheck.checkPrg (I.Null, (__P', __F')) in
       let result = Opsem.evalPrg __P' in
       let _ = TextIO.print "\n\nEOC\n\n" in
       let _ = TextIO.print (TomegaPrint.prgToString (I.Null, result)) in
-      let _ = TextIO.print "\n" in ()
-    let rec eval (P) = let __v = Opsem.evalPrg P in __v
-    (* Added by ABP - Temporary to run tests *)
-    (*      val _ = print "* Type reconstruction done\n" *)
-    (*      val _ = raise What __P'
-        val _ = print "* Externalization done\n" *)
-    (*      val _  = TomegaTypeCheck.checkPrg (IntSyn.Null, (__P', Tomega.True))
-        val _ = print "* Typechecking done\n"
-*)
-    (* was evalPrg --cs Mon Jun 30 12:09:21 2003*)
-    (*      val _ = print "* Operational semantics done\n" *)
-    (*         val res = Trans.transDecs ED    *)
-    (* input:
-      sourcesFile = .elf file to load
-      funcList = list of functions that need to be loaded
-                 first element is the function that will be called
-      arg = LF object which is the argument
-   *)
-    (*           val P = Redundant.convert (Tomega.lemmaDef lemma) *)
-    (* val P = Tomega.lemmaDef lemma *)
-    (*        | checkDec (u, __d as PDec (_, T.All (__d, __F')))) = ???  *)
-    (*      val _ = TextIO.print ("\n" ^ TomegaPrint.funToString (([name], []), P) ^ "\n") *)
-    (*      val __P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
+      let _ = TextIO.print "\n" in ((())
+        (*        | checkDec (u, D as PDec (_, T.All (D, F')))) = ???  *)
+        (*      val _ = TextIO.print ("\n" ^ TomegaPrint.funToString (([name], []), P) ^ "\n") *)
+        (*      val P' = if isDef then (T.Redex(P, T.AppExp (I.Root (I.Def x, I.Nil), T.
 Nil))) else (T.Redex(P, T.AppExp (I.Root (I.Const x, I.Nil), T.Nil)))
 *)
-    (*
+        (*
         val _ = TextIO.print "\n"
-        val _ = TextIO.print (TomegaPrint.prgToString (I.Null, __P'))
+        val _ = TextIO.print (TomegaPrint.prgToString (I.Null, P'))
         val _ = TextIO.print "\n"
            *)
-    (*  T.AppExp (I.Root (I.Def x, I.Nil), T.Nil) *)
-    (* **************************************** *)
+        (*  T.AppExp (I.Root (I.Def x, I.Nil), T.Nil) *))
+    let rec eval (__P) = let __V = Opsem.evalPrg __P in __V
     let version = version
     let loadFile = loadFile
     let top = top
@@ -172,8 +154,6 @@ Nil))) else (T.Redex(P, T.AppExp (I.Root (I.Const x, I.Nil), T.Nil)))
 
 
 
-(* Delphin Front End Interface *)
-(* Author: Carsten Schuermann *)
 module DextSyn : DEXTSYN =
   (Make_DextSyn)(struct
                    module Stream' = Stream
@@ -213,7 +193,6 @@ module Parse : PARSE =
 module Trans : TRANS = (Make_Trans)(struct module DextSyn' = DextSyn end) 
 module Delphin =
   (Make_Delphin)(struct
-                   (* structure Tomega = Tomega *)
                    module Twelf = Twelf
                    module Parse = Parse
                    module DextSyn = DextSyn

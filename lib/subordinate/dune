@@ -3,5 +3,5 @@
   (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.subordinate)
  (name subordinate)
- (libraries base compat global table lambda names)
+ (libraries compat global table lambda names)
  (modules intset subordinate))

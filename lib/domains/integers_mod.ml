@@ -1,6 +1,4 @@
 
-(* Integers Modulo a Prime Number *)
-(* Author: Roberto Virga *)
 module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
   struct
     let name = "integer" ^ (Int.toString p)
@@ -8,11 +6,11 @@ module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
     let rec normalize n = n mod__ p
     let zero = 0
     let one = 1
-    exception Div
-    let rec (~-) n = Int.(-) (p, n)
-    let rec (+) (m, n) = normalize (Int.(+) (m, n))
-    let rec (-) (m, n) = normalize (Int.(-) (m, n))
-    let rec ( * ) (m, n) = normalize (Int.( * ) (m, n))
+    exception Div 
+    let rec (~) n = Int.(-) (p, n)
+    let rec (+) m n = normalize (Int.(+) (m, n))
+    let rec (-) m n = normalize (Int.(-) (m, n))
+    let rec ( * ) m n = normalize (Int.( * ) (m, n))
     let rec inverse =
       function
       | 0 -> raise Div
@@ -28,8 +26,8 @@ module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
       if check (String.explode str)
       then
         match Int.fromString str with
-        | Some n -> (if n < p then Some n else None)
-        | None -> None
-      else None
+        | Some n -> (if n < p then Some n else NONE)
+        | NONE -> NONE
+      else NONE
     let toString = Int.toString
   end ;;

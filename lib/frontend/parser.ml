@@ -1,9 +1,6 @@
 
-(* Top-Level Parser *)
-(* Author: Frank Pfenning *)
 module type PARSER  =
   sig
-    (*! structure Parsing : PARSING !*)
     module Stream : STREAM
     module ExtSyn : EXTSYN
     module Names : NAMES
@@ -49,19 +46,15 @@ module type PARSER  =
       | BeginSubsig 
       | EndSubsig 
       | Use of string 
-    (* Further declarations to be added here *)
     val parseStream :
       TextIO.instream -> (fileParseResult * Paths.region) Stream.stream
-    val parseTerminalQ : (string * string) -> ExtQuery.query Stream.stream
+    val parseTerminalQ : string -> string -> ExtQuery.query Stream.stream
   end;;
 
 
 
 
-(* Top-Level Parser *)
-(* Author: Frank Pfenning *)
 module Parser(Parser:sig
-                       (*! structure Parsing' : PARSING !*)
                        module Stream' : STREAM
                        module ExtSyn' : EXTSYN
                        module Names' : NAMES
@@ -76,18 +69,9 @@ module Parser(Parser:sig
                        module ParseMode : PARSE_MODE
                        module ParseThm : PARSE_THM
                        module ParseModule : PARSE_MODULE
-                       (* result stream *)
-                       (*! sharing ExtSyn'.Paths = Parsing'.Lexer.Paths !*)
-                       (*! sharing ParseConDec.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseQuery.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseFixity.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseMode.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseThm.Lexer = Parsing'.Lexer !*)
-                       (*! sharing ParseModule.Parsing = Parsing' !*)
                        module ParseTerm : PARSE_TERM
                      end) : PARSER =
   struct
-    (*! structure Parsing = Parsing' !*)
     module Stream = Stream'
     module ExtSyn = ExtSyn'
     module Names = Names'
@@ -133,8 +117,7 @@ module Parser(Parser:sig
       | BeginSubsig 
       | EndSubsig 
       | Use of string 
-    (* Further pragmas to be added later here *)
-    module __l = Lexer
+    module L = Lexer
     module LS = Lexer.Stream
     let rec stripDot =
       function
@@ -151,7 +134,7 @@ module Parser(Parser:sig
           Parsing.error (r, ((^) "Expected `.', found " L.toString t))
     let rec parseBound' =
       function
-      | Cons ((ID (_, "*"), r), s') -> (None, s')
+      | Cons ((ID (_, "*"), r), s') -> (NONE, s')
       | Cons ((ID (_, name), r), s') ->
           (try ((Some (L.stringToNat name)), s')
            with | Overflow -> Parsing.error (r, "Bound too large")
@@ -164,11 +147,10 @@ module Parser(Parser:sig
             (r,
               ((^) "Expected bound `*' or natural number, found " L.toString
                  t))
-    let rec recParse (s, recparser, theSigParser, sc) =
+    let rec recParse s recparser theSigParser sc =
       Stream.delay
-        (function
-         | () -> recParse' ((LS.expose s), recparser, theSigParser, sc))
-    let rec recParse' (f, recparser, theSigParser, sc) =
+        (fun () -> recParse' ((LS.expose s), recparser, theSigParser, sc))
+    let rec recParse' f recparser theSigParser sc =
       match recparser f with
       | (Done x, f') -> sc (x, f')
       | (Continuation k, Cons ((L.LBRACE, r1), s')) ->
@@ -182,10 +164,10 @@ module Parser(Parser:sig
           Stream.Cons ((BeginSubsig, r1), (theSigParser (s', finish)))
       | (Continuation _, Cons ((t, r), _)) ->
           Parsing.error (r, ((^) "Expected `{', found " L.toString t))
-    let rec parseStream (s, sc) =
-      Stream.delay (function | () -> parseStream' ((LS.expose s), sc))
-    let rec parseStream' =
-      function
+    let rec parseStream s sc =
+      Stream.delay (fun () -> parseStream' ((LS.expose s), sc))
+    let rec parseStream' __0__ __1__ =
+      match (__0__, __1__) with
       | ((Cons ((ID (idCase, name), r0), s') as f), sc) ->
           parseConDec' (f, sc)
       | ((Cons ((L.ABBREV, r), s') as f), sc) -> parseAbbrev' (f, sc)
@@ -258,158 +240,160 @@ module Parser(Parser:sig
           Parsing.error
             (r,
               ((^) "Expected constant name or pragma keyword, found "
-                 L.toString t))
-    let rec parseConDec' ((Cons ((_, r0), _) as f), sc) =
+                 L.toString t))(* -fp *)(* -ABP 4/4/03 *)
+      (* -rv *)(* -bp *)(* -bp *)
+      (* -bp *)(* -cs *)(* -fp *)
+    let rec parseConDec' (Cons ((_, r0), _) as f) sc =
       let (conDec, (Cons ((_, r'), _) as f')) = ParseConDec.parseConDec' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((ConDec conDec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseAbbrev' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseAbbrev' (Cons ((_, r0), _) as f) sc =
       let (conDec, (Cons ((_, r'), _) as f')) = ParseConDec.parseAbbrev' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((AbbrevDec conDec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseClause' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseClause' (Cons ((_, r0), _) as f) sc =
       let (conDec, (Cons ((_, r'), _) as f')) = ParseConDec.parseClause' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((ClauseDec conDec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseFixity' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseFixity' (Cons ((_, r0), _) as f) sc =
       let (fdec, (Cons ((_, r'), _) as f')) = ParseFixity.parseFixity' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((FixDec fdec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseSolve' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseSolve' (Cons ((_, r0), _) as f) sc =
       let (defnssolve, (Cons ((_, r'), _) as f')) = ParseQuery.parseSolve' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((Solve defnssolve), r), (parseStream ((stripDot f'), sc)))
-    let rec parseMode' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseMode' (Cons ((_, r0), _) as f) sc =
       let (mdecs, (Cons ((_, r'), _) as f')) = ParseMode.parseMode' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((ModeDec mdecs), r), (parseStream ((stripDot f'), sc)))
-    let rec parseUnique' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseUnique' (Cons ((_, r0), _) as f) sc =
       let (mdecs, (Cons ((_, r'), _) as f')) = ParseMode.parseMode' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((UniqueDec mdecs), r), (parseStream ((stripDot f'), sc)))
-    let rec parseCovers' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseCovers' (Cons ((_, r0), _) as f) sc =
       let (mdecs, (Cons ((_, r'), _) as f')) = ParseMode.parseMode' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((CoversDec mdecs), r), (parseStream ((stripDot f'), sc)))
-    let rec parseTotal' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseTotal' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseTotal' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((TotalDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseTerminates' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseTerminates' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseTerminates' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((TerminatesDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseReduces' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseReduces' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseReduces' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((ReducesDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseTabled' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseTabled' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseTabled' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((TabledDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseKeepTable' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseKeepTable' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseKeepTable' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((KeepTableDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseWorlds' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseWorlds' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseWorlds' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((WorldDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseTheorem' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseTheorem' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseTheoremDec' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((TheoremDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseProve' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseProve' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseProve' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((ProveDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseEstablish' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseEstablish' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseEstablish' f in
       let r = Paths.join (r0, r') in
       Stream.Cons
         (((EstablishDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseAssert' ((Cons ((_, r0), _) as f), sc) =
+    let rec parseAssert' (Cons ((_, r0), _) as f) sc =
       let (ldec, (Cons ((_, r'), _) as f')) = ParseThm.parseAssert' f in
       let r = Paths.join (r0, r') in
       Stream.Cons (((AssertDec ldec), r), (parseStream ((stripDot f'), sc)))
-    let rec parseTrustMe' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseTrustMe' (Cons ((_, r0), s) as f) sc =
       let rec parseNextDec' =
         function
         | Cons ((dec, r), s') -> Stream.Cons (((TrustMe (dec, r)), r0), s')
         | Stream.Empty ->
             Parsing.error (r0, "No declaration after `%trustme'") in
       parseNextDec' (parseStream' ((LS.expose s), sc))
-    let rec parseSubord' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseSubord' (Cons ((_, r0), s) as f) sc =
       let (qidpairs, (Cons ((_, r'), _) as f')) =
         ParseTerm.parseSubord' (LS.expose s) in
       let r = Paths.join (r0, r') in
       let qidpairs =
-        map (function | (qid1, qid2) -> ((Names.Qid qid1), (Names.Qid qid2)))
+        map (fun qid1 -> fun qid2 -> ((Names.Qid qid1), (Names.Qid qid2)))
           qidpairs in
       Stream.Cons
         (((SubordDec qidpairs), r), (parseStream ((stripDot f'), sc)))
-    let rec parseFreeze' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseFreeze' (Cons ((_, r0), s) as f) sc =
       let (qids, (Cons ((_, r'), _) as f')) =
         ParseTerm.parseFreeze' (LS.expose s) in
       let r = Paths.join (r0, r') in
       let qids = map Names.Qid qids in
       Stream.Cons (((FreezeDec qids), r), (parseStream ((stripDot f'), sc)))
-    let rec parseThaw' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseThaw' (Cons ((_, r0), s) as f) sc =
       let (qids, (Cons ((_, r'), _) as f')) =
         ParseTerm.parseThaw' (LS.expose s) in
       let r = Paths.join (r0, r') in
       let qids = map Names.Qid qids in
       Stream.Cons (((ThawDec qids), r), (parseStream ((stripDot f'), sc)))
-    let rec parseDeterministic' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseDeterministic' (Cons ((_, r0), s) as f) sc =
       let (qids, (Cons ((_, r'), _) as f')) =
         ParseTerm.parseDeterministic' (LS.expose s) in
       let r = Paths.join (r0, r') in
       let qids = map Names.Qid qids in
       Stream.Cons
         (((DeterministicDec qids), r), (parseStream ((stripDot f'), sc)))
-    let rec parseCompile' ((Cons ((_, r0), s) as f), sc) =
+    let rec parseCompile' (Cons ((_, r0), s) as f) sc =
       let (qids, (Cons ((_, r'), _) as f')) =
         ParseTerm.parseCompile' (LS.expose s) in
       let r = Paths.join (r0, r') in
       let qids = map Names.Qid qids in
       Stream.Cons (((Compile qids), r), (parseStream ((stripDot f'), sc)))
-    let rec parseSigDef' ((Cons ((_, r1), _) as f), sc) =
-      let rec finish (sigdef, (Cons ((_, r2), _) as f')) =
+    let rec parseSigDef' (Cons ((_, r1), _) as f) sc =
+      let rec finish sigdef (Cons ((_, r2), _) as f') =
         Stream.Cons
           (((SigDef sigdef), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
       recParse' (f, ParseModule.parseSigDef', parseStream, finish)
-    let rec parseStructDec' ((Cons ((_, r1), _) as f), sc) =
-      let rec finish (structdec, (Cons ((_, r2), _) as f')) =
+    let rec parseStructDec' (Cons ((_, r1), _) as f) sc =
+      let rec finish structdec (Cons ((_, r2), _) as f') =
         Stream.Cons
           (((StructDec structdec), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
       recParse' (f, ParseModule.parseStructDec', parseStream, finish)
-    let rec parseInclude' ((Cons ((_, r1), _) as f), sc) =
-      let rec finish (sigexp, (Cons ((_, r2), _) as f')) =
+    let rec parseInclude' (Cons ((_, r1), _) as f) sc =
+      let rec finish sigexp (Cons ((_, r2), _) as f') =
         Stream.Cons
           (((Include sigexp), (Paths.join (r1, r2))),
             (parseStream ((stripDot f'), sc))) in
       recParse' (f, ParseModule.parseInclude', parseStream, finish)
-    let rec parseOpen' ((Cons ((_, r1), _) as f), sc) =
+    let rec parseOpen' (Cons ((_, r1), _) as f) sc =
       let (strexp, (Cons ((_, r2), _) as f')) = ParseModule.parseOpen' f in
       Stream.Cons
         (((Open strexp), (Paths.join (r1, r2))),
           (parseStream ((stripDot f'), sc)))
-    let rec parseUse' =
-      function
+    let rec parseUse' __2__ __3__ =
+      match (__2__, __3__) with
       | (Cons ((ID (_, name), r0), s), sc) ->
           let Cons ((_, r'), _) as f = LS.expose s in
           let r = Paths.join (r0, r') in
           Stream.Cons (((Use name), r), (parseStream ((stripDot f), sc)))
       | (Cons ((_, r), _), sc) ->
           Parsing.error (r, "Constraint solver name expected")
-    let rec parseQ s = Stream.delay (function | () -> parseQ' (LS.expose s))
+    let rec parseQ s = Stream.delay (fun () -> parseQ' (LS.expose s))
     let rec parseQ' f =
       let (query, f') = ParseQuery.parseQuery' f in
       Stream.Cons (query, (parseQ (stripDot f')))
@@ -419,24 +403,6 @@ module Parser(Parser:sig
         | Cons ((L.EOF, r), s) -> Stream.Empty
         | Cons ((L.RBRACE, r), s) -> Parsing.error (r, "Unmatched `}'") in
       parseStream ((L.lexStream instream), finish)
-    (* Everything else should be impossible *)
-    (*
-    fun stripOptionalDot (LS.Cons ((L.DOT,r), s)) = s
-      | stripOptionalDot f = LS.delay (fn () => f)
-    *)
-    (* pass parseStream as theSigParser in order to be able to use
-       this function polymorphically in the definition of parseStream *)
-    (* parseStream' : lexResult front -> fileParseResult front *)
-    (* parseStream' switches between various specialized parsers *)
-    (* -fp *)
-    (* -cs *)
-    (* -bp *)
-    (* -bp *)
-    (* -bp *)
-    (* -rv *)
-    (* -ABP 4/4/03 *)
-    (* -fp *)
-    (* ABP 4/4/03 *)
     let parseStream = parseTLStream
     let rec parseTerminalQ prompts = parseQ (L.lexTerminal prompts)
   end ;;

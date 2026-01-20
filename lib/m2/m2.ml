@@ -1,9 +1,5 @@
 
-module MetaSyn =
-  (Make_MetaSyn)(struct
-                   (*! structure IntSyn' = IntSyn !*)
-                   module Whnf = Whnf
-                 end)
+module MetaSyn = (Make_MetaSyn)(struct module Whnf = Whnf end)
 module MetaAbstract =
   (Make_MetaAbstract)(struct
                         module Global = Global
@@ -37,12 +33,10 @@ module OLDSearch =
                      module MetaGlobal = MetaGlobal
                      module Conv = Conv
                      module MetaSyn' = MetaSyn
-                     (*! structure CompSyn' = CompSyn !*)
                      module Compile = Compile
                      module Whnf = Whnf
                      module Unify = UnifyTrail
                      module Index = IndexSkolem
-                     (* structure Assign = Assign *)
                      module CPrint = CPrint
                      module Print = Print
                      module Names = Names
@@ -162,7 +156,6 @@ module Mpi =
 module Skolem =
   (Make_Skolem)(struct
                   module Global = Global
-                  (*! structure IntSyn' = IntSyn !*)
                   module Whnf = Whnf
                   module Abstract = Abstract
                   module IndexSkolem = IndexSkolem

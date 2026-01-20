@@ -18,9 +18,9 @@ module Parse =
       | PlusArrow of (term * term) 
       | Ascribe of (term * term) 
       | Omit 
-    let rec PiMinus ((s, to__), t) = Pi (mMINUS, (s, to__), t)
-    let rec PiPlus ((s, to__), t) = Pi (mPLUS, (s, to__), t)
-    let rec PiOmit ((s, to__), t) = Pi (mOMIT, (s, to__), t)
+    let rec PiMinus (s, to__) t = Pi (mMINUS, (s, to__), t)
+    let rec PiPlus (s, to__) t = Pi (mPLUS, (s, to__), t)
+    let rec PiOmit (s, to__) t = Pi (mOMIT, (s, to__), t)
     let rec modeToString =
       function | mMINUS -> "" | mPLUS -> "+ " | mOMIT -> "* "
     let rec termToString =
@@ -41,13 +41,15 @@ module Parse =
       | Ascribe (t, u) ->
           ((("(" ^ (termToString t)) ^ " : ") ^ (termToString u)) ^ ")"
       | Omit -> "*"
-    let rec vardecToString =
-      function | (v, Some t) -> (v ^ ":") ^ (termToString t) | (v, None) -> v
-    let id = maybe (function | ID s -> Some s | _ -> None)
-    let rec swap (x, y) = (y, x)
+    let rec vardecToString __0__ __1__ =
+      match (__0__, __1__) with
+      | (v, Some t) -> (v ^ ":") ^ (termToString t)
+      | (v, NONE) -> v
+    let id = maybe (function | ID s -> Some s | _ -> NONE)
+    let rec swap x y = (y, x)
     let rec vardec () =
       (||) ((` ((<<) id) COLON) && (($) term wth Some)) id wth
-        (function | s -> (s, None))
+        (fun s -> (s, NONE))
     let rec term () =
       parsefixityadj
         (alt

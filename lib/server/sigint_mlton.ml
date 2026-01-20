@@ -1,19 +1,16 @@
 
 module SigINT : SIGINT =
   struct
-    let rec interruptLoop (loop : unit -> unit) =
+    let rec interruptLoop loop =
       let _ =
         MLton.Cont.callcc
-          (function
-           | k ->
-               MLton.Signal.setHandler
-                 (Posix.Signal.int,
-                   (MLton.Signal.Handler.handler
-                      (function
-                       | _ ->
-                           MLton.Thread.prepare
-                             ((MLton.Thread.new__
-                                 (function | () -> MLton.Cont.throw (k, ()))),
-                               ()))))) in
+          (fun k ->
+             MLton.Signal.setHandler
+               (Posix.Signal.int,
+                 (MLton.Signal.Handler.handler
+                    (fun _ ->
+                       MLton.Thread.prepare
+                         ((MLton.Thread.new__
+                             (fun () -> MLton.Cont.throw (k, ()))), ()))))) in
       ((loop ())(* open MLton *))
   end ;;

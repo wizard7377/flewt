@@ -6,67 +6,62 @@ module type REDUNDANT  =
 
 
 
-(* Redundancy remover (factoring) *)
-(* Author: Adam Poswolsky (ABP) *)
 module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
   struct
     exception Error of string 
-    (*
-     convert:  Tomega.Prg -> Tomega.Prg
-     Attempts to eliminate *redundant* cases.
-     *)
     module T = Tomega
     module I = IntSyn
-    let rec optionRefEqual (r1, r2, func) =
+    let rec optionRefEqual r1 r2 func =
       if r1 = r2
       then true__
       else
         (match (r1, r2) with
-         | (ref (None), ref (None)) -> true__
-         | (ref (Some (__P1)), ref (Some (__P2))) -> func (__P1, __P2)
+         | ({ contents = NONE }, { contents = NONE }) -> true__
+         | ({ contents = Some (__P1) }, { contents = Some (__P2) }) ->
+             func (__P1, __P2)
          | _ -> false__)
     let rec convert =
       function
-      | Lam (__d, P) -> T.Lam (__d, (convert P))
-      | New (P) -> T.New (convert P)
-      | Choose (P) -> T.Choose (convert P)
-      | PairExp (M, P) -> T.PairExp (M, (convert P))
-      | PairBlock (rho, P) -> T.PairBlock (rho, (convert P))
+      | Lam (__D, __P) -> T.Lam (__D, (convert __P))
+      | New (__P) -> T.New (convert __P)
+      | Choose (__P) -> T.Choose (convert __P)
+      | PairExp (__M, __P) -> T.PairExp (__M, (convert __P))
+      | PairBlock (rho, __P) -> T.PairBlock (rho, (convert __P))
       | PairPrg (__P1, __P2) -> T.PairPrg ((convert __P1), (convert __P2))
       | T.Unit -> T.Unit
       | Var x -> T.Var x
       | Const x -> T.Const x
-      | Redex (P, S) -> T.Redex ((convert P), (convertSpine S))
-      | Rec (__d, P) -> T.Rec (__d, (convert P))
-      | Case (Cases (O)) -> T.Case (T.Cases (convertCases O))
-      | Let (__d, __P1, __P2) -> T.Let (__d, (convert __P1), (convert __P2))
+      | Redex (__P, __S) -> T.Redex ((convert __P), (convertSpine __S))
+      | Rec (__D, __P) -> T.Rec (__D, (convert __P))
+      | Case (Cases (__O)) -> T.Case (T.Cases (convertCases __O))
+      | Let (__D, __P1, __P2) -> T.Let (__D, (convert __P1), (convert __P2))
     let rec convertSpine =
       function
       | T.Nil -> T.Nil
-      | AppExp (I, S) -> T.AppExp (I, (convertSpine S))
-      | AppBlock (I, S) -> T.AppBlock (I, (convertSpine S))
-      | AppPrg (P, S) -> T.AppPrg ((convert P), (convertSpine S))
-      | SClo (S, t) -> raise (Error "SClo should not exist")
-    let rec expEqual (E1, E2) = Conv.conv ((E1, I.id), (E2, I.id))
-    let rec IsubEqual (sub1, sub2) = Conv.convSub (sub1, sub2)
-    let rec blockEqual =
-      function
+      | AppExp (__I, __S) -> T.AppExp (__I, (convertSpine __S))
+      | AppBlock (__I, __S) -> T.AppBlock (__I, (convertSpine __S))
+      | AppPrg (__P, __S) -> T.AppPrg ((convert __P), (convertSpine __S))
+      | SClo (__S, t) -> raise (Error "SClo should not exist")
+    let rec expEqual (__E1) (__E2) = Conv.conv ((__E1, I.id), (__E2, I.id))
+    let rec IsubEqual sub1 sub2 = Conv.convSub (sub1, sub2)
+    let rec blockEqual __0__ __1__ =
+      match (__0__, __1__) with
       | (Bidx x, Bidx x') -> x = x'
       | (LVar (r, sub1, (cid, sub2)), LVar (r', sub1', (cid', sub2'))) ->
           (optionRefEqual (r, r', blockEqual)) &&
             ((IsubEqual (sub1, sub1')) &&
                ((cid = cid') && (IsubEqual (sub1', sub2'))))
       | _ -> false__(* Should not occur -- ap 2/18/03 *)
-    let rec decEqual =
-      function
-      | (UDec (D1), (UDec (D2), t2)) ->
-          Conv.convDec ((D1, I.id), (D2, (T.coerceSub t2)))
+    let rec decEqual __2__ __3__ =
+      match (__2__, __3__) with
+      | (UDec (__D1), (UDec (__D2), t2)) ->
+          Conv.convDec ((__D1, I.id), (__D2, (T.coerceSub t2)))
       | (PDec (_, __F1, _, _), (PDec (_, __F2, _, _), t2)) ->
           T.convFor ((__F1, T.id), (__F2, t2))
       | _ -> false__
-    let rec caseEqual =
-      function
-      | ((Psi1, t1, __P1)::O1, ((Psi2, t2, __P2)::O2, tAfter)) ->
+    let rec caseEqual __4__ __5__ =
+      match (__4__, __5__) with
+      | ((Psi1, t1, __P1)::__O1, ((Psi2, t2, __P2)::__O2, tAfter)) ->
           let t2' = T.comp ((T.invertSub tAfter), t2) in
           let t = Opsem.createVarSub (Psi1, Psi2) in
           let t' = T.comp (t2', t) in
@@ -82,53 +77,55 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
             (* Note:  (Psi1 |- t1: Psi0) *)(* Psi1 |- t: Psi2 *)
             (* Psi1 |- t' : Psi_0 *))
       | (nil, (nil, t2)) -> true__
-      | _ -> false__(* Recall that we (Psi2, t2, __P2)[tAfter] = (Psi2, (tAfterInv \circ t2), __P2) *)
-    let rec spineEqual =
-      function
+      | _ -> false__(* Recall that we (Psi2, t2, P2)[tAfter] = (Psi2, (tAfterInv \circ t2), P2) *)
+    let rec spineEqual __6__ __7__ =
+      match (__6__, __7__) with
       | (T.Nil, (T.Nil, t2)) -> true__
-      | (AppExp (E1, S1), (AppExp (E2, S2), t2)) ->
-          (Conv.conv ((E1, I.id), (E2, (T.coerceSub t2)))) &&
-            (spineEqual (S1, (S2, t2)))
-      | (AppBlock (B1, S1), (AppBlock (B2, S2), t2)) ->
-          (blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))) &&
-            (spineEqual (S1, (S2, t2)))
-      | (AppPrg (__P1, S1), (AppPrg (__P2, S2), t2)) ->
-          (prgEqual (__P1, (__P2, t2))) && (spineEqual (S1, (S2, t2)))
-      | (SClo (S, t1), (SClo (s, t2a), t2)) ->
+      | (AppExp (__E1, __S1), (AppExp (__E2, __S2), t2)) ->
+          (Conv.conv ((__E1, I.id), (__E2, (T.coerceSub t2)))) &&
+            (spineEqual (__S1, (__S2, t2)))
+      | (AppBlock (__B1, __S1), (AppBlock (__B2, __S2), t2)) ->
+          (blockEqual (__B1, (I.blockSub (__B2, (T.coerceSub t2))))) &&
+            (spineEqual (__S1, (__S2, t2)))
+      | (AppPrg (__P1, __S1), (AppPrg (__P2, __S2), t2)) ->
+          (prgEqual (__P1, (__P2, t2))) && (spineEqual (__S1, (__S2, t2)))
+      | (SClo (__S, t1), (SClo (s, t2a), t2)) ->
           raise (Error "SClo should not exist!")
       | _ -> false__(* there are no SClo created in converter *)
-    let rec prgEqual =
-      function
-      | (Lam (D1, __P1), (Lam (D2, __P2), t2)) ->
-          (decEqual (D1, (D2, t2))) && (prgEqual (__P1, (__P2, (T.dot1 t2))))
+    let rec prgEqual __8__ __9__ =
+      match (__8__, __9__) with
+      | (Lam (__D1, __P1), (Lam (__D2, __P2), t2)) ->
+          (decEqual (__D1, (__D2, t2))) &&
+            (prgEqual (__P1, (__P2, (T.dot1 t2))))
       | (New (__P1), (New (__P2), t2)) -> prgEqual (__P1, (__P2, t2))
       | (Choose (__P1), (Choose (__P2), t2)) -> prgEqual (__P1, (__P2, t2))
       | (PairExp (__U1, __P1), (PairExp (__U2, __P2), t2)) ->
           (Conv.conv ((__U1, I.id), (__U2, (T.coerceSub t2)))) &&
             (prgEqual (__P1, (__P2, t2)))
-      | (PairBlock (B1, __P1), (PairBlock (B2, __P2), t2)) ->
-          (blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))) &&
+      | (PairBlock (__B1, __P1), (PairBlock (__B2, __P2), t2)) ->
+          (blockEqual (__B1, (I.blockSub (__B2, (T.coerceSub t2))))) &&
             (prgEqual (__P1, (__P2, t2)))
-      | (PairPrg (__P1a, __P1b), (PairPrg (__P2a, __P2b), t2)) ->
-          (prgEqual (__P1a, (__P2a, t2))) && (prgEqual (__P1b, (__P2b, t2)))
+      | (PairPrg (P1a, P1b), (PairPrg (P2a, P2b), t2)) ->
+          (prgEqual (P1a, (P2a, t2))) && (prgEqual (P1b, (P2b, t2)))
       | (T.Unit, (T.Unit, t2)) -> true__
       | (Const lemma1, (Const lemma2, _)) -> lemma1 = lemma2
       | (Var x1, (Var x2, t2)) ->
           (match getFrontIndex (T.varSub (x2, t2)) with
-           | None -> false__
+           | NONE -> false__
            | Some i -> x1 = i)
-      | (Redex (__P1, S1), (Redex (__P2, S2), t2)) ->
-          (prgEqual (__P1, (__P2, t2))) && (spineEqual (S1, (S2, t2)))
-      | (Rec (D1, __P1), (Rec (D2, __P2), t2)) ->
-          (decEqual (D1, (D2, t2))) && (prgEqual (__P1, (__P2, (T.dot1 t2))))
-      | (Case (Cases (O1)), (Case (Cases (O2)), t2)) ->
-          caseEqual (O1, (O2, t2))
-      | (Let (D1, __P1a, __P1b), (Let (D2, __P2a, __P2b), t2)) ->
-          (decEqual (D1, (D2, t2))) && (prgEqual (__P1a, (__P2a, t2)))
+      | (Redex (__P1, __S1), (Redex (__P2, __S2), t2)) ->
+          (prgEqual (__P1, (__P2, t2))) && (spineEqual (__S1, (__S2, t2)))
+      | (Rec (__D1, __P1), (Rec (__D2, __P2), t2)) ->
+          (decEqual (__D1, (__D2, t2))) &&
+            (prgEqual (__P1, (__P2, (T.dot1 t2))))
+      | (Case (Cases (__O1)), (Case (Cases (__O2)), t2)) ->
+          caseEqual (__O1, (__O2, t2))
+      | (Let (__D1, P1a, P1b), (Let (__D2, P2a, P2b), t2)) ->
+          (decEqual (__D1, (__D2, t2))) && (prgEqual (P1a, (P2a, t2)))
       | (PClo (__P1, t1), (PClo (__P2, t2a), t2b)) ->
           raise (Error "PClo should not exist!")
-      | (EVar (Psi1, __P1optRef, __F1, _, _, _),
-         (EVar (Psi2, __P2optref, __F2, _, _, _), t2)) ->
+      | (EVar (Psi1, P1optRef, __F1, _, _, _),
+         (EVar (Psi2, P2optref, __F2, _, _, _), t2)) ->
           raise (Error "No EVARs should exist!")
       | _ -> false__(* there are no PClo created in converter *)
       (*      | prgEqual ((T.Root (H1, S1)), (T.Root (H2, S2), t2)) =
@@ -136,87 +133,89 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
                    of (T.Const lemma1, T.Const lemma2) => ((lemma1=lemma2) andalso (spineEqual(S1, (S2,t2))))
                  |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
-                              None => false
+                              NONE => false
                             | Some i => ((x1 = i) andalso (spineEqual(S1, (S2,t2)))))
                  |  _ => false)
 *)
     let rec convertCases =
       function
-      | (A)::C ->
-          let ((Psi, t, P), C') = removeRedundancy (A, C) in
-          (::) (Psi, t, (convert P)) convertCases C'
-      | C -> C
-    let rec removeRedundancy =
-      function
-      | (C, []) -> (C, [])
-      | (C, (C')::rest) ->
-          let (C'')::__Cs = mergeIfNecessary (C, C') in
+      | (__A)::__C ->
+          let ((Psi, t, __P), __C') = removeRedundancy (__A, __C) in
+          (::) (Psi, t, (convert __P)) convertCases __C'
+      | __C -> __C
+    let rec removeRedundancy __10__ __11__ =
+      match (__10__, __11__) with
+      | (__C, []) -> (__C, [])
+      | (__C, (__C')::rest) ->
+          let (C'')::__Cs = mergeIfNecessary (__C, __C') in
           let (C''', rest') = removeRedundancy (C'', rest) in
           (C''', (__Cs @ rest'))
     let rec getFrontIndex =
       function
       | Idx k -> Some k
-      | Prg (P) -> getPrgIndex P
-      | Exp (__u) -> getExpIndex __u
-      | Block (B) -> getBlockIndex B
-      | T.Undef -> None
+      | Prg (__P) -> getPrgIndex __P
+      | Exp (__U) -> getExpIndex __U
+      | Block (__B) -> getBlockIndex __B
+      | T.Undef -> NONE
     let rec getPrgIndex =
       function
       | Var k -> Some k
-      | Redex (P, T.Nil) -> getPrgIndex P
-      | PClo (P, t) ->
-          (match getPrgIndex P with
-           | None -> None
+      | Redex (__P, T.Nil) -> getPrgIndex __P
+      | PClo (__P, t) ->
+          (match getPrgIndex __P with
+           | NONE -> NONE
            | Some i -> getFrontIndex (T.varSub (i, t)))
-      | _ -> None(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
+      | _ -> NONE(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
     let rec getExpIndex =
       function
       | Root (BVar k, I.Nil) -> Some k
-      | Redex (__u, I.Nil) -> getExpIndex __u
-      | EClo (__u, t) ->
-          (match getExpIndex __u with
-           | None -> None
+      | Redex (__U, I.Nil) -> getExpIndex __U
+      | EClo (__U, t) ->
+          (match getExpIndex __U with
+           | NONE -> NONE
            | Some i -> getFrontIndex (T.revCoerceFront (I.bvarSub (i, t))))
-      | Lam (Dec (_, __U1), __U2) as __u ->
-          (try Some (Whnf.etaContract __u) with | Whnf.Eta -> None)
-      | _ -> None
-    let rec getBlockIndex = function | Bidx k -> Some k | _ -> None
+      | Lam (Dec (_, __U1), __U2) as U ->
+          (try Some (Whnf.etaContract __U) with | Whnf.Eta -> NONE)
+      | _ -> NONE
+    let rec getBlockIndex = function | Bidx k -> Some k | _ -> NONE
     let rec cleanSub =
       function
-      | Shift _ as S -> S
+      | Shift _ as S -> __S
       | Dot (Ft1, s1) ->
           (match getFrontIndex Ft1 with
-           | None -> T.Dot (Ft1, (cleanSub s1))
+           | NONE -> T.Dot (Ft1, (cleanSub s1))
            | Some index -> T.Dot ((T.Idx index), (cleanSub s1)))
     let rec IsSubRenamingOnly =
       function
       | Shift n -> true__
       | Dot (Ft1, s1) ->
-          (match getFrontIndex Ft1 with | None -> false__ | Some _ -> true__)
+          (match getFrontIndex Ft1 with | NONE -> false__ | Some _ -> true__)
             && (IsSubRenamingOnly s1)
-    let rec mergeSpines =
-      function
+    let rec mergeSpines __12__ __13__ =
+      match (__12__, __13__) with
       | (T.Nil, (T.Nil, t2)) -> T.Nil
-      | (AppExp (E1, S1), (AppExp (E2, S2), t2)) ->
-          if Conv.conv ((E1, I.id), (E2, (T.coerceSub t2)))
-          then T.AppExp (E1, (mergeSpines (S1, (S2, t2))))
+      | (AppExp (__E1, __S1), (AppExp (__E2, __S2), t2)) ->
+          if Conv.conv ((__E1, I.id), (__E2, (T.coerceSub t2)))
+          then T.AppExp (__E1, (mergeSpines (__S1, (__S2, t2))))
           else raise (Error "Spine not equal (AppExp)")
-      | (AppBlock (B1, S1), (AppBlock (B2, S2), t2)) ->
-          if blockEqual (B1, (I.blockSub (B2, (T.coerceSub t2))))
-          then T.AppBlock (B1, (mergeSpines (S1, (S2, t2))))
+      | (AppBlock (__B1, __S1), (AppBlock (__B2, __S2), t2)) ->
+          if blockEqual (__B1, (I.blockSub (__B2, (T.coerceSub t2))))
+          then T.AppBlock (__B1, (mergeSpines (__S1, (__S2, t2))))
           else raise (Error "Spine not equal (AppBlock)")
-      | (AppPrg (__P1, S1), (AppPrg (__P2, S2), t2)) ->
+      | (AppPrg (__P1, __S1), (AppPrg (__P2, __S2), t2)) ->
           if prgEqual (__P1, (__P2, t2))
-          then T.AppPrg (__P1, (mergeSpines (S1, (S2, t2))))
+          then T.AppPrg (__P1, (mergeSpines (__S1, (__S2, t2))))
           else raise (Error "Prg (in App) not equal")
-      | (SClo (S, t1), (SClo (s, t2a), t2)) ->
+      | (SClo (__S, t1), (SClo (s, t2a), t2)) ->
           raise (Error "SClo should not exist!")
       | _ -> raise (Error "Spine are not equivalent")(* there are no SClo created in converter *)
-    let rec mergePrgs =
-      function
-      | (Lam (D1, __P1), (Lam (D2, __P2), t2)) ->
-          if (decEqual (D1, (D2, t2))) && (prgEqual (__P1, (__P2, (T.dot1 t2))))
-          then T.Lam (D1, __P1)
+    let rec mergePrgs __14__ __15__ =
+      match (__14__, __15__) with
+      | (Lam (__D1, __P1), (Lam (__D2, __P2), t2)) ->
+          if
+            (decEqual (__D1, (__D2, t2))) &&
+              (prgEqual (__P1, (__P2, (T.dot1 t2))))
+          then T.Lam (__D1, __P1)
           else raise (Error "Lambda don't match")
       | (New (__P1), (New (__P2), t2)) ->
           if prgEqual (__P1, (__P2, t2))
@@ -231,14 +230,14 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           if Conv.conv ((__U1, I.id), (__U2, t2'))
           then T.PairExp (__U1, (mergePrgs (__P1, (__P2, t2))))
           else raise (Error "cannot merge PairExp")
-      | (PairBlock (B1, __P1), (PairBlock (B2, __P2), t2)) ->
-          let B2' = I.blockSub (B2, (T.coerceSub t2)) in
-          if blockEqual (B1, B2')
-          then T.PairBlock (B1, (mergePrgs (__P1, (__P2, t2))))
+      | (PairBlock (__B1, __P1), (PairBlock (__B2, __P2), t2)) ->
+          let B2' = I.blockSub (__B2, (T.coerceSub t2)) in
+          if blockEqual (__B1, B2')
+          then T.PairBlock (__B1, (mergePrgs (__P1, (__P2, t2))))
           else raise (Error "cannot merge PairBlock")
-      | (PairPrg (__P1a, __P1b), (PairPrg (__P2a, __P2b), t2)) ->
-          if prgEqual (__P1a, (__P2a, t2))
-          then T.PairPrg (__P1a, (mergePrgs (__P1b, (__P2b, t2))))
+      | (PairPrg (P1a, P1b), (PairPrg (P2a, P2b), t2)) ->
+          if prgEqual (P1a, (P2a, t2))
+          then T.PairPrg (P1a, (mergePrgs (P1b, (P2b, t2))))
           else raise (Error "cannot merge PairPrg")
       | (T.Unit, (T.Unit, t2)) -> T.Unit
       | (Const lemma1, (Const lemma2, _)) ->
@@ -247,31 +246,34 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           else raise (Error "Constants do not match.")
       | (Var x1, (Var x2, t2)) ->
           (match getFrontIndex (T.varSub (x2, t2)) with
-           | None -> raise (Error "Variables do not match.")
+           | NONE -> raise (Error "Variables do not match.")
            | Some i ->
                if x1 = i
                then T.Var x1
                else raise (Error "Variables do not match."))
-      | (Redex (__P1, S1), (Redex (__P2, S2), t2)) ->
-          let newS = mergeSpines (S1, (S2, t2)) in
+      | (Redex (__P1, __S1), (Redex (__P2, __S2), t2)) ->
+          let newS = mergeSpines (__S1, (__S2, t2)) in
           if prgEqual (__P1, (__P2, t2))
           then T.Redex (__P1, newS)
           else raise (Error "Redex Prgs don't match")
-      | (Rec (D1, __P1), (Rec (D2, __P2), t2)) ->
-          if (decEqual (D1, (D2, t2))) && (prgEqual (__P1, (__P2, (T.dot1 t2))))
-          then T.Rec (D1, __P1)
+      | (Rec (__D1, __P1), (Rec (__D2, __P2), t2)) ->
+          if
+            (decEqual (__D1, (__D2, t2))) &&
+              (prgEqual (__P1, (__P2, (T.dot1 t2))))
+          then T.Rec (__D1, __P1)
           else raise (Error "Rec's don't match")
-      | (Case (Cases (O1)), (Case (Cases ((C)::[])), t2)) ->
-          T.Case (T.Cases (mergeCase (O1, (C, t2))))
-      | (Case (O1), (Case (O2), t2)) -> raise (Error "Invariant Violated")
+      | (Case (Cases (__O1)), (Case (Cases ((__C)::[])), t2)) ->
+          T.Case (T.Cases (mergeCase (__O1, (__C, t2))))
+      | (Case (__O1), (Case (__O2), t2)) ->
+          raise (Error "Invariant Violated")
       | (PClo (__P1, t1), (PClo (__P2, t2a), t2b)) ->
           raise (Error "PClo should not exist!")
-      | (Let (D1, __P1a, __P1b), (Let (D2, __P2a, __P2b), t2)) ->
-          if (decEqual (D1, (D2, t2))) && (prgEqual (__P1a, (__P2a, t2)))
-          then T.Let (D1, __P1a, (mergePrgs (__P1b, (__P2b, (T.dot1 t2)))))
+      | (Let (__D1, P1a, P1b), (Let (__D2, P2a, P2b), t2)) ->
+          if (decEqual (__D1, (__D2, t2))) && (prgEqual (P1a, (P2a, t2)))
+          then T.Let (__D1, P1a, (mergePrgs (P1b, (P2b, (T.dot1 t2)))))
           else raise (Error "Let don't match")
-      | (EVar (Psi1, __P1optRef, __F1, _, _, _),
-         (EVar (Psi2, __P2optref, __F2, _, _, _), t2)) ->
+      | (EVar (Psi1, P1optRef, __F1, _, _, _),
+         (EVar (Psi2, P2optref, __F2, _, _, _), t2)) ->
           raise (Error "No EVARs should exist!")
       | _ ->
           raise
@@ -291,7 +293,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
                      else raise Error "Roots do not match"
                    |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
-                              None => raise Error "Root does not match."
+                              NONE => raise Error "Root does not match."
                             | Some i =>
                                 (if (x1 = i) then
                                    T.Root (T.Var x1, mergeSpines((S1),(S2,t2)))
@@ -300,23 +302,23 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
                    |  _ => raise Error "Root does not match.")
 *)
     let rec invertSub s =
-      let rec lookup =
-        function
-        | (n, Shift _, p) -> None
+      let rec lookup __16__ __17__ __18__ =
+        match (__16__, __17__, __18__) with
+        | (n, Shift _, p) -> NONE
         | (n, Dot (T.Undef, s'), p) -> lookup ((n + 1), s', p)
         | (n, Dot (Ft, s'), p) ->
             (match getFrontIndex Ft with
-             | None -> lookup ((n + 1), s', p)
+             | NONE -> lookup ((n + 1), s', p)
              | Some k -> if k = p then Some n else lookup ((n + 1), s', p)) in
-      let rec invertSub'' =
-        function
+      let rec invertSub'' __19__ __20__ =
+        match (__19__, __20__) with
         | (0, si) -> si
         | (p, si) ->
             (match lookup (1, s, p) with
              | Some k -> invertSub'' ((p - 1), (T.Dot ((T.Idx k), si)))
-             | None -> invertSub'' ((p - 1), (T.Dot (T.Undef, si)))) in
-      let rec invertSub' =
-        function
+             | NONE -> invertSub'' ((p - 1), (T.Dot (T.Undef, si)))) in
+      let rec invertSub' __21__ __22__ =
+        match (__21__, __22__) with
         | (n, Shift p) -> invertSub'' (p, (T.Shift n))
         | (n, Dot (_, s')) -> invertSub' ((n + 1), s') in
       invertSub' (0, s)
@@ -327,14 +329,14 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           (print (((^) "Idx " Int.toString k) ^ " (DOT) "); printSub s)
       | Dot (Prg (EVar _), s) -> (print "PRG_EVAR (DOT) "; printSub s)
       | Dot (Exp (EVar _), s) -> (print "EXP_EVAR (DOT) "; printSub s)
-      | Dot (Prg (P), s) -> (print "PRG (DOT) "; printSub s)
-      | Dot (Exp (E), s) -> (print "EXP (DOT) "; printSub s)
-      | Dot (Block (B), s) -> (print "BLOCK (DOT) "; printSub s)
+      | Dot (Prg (__P), s) -> (print "PRG (DOT) "; printSub s)
+      | Dot (Exp (__E), s) -> (print "EXP (DOT) "; printSub s)
+      | Dot (Block (__B), s) -> (print "BLOCK (DOT) "; printSub s)
       | Dot (T.Undef, s) -> (print "UNDEF. (DOT) "; printSub s)
-    let rec mergeCase =
-      function
-      | ([], C) -> raise (Error "Case incompatible, cannot merge")
-      | (((Psi1, t1, __P1)::O as __l), (((Psi2, t2, __P2), tAfter) as C)) ->
+    let rec mergeCase __23__ __24__ =
+      match (__23__, __24__) with
+      | ([], __C) -> raise (Error "Case incompatible, cannot merge")
+      | (((Psi1, t1, __P1)::__O as L), (((Psi2, t2, __P2), tAfter) as C)) ->
           let tAfterInv = T.invertSub tAfter in
           let t3 = T.comp (tAfterInv, t2) in
           let t = Opsem.createVarSub (Psi1, Psi2) in
@@ -348,47 +350,48 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
               let stillMatch = IsSubRenamingOnly newT in
               (((if stillMatch
                  then
-                   (Psi1, t1, (mergePrgs (__P1, (__P2, (cleanSub newT))))) :: O
+                   (Psi1, t1, (mergePrgs (__P1, (__P2, (cleanSub newT))))) ::
+                     __O
                  else
-                   ((if (length O) = 0
-                     then (Psi2, t3, __P2) :: __l
-                     else (::) (Psi1, t1, __P1) mergeCase (O, C))
+                   ((if (length __O) = 0
+                     then (Psi2, t3, __P2) :: __L
+                     else (::) (Psi1, t1, __P1) mergeCase (__O, __C))
                    (* We tried all the cases, and we can now add it *)
                    (* Try other cases *))))
-                (* Since the case matches, lets continue the merge on __P1 and __P2
+                (* Since the case matches, lets continue the merge on P1 and P2
            * Note that removing the redundancy of other case statements
            * is handled recursively ... see convertCases
            *)
                 (* Note that tAfter and newT are both renaming substitutions *))
             else
-              ((if (length O) = 0
-                then (Psi2, t3, __P2) :: __l
-                else (::) (Psi1, t1, __P1) mergeCase (O, C))
+              ((if (length __O) = 0
+                then (Psi2, t3, __P2) :: __L
+                else (::) (Psi1, t1, __P1) mergeCase (__O, __C))
               (* We tried all the cases, and we can now add it *)
               (* Try other cases *)))
             (*
         val _ = printCtx(Psi1)
         val _ = printCtx(Psi2)
           *)
-            (* Psi1 |- __P1 : F[t1] *)(* Psi2 |- __P2 : F[t2] *)
+            (* Psi1 |- P1 : F[t1] *)(* Psi2 |- P2 : F[t2] *)
             (* Psi1 |- t1 : Psi1' *)(* Psi2 |- t2 : Psi2' *)
             (* By invariant,we assume *)(* Psi1' |- tAfter: Psi2' *)
             (* Psi2' |- tAfterInv : Psi1' *)(* So now we have
-         __P1 makes sense in Psi1, t1 goes from Psi1' to Psi1.
+         P1 makes sense in Psi1, t1 goes from Psi1' to Psi1.
 
          Psi1 |- t1 : Psi1'
          Psi2 |- t3 : Psi1'
          *)
             (* Psi1 |- t : Psi2 *)(* Psi1 |- t' : Psi1' *)
-            (* If we can get this to match, then Psi1 |- __P2[t] *))
-    let rec mergeIfNecessary (((Psi1, s1, __P1) as C), ((Psi2, s2, __P2) as C'))
+            (* If we can get this to match, then Psi1 |- P2[t] *))
+    let rec mergeIfNecessary ((Psi1, s1, __P1) as C) ((Psi2, s2, __P2) as C')
       =
       let t = Opsem.createVarSub (Psi1, Psi2) in
       let t' = T.comp (s2, t) in
       let doMatch =
         try Opsem.matchSub (Psi1, s1, t'); true__ with | NoMatch -> false__ in
       ((if not doMatch
-        then [C; C']
+        then [__C; __C']
         else
           (let newT = T.normalizeSub t in
            if IsSubRenamingOnly newT
@@ -405,7 +408,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
                * [C,C']
                *)
              (* (print ("***WARNING*** -- redundant case automatically ANNIHILATED:  " ^ s ^ "\n") ; [C]) *))
-           else [C; C']))
+           else [__C; __C']))
         (* Note that s1 is a substitution s.t.  Psi1 |- s1: Psi0
         and s2 is a substitution s.t.         Psi2 |- s2: Psi0
 
@@ -416,7 +419,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
         In that case:
           Psi, Psi1 |- X1...Xn, id{Psi} : Psi, Psi2
 
-        Therefore, the x's are not dependent on the extra Psi introduced
+        Therefore, the X's are not dependent on the extra Psi introduced
         by recursive calls, which is why they are ignored in matchSub as well.
 
         We will generate a substitution t s.t. Psi1 |- t: Psi2

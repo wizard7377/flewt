@@ -8,10 +8,6 @@ module type TIME_LIMIT  =
 
 
 
-(* Default implementation of timeLimit *)
-(* Ignores time limit *)
 module TimeLimit : TIME_LIMIT =
-  struct
-    exception TimeOut 
-    let timeLimit = function | t -> (function | f -> (function | x -> f x))
-  end ;;
+  struct exception TimeOut 
+         let timeLimit t f x = f x end ;;

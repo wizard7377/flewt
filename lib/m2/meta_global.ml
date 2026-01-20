@@ -1,6 +1,4 @@
 
-(* Global parameters *)
-(* Author: Carsten Schuermann *)
 module type METAGLOBAL  =
   sig
     type __Strategy =
@@ -15,8 +13,6 @@ module type METAGLOBAL  =
 
 
 
-(* Global parameters *)
-(* Author: Carsten Schuermann *)
 module MetaGlobal : METAGLOBAL =
   struct
     type __Strategy =

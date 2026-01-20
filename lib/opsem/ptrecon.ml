@@ -1,212 +1,166 @@
 
-(* Abstract Machine guided by proof skeleton *)
-(* Author: Brigitte Pientks *)
-(* Modified: Jeff Polakow *)
-(* Modified: Frank Pfenning *)
-(* Proof term reconstruction by proof skeleton *)
 module type PTRECON  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure CompSyn : COMPSYN !*)
     exception Error of string 
     val solve :
-      (CompSyn.pskeleton * (CompSyn.__Goal * IntSyn.__Sub) * CompSyn.__DProg
-        * ((CompSyn.pskeleton * IntSyn.__Exp) -> unit)) -> unit
+      CompSyn.pskeleton ->
+        (CompSyn.__Goal * IntSyn.__Sub) ->
+          CompSyn.__DProg ->
+            (CompSyn.pskeleton -> IntSyn.__Exp -> unit) -> unit
   end;;
 
 
 
 
-(* Abstract Machine execution guided by proof skeleton *)
-(* Author: Brigitte Pientka *)
-(* Modified: Jeff Polakow, Frank Pfenning, Larry Greenfield, Roberto Virga, Brigitte Pientka *)
-(* Proof term reconstruction from proof skeleton *)
 module PtRecon(PtRecon:sig
-                         (*! structure IntSyn' : INTSYN !*)
-                         (*! structure CompSyn' : COMPSYN !*)
-                         (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                          module Unify : UNIFY
                          module Assign : ASSIGN
                          module MemoTable : MEMOTABLE
                          module Index : INDEX
                          module CPrint : CPRINT
-                         (*! sharing Unify.IntSyn = IntSyn' !*)
-                         (*! sharing Assign.IntSyn = IntSyn' !*)
-                         (*! structure TableParam : TABLEPARAM !*)
-                         (*! sharing MemoTable.TableParam = TableParam !*)
-                         (*! sharing Index.IntSyn = IntSyn' !*)
-                         (* CPrint currently unused *)
-                         (*! sharing CPrint.IntSyn = IntSyn' !*)
-                         (*! sharing CPrint.CompSyn = CompSyn' !*)
                          module Names : NAMES
                        end) : PTRECON =
   struct
-    (*! sharing Names.IntSyn = IntSyn' !*)
-    (*! structure CSManager : CS_MANAGER !*)
-    (*! sharing CSManager.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure CompSyn = CompSyn' !*)
-    (*! structure TableParam = TableParam !*)
     module I = IntSyn
     module C = CompSyn
     module MT = MemoTable
     exception Error of string 
     let rec cidFromHead = function | Const a -> a | Def a -> a
-    let rec eqHead =
-      function
+    let rec eqHead __0__ __1__ =
+      match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
       | _ -> false__
-    let rec compose' =
-      function
-      | (IntSyn.Null, __g) -> __g
-      | (Decl (__g, __d), __g') -> IntSyn.Decl ((compose' (__g, __g')), __d)
-    let rec shift =
-      function
+    let rec compose' __2__ __3__ =
+      match (__2__, __3__) with
+      | (IntSyn.Null, __G) -> __G
+      | (Decl (__G, __D), __G') -> IntSyn.Decl ((compose' (__G, __G')), __D)
+    let rec shift __4__ __5__ =
+      match (__4__, __5__) with
       | (IntSyn.Null, s) -> s
-      | (Decl (__g, __d), s) -> I.dot1 (shift (__g, s))
-    (* We write
-       __g |- M : g
-     if M is a canonical proof term for goal g which could be found
-     following the operational semantics.  In general, the
-     success continuation sc may be applied to such M's in the order
-     they are found.  Backtracking is modeled by the return of
-     the success continuation.
-
-     Similarly, we write
-       __g |- S : r
-     if S is a canonical proof spine for residual goal r which could
-     be found following the operational semantics.  A success continuation
-     sc may be applies to such S's in the order they are found and
-     return to indicate backtracking.
-
-     Non-determinism within the rules is resolved by oracle
-  *)
-    (* solve' (o, (g, s), dp, sc) => ()
-     Invariants:
-       o = oracle
-       dp = (__g, dPool) where  __g ~ dPool  (context __g matches dPool)
-       __g |- s : __g'
-       __g' |- g  goal
-       if  __g |- M : g[s]
-       then  sc M  is evaluated
-     Effects: instantiation of EVars in g, s, and dp
-              any effect  sc M  might have
-  *)
-    let rec solve' =
-      function
-      | (O, (Atom p, s), (DProg (__g, dPool) as dp), sc) ->
-          matchAtom (O, (p, s), dp, sc)
-      | (O, (Impl (r, A, Ha, g), s), DProg (__g, dPool), sc) ->
-          let __d' = I.Dec (None, (I.EClo (A, s))) in
+      | (Decl (__G, __D), s) -> I.dot1 (shift (__G, s))
+    let rec solve' __6__ __7__ __8__ __9__ =
+      match (__6__, __7__, __8__, __9__) with
+      | (__O, (Atom p, s), (DProg (__G, dPool) as dp), sc) ->
+          matchAtom (__O, (p, s), dp, sc)
+      | (__O, (Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
+          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
           ((if !TableParam.strengthen
             then
-              (match MT.memberCtx ((__g, (I.EClo (A, s))), __g) with
-               | Some (__d) ->
-                   let x = I.newEVar (__g, (I.EClo (A, s))) in
+              (match MT.memberCtx ((__G, (I.EClo (__A, s))), __G) with
+               | Some (__D) ->
+                   let __X = I.newEVar (__G, (I.EClo (__A, s))) in
                    ((solve'
-                       (O, (g, (I.Dot ((I.Exp x), s))), (C.DProg (__g, dPool)),
-                         (function | (O, M) -> sc (O, (I.Lam (__d', M))))))
+                       (__O, (g, (I.Dot ((I.Exp __X), s))),
+                         (C.DProg (__G, dPool)),
+                         (fun (__O) ->
+                            fun (__M) -> sc (__O, (I.Lam (__D', __M))))))
                      (* need to reuse label for this assumption .... *))
-               | None ->
+               | NONE ->
                    solve'
-                     (O, (g, (I.dot1 s)),
+                     (__O, (g, (I.dot1 s)),
                        (C.DProg
-                          ((I.Decl (__g, __d')),
+                          ((I.Decl (__G, __D')),
                             (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
-                       (function | (O, M) -> sc (O, (I.Lam (__d', M))))))
+                       (fun (__O) ->
+                          fun (__M) -> sc (__O, (I.Lam (__D', __M))))))
             else
               solve'
-                (O, (g, (I.dot1 s)),
+                (__O, (g, (I.dot1 s)),
                   (C.DProg
-                     ((I.Decl (__g, __d')), (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
-                  (function | (O, M) -> sc (O, (I.Lam (__d', M))))))
-            (*      solve' (O, (g, I.dot1 s), C.DProg (I.Decl(__g, __d'), I.Decl (dPool, C.Dec (r, s, Ha))),
-               (fn (O,M) => sc (O, (I.Lam (__d', M)))))*))
-      | (O, (All (__d, g), s), DProg (__g, dPool), sc) ->
-          let __d' = Names.decLUName (__g, (I.decSub (__d, s))) in
+                     ((I.Decl (__G, __D')),
+                       (I.Decl (dPool, (C.Dec (r, s, Ha)))))),
+                  (fun (__O) -> fun (__M) -> sc (__O, (I.Lam (__D', __M))))))
+            (*      solve' (O, (g, I.dot1 s), C.DProg (I.Decl(G, D'), I.Decl (dPool, C.Dec (r, s, Ha))),
+               (fn (O,M) => sc (O, (I.Lam (D', M)))))*))
+      | (__O, (All (__D, g), s), DProg (__G, dPool), sc) ->
+          let __D' = Names.decLUName (__G, (I.decSub (__D, s))) in
           ((solve'
-              (O, (g, (I.dot1 s)),
-                (C.DProg ((I.Decl (__g, __d')), (I.Decl (dPool, C.Parameter)))),
-                (function | (O, M) -> sc (O, (I.Lam (__d', M))))))
-            (* val __d' = I.decSub (__d, s) *))
-    let rec rSolve =
-      function
-      | (O, ps', (Eq (Q), s), DProg (__g, dPool), sc) ->
-          ((if Unify.unifiable (__g, (Q, s), ps')
-            then sc (O, I.Nil)
+              (__O, (g, (I.dot1 s)),
+                (C.DProg
+                   ((I.Decl (__G, __D')), (I.Decl (dPool, C.Parameter)))),
+                (fun (__O) -> fun (__M) -> sc (__O, (I.Lam (__D', __M))))))
+            (* val D' = I.decSub (D, s) *))
+    let rec rSolve __10__ __11__ __12__ __13__ __14__ =
+      match (__10__, __11__, __12__, __13__, __14__) with
+      | (__O, ps', (Eq (__Q), s), DProg (__G, dPool), sc) ->
+          ((if Unify.unifiable (__G, (__Q, s), ps')
+            then sc (__O, I.Nil)
             else
               (let _ =
                  print "Unification Failed -- SHOULD NEVER HAPPEN!\n";
-                 print ((Print.expToString (__g, (I.EClo ps'))) ^ " unify ");
-                 print ((Print.expToString (__g, (I.EClo (Q, s)))) ^ "\n") in
+                 print ((Print.expToString (__G, (I.EClo ps'))) ^ " unify ");
+                 print ((Print.expToString (__G, (I.EClo (__Q, s)))) ^ "\n") in
                ()))
           (* effect: instantiate EVars *)(* call success continuation *))
-      | (O, ps', (Assign (Q, eqns), s), (DProg (__g, dPool) as dp), sc) ->
-          (match Assign.assignable (__g, ps', (Q, s)) with
+      | (__O, ps', (Assign (__Q, eqns), s), (DProg (__G, dPool) as dp), sc)
+          ->
+          (match Assign.assignable (__G, ps', (__Q, s)) with
            | Some cnstr ->
                if aSolve ((eqns, s), dp, cnstr)
-               then sc (O, I.Nil)
+               then sc (__O, I.Nil)
                else
                  print "aSolve cnstr not solvable -- SHOULD NEVER HAPPEN\n"
-           | None ->
+           | NONE ->
                print "Clause Head not assignable -- SHOULD NEVER HAPPEN\n")
-      | (O, ps', (And (r, A, g), s), (DProg (__g, dPool) as dp), sc) ->
-          let x = I.newEVar (__g, (I.EClo (A, s))) in
+      | (__O, ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), sc) ->
+          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
           ((rSolve
-              (O, ps', (r, (I.Dot ((I.Exp x), s))), dp,
-                (function
-                 | (O, S) ->
+              (__O, ps', (r, (I.Dot ((I.Exp __X), s))), dp,
+                (fun (__O) ->
+                   fun (__S) ->
                      solve'
-                       (O, (g, s), dp,
-                         (function | (O, M) -> sc (O, (I.App (M, S))))))))
+                       (__O, (g, s), dp,
+                         (fun (__O) ->
+                            fun (__M) -> sc (__O, (I.App (__M, __S))))))))
             (* is this EVar redundant? -fp *))
-      | (O, ps', (Exists (Dec (_, A), r), s), (DProg (__g, dPool) as dp), sc)
-          ->
-          let x = I.newEVar (__g, (I.EClo (A, s))) in
+      | (__O, ps', (Exists (Dec (_, __A), r), s), (DProg (__G, dPool) as dp),
+         sc) ->
+          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
           rSolve
-            (O, ps', (r, (I.Dot ((I.Exp x), s))), dp,
-              (function | (O, S) -> sc (O, (I.App (x, S)))))
-      | (O, ps', (Axists (ADec (Some (x), d), r), s),
-         (DProg (__g, dPool) as dp), sc) ->
-          let x' = I.newAVar () in
+            (__O, ps', (r, (I.Dot ((I.Exp __X), s))), dp,
+              (fun (__O) -> fun (__S) -> sc (__O, (I.App (__X, __S)))))
+      | (__O, ps', (Axists (ADec (Some (__X), d), r), s),
+         (DProg (__G, dPool) as dp), sc) ->
+          let __X' = I.newAVar () in
           ((rSolve
-              (O, ps',
-                (r, (I.Dot ((I.Exp (I.EClo (x', (I.Shift (~- d))))), s))), dp,
-                sc))
+              (__O, ps',
+                (r, (I.Dot ((I.Exp (I.EClo (__X', (I.Shift (~ d))))), s))),
+                dp, sc))
             (* we don't increase the proof term here! *))
       (* fail *)
-    let rec aSolve =
-      function
+    let rec aSolve __15__ __16__ __17__ =
+      match (__15__, __16__, __17__) with
       | ((C.Trivial, s), dp, cnstr) -> Assign.solveCnstr cnstr
-      | ((UnifyEq (__g', e1, N, eqns), s), (DProg (__g, dPool) as dp), cnstr) ->
-          let __g'' = compose' (__g', __g) in
-          let s' = shift (__g', s) in
-          (Assign.unifiable (__g'', (N, s'), (e1, s'))) &&
+      | ((UnifyEq (__G', e1, __N, eqns), s), (DProg (__G, dPool) as dp),
+         cnstr) ->
+          let G'' = compose' (__G', __G) in
+          let s' = shift (__G', s) in
+          (Assign.unifiable (G'', (__N, s'), (e1, s'))) &&
             (aSolve ((eqns, s), dp, cnstr))
-    let rec matchAtom
-      ((Ho)::O, ((Root (Ha, S), s) as ps'), (DProg (__g, dPool) as dp), sc) =
-      let rec matchSig =
-        function
+    let rec matchAtom ((Ho)::__O) ((Root (Ha, __S), s) as ps')
+      (DProg (__G, dPool) as dp) sc =
+      let rec matchSig __18__ __19__ =
+        match (__18__, __19__) with
         | (nil, k) -> raise (Error " \noracle #Pc does not exist \n")
         | ((Const c as Hc)::sgn', k) ->
             if c = k
             then
               let SClause r = C.sProgLookup (cidFromHead Hc) in
               rSolve
-                (O, ps', (r, I.id), dp,
-                  (function | (O, S) -> sc (O, (I.Root (Hc, S)))))
+                (__O, ps', (r, I.id), dp,
+                  (fun (__O) -> fun (__S) -> sc (__O, (I.Root (Hc, __S)))))
             else matchSig (sgn', k)
         | ((Def d as Hc)::sgn', k) ->
             if d = k
             then
               let SClause r = C.sProgLookup (cidFromHead Hc) in
               rSolve
-                (O, ps', (r, I.id), dp,
-                  (function | (O, S) -> sc (O, (I.Root (Hc, S)))))
+                (__O, ps', (r, I.id), dp,
+                  (fun (__O) -> fun (__S) -> sc (__O, (I.Root (Hc, __S)))))
             else matchSig (sgn', k)(* should not happen *) in
-      let rec matchDProg =
-        function
+      let rec matchDProg __20__ __21__ __22__ =
+        match (__20__, __21__, __22__) with
         | (I.Null, i, k) ->
             raise
               (Error
@@ -215,8 +169,9 @@ module PtRecon(PtRecon:sig
             ((if eqHead (Ha, Ha')
               then
                 rSolve
-                  (O, ps', (r, (I.comp (s, (I.Shift k)))), dp,
-                    (function | (O, S) -> sc (O, (I.Root ((I.BVar k), S)))))
+                  (__O, ps', (r, (I.comp (s, (I.Shift k)))), dp,
+                    (fun (__O) ->
+                       fun (__S) -> sc (__O, (I.Root ((I.BVar k), __S)))))
               else
                 raise
                   (Error
@@ -227,7 +182,7 @@ module PtRecon(PtRecon:sig
       ((match Ho with
         | Pc i -> matchSig ((Index.lookup (cidFromHead Ha)), i)
         | Dc i -> matchDProg (dPool, i, i)
-        | Csolver (__u) -> sc (O, __u))
+        | Csolver (__U) -> sc (__O, __U))
         (* matchSig [c1,...,cn] = ()
            try each constant ci in turn for solving atomic goal ps', starting
            with c1.
@@ -237,6 +192,6 @@ module PtRecon(PtRecon:sig
            Try each local assumption for solving atomic goal ps', starting
            with the most recent one.
         *))
-    let rec solve (O, (g, s), (DProg (__g, dPool) as dp), sc) =
-      try solve' (O, (g, s), dp, sc) with | Error msg -> print msg
+    let rec solve (__O) (g, s) (DProg (__G, dPool) as dp) sc =
+      try solve' (__O, (g, s), dp, sc) with | Error msg -> print msg
   end ;;

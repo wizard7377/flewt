@@ -1,13 +1,6 @@
 
-(* Compiler *)
-(* Author: Iliano Cervesato *)
-(* Modified: Jeff Polakow *)
-(* Modified: Carsten Schuermann *)
-(* Modified: Frank Pfenning *)
 module type COMPILE  =
   sig
-    (*! structure IntSyn: INTSYN !*)
-    (*! structure CompSyn: COMPSYN !*)
     exception Error of string 
     type __Opt = CompSyn.__Opt
     val optimize : __Opt ref
@@ -15,41 +8,22 @@ module type COMPILE  =
     val sProgReset : unit -> unit
     val compileCtx : bool -> IntSyn.__Dec IntSyn.__Ctx -> CompSyn.__DProg
     val compileGoal :
-      (IntSyn.__Dec IntSyn.__Ctx * IntSyn.__Exp) -> CompSyn.__Goal
-    (* for the meta theorem prover  --cs *)
+      IntSyn.__Dec IntSyn.__Ctx -> IntSyn.__Exp -> CompSyn.__Goal
     val compilePsi : bool -> Tomega.__Dec IntSyn.__Ctx -> CompSyn.__DProg
   end;;
 
 
 
 
-(* Compilation for indexing with substitution trees *)
-(* Author: Iliano Cervesato *)
-(* Modified: Jeff Polakow, Carsten Schuermann, Larry Greenfield,
-             Roberto Virga, Brigitte Pientka *)
 module Compile(Compile:sig
-                         (*! structure IntSyn' : INTSYN !*)
-                         (*! structure CompSyn' : COMPSYN !*)
-                         (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                          module Whnf : WHNF
                          module TypeCheck : TYPECHECK
                          module SubTree : SUBTREE
                          module CPrint : CPRINT
                          module Print : PRINT
-                         (*! sharing Whnf.IntSyn = IntSyn' !*)
-                         (* sharing TypeCheck.IntSyn = IntSyn' !*)
-                         (*! sharing SubTree.IntSyn = IntSyn' !*)
-                         (*! sharing SubTree.CompSyn = CompSyn' !*)
-                         (* CPrint currently unused *)
-                         (*! sharing CPrint.IntSyn = IntSyn' !*)
-                         (*! sharing CPrint.CompSyn = CompSyn' !*)
-                         (* CPrint currently unused *)
-                         (*! sharing Print.IntSyn = IntSyn' !*)
                          module Names : NAMES
                        end) : COMPILE =
   struct
-    (*! sharing Names.IntSyn = IntSyn' !*)
-    (* FIX: need to associate errors with occurrences -kw *)
     exception Error of string 
     module I = IntSyn
     module T = Tomega
@@ -62,101 +36,59 @@ module Compile(Compile:sig
     type __Opt = CompSyn.__Opt
     let optimize = CompSyn.optimize
     let rec cidFromHead = function | Const c -> c | Def c -> c
-    (* isConstraint(H) = B
-       where B iff H is a constant with constraint status
-    *)
     let rec isConstraint =
       function
       | Const c ->
           (match I.constStatus c with | Constraint _ -> true__ | _ -> false__)
-      | H -> false__
-    (* head (A) = H, the head of __v
-
-       Invariants:
-       __g |- A : type, A enf
-       A = H @ S
-    *)
-    let rec head = function | Root (h, _) -> h | Pi (_, A) -> head A
-    let rec seen (i, Vars) = List.exists (function | (d, x) -> x = i) Vars
-    (* etaSpine (S, n) = true
-
-   iff S is a spine n;n-1;..;1;nil
-
-   no permutations or eta-expansion of arguments are allowed
-   *)
-    (*
-  fun etaSpine' (I.Nil, n) = (n=0)
-    | etaSpine' (I.App(__u, S), n) =
-        if Whnf.etaContract __u = n then etaSpine' (S, n-1)
-        else false
-
-  fun etaSpine (S, n) = etaSpine' (S, n) handle Eta => false
-*)
-    let rec etaSpine =
-      function
+      | __H -> false__
+    let rec head = function | Root (h, _) -> h | Pi (_, __A) -> head __A
+    let rec seen i (Vars) = List.exists (fun d -> fun x -> x = i) Vars
+    let rec etaSpine __0__ __1__ =
+      match (__0__, __1__) with
       | (I.Nil, n) -> n = 0
-      | (App (Root (BVar k, I.Nil), S), n) ->
-          (k = n) && (etaSpine (S, (n - 1)))
-      | (App (A, S), n) -> false__
-    (* collectHead (h, K, Vars, depth) = (K', Vars', replaced)
-     adds to K and Vars as in collectExp and collectSpine
-   *)
-    let rec collectHead =
-      function
-      | ((BVar k as h), S, K, Vars, depth) ->
+      | (App (Root (BVar k, I.Nil), __S), n) ->
+          (k = n) && (etaSpine (__S, (n - 1)))
+      | (App (__A, __S), n) -> false__
+    let rec collectHead __2__ __3__ __4__ __5__ __6__ =
+      match (__2__, __3__, __4__, __5__, __6__) with
+      | ((BVar k as h), __S, __K, Vars, depth) ->
           ((if k > depth
             then
-              (if etaSpine (S, depth)
+              (if etaSpine (__S, depth)
                then
                  (if seen ((k - depth), Vars)
-                  then (((depth, (BVAR (k - depth))) :: K), Vars, true__)
-                  else (K, ((depth, (k - depth)) :: Vars), false__))
-               else (((depth, (BVAR (k - depth))) :: K), Vars, true__))
-            else (K, Vars, false__))
+                  then (((depth, (BVAR (k - depth))) :: __K), Vars, true__)
+                  else (__K, ((depth, (k - depth)) :: Vars), false__))
+               else (((depth, (BVAR (k - depth))) :: __K), Vars, true__))
+            else (__K, Vars, false__))
           (* check if h is an eta-expanded variable *)
           (* h is a locally bound variable and need not be collected *))
-      | (_, _, K, Vars, depth) -> (K, Vars, false__)(* check if k is in Vars *)
-    (* collectExp (__u, K, Vars, depth) = (K', Vars')
-      collectSpine (S, K, Vars, depth) = (K', Vars')
-
-      Vars' - Vars = all variables seen in __u or S
-      K' - K = expressions in __u or S to be replaced
-
-      __u, S in NF
-
-      for each new variable (d, k-d) for depth wrt locally bound variables
-   *)
-    let rec collectSpine =
-      function
-      | (I.Nil, K, Vars, depth) -> (K, Vars)
-      | (App (__u, S), K, Vars, depth) ->
-          let (K', Vars') = collectExp (__u, K, Vars, depth) in
-          collectSpine (S, K', Vars', depth)
-    let rec collectExp =
-      function
-      | (Root ((BVar k as h), S), K, Vars, depth) ->
-          let (K', Vars', replaced) = collectHead (h, S, K, Vars, depth) in
+      | (_, _, __K, Vars, depth) -> (__K, Vars, false__)(* check if k is in Vars *)
+    let rec collectSpine __7__ __8__ __9__ __10__ =
+      match (__7__, __8__, __9__, __10__) with
+      | (I.Nil, __K, Vars, depth) -> (__K, Vars)
+      | (App (__U, __S), __K, Vars, depth) ->
+          let (__K', Vars') = collectExp (__U, __K, Vars, depth) in
+          collectSpine (__S, __K', Vars', depth)
+    let rec collectExp __11__ __12__ __13__ __14__ =
+      match (__11__, __12__, __13__, __14__) with
+      | (Root ((BVar k as h), __S), __K, Vars, depth) ->
+          let (__K', Vars', replaced) =
+            collectHead (h, __S, __K, Vars, depth) in
           if replaced
-          then (K', Vars')
-          else collectSpine (S, K', Vars', depth)
-      | ((Root (Def k, S) as __u), K, Vars, depth) ->
-          (((depth, (DEF k)) :: K), Vars)
-      | (Root (h, S), K, Vars, depth) -> collectSpine (S, K, Vars, depth)
-      | (Lam (__d, __u), K, Vars, depth) -> collectExp (__u, K, Vars, (depth + 1))
-      | (FgnExp (cs, fe), K, Vars, depth) -> (((depth, FGN) :: K), Vars)
-      (* don't collect __d, since it is ignored in unification *)(* | collectExp (I.Uni(__l), K, Vars, depth) = (K, Vars) *)
+          then (__K', Vars')
+          else collectSpine (__S, __K', Vars', depth)
+      | ((Root (Def k, __S) as U), __K, Vars, depth) ->
+          (((depth, (DEF k)) :: __K), Vars)
+      | (Root (h, __S), __K, Vars, depth) ->
+          collectSpine (__S, __K, Vars, depth)
+      | (Lam (__D, __U), __K, Vars, depth) ->
+          collectExp (__U, __K, Vars, (depth + 1))
+      | (FgnExp (cs, fe), __K, Vars, depth) -> (((depth, FGN) :: __K), Vars)
+      (* don't collect D, since it is ignored in unification *)(* | collectExp (I.Uni(L), K, Vars, depth) = (K, Vars) *)
       (* should be impossible, Mon Apr 15 14:55:15 2002 -fp *)(* h is either const or skonst of def*)
-    (* no EVars, since __u in NF *)
-    (* shiftHead (H, depth, total) = H'
-     shiftExp (__u, depth, total) = __u'
-     shiftSpine (S, depth, total) = S'
-
-     where each variable k > depth is shifted by +total
-
-     Invariants: __u is NF, S is in NF
-  *)
-    let rec shiftHead =
-      function
+    let rec shiftHead __15__ __16__ __17__ =
+      match (__15__, __16__, __17__) with
       | ((BVar k as h), depth, total) ->
           if k > depth then I.BVar (k + total) else I.BVar k
       | ((Const k as h), depth, total) -> h
@@ -164,55 +96,41 @@ module Compile(Compile:sig
       | ((NSDef k as h), depth, total) -> h
       | ((FgnConst k as h), depth, total) -> h
       | ((Skonst k as h), depth, total) -> h
-    let rec shiftExp =
-      function
-      | (Root (h, S), depth, total) ->
+    let rec shiftExp __18__ __19__ __20__ =
+      match (__18__, __19__, __20__) with
+      | (Root (h, __S), depth, total) ->
           I.Root
-            ((shiftHead (h, depth, total)), (shiftSpine (S, depth, total)))
-      | (Uni (__l), _, _) -> I.Uni __l
-      | (Lam (__d, __u), depth, total) ->
+            ((shiftHead (h, depth, total)), (shiftSpine (__S, depth, total)))
+      | (Uni (__L), _, _) -> I.Uni __L
+      | (Lam (__D, __U), depth, total) ->
           I.Lam
-            ((shiftDec (__d, depth, total)),
-              (shiftExp (__u, (depth + 1), total)))
-      | (Pi ((__d, P), __u), depth, total) ->
+            ((shiftDec (__D, depth, total)),
+              (shiftExp (__U, (depth + 1), total)))
+      | (Pi ((__D, __P), __U), depth, total) ->
           I.Pi
-            (((shiftDec (__d, depth, total)), P),
-              (shiftExp (__u, (depth + 1), total)))
+            (((shiftDec (__D, depth, total)), __P),
+              (shiftExp (__U, (depth + 1), total)))
       | (FgnExp csfe, depth, total) ->
           I.FgnExpStd.Map.apply csfe
-            (function
-             | __u -> shiftExp ((Whnf.normalize (__u, I.id)), depth, total))
+            (fun (__U) ->
+               shiftExp ((Whnf.normalize (__U, I.id)), depth, total))
       (* Tue Apr  2 12:10:24 2002 -fp -bp *)(* this is overkill and could be very expensive for deeply nested foreign exps *)
-      (* calling normalize here because __u may not be normal *)
-    let rec shiftSpine =
-      function
+      (* calling normalize here because U may not be normal *)
+    let rec shiftSpine __21__ __22__ __23__ =
+      match (__21__, __22__, __23__) with
       | (I.Nil, _, _) -> I.Nil
-      | (App (__u, S), depth, total) ->
+      | (App (__U, __S), depth, total) ->
           I.App
-            ((shiftExp (__u, depth, total)), (shiftSpine (S, depth, total)))
-    let rec shiftDec (Dec (x, __v), depth, total) =
-      I.Dec (x, (shiftExp (__v, depth, total)))
-    (* linearHead (Gl, h, S, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
-
-   if G0, Gl |- h @ S and
-      h is a duplicate (i.e. it is either not fully applied pattern
-       or it has already occured and is an element of Vars)
-
-      |Gl| = depth, Gl is local context of BVars
-   then
-      h' is a new variable standing for a new AVar
-      M = Root(h, S) where each variable in G0 is shifted by total
-      N = Root(h', I.Nil)
-
-   and
-      Eqn accumulates residual equation UnifyEq(Gl, M, N)
-  *)
-    let rec linearHead =
-      function
-      | (__g, (BVar k as h), S, left, Vars, depth, total) ->
+            ((shiftExp (__U, depth, total)),
+              (shiftSpine (__S, depth, total)))
+    let rec shiftDec (Dec (x, __V)) depth total =
+      I.Dec (x, (shiftExp (__V, depth, total)))
+    let rec linearHead __24__ __25__ __26__ __27__ __28__ __29__ __30__ =
+      match (__24__, __25__, __26__, __27__, __28__, __29__, __30__) with
+      | (__G, (BVar k as h), __S, left, Vars, depth, total) ->
           if k > depth
           then
-            (if etaSpine (S, depth)
+            (if etaSpine (__S, depth)
              then
                (if seen ((k - depth), Vars)
                 then ((left - 1), Vars, (I.BVar (left + depth)), true__)
@@ -221,252 +139,179 @@ module Compile(Compile:sig
                     (I.BVar (k + total)), false__))
              else ((left - 1), Vars, (I.BVar (left + depth)), true__))
           else (left, Vars, h, false__)
-      | (__g, (Const k as h), S, left, Vars, depth, total) ->
+      | (__G, (Const k as h), __S, left, Vars, depth, total) ->
           (left, Vars, h, false__)
-      | (__g, (FgnConst (k, ConDec) as h), S, left, Vars, depth, total) ->
+      | (__G, (FgnConst (k, ConDec) as h), __S, left, Vars, depth, total) ->
           (left, Vars, h, false__)
-      | (__g, (Skonst k as h), S, left, Vars, depth, total) ->
+      | (__G, (Skonst k as h), __S, left, Vars, depth, total) ->
           (left, Vars, h, false__)(*
-     | linearHead(__g, (h as I.NSDef k), s, S, left, Vars, depth, total) =
+     | linearHead(G, (h as I.NSDef k), s, S, left, Vars, depth, total) =
          (left, Vars, h, false)
      *)
-    (* Def cannot occur *)
-    (* linearExp (Gl, __u, left, Vars, depth, total, eqns) = (left', Vars', N, Eqn)
-
-     call linearHead on every embedded root
-
-     left' = left - #replaced expressions in __u
-     Vars' = all BVars in G0 seen in __u
-     N = copy of __u with replaced expressions
-     Eqn = residual equations
-
-     "For any __u', __u = __u' iff (N = __u' and Eqn)"
-  *)
-    let rec linearExp =
-      function
-      | (Gl, (Root ((Def k as h), S) as __u), left, Vars, depth, total, eqns)
+    let rec linearExp __31__ __32__ __33__ __34__ __35__ __36__ __37__ =
+      match (__31__, __32__, __33__, __34__, __35__, __36__, __37__) with
+      | (Gl, (Root ((Def k as h), __S) as U), left, Vars, depth, total, eqns)
           ->
-          let N = I.Root ((I.BVar (left + depth)), I.Nil) in
-          let __u' = shiftExp (__u, depth, total) in
-          ((left - 1), Vars, N, (C.UnifyEq (Gl, __u', N, eqns)))
-      | (Gl, (Root (h, S) as __u), left, Vars, depth, total, eqns) ->
+          let __N = I.Root ((I.BVar (left + depth)), I.Nil) in
+          let __U' = shiftExp (__U, depth, total) in
+          ((left - 1), Vars, __N, (C.UnifyEq (Gl, __U', __N, eqns)))
+      | (Gl, (Root (h, __S) as U), left, Vars, depth, total, eqns) ->
           let (left', Vars', h', replaced) =
-            linearHead (Gl, h, S, left, Vars, depth, total) in
+            linearHead (Gl, h, __S, left, Vars, depth, total) in
           ((if replaced
             then
-              let N = I.Root (h', I.Nil) in
-              let __u' = shiftExp (__u, depth, total) in
-              (left', Vars, N, (C.UnifyEq (Gl, __u', N, eqns)))
+              let __N = I.Root (h', I.Nil) in
+              let __U' = shiftExp (__U, depth, total) in
+              (left', Vars, __N, (C.UnifyEq (Gl, __U', __N, eqns)))
             else
-              (let (left'', Vars'', S', eqns') =
-                 linearSpine (Gl, S, left', Vars', depth, total, eqns) in
-               (left'', Vars'', (I.Root (h', S')), eqns')))
+              (let (left'', Vars'', __S', eqns') =
+                 linearSpine (Gl, __S, left', Vars', depth, total, eqns) in
+               (left'', Vars'', (I.Root (h', __S')), eqns')))
             (* h = h' not replaced *))
-      | (Gl, Lam (__d, __u), left, Vars, depth, total, eqns) ->
-          let __d' = shiftDec (__d, depth, total) in
-          let (left', Vars', __u', eqns') =
+      | (Gl, Lam (__D, __U), left, Vars, depth, total, eqns) ->
+          let __D' = shiftDec (__D, depth, total) in
+          let (left', Vars', __U', eqns') =
             linearExp
-              ((I.Decl (Gl, __d')), __u, left, Vars, (depth + 1), total, eqns) in
-          (left', Vars', (I.Lam (__d', __u')), eqns')
-      | (Gl, (FgnExp (cs, ops) as __u), left, Vars, depth, total, eqns) ->
-          let N = I.Root ((I.BVar (left + depth)), I.Nil) in
-          let __u' = shiftExp (__u, depth, total) in
-          ((left - 1), Vars, N, (C.UnifyEq (Gl, __u', N, eqns)))(*
-     | linearExp (Gl, __u as I.Uni(__l), left, Vars, depth, total, eqns) =
-         (left, Vars, I.Uni(__l), eqns)
+              ((I.Decl (Gl, __D')), __U, left, Vars, (depth + 1), total,
+                eqns) in
+          (left', Vars', (I.Lam (__D', __U')), eqns')
+      | (Gl, (FgnExp (cs, ops) as U), left, Vars, depth, total, eqns) ->
+          let __N = I.Root ((I.BVar (left + depth)), I.Nil) in
+          let __U' = shiftExp (__U, depth, total) in
+          ((left - 1), Vars, __N, (C.UnifyEq (Gl, __U', __N, eqns)))(*
+     | linearExp (Gl, U as I.Uni(L), left, Vars, depth, total, eqns) =
+         (left, Vars, I.Uni(L), eqns)
      *)
       (* should be impossible  Mon Apr 15 14:54:42 2002 -fp *)
-    let rec linearSpine =
-      function
+    let rec linearSpine __38__ __39__ __40__ __41__ __42__ __43__ __44__ =
+      match (__38__, __39__, __40__, __41__, __42__, __43__, __44__) with
       | (Gl, I.Nil, left, Vars, depth, total, eqns) ->
           (left, Vars, I.Nil, eqns)
-      | (Gl, App (__u, S), left, Vars, depth, total, eqns) ->
-          let (left', Vars', __u', eqns') =
-            linearExp (Gl, __u, left, Vars, depth, total, eqns) in
-          let (left'', Vars'', S', eqns'') =
-            linearSpine (Gl, S, left', Vars', depth, total, eqns') in
-          (left'', Vars'', (I.App (__u', S')), eqns'')
-    (* SClo(S, s') cannot occur *)
-    (*  compileLinearHead (__g, R as I.Root (h, S)) = r
-
-       r is residual goal
-       if __g |- R and R might not be linear
-
-       then
-
-           __g |- H ResGoal  and H is linear
-       and of the form
-           (Axists(_ , Axists( _, ....., Axists( _, Assign (E, AuxG)))))
-  *)
-    let rec compileLinearHead (__g, (Root (h, S) as R)) =
-      let (K, _) = collectExp (R, nil, nil, 0) in
-      let left = List.length K in
-      let (left', _, R', Eqs) =
-        linearExp (I.Null, R, left, nil, 0, left, C.Trivial) in
-      let rec convertKRes =
-        function
+      | (Gl, App (__U, __S), left, Vars, depth, total, eqns) ->
+          let (left', Vars', __U', eqns') =
+            linearExp (Gl, __U, left, Vars, depth, total, eqns) in
+          let (left'', Vars'', __S', eqns'') =
+            linearSpine (Gl, __S, left', Vars', depth, total, eqns') in
+          (left'', Vars'', (I.App (__U', __S')), eqns'')
+    let rec compileLinearHead (__G) (Root (h, __S) as R) =
+      let (__K, _) = collectExp (__R, nil, nil, 0) in
+      let left = List.length __K in
+      let (left', _, __R', Eqs) =
+        linearExp (I.Null, __R, left, nil, 0, left, C.Trivial) in
+      let rec convertKRes __45__ __46__ __47__ =
+        match (__45__, __46__, __47__) with
         | (ResG, nil, 0) -> ResG
-        | (ResG, (d, k)::K, i) ->
+        | (ResG, (d, k)::__K, i) ->
             C.Axists
               ((I.ADec ((Some ((^) "A" Int.toString i)), d)),
-                (convertKRes (ResG, K, (i - 1)))) in
-      let r = convertKRes ((C.Assign (R', Eqs)), (List.rev K), left) in
+                (convertKRes (ResG, __K, (i - 1)))) in
+      let r = convertKRes ((C.Assign (__R', Eqs)), (List.rev __K), left) in
       if (!Global.chatter) >= 6
       then
-        (print "\nClause LH Eqn"; print (CPrint.clauseToString "\t" (__g, r)))
+        (print "\nClause LH Eqn"; print (CPrint.clauseToString "\t" (__G, r)))
       else ();
       r
-    (*  compileSbtHead (__g, R as I.Root (h, S)) = r
-
-       r is residual goal
-       if __g |- R and R might not be linear
-
-       then
-
-           __g |- H ResGoal  and H is linear
-
-  *)
-    let rec compileSbtHead (__g, (Root (h, S) as H)) =
-      let (K, _) = collectExp (H, nil, nil, 0) in
-      let left = List.length K in
-      let (left', _, H', Eqs) =
-        linearExp (I.Null, H, left, nil, 0, left, C.Trivial) in
-      let rec convertKRes =
-        function
-        | (__g, nil, 0) -> __g
-        | (__g, (d, k)::K, i) ->
+    let rec compileSbtHead (__G) (Root (h, __S) as H) =
+      let (__K, _) = collectExp (__H, nil, nil, 0) in
+      let left = List.length __K in
+      let (left', _, __H', Eqs) =
+        linearExp (I.Null, __H, left, nil, 0, left, C.Trivial) in
+      let rec convertKRes __48__ __49__ __50__ =
+        match (__48__, __49__, __50__) with
+        | (__G, nil, 0) -> __G
+        | (__G, (d, k)::__K, i) ->
             convertKRes
-              ((I.Decl (__g, (I.ADec ((Some ((^) "AVar " Int.toString i)), d)))),
-                K, (i - 1)) in
-      let __g' = convertKRes (__g, (List.rev K), left) in
+              ((I.Decl
+                  (__G, (I.ADec ((Some ((^) "AVar " Int.toString i)), d)))),
+                __K, (i - 1)) in
+      let __G' = convertKRes (__G, (List.rev __K), left) in
       ((if (!Global.chatter) >= 6
         then
           (print "\nClause Sbt Eqn";
-           print (CPrint.clauseToString "\t" (__g', (C.Assign (H', Eqs)))))
+           print (CPrint.clauseToString "\t" (__G', (C.Assign (__H', Eqs)))))
         else ();
-        (__g', (Some (H', Eqs))))
-        (* insert R' together with Eqs and __g and sc C.True *))
-    (* compileGoalN  fromCS A => g
-     if A is a type interpreted as a subgoal in a clause and g is its
-     compiled form.  No optimization is performed.
-
-     Invariants:
-     If __g |- A : type,  A enf
-        A has no existential type variables
-     then __g |- A ~> g  (A compiles to goal g)
-     and  __g |- g  goal
-
-     Note: we don't accept objects that may introduce assumptions of
-     constraint types, unless fromCS = true (the object come from a
-     Constraint Solver module.
-  *)
-    let rec compileGoalN arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (fromCS, (__g, (Root _ as R))) -> C.Atom R
-      | (fromCS, (__g, Pi ((Dec (_, A1), I.No), A2))) ->
-          let Ha1 = I.targetHead A1 in
-          let R = compileDClauseN fromCS false__ (__g, A1) in
+        (__G', (Some (__H', Eqs))))
+        (* insert R' together with Eqs and G and sc C.True *))
+    let rec compileGoalN __51__ __52__ __53__ =
+      match (__51__, __52__, __53__) with
+      | (fromCS, __G, (Root _ as R)) -> C.Atom __R
+      | (fromCS, __G, Pi ((Dec (_, __A1), I.No), __A2)) ->
+          let Ha1 = I.targetHead __A1 in
+          let __R = compileDClauseN fromCS false__ (__G, __A1) in
           let goal =
-            compileGoalN fromCS ((I.Decl (__g, (I.Dec (None, A1)))), A2) in
-          ((C.Impl (R, A1, Ha1, goal))
+            compileGoalN fromCS ((I.Decl (__G, (I.Dec (NONE, __A1)))), __A2) in
+          ((C.Impl (__R, __A1, Ha1, goal))
             (* A1 is used to build the proof term, Ha1 for indexing *)
             (* never optimize when compiling local assumptions *))
-      | (fromCS, (__g, Pi (((Dec (_, A1) as __d), I.Maybe), A2))) ->
-          if (notCS fromCS) && (isConstraint (head A1))
+      | (fromCS, __G, Pi (((Dec (_, __A1) as D), I.Maybe), __A2)) ->
+          if (notCS fromCS) && (isConstraint (head __A1))
           then raise (Error "Constraint appears in dynamic clause position")
-          else C.All (__d, (compileGoalN fromCS ((I.Decl (__g, __d)), A2)))
+          else C.All (__D, (compileGoalN fromCS ((I.Decl (__G, __D)), __A2)))
       (* A = {x:A1} A2 *)(* A = A1 -> A2 *)(* A = H @ S *)
-    let rec compileGoal fromCS (__g, (A, s)) =
-      compileGoalN fromCS (__g, (Whnf.normalize (A, s)))
-    let rec compileDClauseN arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (fromCS, opt, (__g, (Root (h, S) as R))) ->
+    let rec compileGoal fromCS (__G) (__A, s) =
+      compileGoalN fromCS (__G, (Whnf.normalize (__A, s)))
+    let rec compileDClauseN __54__ __55__ __56__ __57__ =
+      match (__54__, __55__, __56__, __57__) with
+      | (fromCS, opt, __G, (Root (h, __S) as R)) ->
           if opt && ((!optimize) = C.LinearHeads)
-          then compileLinearHead (__g, R)
+          then compileLinearHead (__G, __R)
           else
             if (notCS fromCS) && (isConstraint h)
             then
               raise (Error "Constraint appears in dynamic clause position")
-            else C.Eq R
-      | (fromCS, opt, (__g, Pi (((Dec (_, A1) as __d), I.No), A2))) ->
+            else C.Eq __R
+      | (fromCS, opt, __G, Pi (((Dec (_, __A1) as D), I.No), __A2)) ->
           C.And
-            ((compileDClauseN fromCS opt ((I.Decl (__g, __d)), A2)), A1,
-              (compileGoalN fromCS (__g, A1)))
-      | (fromCS, opt, (__g, Pi (((Dec (_, A1) as __d), I.Meta), A2))) ->
+            ((compileDClauseN fromCS opt ((I.Decl (__G, __D)), __A2)), __A1,
+              (compileGoalN fromCS (__G, __A1)))
+      | (fromCS, opt, __G, Pi (((Dec (_, __A1) as D), I.Meta), __A2)) ->
           C.In
-            ((compileDClauseN fromCS opt ((I.Decl (__g, __d)), A2)), A1,
-              (compileGoalN fromCS (__g, A1)))
-      | (fromCS, opt, (__g, Pi ((__d, I.Maybe), A2))) ->
-          C.Exists (__d, (compileDClauseN fromCS opt ((I.Decl (__g, __d)), A2)))
+            ((compileDClauseN fromCS opt ((I.Decl (__G, __D)), __A2)), __A1,
+              (compileGoalN fromCS (__G, __A1)))
+      | (fromCS, opt, __G, Pi ((__D, I.Maybe), __A2)) ->
+          C.Exists
+            (__D, (compileDClauseN fromCS opt ((I.Decl (__G, __D)), __A2)))
       (* A = {x:A1} A2 *)(* A = {x: A1} A2, x  meta variable occuring in A2 *)
       (* A = A1 -> A2 *)
-    (*  compileDClauseN _ should not arise by invariants *)
-    (* Compilation of (static) program clauses *)
-    (* compileSubgoals __g' (n, Stack, __g) = Subgoals  (top level)
-
-     Invariants:
-     If __g : Stack
-        __g' ctx where __g' = __g, GAVar
-     then Stack ~> subgoals  (Stack compiles to subgoals)
-     and  __g' |- subgoals
-  *)
-    let rec compileSubgoals arg__0 arg__1 arg__2 =
-      match (arg__0, arg__1, arg__2) with
-      | (fromCS, __g', (n, Decl (Stack, I.No), Decl (__g, Dec (_, A)))) ->
-          let sg = compileSubgoals fromCS __g' ((n + 1), Stack, __g) in
+    let rec compileSubgoals __58__ __59__ __60__ __61__ __62__ =
+      match (__58__, __59__, __60__, __61__, __62__) with
+      | (fromCS, __G', n, Decl (Stack, I.No), Decl (__G, Dec (_, __A))) ->
+          let sg = compileSubgoals fromCS __G' ((n + 1), Stack, __G) in
           ((C.Conjunct
-              ((compileGoal fromCS (__g', (A, (I.Shift (n + 1))))),
-                (I.EClo (A, (I.Shift (n + 1)))), sg))
-            (* __g |- A and __g' |- A[^(n+1)] *))
-      | (fromCS, __g', (n, Decl (Stack, I.Maybe), Decl (__g, Dec (_, A1)))) ->
-          compileSubgoals fromCS __g' ((n + 1), Stack, __g)
-      | (fromCS, __g', (n, I.Null, I.Null)) -> C.True
-    (* compileSClause (Stack, __g, A) => (Head, SubGoals) (top-level)
-     if A is a type interpreted as a clause and (Head, SubGoals)
-     is its compiled form.
-
-     Invariants:
-     If __g |- A : type, A enf
-        A has no existential type variables
-     then __g |- A ~> (Head, subgoals) ((A compiles to head and subgoals)
-          where GAVar, __g |- Head and GAVar, __g |- subgoals
-          and Head is linear and __g' = GAVar, __g
-  *)
-    let rec compileSClauseN arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (fromCS, (Stack, __g, (Root (h, S) as R))) ->
-          let (__g', Head) = compileSbtHead (__g, R) in
-          let d = (-) (I.ctxLength __g') I.ctxLength __g in
-          let Sgoals = compileSubgoals fromCS __g' (d, Stack, __g) in
-          ((((__g', Head), Sgoals))
-            (* __g' |- Sgoals  and __g' |- ^d : __g *))
-      | (fromCS, (Stack, __g, Pi (((Dec (_, A1) as __d), I.No), A2))) ->
+              ((compileGoal fromCS (__G', (__A, (I.Shift (n + 1))))),
+                (I.EClo (__A, (I.Shift (n + 1)))), sg))
+            (* G |- A and G' |- A[^(n+1)] *))
+      | (fromCS, __G', n, Decl (Stack, I.Maybe), Decl (__G, Dec (_, __A1)))
+          -> compileSubgoals fromCS __G' ((n + 1), Stack, __G)
+      | (fromCS, __G', n, I.Null, I.Null) -> C.True
+    let rec compileSClauseN __63__ __64__ __65__ __66__ =
+      match (__63__, __64__, __65__, __66__) with
+      | (fromCS, Stack, __G, (Root (h, __S) as R)) ->
+          let (__G', Head) = compileSbtHead (__G, __R) in
+          let d = (-) (I.ctxLength __G') I.ctxLength __G in
+          let Sgoals = compileSubgoals fromCS __G' (d, Stack, __G) in
+          ((((__G', Head), Sgoals))
+            (* G' |- Sgoals  and G' |- ^d : G *))
+      | (fromCS, Stack, __G, Pi (((Dec (_, __A1) as D), I.No), __A2)) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.No)), (I.Decl (__g, __d)), A2)
-      | (fromCS, (Stack, __g, Pi (((Dec (_, A1) as __d), I.Meta), A2))) ->
+            ((I.Decl (Stack, I.No)), (I.Decl (__G, __D)), __A2)
+      | (fromCS, Stack, __G, Pi (((Dec (_, __A1) as D), I.Meta), __A2)) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.Meta)), (I.Decl (__g, __d)), A2)
-      | (fromCS, (Stack, __g, Pi (((Dec (_, A1) as __d), I.Maybe), A2))) ->
+            ((I.Decl (Stack, I.Meta)), (I.Decl (__G, __D)), __A2)
+      | (fromCS, Stack, __G, Pi (((Dec (_, __A1) as D), I.Maybe), __A2)) ->
           compileSClauseN fromCS
-            ((I.Decl (Stack, I.Maybe)), (I.Decl (__g, __d)), A2)
-    let rec compileDClause opt (__g, A) =
-      compileDClauseN I.Ordinary opt (__g, (Whnf.normalize (A, I.id)))
-    let rec compileGoal (__g, A) =
-      compileGoalN I.Ordinary (__g, (Whnf.normalize (A, I.id)))
-    (* compileCtx __g = (__g, dPool)
-
-     Invariants:
-     If |- __g ctx,
-     then |- __g ~> dPool  (context __g compile to clause pool dPool)
-     and  |- dPool  dpool
-  *)
-    let rec compileCtx opt (__g) =
-      let rec compileBlock =
-        function
+            ((I.Decl (Stack, I.Maybe)), (I.Decl (__G, __D)), __A2)
+    let rec compileDClause opt (__G) (__A) =
+      compileDClauseN I.Ordinary opt (__G, (Whnf.normalize (__A, I.id)))
+    let rec compileGoal (__G) (__A) =
+      compileGoalN I.Ordinary (__G, (Whnf.normalize (__A, I.id)))
+    let rec compileCtx opt (__G) =
+      let rec compileBlock __67__ __68__ __69__ =
+        match (__67__, __68__, __69__) with
         | (nil, s, (n, i)) -> nil
-        | ((Dec (_, __v))::__Vs, t, (n, i)) ->
-            let Vt = I.EClo (__v, t) in
-            (::) ((compileDClause opt (__g, Vt)), I.id, (I.targetHead Vt))
+        | ((Dec (_, __V))::__Vs, t, (n, i)) ->
+            let Vt = I.EClo (__V, t) in
+            (::) ((compileDClause opt (__G, Vt)), I.id, (I.targetHead Vt))
               compileBlock
               (__Vs,
                 (I.Dot
@@ -475,31 +320,24 @@ module Compile(Compile:sig
       let rec compileCtx' =
         function
         | I.Null -> I.Null
-        | Decl (__g, Dec (_, A)) ->
-            let Ha = I.targetHead A in
+        | Decl (__G, Dec (_, __A)) ->
+            let Ha = I.targetHead __A in
             I.Decl
-              ((compileCtx' __g),
-                (CompSyn.Dec ((compileDClause opt (__g, A)), I.id, Ha)))
-        | Decl (__g, BDec (_, (c, s))) ->
-            let (__g, __l) = I.constBlock c in
-            let dpool = compileCtx' __g in
+              ((compileCtx' __G),
+                (CompSyn.Dec ((compileDClause opt (__G, __A)), I.id, Ha)))
+        | Decl (__G, BDec (_, (c, s))) ->
+            let (__G, __L) = I.constBlock c in
+            let dpool = compileCtx' __G in
             let n = I.ctxLength dpool in
-            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__l, s, (n, 1))))))
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__L, s, (n, 1))))))
               (* this is inefficient! -cs *)) in
-      C.DProg (__g, (compileCtx' __g))
-    (* compile __g = (__g, dPool)
-
-     Invariants:
-     If |- __g ctx,
-     then |- __g ~> dPool  (context __g compile to clause pool dPool)
-     and  |- dPool  dpool
-  *)
+      C.DProg (__G, (compileCtx' __G))
     let rec compilePsi opt (Psi) =
-      let rec compileBlock =
-        function
+      let rec compileBlock __70__ __71__ __72__ =
+        match (__70__, __71__, __72__) with
         | (nil, s, (n, i)) -> nil
-        | ((Dec (_, __v))::__Vs, t, (n, i)) ->
-            let Vt = I.EClo (__v, t) in
+        | ((Dec (_, __V))::__Vs, t, (n, i)) ->
+            let Vt = I.EClo (__V, t) in
             (::) ((compileDClause opt ((T.coerceCtx Psi), Vt)), I.id,
                    (I.targetHead Vt))
               compileBlock
@@ -510,81 +348,75 @@ module Compile(Compile:sig
       let rec compileCtx' =
         function
         | I.Null -> I.Null
-        | Decl (__g, Dec (_, A)) ->
-            let Ha = I.targetHead A in
+        | Decl (__G, Dec (_, __A)) ->
+            let Ha = I.targetHead __A in
             I.Decl
-              ((compileCtx' __g),
-                (CompSyn.Dec ((compileDClause opt (__g, A)), I.id, Ha)))
-        | Decl (__g, BDec (_, (c, s))) ->
-            let (__g, __l) = I.constBlock c in
-            let dpool = compileCtx' __g in
+              ((compileCtx' __G),
+                (CompSyn.Dec ((compileDClause opt (__G, __A)), I.id, Ha)))
+        | Decl (__G, BDec (_, (c, s))) ->
+            let (__G, __L) = I.constBlock c in
+            let dpool = compileCtx' __G in
             let n = I.ctxLength dpool in
-            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__l, s, (n, 1))))))
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__L, s, (n, 1))))))
               (* this is inefficient! -cs *)) in
       let rec compilePsi' =
         function
         | I.Null -> I.Null
-        | Decl (Psi, UDec (Dec (_, A))) ->
-            let Ha = I.targetHead A in
+        | Decl (Psi, UDec (Dec (_, __A))) ->
+            let Ha = I.targetHead __A in
             I.Decl
               ((compilePsi' Psi),
                 (CompSyn.Dec
-                   ((compileDClause opt ((T.coerceCtx Psi), A)), I.id, Ha)))
+                   ((compileDClause opt ((T.coerceCtx Psi), __A)), I.id, Ha)))
         | Decl (Psi, UDec (BDec (_, (c, s)))) ->
-            let (__g, __l) = I.constBlock c in
-            let dpool = compileCtx' __g in
+            let (__G, __L) = I.constBlock c in
+            let dpool = compileCtx' __G in
             let n = I.ctxLength dpool in
-            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__l, s, (n, 1))))))
+            ((I.Decl (dpool, (CompSyn.BDec (compileBlock (__L, s, (n, 1))))))
               (* this is inefficient! -cs *))
         | Decl (Psi, PDec _) -> I.Decl ((compilePsi' Psi), CompSyn.PDec) in
       C.DProg ((T.coerceCtx Psi), (compilePsi' Psi))
-    (* installClause fromCS (a, A) = ()
-     Effect: compiles and installs compiled form of A according to
-             the specified compilation strategy
-  *)
-    let rec installClause fromCS (a, A) =
+    let rec installClause fromCS a (__A) =
       match !C.optimize with
       | C.No ->
           C.sProgInstall
-            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
+            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
       | C.LinearHeads ->
           C.sProgInstall
-            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
+            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
       | C.Indexing ->
-          let ((__g, Head), R) =
+          let ((__G, Head), __R) =
             compileSClauseN fromCS
-              (I.Null, I.Null, (Whnf.normalize (A, I.id))) in
+              (I.Null, I.Null, (Whnf.normalize (__A, I.id))) in
           let _ =
             C.sProgInstall
-              (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A)))) in
+              (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A)))) in
           (match Head with
-           | None -> raise (Error "Install via normal index")
-           | Some (H, Eqs) ->
+           | NONE -> raise (Error "Install via normal index")
+           | Some (__H, Eqs) ->
                SubTree.sProgInstall
-                 ((cidFromHead (I.targetHead A)), (C.Head (H, __g, Eqs, a)), R))
-    (* compileConDec (a, condec) = ()
-     Effect: install compiled form of condec in program table.
-             No effect if condec has no operational meaning
-  *)
-    (* Defined constants are currently not compiled *)
-    let rec compileConDec arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (fromCS, (a, ConDec (_, _, _, _, A, I.Type))) ->
-          installClause fromCS (a, A)
-      | (fromCS, (a, SkoDec (_, _, _, A, I.Type))) ->
+                 ((cidFromHead (I.targetHead __A)),
+                   (C.Head (__H, __G, Eqs, a)), __R))
+    let rec compileConDec __73__ __74__ __75__ =
+      match (__73__, __74__, __75__) with
+      | (fromCS, a, ConDec (_, _, _, _, __A, I.Type)) ->
+          installClause fromCS (a, __A)
+      | (fromCS, a, SkoDec (_, _, _, __A, I.Type)) ->
           (match !C.optimize with
            | C.No ->
                C.sProgInstall
-                 (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A))))
+                 (a,
+                   (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
            | _ ->
                C.sProgInstall
-                 (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, A)))))
-      | (I.Clause, (a, ConDef (_, _, _, _, A, I.Type, _))) ->
+                 (a,
+                   (C.SClause (compileDClauseN fromCS true__ (I.Null, __A)))))
+      | (I.Clause, a, ConDef (_, _, _, _, __A, I.Type, _)) ->
           C.sProgInstall
             (a,
               (C.SClause
                  (compileDClauseN I.Clause true__
-                    (I.Null, (Whnf.normalize (A, I.id))))))
+                    (I.Null, (Whnf.normalize (__A, I.id))))))
       | (_, _) -> ()(* we don't use substitution tree indexing for skolem constants yet -bp*)
     let rec install fromCS cid =
       compileConDec fromCS (cid, (I.sgnLookup cid))
@@ -594,15 +426,8 @@ module Compile(Compile:sig
 
 
 
-(* Now in compsyn.fun *)
-(*
-structure CompSyn =
-  CompSyn (structure Global = Global
-           ! structure IntSyn' = IntSyn !*)
 module CPrint =
   (Make_CPrint)(struct
-                  (*! structure IntSyn' = IntSyn !*)
-                  (*! structure CompSyn' = CompSyn !*)
                   module Print = Print
                   module Formatter = Formatter
                   module Names = Names
@@ -623,8 +448,6 @@ module SubTree =
                  end)
 module Compile =
   (Make_Compile)(struct
-                   (*! structure IntSyn' = IntSyn !*)
-                   (*! structure CompSyn' = CompSyn !*)
                    module Whnf = Whnf
                    module TypeCheck = TypeCheck
                    module SubTree = SubTree
@@ -634,7 +457,6 @@ module Compile =
                  end)
 module Assign =
   (Make_Assign)(struct
-                  (*! structure IntSyn' = IntSyn !*)
                   module Whnf = Whnf
                   module Unify = UnifyTrail
                   module Print = Print

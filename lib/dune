@@ -10,6 +10,7 @@
   flewt.compress
   flewt.cover
   flewt.delphin
+  flewt.ml_yacc_lib_mod
   flewt.domains
   flewt.flit
   flewt.formatter

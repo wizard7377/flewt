@@ -12,8 +12,8 @@ module NetServer(NetServer:sig
                              module Msg : MSG
                            end) : NETSERVER =
   struct
-    let rec join arg__0 arg__1 =
-      match (arg__0, arg__1) with
+    let rec join __0__ __1__ =
+      match (__0__, __1__) with
       | (delim, []) -> ""
       | (delim, x::[]) -> x
       | (delim, h::tl) -> (h ^ delim) ^ (join delim tl)
@@ -46,7 +46,7 @@ module NetServer(NetServer:sig
       let (c, a) = SS.position " " (Compat.Substring.full s) in
       ((SS.string c), (SS.string (SS.dropl Char.isSpace a)))
     let rec quote string = ("`" ^ string) ^ "'"
-    let (examplesDir : string option ref) = ref None
+    let (examplesDir : string option ref) = ref NONE
     let rec setExamplesDir s = (:=) examplesDir Some s
     exception Error of string 
     let rec error msg = raise (Error msg)
@@ -101,16 +101,16 @@ module NetServer(NetServer:sig
       | "chatter"::ts -> (:=) Twelf.chatter getNat ts
       | t::ts -> error ((^) "Unknown parameter " quote t)
       | nil -> error "Missing parameter"
-    let rec exec' arg__0 arg__1 =
-      match (arg__0, arg__1) with
-      | (conn, ("quit", args)) -> (Msg.message "goodbye.\n"; raise Quit)
-      | (conn, ("set", args)) ->
+    let rec exec' __2__ __3__ __4__ =
+      match (__2__, __3__, __4__) with
+      | (conn, "quit", args) -> (Msg.message "goodbye.\n"; raise Quit)
+      | (conn, "set", args) ->
           (setParm (String.tokens Char.isSpace args); Twelf.OK)
-      | (conn, ("readDecl", args)) -> Twelf.loadString args
-      | (conn, ("decl", args)) -> Twelf.decl args
-      | (conn, ("example", args)) ->
+      | (conn, "readDecl", args) -> Twelf.loadString args
+      | (conn, "decl", args) -> Twelf.decl args
+      | (conn, "example", args) ->
           serveExample (getExample (String.tokens Char.isSpace args))
-      | (conn, (t, args)) ->
+      | (conn, t, args) ->
           raise (Error ((^) "Unrecognized command " quote t))
     let rec exec conn str =
       match try exec' conn (parseCmd str)
@@ -122,40 +122,38 @@ module NetServer(NetServer:sig
       | Twelf.ABORT -> Msg.message "%%% ABORT %%%\n"
     let rec stripcr s =
       Substring.string
-        (Substring.dropr (function | x -> x = '\r') (Compat.Substring.full s))
+        (Substring.dropr (fun x -> x = '\r') (Compat.Substring.full s))
     let rec flashProto () =
       let (buf : string ref) = ref "" in
       let rec isnull = function | '\000' -> true__ | _ -> false__ in
-      let rec recv (u : server) s =
+      let rec recv u s =
         let _ = ((!) ((:=) buf) buf) ^ s in
         let rem::cmds = rev (String.fields isnull (!buf)) in
         let _ = app ((fun r -> r.exec) u) (rev cmds) in buf := rem in
-      let rec send (u : server) s = (fun r -> r.send) u (s ^ "\000") in
+      let rec send u s = (fun r -> r.send) u (s ^ "\000") in
       {
-        init =
-          (function | () -> Msg.message (Twelf.version ^ "\n%%% OK %%%\n"));
-        reset = (function | () -> buf := "");
+        init = (fun () -> Msg.message (Twelf.version ^ "\n%%% OK %%%\n"));
+        reset = (fun () -> buf := "");
         send;
         recv;
-        done__ = (function | () -> ())
+        done__ = (fun () -> ())
       }
     let rec humanProto () =
       let (buf : string ref) = ref "" in
       let rec isnewl =
         function | '\n' -> true__ | '\r' -> false__ | _ -> false__ in
-      let rec recv (u : server) s =
+      let rec recv u s =
         let _ = ((!) ((:=) buf) buf) ^ s in
         let rem::cmds = rev (String.fields isnewl (!buf)) in
         let _ = app ((fun r -> r.exec) u) (map stripcr (rev cmds)) in
         buf := rem in
-      let rec send (u : server) s = (fun r -> r.send) u ("> " ^ s) in
+      let rec send u s = (fun r -> r.send) u ("> " ^ s) in
       {
-        init =
-          (function | () -> Msg.message (Twelf.version ^ "\n%%% OK %%%\n"));
-        reset = (function | () -> buf := "");
+        init = (fun () -> Msg.message (Twelf.version ^ "\n%%% OK %%%\n"));
+        reset = (fun () -> buf := "");
         send;
         recv;
-        done__ = (function | () -> ())
+        done__ = (fun () -> ())
       }
     let rec httpProto dir =
       let (ibuf : string ref) = ref "" in
@@ -166,7 +164,7 @@ module NetServer(NetServer:sig
       let (url : string ref) = ref "" in
       let (headers : string list ref) = ref [] in
       let rec isnewl = function | '\n' -> true__ | _ -> false__ in
-      let rec handlePostRequest (u : server) =
+      let rec handlePostRequest u =
         let shouldQuit =
           try ((fun r -> r.exec)) u (!ibuf); false__ with | Quit -> true__ in
         let response = !obuf in
@@ -176,7 +174,7 @@ module NetServer(NetServer:sig
           (("HTTP/1.1 200 OK\nContent-Type: text/plain\n" ^ clmsg) ^ "\n");
         ((fun r -> r.send)) u response;
         if shouldQuit then raise Quit else raise EOF in
-      let rec handleGetRequest (u : server) =
+      let rec handleGetRequest u =
         let ok = "200 OK" in
         let missing = "404 Not Found" in
         let (content, ctype, rcode) =
@@ -206,7 +204,7 @@ module NetServer(NetServer:sig
         ((fun r -> r.send)) u content;
         raise EOF;
         () in
-      let rec handleRequest (u : server) =
+      let rec handleRequest u =
         if (!method__) = "GET"
         then handleGetRequest u
         else
@@ -222,36 +220,36 @@ module NetServer(NetServer:sig
         try
           let request::headers = rev (!headers) in
           let m::u::httpVersion::[] =
-            String.tokens (function | x -> x = ' ') request in
+            String.tokens (fun x -> x = ' ') request in
           let _ = method__ := m in
           let _ = url := u in
           let rec getField s =
-            let k::v = String.fields (function | x -> x = ':') s in
+            let k::v = String.fields (fun x -> x = ':') s in
             let v = join ":" v in (k, (substring (v, 1, ((size v) - 1)))) in
           let rec proc_one s =
             let (k, v) = getField s in
             if k = "Content-Length"
             then
               contentLength :=
-                (match Int.fromString v with | None -> 0 | Some n -> n)
+                (match Int.fromString v with | NONE -> 0 | Some n -> n)
             else () in
           let () = app proc_one headers in parsingHeaders := false__
         with | Bind -> raise EOF in
-      let rec interp arg__0 arg__1 =
-        match (arg__0, arg__1) with
-        | ((u : server), []) -> raise Match
+      let rec interp __5__ __6__ =
+        match (__5__, __6__) with
+        | (u, []) -> raise Match
         | (u, x::[]) -> ibuf := x
         | (u, h::tl) ->
             let sch = stripcr h in
             if sch = ""
             then ((:=) ibuf join "\n" tl; parseHeaders (); recvContent u)
             else (headerExec (stripcr h); interp u tl) in
-      let rec recv (u : server) s =
+      let rec recv u s =
         ((!) ((:=) ibuf) ibuf) ^ s;
         if !parsingHeaders
         then interp u (String.fields isnewl (!ibuf))
         else recvContent u in
-      let rec send (u : server) s = ((!) ((:=) obuf) obuf) ^ s in
+      let rec send u s = ((!) ((:=) obuf) obuf) ^ s in
       let rec reset () =
         parsingHeaders := true__;
         ibuf := "";
@@ -260,23 +258,18 @@ module NetServer(NetServer:sig
         headers := [];
         url := "";
         method__ := "" in
-      {
-        init = (function | () -> ());
-        reset;
-        send;
-        recv;
-        done__ = (function | () -> ())
-      }
-    let rec protoServer (proto : protocol) portNum =
+      { init = (fun () -> ()); reset; send; recv; done__ = (fun () -> ()) }
+    let rec protoServer proto portNum =
       let sock = INetSock.TCP.socket () in
       let _ = S.Ctl.setREUSEADDR (sock, true__) in
       let _ = S.bind (sock, (INetSock.any portNum)) in
       let _ = S.listen (sock, maxConnections) in
       let rec read_one conn u () =
         let v = S.recvVec (conn, 1024) in
-        if (Word8Vector.length v) = 0
-        then raise EOF
-        else ((fun r -> r.recv)) proto u (vec2str v) in
+        ((if (Word8Vector.length v) = 0
+          then raise EOF
+          else ((fun r -> r.recv)) proto u (vec2str v))
+          (* arbitrary buffer size *)) in
       let rec accept_one () =
         let (conn, addr) = S.accept sock in
         let _ = (fun r -> r.reset) proto () in
@@ -290,21 +283,7 @@ module NetServer(NetServer:sig
     let rec flashServer port = protoServer (flashProto ()) port
     let rec humanServer port = protoServer (humanProto ()) port
     let rec httpServer port dir = protoServer (httpProto dir) port
-  end  (* int argument is which port number to run on *)
-(* Macromedia Flash XMLSocket interface *)
-(* Human-readable interface, suitable for telnet *)
-(* second argument is what directory server.html is kept in *)
-(* HTTP interface, suitable for javascript XMLHttpRequest *)
-(* filesystem directory where twelf examples are kept *)
-(* signature SERVER *)
-(* queue size for waiting connections in listen *)
-(* below --- set to some arbitrary high value. *)
-(* fun loop f state = loop f (f state) *)
-(* exception Error for server errors *)
-(* Natural numbers *)
-(* Example specifiers *)
-(* Setting Twelf parameters *)
-(* arbitrary buffer size *)
+  end 
 module NetServer =
   (Make_NetServer)(struct
                      module Timing = Timing

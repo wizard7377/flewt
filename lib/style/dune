@@ -3,5 +3,5 @@
   (transition "Convert SML convention to OCaml convention"))
  (public_name flewt.style)
  (name style)
- (libraries base global table lambda formatter print names paths index)
+ (libraries global table lambda formatter print names paths index)
  (modules style))

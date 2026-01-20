@@ -1,48 +1,15 @@
 
-(* Indexing *)
-(* Author: Brigitte Pientka *)
 module type MEMOTABLE  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure CompSyn : COMPSYN !*)
-    (*! structure TableParam : TABLEPARAM !*)
-    (* call check/insert *)
-    (* callCheck (__g, __d, __u, eqn)
-   *
-   * if __d, __g |- __u & eqn     in table  then RepeatedEntry (entries)
-   * if __d, __g |- __u & eqn not in table  then NewEntry (ptrAnswer)
-   * SIDE EFFECT: __d, __g |- __u added to table
-   *)
     val callCheck :
-      (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
-        TableParam.__ResEqn) -> TableParam.callCheckResult
-    (* answer check/insert *)
-    (* answerCheck (__g, __d, (__u,s))
-   * 
-   * Assupmtion: __d, __g |- __u is in table
-   *             and A represents the corresponding solutions
-   * 
-   * __g |- s : __d, __g
-   * Dk, __g |- sk : __d, __g
-   *
-   * If  (Dk, sk) in A then repeated
-   *  else new
-   *)
+      IntSyn.dctx ->
+        IntSyn.dctx ->
+          IntSyn.dctx ->
+            IntSyn.__Exp -> TableParam.__ResEqn -> TableParam.callCheckResult
     val answerCheck :
-      (IntSyn.__Sub * TableParam.answer * CompSyn.pskeleton) ->
-        TableParam.answState
-    (* reset table *)
+      IntSyn.__Sub ->
+        TableParam.answer -> CompSyn.pskeleton -> TableParam.answState
     val reset : unit -> unit
-    (* updateTable 
-   *
-   * SIDE EFFECT: 
-   *   for each table entry: 
-   *       advance lookup pointer
-   *
-   * if Table did not change during last stage 
-   *    then updateTable () =  false
-   * else updateTable () = true
-   *)
     val updateTable : unit -> bool
     val tableSize : unit -> int
   end;;
@@ -50,119 +17,71 @@ module type MEMOTABLE  =
 
 
 
-(* Linear Substitution Tree indexing *)
-(* Linearity: Any variables occurring inside the substitution tree are linear *)
-(* Any term we insert into the substitution tree is in normalform *)
-(* Variant Checking *)
-(* Author: Brigitte Pientka *)
 module MemoTable(MemoTable:sig
-                             (*! structure IntSyn' : INTSYN !*)
-                             (*! structure CompSyn' : COMPSYN !*)
-                             (*! sharing CompSyn'.IntSyn = IntSyn' !*)
                              module Conv : CONV
                              module Whnf : WHNF
                              module AbstractTabled : ABSTRACTTABLED
-                             (*! sharing Conv.IntSyn = IntSyn' !*)
-                             (*! sharing Whnf.IntSyn = IntSyn' !*)
-                             (*! structure RBSet : RBSET !*)
-                             (*! structure TableParam : TABLEPARAM !*)
-                             (*! sharing TableParam.IntSyn = IntSyn' !*)
-                             (*! sharing TableParam.CompSyn = CompSyn' !*)
-                             (*! sharing TableParam.RBSet = RBSet !*)
-                             (*! sharing AbstractTabled.IntSyn = IntSyn' !*)
                              module Print : PRINT
                            end) : MEMOTABLE =
   struct
-    (*! sharing Print.IntSyn = IntSyn'!*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure CompSyn = CompSyn' !*)
     module AbstractTabled = AbstractTabled
-    (*! structure TableParam = TableParam !*)
-    (* ---------------------------------------------------------------------- *)
-    (* Linear substitution tree for linear terms *)
-    (* normalSubsts: key = int = nvar *)
-    (* property: linear *)
     type nonrec normalSubsts = IntSyn.__Exp RBSet.ordSet
     type nonrec exSubsts = IntSyn.__Exp RBSet.ordSet
     let (nid : unit -> normalSubsts) = RBSet.new__
     let aid = TableParam.aid
     let (existId : unit -> normalSubsts) = RBSet.new__
     let rec isId s = RBSet.isEmpty s
-    (* ---------------------------------------------------------------------- *)
     type nonrec ctx = (int * IntSyn.__Dec) list ref
     let rec emptyCtx () = (ref [] : ctx)
-    let rec copy (__l) = (ref (!__l) : ctx)
-    (* destructively updates __l *)
-    let rec delete (x, (__l : ctx)) =
-      let rec del =
-        function
-        | (x, [], __l) -> None
-        | (x, ((y, E) as H)::__l, __l') ->
+    let rec copy (__L) = (ref (!__L) : ctx)
+    let rec delete x (__L : ctx) =
+      let rec del __0__ __1__ __2__ =
+        match (__0__, __1__, __2__) with
+        | (x, [], __L) -> NONE
+        | (x, ((y, __E) as H)::__L, __L') ->
             if x = y
-            then Some ((y, E), ((rev __l') @ __l))
-            else del (x, __l, (H :: __l')) in
-      match del (x, (!__l), []) with
-      | None -> None
-      | Some ((y, E), __l') -> (__l := __l'; Some (y, E))
-    let rec member (x, (__l : ctx)) =
-      let rec memb =
-        function
-        | (x, []) -> None
-        | (x, ((y, E)::__l as H)) -> if x = y then Some (y, E) else memb (x, __l) in
-      memb (x, (!__l))
-    let rec insertList (E, __l) = __l := (E :: (!__l)); __l
-    (* ctxToEVarSub __d = s
-
-     if __d is a context for existential variables,
-        s.t. u_1:: A_1,.... u_n:: A_n = __d
-     then . |- s : __d where s = X_n....X_1.id
-
-    *)
-    let rec ctxToEVarSub =
-      function
+            then Some ((y, __E), ((rev __L') @ __L))
+            else del (x, __L, (__H :: __L')) in
+      match del (x, (!__L), []) with
+      | NONE -> NONE
+      | Some ((y, __E), __L') -> (__L := __L'; Some (y, __E))
+    let rec member x (__L : ctx) =
+      let rec memb __3__ __4__ =
+        match (__3__, __4__) with
+        | (x, []) -> NONE
+        | (x, ((y, __E)::__L as H)) ->
+            if x = y then Some (y, __E) else memb (x, __L) in
+      memb (x, (!__L))
+    let rec insertList (__E) (__L) = __L := (__E :: (!__L)); __L
+    let rec ctxToEVarSub __5__ __6__ =
+      match (__5__, __6__) with
       | (IntSyn.Null, s) -> s
-      | (Decl (__g, Dec (_, A)), s) ->
-          let s' = ctxToEVarSub (__g, s) in
-          let x = IntSyn.newEVar (IntSyn.Null, (IntSyn.EClo (A, s'))) in
-          IntSyn.Dot ((IntSyn.Exp x), s')
-    (* ---------------------------------------------------------------------- *)
-    (* Substitution Tree *)
-    (* it is only possible to distribute the evar-ctx because
-     all evars occur exactly once! -- linear
-     this allows us to maintain invariant, that every occurrence of an evar is
-     defined in its evar-ctx
-     *)
+      | (Decl (__G, Dec (_, __A)), s) ->
+          let s' = ctxToEVarSub (__G, s) in
+          let __X = IntSyn.newEVar (IntSyn.Null, (IntSyn.EClo (__A, s'))) in
+          IntSyn.Dot ((IntSyn.Exp __X), s')
     type __Tree =
-      | Leaf of ((ctx * normalSubsts) * ((int * int) * IntSyn.dctx *
-      TableParam.__ResEqn * TableParam.answer * int * TableParam.__Status)
+      | Leaf of ((ctx * normalSubsts) *
+      ((((((int * int))(* #G *)(* #EVar *))
+          * IntSyn.dctx * TableParam.__ResEqn * TableParam.answer * int *
+          TableParam.__Status))(* G *))
       list ref) 
       | Node of ((ctx * normalSubsts) * __Tree ref list) 
-    (* #__g *)
-    (* __g *)
-    (* #EVar *)
     let rec makeTree () = ref (Node (((emptyCtx ()), (nid ())), []))
-    let rec noChildren (C) = C = []
+    let rec noChildren (__C) = __C = []
     type __Retrieval =
       | Variant of IntSyn.__Exp 
       | NotCompatible 
     type __CompSub =
-      | SplitSub of ((ctx * normalSubsts) * (ctx * normalSubsts) * (ctx *
-      normalSubsts)) 
-      | VariantSub of (ctx * normalSubsts) 
+      | SplitSub of ((((ctx * normalSubsts))(* sigma *)) *
+      (((ctx * normalSubsts))(* rho1 *)) *
+      (((ctx * normalSubsts))(* rho2 *))) 
+      | VariantSub of
+      (((ctx * normalSubsts))(* normalSubsts * *)(* rho2 *))
+      
       | NoCompatibleSub 
-    (* sigma *)
-    (* rho1 *)
-    (* rho2 *)
-    (* normalSubsts * *)
-    (* rho2 *)
-    (* Index array
-
-     All type families have their own substitution tree and all substitution trees
-     are stored in an array [a1,...,an]   where ai is a substitution tree for type family ai
-     *)
     let indexArray =
-      Array.tabulate
-        (Global.maxCid, (function | i -> ((ref 0), (makeTree ()))))
+      Array.tabulate (Global.maxCid, (fun i -> ((ref 0), (makeTree ()))))
     exception Error of string 
     module I = IntSyn
     module C = CompSyn
@@ -179,213 +98,243 @@ module MemoTable(MemoTable:sig
     type nonrec bvar = int
     type nonrec bdepth = int
     let rec cidFromHead = function | Const c -> c | Def c -> c
-    let rec dotn =
-      function | (0, s) -> s | (i, s) -> dotn ((i - 1), (I.dot1 s))
-    let rec compose =
-      function
-      | (IntSyn.Null, __g) -> __g
-      | (Decl (__g, __d), __g') -> IntSyn.Decl ((compose (__g, __g')), __d)
-    let rec shift =
-      function
+    let rec dotn __10__ __11__ =
+      match (__10__, __11__) with
+      | (0, s) -> s
+      | (i, s) -> dotn ((i - 1), (I.dot1 s))
+    let rec compose __12__ __13__ =
+      match (__12__, __13__) with
+      | (IntSyn.Null, __G) -> __G
+      | (Decl (__G, __D), __G') -> IntSyn.Decl ((compose (__G, __G')), __D)
+    let rec shift __14__ __15__ =
+      match (__14__, __15__) with
       | (IntSyn.Null, s) -> s
-      | (Decl (__g, __d), s) -> I.dot1 (shift (__g, s))
-    let rec raiseType =
-      function
-      | (I.Null, __u) -> __u
-      | (Decl (__g, __d), __u) -> raiseType (__g, (I.Lam (__d, __u)))
-    let rec ctxToAVarSub =
-      function
-      | (__g', I.Null, s) -> s
-      | (__g', Decl (__d, Dec (_, A)), s) ->
-          let EVar (r, _, _, cnstr) as E = I.newEVar (I.Null, A) in
-          I.Dot ((I.Exp E), (ctxToAVarSub (__g', __d, s)))
-      | (__g', Decl (__d, ADec (_, d)), s) ->
-          let x = I.newAVar () in
+      | (Decl (__G, __D), s) -> I.dot1 (shift (__G, s))
+    let rec raiseType __16__ __17__ =
+      match (__16__, __17__) with
+      | (I.Null, __U) -> __U
+      | (Decl (__G, __D), __U) -> raiseType (__G, (I.Lam (__D, __U)))
+    let rec ctxToAVarSub __18__ __19__ __20__ =
+      match (__18__, __19__, __20__) with
+      | (__G', I.Null, s) -> s
+      | (__G', Decl (__D, Dec (_, __A)), s) ->
+          let EVar (r, _, _, cnstr) as E = I.newEVar (I.Null, __A) in
+          I.Dot ((I.Exp __E), (ctxToAVarSub (__G', __D, s)))
+      | (__G', Decl (__D, ADec (_, d)), s) ->
+          let __X = I.newAVar () in
           I.Dot
-            ((I.Exp (I.EClo (x, (I.Shift (~- d))))),
-              (ctxToAVarSub (__g', __d, s)))
-    let rec solveEqn' =
-      function
-      | ((T.Trivial, s), __g) -> true__
-      | ((Unify (__g', e1, N, eqns), s), __g) ->
-          let __g'' = compose (__g', __g) in
-          let s' = shift (__g', s) in
-          (Assign.unifiable (__g'', (N, s'), (e1, s'))) &&
-            (solveEqn' ((eqns, s), __g))
+            ((I.Exp (I.EClo (__X, (I.Shift (~ d))))),
+              (ctxToAVarSub (__G', __D, s)))
+    let rec solveEqn' __21__ __22__ =
+      match (__21__, __22__) with
+      | ((T.Trivial, s), __G) -> true__
+      | ((Unify (((__G', e1, __N, eqns))(* evar *)), s),
+         __G) ->
+          let G'' = compose (__G', __G) in
+          let s' = shift (__G', s) in
+          (Assign.unifiable (G'', (__N, s'), (e1, s'))) &&
+            (solveEqn' ((eqns, s), __G))
     let nctr = ref 1
     let rec newNVar () = ((!) ((:=) nctr) nctr) + 1; I.NVar (!nctr)
-    let rec equalDec =
-      function
-      | (Dec (_, __u), Dec (_, __u')) -> Conv.conv ((__u, I.id), (__u', I.id))
+    let rec equalDec __23__ __24__ =
+      match (__23__, __24__) with
+      | (Dec (_, __U), Dec (_, __U')) ->
+          Conv.conv ((__U, I.id), (__U', I.id))
       | (ADec (_, d), ADec (_, d')) -> d = d'
       | (_, _) -> false__
-    let rec equalCtx =
-      function
+    let rec equalCtx __25__ __26__ __27__ __28__ =
+      match (__25__, __26__, __27__, __28__) with
       | (I.Null, s, I.Null, s') -> true__
-      | (Decl (__g, __d), s, Decl (__g', __d'), s') ->
-          (Conv.convDec ((__d, s), (__d', s'))) &&
-            (equalCtx (__g, (I.dot1 s), __g', (I.dot1 s')))
+      | (Decl (__G, __D), s, Decl (__G', __D'), s') ->
+          (Conv.convDec ((__D, s), (__D', s'))) &&
+            (equalCtx (__G, (I.dot1 s), __G', (I.dot1 s')))
       | (_, _, _, _) -> false__
-    let rec equalEqn =
-      function
+    let rec equalEqn __29__ __30__ =
+      match (__29__, __30__) with
       | (T.Trivial, T.Trivial) -> true__
-      | (Unify (__g, x, N, eqn), Unify (__g', x', N', eqn')) ->
-          (equalCtx (__g, I.id, __g', I.id)) &&
-            ((Conv.conv ((x, I.id), (x', I.id))) &&
-               ((Conv.conv ((N, I.id), (N', I.id))) && (equalEqn (eqn, eqn'))))
+      | (Unify (__G, __X, __N, eqn), Unify (__G', __X', __N', eqn')) ->
+          (equalCtx (__G, I.id, __G', I.id)) &&
+            ((Conv.conv ((__X, I.id), (__X', I.id))) &&
+               ((Conv.conv ((__N, I.id), (__N', I.id))) &&
+                  (equalEqn (eqn, eqn'))))
       | (_, _) -> false__
-    let rec equalSub =
-      function
+    let rec equalSub __31__ __32__ =
+      match (__31__, __32__) with
       | (Shift k, Shift k') -> k = k'
-      | (Dot (F, S), Dot (__F', S')) ->
-          (equalFront (F, __F')) && (equalSub (S, S'))
-      | (Dot (F, S), Shift k) -> false__
-      | (Shift k, Dot (F, S)) -> false__
-    let rec equalFront =
-      function
+      | (Dot (__F, __S), Dot (__F', __S')) ->
+          (equalFront (__F, __F')) && (equalSub (__S, __S'))
+      | (Dot (__F, __S), Shift k) -> false__
+      | (Shift k, Dot (__F, __S)) -> false__
+    let rec equalFront __33__ __34__ =
+      match (__33__, __34__) with
       | (Idx n, Idx n') -> n = n'
-      | (Exp (__u), Exp (__v)) -> Conv.conv ((__u, I.id), (__v, I.id))
+      | (Exp (__U), Exp (__V)) -> Conv.conv ((__U, I.id), (__V, I.id))
       | (I.Undef, I.Undef) -> true__
-    let rec equalSub1 (Dot (ms, s), Dot (ms', s')) = equalSub (s, s')
-    let rec equalCtx' =
-      function
+    let rec equalSub1 (Dot (ms, s)) (Dot (ms', s')) = equalSub (s, s')
+    let rec equalCtx' __35__ __36__ =
+      match (__35__, __36__) with
       | (I.Null, I.Null) -> true__
-      | (Decl (Dk, Dec (_, A)), Decl (D1, Dec (_, A1))) ->
-          (Conv.conv ((A, I.id), (A1, I.id))) && (equalCtx' (Dk, D1))
-      | (Decl (Dk, ADec (_, d')), Decl (D1, ADec (_, d))) ->
-          (d = d') && (equalCtx' (Dk, D1))
+      | (Decl (Dk, Dec (_, __A)), Decl (__D1, Dec (_, __A1))) ->
+          (Conv.conv ((__A, I.id), (__A1, I.id))) && (equalCtx' (Dk, __D1))
+      | (Decl (Dk, ADec (_, d')), Decl (__D1, ADec (_, d))) ->
+          (d = d') && (equalCtx' (Dk, __D1))
       | (_, _) -> false__
-    let rec compareCtx (__g, __g') = equalCtx' (__g, __g')
-    let rec isExists (d, BVar k, __d) = member ((k - d), __d)
-    let rec compHeads =
-      function
+    let rec compareCtx (__G) (__G') = equalCtx' (__G, __G')
+    let rec isExists d (BVar k) (__D) = member ((k - d), __D)
+    let rec compHeads __37__ __38__ =
+      match (__37__, __38__) with
       | ((D_1, Const k), (D_2, Const k')) -> k = k'
       | ((D_1, Def k), (D_2, Def k')) -> k = k'
       | ((D_1, BVar k), (D_2, BVar k')) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | None -> k = k'
+           | NONE -> k = k'
            | Some (x, Dec) -> true__)
-      | ((D_1, BVar k), (D_2, H2)) ->
+      | ((D_1, BVar k), (D_2, __H2)) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | None -> false__
+           | NONE -> false__
            | Some (x, Dec) -> true__)
-      | ((D_1, H1), (D_2, H2)) -> false__
-    let rec compatible' ((D_t, T), (D_u, __u), __Ds, rho_t, rho_u) =
-      let rec genNVar ((rho_t, T), (rho_u, __u)) =
-        S.insert rho_t (((!nctr) + 1), T);
-        S.insert rho_u (((!nctr) + 1), __u);
+      | ((D_1, __H1), (D_2, __H2)) -> false__
+    let rec compatible' (D_t, __T) (D_u, __U) (__Ds) rho_t rho_u =
+      let rec genNVar (rho_t, __T) (rho_u, __U) =
+        S.insert rho_t (((!nctr) + 1), __T);
+        S.insert rho_u (((!nctr) + 1), __U);
         newNVar () in
-      let rec genRoot =
-        function
-        | (depth, (Root ((Const k as H1), S1) as T),
-           (Root (Const k', S2) as __u)) ->
+      let rec genRoot __39__ __40__ __41__ =
+        match (__39__, __40__, __41__) with
+        | (depth, (Root ((Const k as H1), __S1) as T),
+           (Root (Const k', __S2) as U)) ->
             if k = k'
-            then let S' = genSpine (depth, S1, S2) in I.Root (H1, S')
-            else genNVar ((rho_t, T), (rho_u, __u))
-        | (depth, (Root ((Def k as H1), S1) as T), (Root (Def k', S2) as __u))
-            ->
-            if k = k'
-            then let S' = genSpine (depth, S1, S2) in I.Root (H1, S')
-            else genNVar ((rho_t, T), (rho_u, __u))
-        | (d, (Root ((BVar k as H1), S1) as T), (Root (BVar k', S2) as __u)) ->
-            if (k > d) && (k' > d)
             then
-              let k1 = k - d in
-              let k2 = k' - d in
-              (match ((member (k1, D_t)), (member (k2, D_u))) with
-               | (None, None) ->
-                   if k1 = k2
-                   then
-                     (try let S' = genSpine (d, S1, S2) in I.Root (H1, S')
-                      with
-                      | DifferentSpine -> genNVar ((rho_t, T), (rho_u, __u)))
-                   else genNVar ((rho_t, T), (rho_u, __u))
-               | (Some (x, Dec1), Some (x', Dec2)) ->
-                   if (k1 = k2) && (equalDec (Dec1, Dec2))
-                   then
-                     let S' = genSpine (d, S1, S2) in
-                     (delete (x, D_t);
-                      delete (x', D_u);
-                      insertList ((x, Dec1), __Ds);
-                      I.Root (H1, S'))
-                   else genNVar ((rho_t, T), (rho_u, __u))
-               | (_, _) -> genNVar ((rho_t, T), (rho_u, __u)))
-            else
-              if k = k'
+              let __S' = genSpine (depth, __S1, __S2) in I.Root (__H1, __S')
+            else genNVar ((rho_t, __T), (rho_u, __U))
+        | (depth, (Root ((Def k as H1), __S1) as T),
+           (Root (Def k', __S2) as U)) ->
+            if k = k'
+            then
+              let __S' = genSpine (depth, __S1, __S2) in I.Root (__H1, __S')
+            else genNVar ((rho_t, __T), (rho_u, __U))
+        | (d, (Root ((BVar k as H1), __S1) as T),
+           (Root (BVar k', __S2) as U)) ->
+            ((if (k > d) && (k' > d)
               then
-                (try let S' = genSpine (d, S1, S2) in I.Root (H1, S')
-                 with | DifferentSpines -> genNVar ((rho_t, T), (rho_u, __u)))
-              else genNVar ((rho_t, T), (rho_u, __u))
-        | (d, (Root ((BVar k as H1), S1) as T), (Root (Const k', S2) as __u))
-            -> genNVar ((rho_t, T), (rho_u, __u))
-        | (d, (Root (H1, S1) as T), (Root (H2, S2) as __u)) ->
-            genNVar ((rho_t, T), (rho_u, __u))
-      and genExp =
-        function
-        | (d, (NVar n as T), (Root (H, S) as __u)) ->
-            (S.insert rho_u (n, __u); T)
-        | (d, (Root (H1, S1) as T), (Root (H2, S2) as __u)) ->
-            genRoot (d, (I.Root (H1, S1)), (I.Root (H2, S2)))
-        | (d, Lam ((Dec (_, A1) as D1), T1), Lam ((Dec (_, A2) as D2), __U2))
-            -> let E = genExp ((d + 1), T1, __U2) in I.Lam (D1, E)
-        | (d, T, __u) ->
+                let k1 = k - d in
+                let k2 = k' - d in
+                (((match ((member (k1, D_t)), (member (k2, D_u))) with
+                   | (NONE, NONE) ->
+                       if k1 = k2
+                       then
+                         (try
+                            let __S' = genSpine (d, __S1, __S2) in
+                            I.Root (__H1, __S')
+                          with
+                          | DifferentSpine ->
+                              genNVar ((rho_t, __T), (rho_u, __U)))
+                       else genNVar ((rho_t, __T), (rho_u, __U))
+                   | (Some (x, Dec1), Some (x', Dec2)) ->
+                       ((if (k1 = k2) && (equalDec (Dec1, Dec2))
+                         then
+                           let __S' = genSpine (d, __S1, __S2) in
+                           (((delete (x, D_t);
+                              delete (x', D_u);
+                              insertList ((x, Dec1), __Ds);
+                              I.Root (__H1, __S')))
+                             (* this is unecessary -- since existential variables have the same type
+                                and need to be fully applied in order, S1 = S2 *))
+                         else genNVar ((rho_t, __T), (rho_u, __U)))
+                       (* they refer to the same existential variable *)
+                       (* variant checking only *))
+                   | (_, _) -> genNVar ((rho_t, __T), (rho_u, __U))))
+                  (* k, k' refer to the existential *))
+              else
+                if k = k'
+                then
+                  (try
+                     let __S' = genSpine (d, __S1, __S2) in
+                     I.Root (__H1, __S')
+                   with
+                   | DifferentSpines -> genNVar ((rho_t, __T), (rho_u, __U)))
+                else genNVar ((rho_t, __T), (rho_u, __U)))
+            (* globally bound variable *)(* locally bound variables *))
+        | (d, (Root ((BVar k as H1), __S1) as T),
+           (Root (Const k', __S2) as U)) ->
+            genNVar ((rho_t, __T), (rho_u, __U))
+        | (d, (Root (__H1, __S1) as T), (Root (__H2, __S2) as U)) ->
+            genNVar ((rho_t, __T), (rho_u, __U))
+      and genExp __42__ __43__ __44__ =
+        match (__42__, __43__, __44__) with
+        | (d, (NVar n as T), (Root (__H, __S) as U)) ->
+            (S.insert rho_u (n, __U); __T)
+        | (d, (Root (__H1, __S1) as T), (Root (__H2, __S2) as U)) ->
+            genRoot (d, (I.Root (__H1, __S1)), (I.Root (__H2, __S2)))
+        | (d, Lam ((Dec (_, __A1) as D1), __T1), Lam
+           ((Dec (_, __A2) as D2), __U2)) ->
+            let __E = genExp ((d + 1), __T1, __U2) in I.Lam (__D1, __E)
+        | (d, __T, __U) ->
             (print "genExp -- falls through?\n";
-             genNVar ((rho_t, T), (rho_u, __u)))
-      and genSpine =
-        function
+             genNVar ((rho_t, __T), (rho_u, __U)))(* U = EVar, EClo -- can't happen -- Sun Oct 20 13:41:25 2002 -bp *)
+      (* by invariant A1 = A2 *)
+      and genSpine __45__ __46__ __47__ =
+        match (__45__, __46__, __47__) with
         | (d, I.Nil, I.Nil) -> I.Nil
-        | (d, App (T, S1), App (__u, S2)) ->
-            let E = genExp (d, T, __u) in
-            let S' = genSpine (d, S1, S2) in I.App (E, S')
+        | (d, App (__T, __S1), App (__U, __S2)) ->
+            let __E = genExp (d, __T, __U) in
+            let __S' = genSpine (d, __S1, __S2) in I.App (__E, __S')
         | (d, I.Nil, App (_, _)) -> raise DifferentSpines
         | (d, App (_, _), I.Nil) -> raise DifferentSpines
         | (d, SClo (_, _), _) -> raise DifferentSpines
         | (d, _, SClo (_, _)) -> raise DifferentSpines in
-      let E = genExp (0, T, __u) in Variant E
-    let rec compatible =
-      function
-      | ((D_t, (Root (H1, S1) as T)), (D_u, (Root (H2, S2) as __u)), __Ds, rho_t,
-         rho_u) ->
-          if compHeads ((D_t, H1), (D_u, H2))
-          then compatible' ((D_t, T), (D_u, __u), __Ds, rho_t, rho_u)
+      let __E = genExp (0, __T, __U) in Variant __E
+    let rec compatible __48__ __49__ __50__ __51__ __52__ =
+      match (__48__, __49__, __50__, __51__, __52__) with
+      | ((D_t, (Root (__H1, __S1) as T)), (D_u, (Root (__H2, __S2) as U)),
+         __Ds, rho_t, rho_u) ->
+          if compHeads ((D_t, __H1), (D_u, __H2))
+          then compatible' ((D_t, __T), (D_u, __U), __Ds, rho_t, rho_u)
           else NotCompatible
-      | ((D_t, T), (D_u, __u), __Ds, rho_t, rho_u) ->
-          compatible' ((D_t, T), (D_u, __u), __Ds, rho_t, rho_u)
-    let rec compatibleSub ((D_t, nsub_t), (D_u, nsub_u)) =
+      | ((D_t, __T), (D_u, __U), __Ds, rho_t, rho_u) ->
+          compatible' ((D_t, __T), (D_u, __U), __Ds, rho_t, rho_u)
+    let rec compatibleSub (D_t, nsub_t) (D_u, nsub_u) =
       let (sigma, rho_t, rho_u) = ((nid ()), (nid ()), (nid ())) in
       let Dsigma = emptyCtx () in
       let D_r1 = copy D_t in
       let D_r2 = copy D_u in
-      let choose = ref (function | (match__ : bool) -> ()) in
+      let choose = ref (fun match__ -> ()) in
       let _ =
         S.forall nsub_u
-          (function
-           | (nv, __u) ->
-               (match S.lookup nsub_t nv with
-                | Some (T) ->
-                    (match compatible
-                             ((D_r1, T), (D_r2, __u), Dsigma, rho_t, rho_u)
-                     with
-                     | NotCompatible ->
-                         (S.insert rho_t (nv, T); S.insert rho_u (nv, __u))
-                     | Variant (T') ->
-                         let restc = !choose in
-                         (S.insert sigma (nv, T');
-                          choose :=
-                            ((function
-                              | match__ ->
-                                  (restc match__; if match__ then () else ())))))
-                | None -> S.insert rho_u (nv, __u))) in
-      if isId rho_t
-      then ((!) choose true__; VariantSub (D_r2, rho_u))
-      else
-        ((!) choose false__;
-         if isId sigma
-         then NoCompatibleSub
-         else SplitSub ((Dsigma, sigma), (D_r1, rho_t), (D_r2, rho_u)))
-    let rec mkLeaf (__Ds, GR, n) = Leaf (__Ds, GR)
-    let rec mkNode =
-      function
+          (fun nv ->
+             fun (__U) ->
+               ((match S.lookup nsub_t nv with
+                 | Some (__T) ->
+                     (match compatible
+                              ((D_r1, __T), (D_r2, __U), Dsigma, rho_t,
+                                rho_u)
+                      with
+                      | NotCompatible ->
+                          (S.insert rho_t (nv, __T); S.insert rho_u (nv, __U))
+                      | Variant (__T') ->
+                          let restc = !choose in
+                          (S.insert sigma (nv, __T');
+                           choose :=
+                             ((fun match__ ->
+                                 restc match__; if match__ then () else ()))))
+                 | NONE -> S.insert rho_u (nv, __U))
+               (* note by invariant Glocal_e ~ Glocal_t *)
+               (* here Glocal_t will be only approximately correct! *))) in
+      ((if isId rho_t
+        then ((!) choose true__; VariantSub (D_r2, rho_u))
+        else
+          ((((!) choose false__;
+             if isId sigma
+             then NoCompatibleSub
+             else SplitSub ((Dsigma, sigma), (D_r1, rho_t), (D_r2, rho_u))))
+          (* split -- asub is unchanged *)))
+        (* perfect match under asub and rho_t = nsub_t
+           sigma = rho_t and sigma o asub = rho_u *)
+        (* by invariant rho_t = empty, since nsub_t <= nsub_u *)
+        (* Dsigma |~ sigma, D_r1 |~ rho_t, D_r1 |~ rho_u *))
+    let rec mkLeaf (__Ds) (GR) n = Leaf (__Ds, GR)
+    let rec mkNode __53__ __54__ __55__ __56__ __57__ =
+      match (__53__, __54__, __55__, __56__, __57__) with
       | (Node (_, Children), Dsigma, Drho1, GR, Drho2) ->
           Node
             (Dsigma,
@@ -394,181 +343,193 @@ module MemoTable(MemoTable:sig
           Node
             (Dsigma,
               [ref (Leaf (Drho2, (ref [GR2]))); ref (Leaf (Drho1, GRlist))])
-    let rec compatibleCtx =
-      function
-      | ((__g, eqn), []) -> None
-      | ((__g, eqn), (l', __g', eqn', answRef', _, status')::GRlist) ->
-          if (equalCtx' (__g, __g')) && (equalEqn (eqn, eqn'))
+    let rec compatibleCtx __58__ __59__ =
+      match (__58__, __59__) with
+      | ((__G, eqn), []) -> NONE
+      | ((__G, eqn), (l', __G', eqn', answRef', _, status')::GRlist) ->
+          if (equalCtx' (__G, __G')) && (equalEqn (eqn, eqn'))
           then Some (l', answRef', status')
-          else compatibleCtx ((__g, eqn), GRlist)
-    let rec compChild =
-      function
+          else compatibleCtx ((__G, eqn), GRlist)(* we may not need to check that the DAVars are the same *)
+    let rec compChild __60__ __61__ =
+      match (__60__, __61__) with
       | ((Leaf ((D_t, nsub_t), GList) as N), (D_e, nsub_e)) ->
           compatibleSub ((D_t, nsub_t), (D_e, nsub_e))
       | ((Node ((D_t, nsub_t), Children') as N), (D_e, nsub_e)) ->
           compatibleSub ((D_t, nsub_t), (D_e, nsub_e))
-    let rec findAllCandidates (G_r, children, __Ds) =
-      let rec findAllCands =
-        function
+    let rec findAllCandidates (G_r) children (__Ds) =
+      let rec findAllCands __62__ __63__ __64__ __65__ __66__ =
+        match (__62__, __63__, __64__, __65__, __66__) with
         | (G_r, nil, (D_u, sub_u), VList, SList) -> (VList, SList)
-        | (G_r, x::__l, (D_u, sub_u), VList, SList) ->
+        | (G_r, x::__L, (D_u, sub_u), VList, SList) ->
             (match compChild ((!x), (D_u, sub_u)) with
              | NoCompatibleSub ->
-                 findAllCands (G_r, __l, (D_u, sub_u), VList, SList)
+                 findAllCands (G_r, __L, (D_u, sub_u), VList, SList)
              | SplitSub (Dsigma, Drho1, Drho2) ->
                  findAllCands
-                   (G_r, __l, (D_u, sub_u), VList,
+                   (G_r, __L, (D_u, sub_u), VList,
                      ((x, (Dsigma, Drho1, Drho2)) :: SList))
              | VariantSub ((D_r2, rho2) as Drho2) ->
                  findAllCands
-                   (G_r, __l, (D_u, sub_u), ((x, Drho2, I.id) :: VList), SList)) in
+                   (G_r, __L, (D_u, sub_u), ((x, Drho2, I.id) :: VList),
+                     SList)) in
       findAllCands (G_r, children, __Ds, nil, nil)
-    let rec divergingCtx (stage, __g, GRlistRef) =
-      let l = I.ctxLength __g in
+    let rec divergingCtx stage (__G) (GRlistRef) =
+      let l = I.ctxLength __G in
       List.exists
-        (function
-         | ((evar, l), __g', _, _, stage', _) ->
-             (stage = stage') && (l > (I.ctxLength __g'))) (!GRlistRef)
-    let rec eqHeads =
-      function
+        (fun (evar, l) ->
+           fun (__G') ->
+             fun _ ->
+               fun _ ->
+                 fun stage' ->
+                   fun _ -> (stage = stage') && (l > (I.ctxLength __G')))
+        (!GRlistRef)
+    let rec eqHeads __67__ __68__ =
+      match (__67__, __68__) with
       | (Const k, Const k') -> k = k'
       | (BVar k, BVar k') -> k = k'
       | (Def k, Def k') -> k = k'
       | (_, _) -> false__
-    let rec eqTerm =
-      function
-      | (Root (H2, S2), ((Root (H, S) as t), rho1)) ->
-          if eqHeads (H2, H) then eqSpine (S2, (S, rho1)) else false__
-      | (T2, (NVar n, rho1)) ->
+    let rec eqTerm __69__ __70__ =
+      match (__69__, __70__) with
+      | (Root (__H2, __S2), ((Root (__H, __S) as t), rho1)) ->
+          if eqHeads (__H2, __H)
+          then eqSpine (__S2, (__S, rho1))
+          else false__
+      | (__T2, (NVar n, rho1)) ->
           (match S.lookup rho1 n with
-           | None -> false__
-           | Some (T1) -> eqTerm (T2, (T1, (nid ()))))
-      | (Lam (D2, T2), (Lam (__d, T), rho1)) -> eqTerm (T2, (T, rho1))
+           | NONE -> false__
+           | Some (__T1) -> eqTerm (__T2, (__T1, (nid ()))))
+      | (Lam (__D2, __T2), (Lam (__D, __T), rho1)) ->
+          eqTerm (__T2, (__T, rho1))
       | (_, (_, _)) -> false__
-    let rec eqSpine =
-      function
+    let rec eqSpine __71__ __72__ =
+      match (__71__, __72__) with
       | (I.Nil, (I.Nil, rho1)) -> true__
-      | (App (T2, S2), (App (T, S), rho1)) ->
-          (eqTerm (T2, (T, rho1))) && (eqSpine (S2, (S, rho1)))
+      | (App (__T2, __S2), (App (__T, __S), rho1)) ->
+          (eqTerm (__T2, (__T, rho1))) && (eqSpine (__S2, (__S, rho1)))
       | (_, _) -> false__
-    let rec divergingSub ((__Ds, sigma), (Dr1, rho1), (Dr2, rho2)) =
+    let rec divergingSub (__Ds, sigma) (Dr1, rho1) (Dr2, rho2) =
       S.exists rho2
-        (function
-         | (n2, t2) ->
-             S.exists sigma (function | (_, t) -> eqTerm (t2, (t, rho1))))
-    let rec insert (Nref, (D_u, nsub_u), GR) =
-      let rec insert' =
-        function
-        | ((Leaf ((__d, _), GRlistRef) as N), (D_u, nsub_u),
+        (fun n2 ->
+           fun t2 ->
+             S.exists sigma (fun _ -> fun t -> eqTerm (t2, (t, rho1))))
+    let rec insert (Nref) (D_u, nsub_u) (GR) =
+      let rec insert' __75__ __76__ __77__ =
+        match (__75__, __76__, __77__) with
+        | ((Leaf ((__D, _), GRlistRef) as N), (D_u, nsub_u),
            (((evarl, l), G_r, eqn, answRef, stage, status) as GR)) ->
             (match compatibleCtx ((G_r, eqn), (!GRlistRef)) with
-             | None ->
-                 if
-                   (!TableParam.divHeuristic) &&
-                     (divergingCtx (stage, G_r, GRlistRef))
-                 then
-                   (((function
-                      | () ->
-                          (GRlistRef := (GR :: (!GRlistRef));
-                           answList := (answRef :: (!answList))))),
-                     (T.DivergingEntry (I.id, answRef)))
-                 else
-                   (((function
-                      | () ->
-                          (GRlistRef := (GR :: (!GRlistRef));
-                           answList := (answRef :: (!answList))))),
-                     (T.NewEntry answRef))
+             | NONE ->
+                 ((if
+                     (!TableParam.divHeuristic) &&
+                       (divergingCtx (stage, G_r, GRlistRef))
+                   then
+                     (((((fun () ->
+                            GRlistRef := (GR :: (!GRlistRef));
+                            answList := (answRef :: (!answList)))),
+                         (T.DivergingEntry (I.id, answRef))))
+                     (* ctx are diverging --- force suspension *))
+                   else
+                     (((fun () ->
+                          GRlistRef := (GR :: (!GRlistRef));
+                          answList := (answRef :: (!answList)))),
+                       (T.NewEntry answRef)))
+                 (* compatible path (variant) -- ctx are different *)
+                 (* compatible path -- but different ctx! *))
              | Some ((evarl', Glength), answRef', status') ->
-                 (((function | () -> ())),
-                   (T.RepeatedEntry ((I.id, I.id), answRef', status'))))
-        | ((Node ((__d, sub), children) as N), (D_u, nsub_u),
+                 (((((fun () -> ())),
+                     (T.RepeatedEntry ((I.id, I.id), answRef', status'))))
+                 (* compatible path -- SAME ctx *)))
+        | ((Node ((__D, sub), children) as N), (D_u, nsub_u),
            ((l, G_r, eqn, answRef, stage, status) as GR)) ->
             let (VariantCand, SplitCand) =
               findAllCandidates (G_r, children, (D_u, nsub_u)) in
-            let rec checkCandidates =
-              function
+            let rec checkCandidates __73__ __74__ =
+              match (__73__, __74__) with
               | (nil, nil) ->
-                  (((function
-                     | () ->
-                         ((:=) Nref Node
-                            ((__d, sub),
-                              ((ref (Leaf ((D_u, nsub_u), (ref [GR])))) ::
-                                 children));
-                          answList := (answRef :: (!answList))))),
-                    (T.NewEntry answRef))
+                  (((((fun () ->
+                         (:=) Nref Node
+                           ((__D, sub),
+                             ((ref (Leaf ((D_u, nsub_u), (ref [GR])))) ::
+                                children));
+                         answList := (answRef :: (!answList)))),
+                      (T.NewEntry answRef)))
+                  (* no child is compatible with nsub_u *))
               | (nil, (ChildRef, (Dsigma, Drho1, Drho2))::_) ->
                   if
                     (!TableParam.divHeuristic) &&
                       (divergingSub (Dsigma, Drho1, Drho2))
                   then
-                    (((function
-                       | () ->
-                           ((:=) ChildRef mkNode
-                              ((!ChildRef), Dsigma, Drho1, GR, Drho2);
-                            answList := (answRef :: (!answList))))),
-                      (T.DivergingEntry (I.id, answRef)))
+                    (((((fun () ->
+                           (:=) ChildRef mkNode
+                             ((!ChildRef), Dsigma, Drho1, GR, Drho2);
+                           answList := (answRef :: (!answList)))),
+                        (T.DivergingEntry (I.id, answRef))))
+                    (* substree divering -- splitting node *))
                   else
-                    (((function
-                       | () ->
-                           ((:=) ChildRef mkNode
-                              ((!ChildRef), Dsigma, Drho1, GR, Drho2);
-                            answList := (answRef :: (!answList))))),
-                      (T.NewEntry answRef))
+                    (((((fun () ->
+                           (:=) ChildRef mkNode
+                             ((!ChildRef), Dsigma, Drho1, GR, Drho2);
+                           answList := (answRef :: (!answList)))),
+                        (T.NewEntry answRef)))
+                    (* split existing node *))
               | ((ChildRef, Drho2, asub)::nil, _) ->
                   insert (ChildRef, Drho2, GR)
-              | ((ChildRef, Drho2, asub)::__l, SCands) ->
+              | ((ChildRef, Drho2, asub)::__L, SCands) ->
                   (match insert (ChildRef, Drho2, GR) with
-                   | (_, NewEntry answRef) -> checkCandidates (__l, SCands)
+                   | (_, NewEntry answRef) -> checkCandidates (__L, SCands)
                    | (f, RepeatedEntry (asub, answRef, status)) ->
                        (f, (T.RepeatedEntry (asub, answRef, status)))
                    | (f, DivergingEntry (asub, answRef)) ->
-                       (f, (T.DivergingEntry (asub, answRef)))) in
-            checkCandidates (VariantCand, SplitCand) in
+                       (f, (T.DivergingEntry (asub, answRef))))(* there are several "perfect" candidates *)
+              (* unique "perfect" candidate (left) *)
+              (* split an existing node *) in
+            checkCandidates (VariantCand, SplitCand)(* need to compare D and D_u *) in
       insert' ((!Nref), (D_u, nsub_u), GR)
-    let rec answCheckVariant (s', answRef, O) =
-      let rec member =
-        function
-        | ((__d, sk), []) -> false__
-        | ((__d, sk), ((D1, s1), _)::S) ->
-            if (equalSub (sk, s1)) && (equalCtx' (__d, D1))
+    let rec answCheckVariant s' answRef (__O) =
+      let rec member __78__ __79__ =
+        match (__78__, __79__) with
+        | ((__D, sk), []) -> false__
+        | ((__D, sk), ((__D1, s1), _)::__S) ->
+            if (equalSub (sk, s1)) && (equalCtx' (__D, __D1))
             then true__
-            else member ((__d, sk), S) in
+            else member ((__D, sk), __S) in
       let (DEVars, sk) = A.abstractAnswSub s' in
       if member ((DEVars, sk), (T.solutions answRef))
       then T.repeated
-      else (T.addSolution (((DEVars, sk), O), answRef); T.new__)
+      else (T.addSolution (((DEVars, sk), __O), answRef); T.new__)
     let rec reset () =
       nctr := 1;
       Array.modify
-        (function
-         | (n, Tree) ->
-             (n := 0;
-              (!) ((:=) Tree) (makeTree ());
-              answList := [];
-              added := false__;
-              (n, Tree))) indexArray
-    let rec makeCtx =
-      function
+        (fun n ->
+           fun (Tree) ->
+             n := 0;
+             (!) ((:=) Tree) (makeTree ());
+             answList := [];
+             added := false__;
+             (n, Tree)) indexArray
+    let rec makeCtx __80__ __81__ __82__ =
+      match (__80__, __81__, __82__) with
       | (n, I.Null, (DEVars : ctx)) -> n
-      | (n, Decl (__g, __d), (DEVars : ctx)) ->
-          (insertList ((n, __d), DEVars); makeCtx ((n + 1), __g, DEVars))
-    let rec callCheck (a, DAVars, DEVars, __g, __u, eqn, status) =
+      | (n, Decl (__G, __D), (DEVars : ctx)) ->
+          (insertList ((n, __D), DEVars); makeCtx ((n + 1), __G, DEVars))
+    let rec callCheck a (DAVars) (DEVars) (__G) (__U) eqn status =
       let (n, Tree) = Array.sub (indexArray, a) in
       let nsub_goal = S.new__ () in
       let DAEVars = compose (DEVars, DAVars) in
-      let __d = emptyCtx () in
-      let n = I.ctxLength __g in
-      let _ = makeCtx ((n + 1), DAEVars, (__d : ctx)) in
+      let __D = emptyCtx () in
+      let n = I.ctxLength __G in
+      let _ = makeCtx ((n + 1), DAEVars, (__D : ctx)) in
       let l = I.ctxLength DAEVars in
-      let _ = S.insert nsub_goal (1, __u) in
+      let _ = S.insert nsub_goal (1, __U) in
       let result =
         insert
-          (Tree, (__d, nsub_goal),
-            ((l, (n + 1)), __g, eqn, (emptyAnswer ()), (!TableParam.stageCtr),
-              status)) in
-      let esub = ctxToAVarSub (__g, DAEVars, (I.Shift 0)) in
+          (Tree, (__D, nsub_goal),
+            ((l, (n + 1)), __G, eqn, (emptyAnswer ()),
+              (!TableParam.stageCtr), status)) in
+      let esub = ctxToAVarSub (__G, DAEVars, (I.Shift 0)) in
       let _ =
-        if solveEqn' ((eqn, (shift (__g, esub))), __g)
+        if solveEqn' ((eqn, (shift (__G, esub))), __G)
         then ()
         else print " failed to solve eqn_query\n" in
       match result with
@@ -589,19 +550,20 @@ module MemoTable(MemoTable:sig
            then print "\t -- Add diverging goal\n"
            else ();
            T.DivergingEntry answRef)
-    let rec insertIntoTree (a, DAVars, DEVars, __g, __u, eqn, answRef, status) =
+    let rec insertIntoTree a (DAVars) (DEVars) (__G) (__U) eqn answRef status
+      =
       let (n, Tree) = Array.sub (indexArray, a) in
       let nsub_goal = S.new__ () in
       let DAEVars = compose (DEVars, DAVars) in
-      let __d = emptyCtx () in
-      let n = I.ctxLength __g in
-      let _ = makeCtx ((n + 1), DAEVars, (__d : ctx)) in
+      let __D = emptyCtx () in
+      let n = I.ctxLength __G in
+      let _ = makeCtx ((n + 1), DAEVars, (__D : ctx)) in
       let l = I.ctxLength DAEVars in
-      let _ = S.insert nsub_goal (1, __u) in
+      let _ = S.insert nsub_goal (1, __U) in
       let result =
         insert
-          (Tree, (__d, nsub_goal),
-            ((l, (n + 1)), __g, eqn, answRef, (!TableParam.stageCtr), status)) in
+          (Tree, (__D, nsub_goal),
+            ((l, (n + 1)), __G, eqn, answRef, (!TableParam.stageCtr), status)) in
       match result with
       | (sf, NewEntry answRef) ->
           (added := true__;
@@ -619,240 +581,39 @@ module MemoTable(MemoTable:sig
            then print "\t -- Add diverging goal\n"
            else ();
            T.DivergingEntry answRef)
-    let rec answCheck (s', answRef, O) = answCheckVariant (s', answRef, O)
+    let rec answCheck s' answRef (__O) = answCheckVariant (s', answRef, __O)
     let rec updateTable () =
-      let rec update arg__0 arg__1 =
-        match (arg__0, arg__1) with
+      let rec update __83__ __84__ =
+        match (__83__, __84__) with
         | ([], Flag) -> Flag
         | (answRef::AList, Flag) ->
             let l = length (T.solutions answRef) in
-            if (=) l T.lookup answRef
-            then update AList Flag
-            else (T.updateAnswLookup (l, answRef); update AList true__) in
+            ((if (=) l T.lookup answRef
+              then update AList Flag
+              else (T.updateAnswLookup (l, answRef); update AList true__))
+              (* no new solutions were added in the previous stage *)
+              (* new solutions were added *)) in
       let Flag = update (!answList) false__ in
       let r = Flag || (!added) in added := false__; r
-    (* index for normal variables *)
-    (* index for bound variables *)
-    (* depth of locally bound variables *)
-    (* ------------------------------------------------------ *)
-    (* Auxiliary functions *)
-    (* solveEqn' ((VarDef, s), __g) = bool
-
-     if __g'' |- VarDef and __g   |- s : __g''
-       __g   |- VarDef[s]
-    then
-      return true, if VarDefs are solvable
-      false otherwise
-      *)
-    (* evar *)
-    (* ------------------------------------------------------ *)
-    (*  Variable b    : bound variable
-     Variable n    : index variable
-     linear term  __u ::=  Root(c, S) | Lam (__d, __u) | Root(b, S)
-     linear Spine S ::= p ; S | NIL
-     indexed term t ::= Root(n, NIL) |  Root(c, S) | Lam (__d, p) | Root(b, S)
-     indexed spines S_i ::= t ; S_i | NIL
-     Types   A
-     Context __g : context for bound variables (bvars)
-     (type information is stored in the context)
-        __g ::= . | __g, x : A
-        Set of all index variables:  N
-
-        linear terms are approximately well-typed in __g:  __g |- p
-        after erasing all typing dependencies.
-
-
-        Let s be a path in the substitution tree such that
-        s1 o s2 o .... o sn = s,
-
-
-
-        Let N1 ... Nn be the path from the root N1 to the leaf Nn,
-        and si the substitution associated with node Ni.
-
-       IMAGE(sn) = empty
-       s1 o s2 o ... o sn = s and IMAGE(s) = empty
-       i.e. index variables are only internally used and no
-       index variable is left.
-
-       A linear term __u (and an indexed term t) can be decomposed into a term t' together with
-       a sequenence of substitutions s1, s2, ..., sn such that s1 o s2 o .... o sn = s
-       and the following holds:
-
-       If    N  ; __g |- t
-       then  N' ; __g |- t'
-             N  ; __g |- s : N' ; __g
-             N  ; __g |- t'[s]     and t'[s] = t
-
-      if we have a linear term then N will be empty, but the same holds.
-
-      In addition:
-      all expressions in the index are closed and linear, i.e.
-      an expression is first linearized before it is inserted into the index
-      (this makes retrieving all axpressions from the index which unify with
-      a given expression simpler, because we can omit the occurs check)
-
-   *)
-    (* ---------------------------------------------------------------*)
-    (* nctr = |__d| =  #index variables *)
-    (* We require order of both eqn must be the same Sun Sep  8 20:37:48 2002 -bp *)
-    (* s = s' = I.id *)
-    (* in general, we need to carry around and build up a substitution *)
-    (* ---------------------------------------------------------------*)
-    (* ---------------------------------------------------------------*)
-    (* most specific linear common generalization *)
-    (* compatible (T, __u) = (T', rho_u, rho_t) opt
-    if T is an indexed term
-       __u is a linear term
-       __u and T share at least the top function symbol
-   then
-       T'[rho_u] = __u and T'[rho_t] = T
-   *)
-    (* globally bound variable *)
-    (* k, k' refer to the existential *)
-    (* they refer to the same existential variable *)
-    (* this is unecessary -- since existential variables have the same type
-                                and need to be fully applied in order, S1 = S2 *)
-    (* variant checking only *)
-    (* locally bound variables *)
-    (* by invariant A1 = A2 *)
-    (* __u = EVar, EClo -- can't happen -- Sun Oct 20 13:41:25 2002 -bp *)
-    (* ---------------------------------------------------------------*)
-    (* compatibleSub(nsub_t, nsub_u) = (sigma, rho_t, rho_u) opt
-
-   if DOM(nsub_t) <= DOM(nsub_u)
-      CODOM(nsub_t) : index terms
-      CODOM(nsub_u) : linear terms
-        G_u, Glocal_u |- nsub_u
-    N ; G_t, Glocal_t |- nsub_t
-   then
-     nsub_t = sigma o rho_t
-     nsub_e = sigma o rho_u
-
-    Glocal_e ~ Glocal_t  (have "approximately" the same type)
-
-   *)
-    (* by invariant rho_t = empty, since nsub_t <= nsub_u *)
-    (* note by invariant Glocal_e ~ Glocal_t *)
-    (* here Glocal_t will be only approximately correct! *)
-    (* perfect match under asub and rho_t = nsub_t
-           sigma = rho_t and sigma o asub = rho_u *)
-    (* split -- asub is unchanged *)
-    (* Dsigma |~ sigma, D_r1 |~ rho_t, D_r1 |~ rho_u *)
-    (* ---------------------------------------------------------------------- *)
-    (* ---------------------------------------------------------------------- *)
-    (* we may not need to check that the DAVars are the same *)
-    (* ---------------------------------------------------------------------- *)
-    (* eqTerm (t2, (t, rho1)) = bool
-    returns true iff t2 = t[rho1]
-  t2 is a linear term which may not contain any nvars!
-  t may contain nvars
- *)
-    (* ---------------------------------------------------------------------- *)
-    (* Insert via variant checking *)
-    (* insert' (N, (__d, nsub), GR) = (f, callCheckResult)
-
-     invariant:
-
-       N is a substitution tree
-       nsub is a normal substitution
-       __d contains all the existential variables in nsub
-       GR = (__g : bound variable context,
-             eqn: residual equations
-             answRef : ptr to answer list
-
-     if there exists a path p in N s.t. p ~ nsub
-      then
-       f is the identity, and callCheckResult = RepeatedEntry(_,_,answRef)
-     otherwise (f is a function which destructively updates N
-                and once executed, will add a path p ~ nsub to N,
-                 callCheckResult = NewEntry (answRef)
-
-  *)
-    (* need to compare __d and D_u *)
-    (* compatible path -- but different ctx! *)
-    (* ctx are diverging --- force suspension *)
-    (* compatible path (variant) -- ctx are different *)
-    (* compatible path -- SAME ctx *)
-    (* no child is compatible with nsub_u *)
-    (* split an existing node *)
-    (* substree divering -- splitting node *)
-    (* split existing node *)
-    (* unique "perfect" candidate (left) *)
-    (* there are several "perfect" candidates *)
-    (* ---------------------------------------------------------------------- *)
-    (* answer check and insert
-
-     Invariant:
-        __d |- Pi G.U
-          |- (Pi G.U)[s]
-       .  |- s : __d
-       {{K}} are all the free variables in s
-        D_k is the linear context of all free variables in {{K}}
-        D_k |- s_k : __d  and eqn
-        D_k |- (Pi G.U)[s_k] and eqn
-
-      answerCheck (__g, s, answRef, 0) = repeated
-         if (D_k, s_k, eqn)  already occurs in answRef
-      answerCheck (__g,s, answRef, O) = new
-         if (D_k, s_k, eqn) did not occur in answRef
-         Sideeffect: update answer list for __u
-     *)
-    (* ---------------------------------------------------------------------- *)
-    (* callCheck (a, DA, DE, __g, __u eqn) = callCheckResult
-
-       invariant:
-       DA, DE, __g |- __u
-       a is the type family of __u
-
-       if __u is not already in the index, then it is inserted.
-       otherwise we return
-             a pointer answRef to the answer list.
-             (for variant checking, asub = I.id, and varDefs = None)
-     *)
-    (* insertIntoSTre (a, DA, DE, __g, __u eqn) = Succeeds
-
-       invariant:
-       DA, DE, __g |- __u
-       a is the type family of __u
-
-       __u is not already in the index, then it is inserted.
-       otherwise we return
-             a pointer answRef to the answer list.
-             (for variant checking, asub = I.id, and varDefs = None)
-     *)
-    (* no new solutions were added in the previous stage *)
-    (* new solutions were added *)
     let reset = reset
-    let callCheck =
-      function
-      | (DAVars, DEVars, __g, __u, eqn, status) ->
-          callCheck
-            ((cidFromHead (I.targetHead __u)), DAVars, DEVars, __g, __u, eqn,
-              status)
-    let insertIntoTree =
-      function
-      | (DAVars, DEVars, __g, __u, eqn, answRef, status) ->
-          insertIntoTree
-            ((cidFromHead (I.targetHead __u)), DAVars, DEVars, __g, __u, eqn,
-              answRef, status)
+    let callCheck (DAVars) (DEVars) (__G) (__U) eqn status =
+      callCheck
+        ((cidFromHead (I.targetHead __U)), DAVars, DEVars, __G, __U, eqn,
+          status)
+    let insertIntoTree (DAVars) (DEVars) (__G) (__U) eqn answRef status =
+      insertIntoTree
+        ((cidFromHead (I.targetHead __U)), DAVars, DEVars, __G, __U, eqn,
+          answRef, status)
     let answerCheck = answCheck
     let updateTable = updateTable
-    let tableSize = function | () -> length (!answList)
-    (* memberCtx ((__g,__v), __g', n) = bool
-
-       if __g |- __v and |- __g' ctx
-          exists a __v' in __g s.t. __v = __v'[^n]
-       then return true
-         otherwise false
-     *)
-    let rec memberCtx ((__g, __v), __g') =
-      let rec memberCtx' =
-        function
-        | ((__g, __v), I.Null, n) -> None
-        | ((__g, __v), Decl (__g', (Dec (_, __v') as __d')), n) ->
-            if Conv.conv ((__v, I.id), (__v', (I.Shift n)))
-            then Some __d'
-            else memberCtx' ((__g, __v), __g', (n + 1)) in
-      memberCtx' ((__g, __v), __g', 1)
+    let tableSize () = length (!answList)
+    let rec memberCtx (__G, __V) (__G') =
+      let rec memberCtx' __7__ __8__ __9__ =
+        match (__7__, __8__, __9__) with
+        | ((__G, __V), I.Null, n) -> NONE
+        | ((__G, __V), Decl (__G', (Dec (_, __V') as D')), n) ->
+            if Conv.conv ((__V, I.id), (__V', (I.Shift n)))
+            then Some __D'
+            else memberCtx' ((__G, __V), __G', (n + 1)) in
+      memberCtx' ((__G, __V), __G', 1)
   end ;;

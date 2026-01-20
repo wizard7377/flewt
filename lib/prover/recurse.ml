@@ -1,6 +1,4 @@
 
-(* Recurse: Version 1.4 *)
-(* Author: Carsten Schuermann *)
 module type RECURSE  =
   sig
     module State : STATE

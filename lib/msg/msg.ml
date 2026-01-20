@@ -6,7 +6,7 @@ module type MSG  =
   end
 module Msg : MSG =
   struct
-    let default = print_string
+    let default = print
     let messageFunc = ref default
     let rec setMessageFunc f = messageFunc := f
     let rec message s = (!) messageFunc s

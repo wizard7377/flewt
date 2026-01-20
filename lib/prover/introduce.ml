@@ -1,10 +1,6 @@
 
-(* Introduce: Version 1.4 *)
-(* Author: Carsten Schuermann *)
 module type INTRODUCE  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure Tomega : TOMEGA !*)
     module State : STATE
     exception Error of string 
     type nonrec operator
@@ -16,20 +12,11 @@ module type INTRODUCE  =
 
 
 
-(* Introduce *)
-(* Author: Carsten Schuermann *)
 module Introduce(Introduce:sig
-                             (*! structure IntSyn' : INTSYN !*)
-                             (*! structure Tomega' : TOMEGA !*)
-                             (*! sharing Tomega'.IntSyn = IntSyn' !*)
                              module State' : STATE
                              module TomegaNames : TOMEGANAMES
                            end) : INTRODUCE =
   struct
-    (*! sharing State'.IntSyn = IntSyn' !*)
-    (*! sharing State'.Tomega = Tomega' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure Tomega = Tomega' !*)
     module State = State'
     module S = State'
     module T = Tomega
@@ -38,54 +25,42 @@ module Introduce(Introduce:sig
     type nonrec operator = (T.__Prg * T.__Prg)
     let rec stripTC (TC) = TC
     let rec stripTCOpt =
-      function | None -> None | Some (TC) -> Some (stripTC TC)
+      function | NONE -> NONE | Some (TC) -> Some (stripTC TC)
     let rec stripDec =
       function
-      | UDec (__d) -> T.UDec __d
-      | PDec (name, F, TC1, TC2) -> T.PDec (name, F, TC1, (stripTCOpt TC2))
+      | UDec (__D) -> T.UDec __D
+      | PDec (name, __F, TC1, TC2) ->
+          T.PDec (name, __F, TC1, (stripTCOpt TC2))
     let rec strip =
       function
       | I.Null -> I.Null
-      | Decl (Psi, __d) -> I.Decl ((strip Psi), (stripDec __d))
+      | Decl (Psi, __D) -> I.Decl ((strip Psi), (stripDec __D))
     let rec expand =
       function
-      | Focus ((EVar (Psi, r, All ((__d, _), F), None, None, _) as R), W) ->
-          let __d' = TomegaNames.decName (Psi, __d) in
-          Some (R, (T.Lam (__d', (T.newEVar ((I.Decl ((strip Psi), __d')), F)))))
-      | Focus
-          ((EVar (Psi, r, Ex (((Dec (_, __v) as __d), _), F), None, None, _) as R),
-           W)
+      | Focus ((EVar (Psi, r, All ((__D, _), __F), NONE, NONE, _) as R), __W)
           ->
-          let x = I.newEVar ((T.coerceCtx Psi), __v) in
-          let y = T.newEVar (Psi, (T.forSub (F, (T.Dot ((T.Exp x), T.id))))) in
-          Some (R, (T.PairExp (x, y)))
-      | Focus ((EVar (Psi, r, T.True, None, None, _) as R), W) ->
-          Some (R, T.Unit)
-      | Focus (EVar (Psi, r, FClo (F, s), TC1, TC2, x), W) ->
+          let __D' = TomegaNames.decName (Psi, __D) in
+          Some
+            (__R,
+              (T.Lam (__D', (T.newEVar ((I.Decl ((strip Psi), __D')), __F)))))
+      | Focus
+          ((EVar (Psi, r, Ex (((Dec (_, __V) as D), _), __F), NONE, NONE, _)
+              as R),
+           __W)
+          ->
+          let __X = I.newEVar ((T.coerceCtx Psi), __V) in
+          let __Y =
+            T.newEVar (Psi, (T.forSub (__F, (T.Dot ((T.Exp __X), T.id))))) in
+          Some (__R, (T.PairExp (__X, __Y)))
+      | Focus ((EVar (Psi, r, T.True, NONE, NONE, _) as R), __W) ->
+          Some (__R, T.Unit)
+      | Focus (EVar (Psi, r, FClo (__F, s), TC1, TC2, __X), __W) ->
           expand
-            (S.Focus ((T.EVar (Psi, r, (T.forSub (F, s)), TC1, TC2, x)), W))
-      | Focus (EVar (Psi, r, _, _, _, _), W) -> None
-    let rec apply (EVar (_, r, _, _, _, _), P) = (:=) r Some P
-    let rec menu (r, P) = (^) "Intro " TomegaPrint.nameEVar r
-    (*    fun stripTC (T.Abs (_, TC)) = TC *)
-    (* expand S = S'
-
-       Invariant:
-       If   S = (Psi |> all x1:A1 .... xn: An. F)
-       and  F does not start with an all quantifier
-       then S' = (Psi, x1:A1, ... xn:An |> F)
-    *)
-    (* apply O = S
-
-       Invariant:
-       O = S
-    *)
-    (* need to trail for back *)
-    (* menu O = s
-
-       Invariant:
-       s = "Apply universal introduction rules"
-    *)
+            (S.Focus
+               ((T.EVar (Psi, r, (T.forSub (__F, s)), TC1, TC2, __X)), __W))
+      | Focus (EVar (Psi, r, _, _, _, _), __W) -> NONE
+    let rec apply (EVar (_, r, _, _, _, _)) (__P) = (:=) r Some __P
+    let rec menu r (__P) = (^) "Intro " TomegaPrint.nameEVar r
     exception Error = Error
     type nonrec operator = operator
     let expand = expand

@@ -1,8 +1,6 @@
 
 module AbsMachine =
   (Make_AbsMachine)(struct
-                      (*! structure IntSyn' = IntSyn !*)
-                      (*! structure CompSyn' = CompSyn !*)
                       module Unify = UnifyTrail
                       module Assign = Assign
                       module Index = Index
@@ -12,58 +10,45 @@ module AbsMachine =
                     end)
 module AbstractTabled =
   (Make_AbstractTabled)(struct
-                          (*! structure IntSyn' = IntSyn !*)
                           module Print = Print
                           module Whnf = Whnf
                           module Unify = UnifyTrail
                           module Constraints = Constraints
                           module Subordinate = Subordinate
-                          (*! structure TableParam = TableParam !*)
                           module Conv = Conv
                           module Print = Print
                         end)
 module MemoTable =
   (Make_MemoTable)(struct
-                     (*! structure IntSyn' = IntSyn !*)
-                     (*! structure CompSyn' = CompSyn !*)
                      module Conv = Conv
                      module Whnf = Whnf
                      module Print = Print
-                     (*! structure TableParam = TableParam !*)
                      module AbstractTabled = AbstractTabled
                      module Table = IntRedBlackTree
                    end)
 module MemoTableInst =
   (Make_MemoTableInst)(struct
-                         (*! structure IntSyn' = IntSyn !*)
-                         (*! structure CompSyn' = CompSyn !*)
                          module Conv = Conv
                          module Whnf = Whnf
                          module Match = Match
                          module Assign = Assign
                          module Print = Print
-                         (*! structure TableParam = TableParam !*)
                          module AbstractTabled = AbstractTabled
                          module Table = IntRedBlackTree
                        end)
 module SwMemoTable =
   (Make_SwMemoTable)(struct
-                       (*! structure TableParam = TableParam !*)
                        module MemoTable = MemoTable
                        module MemoTableInst = MemoTableInst
                      end)
 module Tabled =
   (Make_Tabled)(struct
-                  (*! structure IntSyn' = IntSyn !*)
-                  (*! structure CompSyn' = CompSyn !*)
                   module Unify = UnifyTrail
                   module Match = Match
                   module TabledSyn = TabledSyn
                   module Assign = Assign
                   module Index = Index
                   module Queue = Queue
-                  (*! structure TableParam = TableParam !*)
-                  (*	  structure MemoTable = MemoTable    *)
                   module MemoTable = SwMemoTable
                   module AbstractTabled = AbstractTabled
                   module CPrint = CPrint
@@ -71,10 +56,7 @@ module Tabled =
                 end)
 module PtRecon =
   (Make_PtRecon)(struct
-                   (*! structure IntSyn' = IntSyn !*)
-                   (*! structure CompSyn' = CompSyn !*)
                    module Unify = UnifyTrail
-                   (*! structure TableParam = TableParam !*)
                    module MemoTable = SwMemoTable
                    module Assign = Assign
                    module Index = Index
@@ -83,7 +65,6 @@ module PtRecon =
                  end)
 module Trace =
   (Make_Trace)(struct
-                 (*! structure IntSyn' = IntSyn !*)
                  module Names = Names
                  module Whnf = Whnf
                  module Abstract = Abstract
@@ -104,8 +85,6 @@ module AbsMachineSbt =
                        end)
 module TMachine =
   (Make_TMachine)(struct
-                    (*! structure IntSyn' = IntSyn !*)
-                    (*! structure CompSyn' = CompSyn !*)
                     module Unify = UnifyTrail
                     module Index = Index
                     module Assign = Assign

@@ -1,15 +1,13 @@
 
 module SigINT : SIGINT =
   struct
-    let rec interruptLoop (loop : unit -> unit) =
+    let rec interruptLoop loop =
       let origIntHandler =
         Signal.signal
           (Posix.Signal.int,
             (Signal.SIG_HANDLE
-               (function
-                | n ->
-                    (print "\ninterrupt\n";
-                     Process.interruptConsoleProcesses ())))) in
+               (fun n ->
+                  print "\ninterrupt\n"; Process.interruptConsoleProcesses ()))) in
       ((loop ())
         (*
 	val _ = print

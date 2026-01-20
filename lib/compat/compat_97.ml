@@ -1,6 +1,4 @@
 
-(* Compatibility shim from Basis-current to Basis-97 *)
-(* Author: Christopher Richards *)
 module Compat : COMPAT =
   (Make_Compat)(struct
                   module Array = CompatArray97

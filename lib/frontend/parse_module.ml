@@ -1,13 +1,8 @@
 
-(* Parsing modules *)
-(* Author: Kevin Watkins *)
 module type PARSE_MODULE  =
   sig
-    (*! structure Parsing : PARSING !*)
     module ModExtSyn : MODEXTSYN
-    (* val parseSigExp' : ModExtSyn.sigexp Parsing.recparser *)
     val parseSigDef' : ModExtSyn.sigdef Parsing.recparser
-    (* val parseStructExp' : ModExtSyn.strexp Parsing.parser *)
     val parseStructDec' : ModExtSyn.structdec Parsing.recparser
     val parseInclude' : ModExtSyn.sigexp Parsing.recparser
     val parseOpen' : ModExtSyn.strexp Parsing.parser
@@ -16,20 +11,13 @@ module type PARSE_MODULE  =
 
 
 
-(* Parsing modules *)
-(* Author: Kevin Watkins *)
 module ParseModule(ParseModule:sig
-                                 (*! structure Paths : PATHS !*)
-                                 (*! structure Parsing' : PARSING !*)
-                                 (*! sharing Parsing'.Lexer.Paths = Paths !*)
                                  module ModExtSyn' : MODEXTSYN
-                                 (*! sharing ModExtSyn'.Paths = Paths !*)
                                  module ParseTerm : PARSE_TERM
                                end) : PARSE_MODULE =
   struct
-    (*! structure Parsing = Parsing' !*)
     module ModExtSyn = ModExtSyn'
-    module __l = Lexer
+    module L = Lexer
     module LS = Lexer.Stream
     module E = ModExtSyn
     let rec parseStructExp' =
@@ -69,8 +57,8 @@ module ParseModule(ParseModule:sig
       | Cons ((t, r), s') ->
           Parsing.error
             (r, ((^) "Expected identifier, found token " L.toString t))
-    let rec parseStrInst2' =
-      function
+    let rec parseStrInst2' __0__ __1__ =
+      match (__0__, __1__) with
       | (r0, (Cons ((ID _, r1), _) as f)) ->
           let ((ids, (ID (_, id), r2)), f1) = ParseTerm.parseQualId' f in
           let (_, f2) = parseColonEqual' f1 in
@@ -108,8 +96,8 @@ module ParseModule(ParseModule:sig
       | Cons ((L.LBRACE, _), s') as f -> parseInsts' (LS.expose s')
       | Cons ((t, r), s') ->
           Parsing.error (r, ((^) "Expected `{', found token " L.toString t))
-    let rec parseWhereClauses' =
-      function
+    let rec parseWhereClauses' __2__ __3__ =
+      match (__2__, __3__) with
       | ((Cons ((L.WHERE, _), s') as f), sigexp) ->
           let (insts, f') = parseInstantiate' (LS.expose s') in
           parseWhereClauses' (f', (E.wheresig (sigexp, insts)))
@@ -122,20 +110,19 @@ module ParseModule(ParseModule:sig
           ((Parsing.Done sigexp), f')
       | Cons ((L.LBRACE, r), _) as f ->
           ((Parsing.Continuation
-              (function
-               | f' ->
-                   let (sigexp, f'') = parseWhereClauses' (f', E.thesig) in
-                   ((Parsing.Done sigexp), f''))), f)
+              (fun f' ->
+                 let (sigexp, f'') = parseWhereClauses' (f', E.thesig) in
+                 ((Parsing.Done sigexp), f''))), f)
       | Cons ((t, r), _) ->
           Parsing.error
             (r,
               ((^) "Expected signature name or expression, found token "
                  L.toString t))
-    let rec parseSgEqual' =
-      function
+    let rec parseSgEqual' __4__ __5__ =
+      match (__4__, __5__) with
       | (idOpt, Cons ((L.EQUAL, r), s')) ->
           Parsing.recwith
-            (parseSigExp', (function | sigexp -> E.sigdef (idOpt, sigexp)))
+            (parseSigExp', (fun sigexp -> E.sigdef (idOpt, sigexp)))
             (LS.expose s')
       | (idOpt, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected `=', found token " L.toString t))
@@ -143,18 +130,17 @@ module ParseModule(ParseModule:sig
       function
       | Cons ((ID (_, id), r), s') ->
           parseSgEqual' ((Some id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (None, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (NONE, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,
               ((^) "Expected signature identifier, found token " L.toString t))
     let rec parseSigDef' (Cons ((L.SIG, r), s')) = parseSgDef' (LS.expose s')
-    let rec parseStrDec2' =
-      function
+    let rec parseStrDec2' __6__ __7__ =
+      match (__6__, __7__) with
       | (idOpt, Cons ((L.COLON, r), s')) ->
           Parsing.recwith
-            (parseSigExp',
-              (function | sigexp -> E.structdec (idOpt, sigexp)))
+            (parseSigExp', (fun sigexp -> E.structdec (idOpt, sigexp)))
             (LS.expose s')
       | (idOpt, Cons ((L.EQUAL, r), s')) ->
           let (strexp, f') = parseStructExp' (LS.expose s') in
@@ -166,7 +152,7 @@ module ParseModule(ParseModule:sig
       function
       | Cons ((ID (_, id), r), s') ->
           parseStrDec2' ((Some id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (None, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (NONE, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,

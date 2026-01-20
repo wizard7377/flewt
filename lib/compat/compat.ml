@@ -1,6 +1,4 @@
 
-(* Compatibility shim to cope with Standard Basis version skew *)
-(* Author: Christopher Richards *)
 module type COMPAT  =
   sig
     val inputLine97 : TextIO.instream -> string
@@ -16,8 +14,6 @@ module type COMPAT  =
 
 
 
-(* Compatibility shim to cope with Standard Basis version skew *)
-(* Author: Christopher Richards *)
 module Compat(Compat:sig
                        module Array : COMPAT_ARRAY
                        module Vector : COMPAT_VECTOR
@@ -41,8 +37,6 @@ module Compat(Compat:sig
 
 
 
-(* Compatibility shim from Basis-current to itself *)
-(* Author: Christopher Richards *)
 module Compat : COMPAT =
   (Make_Compat)(struct
                   module Array = Array

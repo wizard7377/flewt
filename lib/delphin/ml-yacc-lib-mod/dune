@@ -1,7 +1,0 @@
-(library
- (wrapped
-  (transition "Convert SML convention to OCaml convention"))
- (public_name flewt.ml_yacc_lib_mod)
- (name ml_yacc_lib_mod)
- (libraries base)
- (modules base join lrtable parser2 stream))

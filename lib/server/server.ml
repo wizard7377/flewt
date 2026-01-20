@@ -1,6 +1,6 @@
 
 module type SERVER  =
-  sig val server : (string * string list) -> OS.Process.status end
+  sig val server : string -> string list -> OS.Process.status end
 module Server(Server:sig
                        module SigINT : SIGINT
                        module Timing : TIMING
@@ -8,7 +8,7 @@ module Server(Server:sig
                        module Twelf : TWELF
                      end) : SERVER =
   struct
-    let (globalConfig : Twelf.Config.config option ref) = ref None
+    let (globalConfig : Twelf.Config.config option ref) = ref NONE
     let rec readLine () =
       let rec getLine () =
         try Compat.inputLine97 TextIO.stdIn
@@ -17,14 +17,16 @@ module Server(Server:sig
       let rec triml ss = Substring.dropl Char.isSpace ss in
       let rec trimr ss = Substring.dropr Char.isSpace ss in
       let line' = triml (trimr (Compat.Substring.full line)) in
-      if line = ""
-      then ("OS.exit", "")
-      else
-        if (Substring.size line') = 0
-        then readLine ()
+      ((if line = ""
+        then ("OS.exit", "")
         else
-          (let (command', args') = Substring.position " " line' in
-           ((Substring.string command'), (Substring.string (triml args'))))
+          if (Substring.size line') = 0
+          then readLine ()
+          else
+            (let (command', args') = Substring.position " " line' in
+             ((Substring.string command'), (Substring.string (triml args')))))
+        (* val line = TextIO.inputLine (TextIO.stdIn) *)
+        (* Fix for MLton, Fri Dec 20 21:50:22 2002 -sweeks (fp) *))
     let rec tokenize args = String.tokens Char.isSpace args
     exception Error of string 
     let rec error msg = raise (Error msg)
@@ -35,8 +37,10 @@ module Server(Server:sig
       | Twelf.ABORT -> print "%% ABORT %%\n"
     let rec checkEmpty =
       function | "" -> () | args -> error "Extraneous arguments"
-    let rec getFile =
-      function | ("", default) -> default | (fileName, default) -> fileName
+    let rec getFile __0__ __1__ =
+      match (__0__, __1__) with
+      | ("", default) -> default
+      | (fileName, default) -> fileName
     let rec getFile' =
       function | "" -> error "Missing filename" | fileName -> fileName
     let rec getId =
@@ -72,10 +76,10 @@ module Server(Server:sig
       | ts -> error "Extraneous arguments"
     let rec getLimit =
       function
-      | "*"::nil -> None
+      | "*"::nil -> NONE
       | t::ts -> Some (getNat (t :: ts))
       | nil -> error "Missing `*' or natural number"
-    let rec limitToString = function | None -> "*" | Some i -> Int.toString i
+    let rec limitToString = function | NONE -> "*" | Some i -> Int.toString i
     let rec getTableStrategy =
       function
       | "Variant"::nil -> Twelf.Table.Variant
@@ -168,8 +172,8 @@ module Server(Server:sig
       | nil -> error "Missing parameter"
     let helpString =
       "Commands:\n  set <parameter> <value>     - Set <parameter> to <value>\n  get <parameter>             - Print the current value of <parameter>\n  Trace.trace <id1> ... <idn> - Trace given constants\n  Trace.traceAll              - Trace all constants\n  Trace.untrace               - Untrace all constants\n  Trace.break <id1> ... <idn> - Set breakpoint for given constants\n  Trace.breakAll              - Break on all constants\n  Trace.unbreak               - Remove all breakpoints\n  Trace.show                  - Show current trace and breakpoints\n  Trace.reset                 - Reset all tracing and breaking\n  Print.sgn                   - Print current signature\n  Print.prog                  - Print current signature as program\n  Print.subord                - Print current subordination relation\n  Print.domains               - Print registered constraint domains\n  Print.TeX.sgn               - Print signature in TeX format\n  Print.TeX.prog              - Print signature in TeX format as program\n  Timers.show                 - Print and reset timers\n  Timers.reset                - Reset timers\n  Timers.check                - Print, but do not reset timers.\n  OS.chDir <file>             - Change working directory to <file>\n  OS.getDir                   - Print current working directory\n  OS.exit                     - Exit Twelf server\n  quit                        - Quit Twelf server (same as exit)\n  Config.read <file>          - Read current configuration from <file>\n  Config.load                 - Load current configuration\n  Config.append               - Load current configuration without prior reset\n  make <file>                 - Read and load configuration from <file>\n  reset                       - Reset global signature.\n  loadFile <file>             - Load Twelf file <file>\n  decl <id>                   - Show constant declaration for <id>\n  top                         - Enter interactive query loop\n  Table.top                   - Enter interactive loop for tables queries\n  version                     - Print Twelf server's version\n  help                        - Print this help message\n\nParameters:\n  chatter <nat>               - Level of verbosity (0 = none, 3 = default)\n  doubleCheck <bool>          - Perform additional internal type-checking\n  unsafe <bool>               - Allow unsafe operations (%assert)\n  autoFreeze <bool>           - Freeze families involved in meta-theorems\n  Print.implicit <bool>       - Print implicit arguments\n  Print.depth <limit>         - Cut off printing at depth <limit>\n  Print.length <limit>        - Cut off printing at length <limit>\n  Print.indent <nat>          - Indent by <nat> spaces\n  Print.width <nat>           - Line width for formatting\n  Trace.detail <nat>          - Detail of tracing\n  Compile.optimize <bool>     - Optimize during translation to clauses\n  Recon.trace <bool>          - Trace term reconstruction\n  Recon.traceMode <reconTraceMode> - Term reconstruction tracing mode\n  Prover.strategy <strategy>  - Prover strategy\n  Prover.maxSplit <nat>       - Prover splitting depth bound\n  Prover.maxRecurse <nat>     - Prover recursion depth bound\n  Table.strategy <tableStrategy>   - Tabling strategy\n\nServer types:\n  file                        - File name, relative to working directory\n  id                          - A Twelf identifier\n  bool                        - Either `true' or `false'\n  nat                         - A natural number (starting at `0')\n  limit                       - Either `*' (no limit) or a natural number\n  reconTraceMode              - Either `Progressive' or `Omniscient'\n  strategy                    - Either `FRS' or `RFS'\n  tableStrategy               - Either `Variant' or `Subsumption'\n\nSee http://www.cs.cmu.edu/~twelf/guide-1-4/ for more information,\nor type M-x twelf-info (C-c C-h) in Emacs.\n"
-    let rec serve' =
-      function
+    let rec serve' __2__ __3__ =
+      match (__2__, __3__) with
       | ("set", args) -> (setParm (tokenize args); serve Twelf.OK)
       | ("get", args) ->
           (print ((getParm (tokenize args)) ^ "\n"); serve Twelf.OK)
@@ -229,13 +233,13 @@ module Server(Server:sig
            serve Twelf.OK)
       | ("Config.load", args) ->
           ((match !globalConfig with
-            | None ->
+            | NONE ->
                 (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.load (valOf (!globalConfig))))
       | ("Config.append", args) ->
           ((match !globalConfig with
-            | None ->
+            | NONE ->
                 (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.append (valOf (!globalConfig))))
@@ -252,7 +256,13 @@ module Server(Server:sig
           (checkEmpty args; Twelf.Table.top (); serve Twelf.OK)
       | ("version", args) -> (print (Twelf.version ^ "\n"); serve Twelf.OK)
       | ("help", args) -> (print helpString; serve Twelf.OK)
-      | (t, args) -> error ((^) "Unrecognized command " quote t)
+      | (t, args) -> error ((^) "Unrecognized command " quote t)(* quit, as a concession *)
+      (* | serve' ("complete-at", args) = error "NYI" *)(* | serve' ("type-at", args) = error "NYI" *)
+      (*
+      serve' ("toc", args) = error "NYI"
+    | serve' ("list-program", args) = error "NYI"
+    | serve' ("list-signature", args) = error "NYI"
+    *)
     let rec serveLine () = serve' (readLine ())
     let rec serve =
       function
@@ -266,56 +276,13 @@ module Server(Server:sig
       | exn ->
           (print (((^) "Uncaught exception: " exnMessage exn) ^ "\n");
            serveTop Twelf.ABORT)
-    let rec server (name, _) =
-      print (Twelf.version ^ "\n");
-      Timing.init ();
-      SigINT.interruptLoop (function | () -> serveTop Twelf.OK);
-      OS.Process.success
-  end  (* signature SERVER *)
-(* readLine () = (command, args)
-     reads a command and and its arguments from the command line.
-  *)
-(* val line = TextIO.inputLine (TextIO.stdIn) *)
-(* Fix for MLton, Fri Dec 20 21:50:22 2002 -sweeks (fp) *)
-(* tokenize (args) = [token1, token2, ..., tokenn]
-     splits the arguments string into a list of space-separated
-     tokens
-  *)
-(* exception Error for server errors *)
-(* Print the OK or ABORT messages which are parsed by Emacs *)
-(* Checking if there are no extraneous arguments *)
-(* Command argument types *)
-(* File names, given a default *)
-(* File names, not defaults *)
-(* Identifiers, used as a constant *)
-(* Identifiers, used as a trace specification *)
-(* Strategies for %prove, %establish *)
-(* Booleans *) (* Natural numbers *)
-(* Limits ( *, or natural number) *)
-(* Tabling strategy *)
-(* Tracing mode for term reconstruction *)
-(* Compile options *)
-(* Setting Twelf parameters *)
-(* Getting Twelf parameter values *)
-(* extracted from doc/guide/twelf.texi *)
-(* serve' (command, args) = ()
-     executes the server commands represented by `tokens', 
-     issues success or failure and then reads another command line.
-     Invariant: tokens must be non-empty.
-
-     All input for one command must be on the same line.
-  *)
-(*
-      serve' ("toc", args) = error "NYI"
-    | serve' ("list-program", args) = error "NYI"
-    | serve' ("list-signature", args) = error "NYI"
-    *)
-(* | serve' ("type-at", args) = error "NYI" *)
-(* | serve' ("complete-at", args) = error "NYI" *)
-(* quit, as a concession *)
-(* ignore server name and arguments *)
-(* initialize timers *)
-(* functor Server *)
+    let rec server name _ =
+      ((print (Twelf.version ^ "\n");
+        Timing.init ();
+        SigINT.interruptLoop (fun () -> serveTop Twelf.OK);
+        OS.Process.success)
+      (* initialize timers *))(* ignore server name and arguments *)
+  end 
 module Server =
   (Make_Server)(struct
                   module SigINT = SigINT

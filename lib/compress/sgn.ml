@@ -6,28 +6,30 @@ module type SGN  =
       | DEF_NONE 
       | DEF_TERM of Syntax.term 
       | DEF_TYPE of Syntax.tp 
-    val condec : (string * Syntax.tp * Syntax.tp) -> sigent
-    val tycondec : (string * Syntax.knd * Syntax.knd) -> sigent
+    val condec : string -> Syntax.tp -> Syntax.tp -> sigent
+    val tycondec : string -> Syntax.knd -> Syntax.knd -> sigent
     val defn :
-      (string * Syntax.tp * Syntax.tp * Syntax.term * Syntax.term) -> sigent
+      string ->
+        Syntax.tp -> Syntax.tp -> Syntax.term -> Syntax.term -> sigent
     val tydefn :
-      (string * Syntax.knd * Syntax.knd * Syntax.tp * Syntax.tp) -> sigent
+      string -> Syntax.knd -> Syntax.knd -> Syntax.tp -> Syntax.tp -> sigent
     val abbrev :
-      (string * Syntax.tp * Syntax.tp * Syntax.term * Syntax.term) -> sigent
+      string ->
+        Syntax.tp -> Syntax.tp -> Syntax.term -> Syntax.term -> sigent
     val tyabbrev :
-      (string * Syntax.knd * Syntax.knd * Syntax.tp * Syntax.tp) -> sigent
+      string -> Syntax.knd -> Syntax.knd -> Syntax.tp -> Syntax.tp -> sigent
     val typeOfSigent : sigent -> Syntax.tp
     val classifier : int -> Syntax.class__
     val o_classifier : int -> Syntax.class__
     val def : int -> def
     val o_def : int -> def
-    val update : (int * sigent) -> unit
+    val update : int -> sigent -> unit
     val sub : int -> sigent option
     val clear : unit -> unit
     val get_modes : int -> Syntax.mode list option
-    val set_modes : (int * Syntax.mode list) -> unit
+    val set_modes : int -> Syntax.mode list -> unit
     val get_p : int -> bool option
-    val set_p : (int * bool) -> unit
+    val set_p : int -> bool -> unit
     val abbreviation : int -> bool
   end
 module Sgn =
@@ -38,29 +40,27 @@ module Sgn =
       | DEF_NONE 
       | DEF_TERM of term 
       | DEF_TYPE of tp 
-    (* o_ means "original", i.e. before compression *)
     type nonrec sigent =
       <
         name: string  ;classifier: class__  ;o_classifier: class__  ;
         def: def  ;o_def: def  ;abbreviation: bool   > 
     let sgn_size = 14000
-    (* XXX *)
-    let (sigma : sigent option Array.array) = Array.array (sgn_size, None)
+    let (sigma : sigent option Array.array) = Array.array (sgn_size, NONE)
     let (all_modes : mode list option Array.array) =
-      Array.array (sgn_size, None)
-    let (all_ps : bool option Array.array) = Array.array (sgn_size, None)
-    let rec split arg__0 arg__1 =
-      match (arg__0, arg__1) with
+      Array.array (sgn_size, NONE)
+    let (all_ps : bool option Array.array) = Array.array (sgn_size, NONE)
+    let rec split __0__ __1__ =
+      match (__0__, __1__) with
       | (h::tl, 0) -> ([], h, tl)
       | (h::tl, n) ->
           let (pre, thing, post) = split tl (n - 1) in
           ((h :: pre), thing, post)
-      | ([], n) -> split [None] n
+      | ([], n) -> split [NONE] n
     let rec clear () =
-      Array.modify (function | _ -> None) sigma;
-      Array.modify (function | _ -> None) all_modes;
-      Array.modify (function | _ -> None) all_ps
-    let rec condec (s, a, oa) =
+      Array.modify (fun _ -> NONE) sigma;
+      Array.modify (fun _ -> NONE) all_modes;
+      Array.modify (fun _ -> NONE) all_ps
+    let rec condec s a oa =
       {
         name = s;
         classifier = (tclass a);
@@ -69,7 +69,7 @@ module Sgn =
         o_def = DEF_NONE;
         abbreviation = false__
       }
-    let rec tycondec (s, k, ok) =
+    let rec tycondec s k ok =
       {
         name = s;
         classifier = (kclass k);
@@ -78,7 +78,7 @@ module Sgn =
         o_def = DEF_NONE;
         abbreviation = false__
       }
-    let rec defn (s, a, oa, m, om) =
+    let rec defn s a oa m om =
       {
         name = s;
         classifier = (tclass a);
@@ -87,7 +87,7 @@ module Sgn =
         o_def = (DEF_TERM om);
         abbreviation = false__
       }
-    let rec tydefn (s, k, ok, a, oa) =
+    let rec tydefn s k ok a oa =
       {
         name = s;
         classifier = (kclass k);
@@ -96,7 +96,7 @@ module Sgn =
         o_def = (DEF_TYPE oa);
         abbreviation = false__
       }
-    let rec abbrev (s, a, oa, m, om) =
+    let rec abbrev s a oa m om =
       {
         name = s;
         classifier = (tclass a);
@@ -105,7 +105,7 @@ module Sgn =
         o_def = (DEF_TERM om);
         abbreviation = true__
       }
-    let rec tyabbrev (s, k, ok, a, oa) =
+    let rec tyabbrev s k ok a oa =
       {
         name = s;
         classifier = (kclass k);
@@ -114,9 +114,8 @@ module Sgn =
         o_def = (DEF_TYPE oa);
         abbreviation = true__
       }
-    let rec typeOfSigent (e : sigent) =
-      Syntax.typeOf ((fun r -> r.classifier) e)
-    let rec setter table (n, x) = Array.update (table, n, (Some x))
+    let rec typeOfSigent e = Syntax.typeOf ((fun r -> r.classifier) e)
+    let rec setter table n x = Array.update (table, n, (Some x))
     let rec getter table id = Array.sub (table, id)
     let set_modes = setter all_modes
     let get_modes = getter all_modes

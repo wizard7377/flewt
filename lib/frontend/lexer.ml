@@ -1,16 +1,11 @@
 
-(* Lexer *)
-(* Author: Frank Pfenning *)
 module type LEXER  =
   sig
-    (* Stream is not memoizing for efficiency *)
     module Stream : STREAM
-    (*! structure Paths : PATHS !*)
     type __IdCase =
       | Upper 
       | Lower 
       | Quoted 
-    (* '<id>', currently unused *)
     type __Token =
       | EOF 
       | DOT 
@@ -66,14 +61,11 @@ module type LEXER  =
       | OPEN 
       | USE 
       | STRING of string 
-    (* string constants *)
     exception Error of string 
-    (* lexer returns an infinite stream, terminated by EOF token *)
     val lexStream : TextIO.instream -> (__Token * Paths.region) Stream.stream
     val lexTerminal :
-      (string * string) -> (__Token * Paths.region) Stream.stream
+      string -> string -> (__Token * Paths.region) Stream.stream
     val toString : __Token -> string
-    (* Utilities *)
     exception NotDigit of char 
     val stringToNat : string -> int
     val isUpper : string -> bool
@@ -146,7 +138,7 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       | USE 
       | STRING of string 
     exception Error of string 
-    let rec error (r, msg) = raise (Error (P.wrap (r, msg)))
+    let rec error r msg = raise (Error (P.wrap (r, msg)))
     let (isSym : char -> bool) = Char.contains "_!&$^+/<=>?@~|#*`;,-\\"
     let rec isUTF8 c = not (Char.isAscii c)
     let rec isQuote c = c = '\''
@@ -154,15 +146,15 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       (Char.isLower c) ||
         ((Char.isUpper c) ||
            ((Char.isDigit c) || ((isSym c) || ((isQuote c) || (isUTF8 c)))))
-    let rec stringToToken =
-      function
+    let rec stringToToken __0__ __1__ __2__ =
+      match (__0__, __1__, __2__) with
       | (Lower, "<-", r) -> (BACKARROW, r)
       | (Lower, "->", r) -> (ARROW, r)
       | (Upper, "_", r) -> (UNDERSCORE, r)
       | (Lower, "=", r) -> (EQUAL, r)
       | (Lower, "type", r) -> (TYPE, r)
       | (idCase, s, r) -> ((ID (idCase, s)), r)
-    let rec lex (inputFun : int -> string) =
+    let rec lex inputFun =
       let s = ref ""
       and left = ref 0
       and right = ref 0 in
@@ -171,28 +163,30 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       let rec readNext () =
         let nextLine = inputFun (!right) in
         let nextSize = String.size nextLine in
-        if nextSize = 0
-        then
-          (s := EOFString;
-           (!) ((:=) left) right;
-           ((!) ((:=) right) right) + 1)
-        else
-          (s := nextLine;
-           (!) ((:=) left) right;
-           ((!) ((:=) right) right) + nextSize;
-           P.newLine (!left)) in
+        ((if nextSize = 0
+          then
+            (((s := EOFString;
+               (!) ((:=) left) right;
+               ((!) ((:=) right) right) + 1))
+            (* fake EOF character string *))
+          else
+            (s := nextLine;
+             (!) ((:=) left) right;
+             ((!) ((:=) right) right) + nextSize;
+             P.newLine (!left)))
+          (* end of file? *)(* remember new line position *)) in
       let rec char i =
         if (!) ((>=) i) right
         then (readNext (); char i)
         else String.sub ((!s), ((!) ((-) i) left)) in
-      let rec string (i, j) =
+      let rec string i j =
         String.substring ((!s), ((!) ((-) i) left), (j - i)) in
-      let rec idToToken (idCase, Reg (i, j)) =
+      let rec idToToken idCase (Reg (i, j)) =
         stringToToken (idCase, (string (i, j)), (P.Reg (i, j))) in
       let rec qidToToken (Reg (i, j)) =
         ((ID (Lower, (string (i, (j + 1))))), (P.Reg (i, (j + 1)))) in
-      let rec lexInitial =
-        function
+      let rec lexInitial __3__ __4__ =
+        match (__3__, __4__) with
         | (':', i) -> (COLON, (P.Reg ((i - 1), i)))
         | ('.', i) -> (DOT, (P.Reg ((i - 1), i)))
         | ('(', i) -> (LPAREN, (P.Reg ((i - 1), i)))
@@ -228,21 +222,24 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
                         error
                           ((P.Reg ((i - 1), i)),
                             ((^) "Illegal character " Char.toString c))
-      and lexID (idCase, Reg (i, j)) =
+      (* lexQUID (i-1,i) *)
+      and lexID idCase (Reg (i, j)) =
         let rec lexID' j =
           if isIdChar (char j)
           then lexID' (j + 1)
           else idToToken (idCase, (P.Reg (i, j))) in
         lexID' j
       and lexQUID (Reg (i, j)) =
-        if Char.isSpace (char j)
-        then error ((P.Reg (i, (j + 1))), "Whitespace in quoted identifier")
-        else
-          if isQuote (char j)
-          then qidToToken (P.Reg (i, j))
-          else lexQUID (P.Reg (i, (j + 1)))
-      and lexPercent =
-        function
+        ((if Char.isSpace (char j)
+          then
+            error ((P.Reg (i, (j + 1))), "Whitespace in quoted identifier")
+          else
+            if isQuote (char j)
+            then qidToToken (P.Reg (i, j))
+            else lexQUID (P.Reg (i, (j + 1))))
+        (* recover by adding implicit quote? *)(* qidToToken (i, j) *))
+      and lexPercent __5__ __6__ =
+        match (__5__, __6__) with
         | ('.', i) -> (EOF, (P.Reg ((i - 2), i)))
         | ('{', i) -> lexPercentBrace ((char i), (i + 1))
         | ('%', i) -> lexComment ('%', i)
@@ -256,8 +253,8 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
                 error
                   ((P.Reg ((i - 1), i)),
                     "Comment character `%' not followed by white space")
-      and lexPragmaKey =
-        function
+      and lexPragmaKey __7__ __8__ =
+        match (__7__, __8__) with
         | (ID (_, "infix"), r) -> (INFIX, r)
         | (ID (_, "prefix"), r) -> (PREFIX, r)
         | (ID (_, "postfix"), r) -> (POSTFIX, r)
@@ -300,62 +297,68 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
               (r,
                 (("Unknown keyword %" ^ s) ^
                    " (single line comment starts with `%<whitespace>' or `%%')"))
-      and lexComment =
-        function
+      (* -fp 08/09/02 *)(* -rv 11/27/01 *)(* -gaw 07/11/08 *)
+      (* -ABP 4/4/03 *)(* -rv 8/27/01 *)
+      (* -bp 20/11/04 *)(* -bp 20/11/01 *)(* -bp 6/5/99 *)
+      (* -fp 3/18/01 *)(* -cs 6/3/01 *)
+      (* -fp 8/17/03 *)
+      and lexComment __9__ __10__ =
+        match (__9__, __10__) with
         | ('\n', i) -> lexInitial ((char i), (i + 1))
         | ('%', i) -> lexCommentPercent ((char i), (i + 1))
         | ('\004', i) ->
             error
               ((P.Reg ((i - 1), (i - 1))),
                 "Unclosed single-line comment at end of file")
-        | (c, i) -> lexComment ((char i), (i + 1))
-      and lexCommentPercent =
-        function
+        | (c, i) -> lexComment ((char i), (i + 1))(* recover: (EOF, (i-1,i-1)) *)
+      and lexCommentPercent __11__ __12__ =
+        match (__11__, __12__) with
         | ('.', i) -> (EOF, (P.Reg ((i - 2), i)))
         | (c, i) -> lexComment (c, i)
-      and lexPercentBrace (c, i) = lexDComment (c, 1, i)
-      and lexDComment =
-        function
+      and lexPercentBrace c i = lexDComment (c, 1, i)
+      and lexDComment __13__ __14__ __15__ =
+        match (__13__, __14__, __15__) with
         | ('}', l, i) -> lexDCommentRBrace ((char i), l, (i + 1))
         | ('%', l, i) -> lexDCommentPercent ((char i), l, (i + 1))
         | ('\004', l, i) ->
             error
               ((P.Reg ((i - 1), (i - 1))),
                 "Unclosed delimited comment at end of file")
-        | (c, l, i) -> lexDComment ((char i), l, (i + 1))
-      and lexDCommentPercent =
-        function
+        | (c, l, i) -> lexDComment ((char i), l, (i + 1))(* recover: (EOF, (i-1,i-1)) *)
+      (* pass comment beginning for error message? *)
+      and lexDCommentPercent __16__ __17__ __18__ =
+        match (__16__, __17__, __18__) with
         | ('{', l, i) -> lexDComment ((char i), (l + 1), (i + 1))
         | ('.', l, i) ->
             error
               ((P.Reg ((i - 2), i)),
                 "Unclosed delimited comment at end of file token `%.'")
-        | (c, l, i) -> lexDComment (c, l, i)
-      and lexDCommentRBrace =
-        function
+        | (c, l, i) -> lexDComment (c, l, i)(* recover: (EOF, (i-2,i)) *)
+      and lexDCommentRBrace __19__ __20__ __21__ =
+        match (__19__, __20__, __21__) with
         | ('%', 1, i) -> lexInitial ((char i), (i + 1))
         | ('%', l, i) -> lexDComment ((char i), (l - 1), (i + 1))
         | (c, l, i) -> lexDComment (c, l, i)
       and lexString (Reg (i, j)) =
-        match char j with
-        | '"' -> ((STRING (string (i, (j + 1)))), (P.Reg (i, (j + 1))))
-        | '\n' ->
-            error
-              ((P.Reg ((i - 1), (i - 1))),
-                "Unclosed string constant at end of line")
-        | '\004' ->
-            error
-              ((P.Reg ((i - 1), (i - 1))),
-                "Unclosed string constant at end of file")
-        | _ -> lexString (P.Reg (i, (j + 1))) in
-      let rec lexContinue j = Stream.delay (function | () -> lexContinue' j)
+        ((match char j with
+          | '"' -> ((STRING (string (i, (j + 1)))), (P.Reg (i, (j + 1))))
+          | '\n' ->
+              error
+                ((P.Reg ((i - 1), (i - 1))),
+                  "Unclosed string constant at end of line")
+          | '\004' ->
+              error
+                ((P.Reg ((i - 1), (i - 1))),
+                  "Unclosed string constant at end of file")
+          | _ -> lexString (P.Reg (i, (j + 1))))
+        (* recover: (EOL, (i-1,i-1)) *)(* recover: (EOF, (i-1,i-1)) *)) in
+      let rec lexContinue j = Stream.delay (fun () -> lexContinue' j)
       and lexContinue' j = lexContinue'' (lexInitial ((char j), (j + 1)))
       and lexContinue'' =
         function
         | (ID _, Reg (i, j)) as mt -> Stream.Cons (mt, (lexContinueQualId j))
         | (token, Reg (i, j)) as mt -> Stream.Cons (mt, (lexContinue j))
-      and lexContinueQualId j =
-        Stream.delay (function | () -> lexContinueQualId' j)
+      and lexContinueQualId j = Stream.delay (fun () -> lexContinueQualId' j)
       and lexContinueQualId' j =
         if (char j) = '.'
         then
@@ -366,10 +369,46 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
            else
              Stream.Cons ((DOT, (P.Reg (j, (j + 1)))), (lexContinue (j + 1))))
         else lexContinue' j in
-      lexContinue 0
-    let rec lexStream instream =
-      lex (function | i -> Compat.inputLine97 instream)
-    let rec lexTerminal (prompt0, prompt1) =
+      ((lexContinue 0)
+        (* local state maintained by the lexer *)(* current string (line) *)
+        (* position of first character in s *)(* position after last character in s *)
+        (* initialize line counter *)(* neither lexer nor parser should ever try to look beyond EOF *)
+        (* readNext () = ()
+         Effect: read the next line, updating s, left, and right
+
+         readNext relies on the invariant that identifiers are never
+         spread across lines
+      *)
+        (* char (i) = character at position i
+         Invariant: i >= !left
+         Effects: will read input if i >= !right
+      *)
+        (* string (i,j) = substring at region including i, excluding j
+         Invariant: i >= !left and i < j and j < !right
+                    Note that the relevant parts must already have been read!
+         Effects: None
+      *)
+        (* The remaining functions do not access the state or *)
+        (* stream directly, using only functions char and string *)
+        (* Quote characters are part of the name *)(* Treat quoted identifiers as lowercase, since they no longer *)
+        (* override infix state.  Quoted identifiers are now only used *)
+        (* inside pragmas *)(* The main lexing functions take a character c and the next
+       input position i and return a token with its region
+       The name convention is lexSSS, where SSS indicates the state
+       of the lexer (e.g., what has been lexed so far).
+
+       Lexing errors are currently fatal---some error recovery code is
+       indicated in comments.
+    *)
+        (* recover by ignoring: lexInitial (char(i), i+1) *)
+        (* lexQUID is currently not used --- no quoted identifiers *)
+        (* comments are now started by %<whitespace> *)
+        (*
+      | lexPragmaKey (_, (_,j)) = lexComment (char(j), j+1)
+      *)
+        (* functions lexing delimited comments below take nesting level l *))
+    let rec lexStream instream = lex (fun i -> Compat.inputLine97 instream)
+    let rec lexTerminal prompt0 prompt1 =
       lex
         (function
          | 0 -> (print prompt0; Compat.inputLine97 TextIO.stdIn)
@@ -426,7 +465,10 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       | WHERE -> "%where"
       | INCLUDE -> "%include"
       | OPEN -> "%open"
-      | USE -> "%use"
+      | USE -> "%use"(* -fp 08/09/02 *)(* -rv 11/27/01. *)
+      (*  -bp 04/11/03. *)(*  -bp 20/11/01. *)
+      (*  -bp 6/5/99. *)(* -cs 6/3/01. *)
+      (* -ABP 4/4/03 *)(* -rv 8/27/01 *)
     let rec toString =
       function
       | ID (_, s) -> ("identifier `" ^ s) ^ "'"
@@ -439,7 +481,7 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       if (digit < 0) || (digit > 9) then raise (NotDigit c) else digit
     let rec stringToNat s =
       let l = String.size s in
-      let rec stn (i, n) =
+      let rec stn i n =
         if i = l
         then n
         else stn ((i + 1), ((+) (10 * n) charToNat (String.sub (s, i)))) in
@@ -448,138 +490,4 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       function
       | "" -> false__
       | s -> let c = String.sub (s, 0) in (Char.isUpper c) || (c = '_')
-  end  (* Lexer *)
-(* Author: Frank Pfenning *)
-(* Modified: Brigitte Pientka *)
-(*! structure Paths' : PATHS !*)
-(*! structure Paths = Paths' !*)
-(* [A-Z]<id> or _<id> *)
-(* any other <id> *)
-(* '<id>', currently unused *)
-(* end of file or stream, also `%.' *)
-(* `.' *) (* `.' between <id>s *)
-(* `:' *) (* `(' `)' *)
-(* `[' `]' *) (* `{' `}' *)
-(* `<-' `->' *) (* `type' *)
-(* `=' *) (* identifer *)
-(* `_' *)
-(* `%infix' `%prefix' `%postfix' *)
-(* `%name' *) (* `%define' *)
-(* -rv 8/27/01 *) (* `%solve' *)
-(* `%query' *) (* `%fquery' *)
-(* '%compile' *) (* -ABP 4/4/03 *)
-(* `%querytabled *) (* `%mode' *)
-(* `%unique' *) (* -fp 8/17/03 *)
-(* `%covers' *) (* -fp 3/7/01 *)
-(* `%total' *) (* -fp 3/18/01 *)
-(* `%terminates' *) (* `%reduces' *)
-(* -bp  6/05/99 *) (* `%tabled' *)
-(* -bp 11/20/01 *) (* `%keepTable' *)
-(* -bp 11/20/01 *) (* `%theorem' *)
-(* `%block' *) (* -cs 5/29/01 *)
-(* `%worlds' *) (* `%prove' *)
-(* `%establish' *) (* `%assert' *)
-(* `%abbrev' *) (* `%trustme' *)
-(* -fp 8/26/05 *) (* `%freeze' *)
-(* `%thaw' *) (* `%subord' *)
-(* -gaw 07/11/08 *)
-(* `%deterministic' *)
-(* -rv 11/27/01 *) (* `%clause' *)
-(* -fp 8/9/02 *) (* `%sig' *)
-(* `%struct' *) (* `%where' *)
-(* `%include' *) (* `%open' *)
-(* `%use' *) (* string constants *)
-(* isSym (c) = B iff c is a legal symbolic identifier constituent *)
-(* excludes quote character and digits, which are treated specially *)
-(* Char.contains stages its computation *)
-(* isUFT8 (c) = assume that if a character is not ASCII it must be
-     part of a UTF8 Unicode encoding.  Treat these as lowercase
-     identifiers.  Somewhat of a hack until there is native Unicode
-     string support. *)
-(* isQuote (c) = B iff c is the quote character *)
-(* isIdChar (c) = B iff c is legal identifier constituent *)
-(* stringToToken (idCase, string, region) = (token, region)
-     converts special identifiers into tokens, returns ID token otherwise
-  *)
-(* lex (inputFun) = (token, region) stream
-
-     inputFun maintains state, reading input one line at a time and
-     returning a string terminated by <newline> each time.
-     The end of the stream is signalled by a string consisting only of ^__d
-     Argument to inputFun is the character position.
-  *)
-(* local state maintained by the lexer *)
-(* current string (line) *)
-(* position of first character in s *)
-(* position after last character in s *)
-(* initialize line counter *)
-(* neither lexer nor parser should ever try to look beyond EOF *)
-(* readNext () = ()
-         Effect: read the next line, updating s, left, and right
-
-         readNext relies on the invariant that identifiers are never
-         spread across lines
-      *)
-(* end of file? *)
-(* fake EOF character string *)
-(* remember new line position *)
-(* char (i) = character at position i
-         Invariant: i >= !left
-         Effects: will read input if i >= !right
-      *)
-(* string (i,j) = substring at region including i, excluding j
-         Invariant: i >= !left and i < j and j < !right
-                    Note that the relevant parts must already have been read!
-         Effects: None
-      *)
-(* The remaining functions do not access the state or *)
-(* stream directly, using only functions char and string *)
-(* Quote characters are part of the name *)
-(* Treat quoted identifiers as lowercase, since they no longer *)
-(* override infix state.  Quoted identifiers are now only used *)
-(* inside pragmas *)
-(* The main lexing functions take a character c and the next
-       input position i and return a token with its region
-       The name convention is lexSSS, where SSS indicates the state
-       of the lexer (e.g., what has been lexed so far).
-
-       Lexing errors are currently fatal---some error recovery code is
-       indicated in comments.
-    *)
-(* lexQUID (i-1,i) *)
-(* recover by ignoring: lexInitial (char(i), i+1) *)
-(* lexQUID is currently not used --- no quoted identifiers *)
-(* recover by adding implicit quote? *)
-(* qidToToken (i, j) *)
-(* -fp 8/17/03 *) (* -cs 6/3/01 *)
-(* -fp 3/18/01 *) (* -bp 6/5/99 *)
-(* -bp 20/11/01 *) (* -bp 20/11/04 *)
-(* -rv 8/27/01 *) (* -ABP 4/4/03 *)
-(* -gaw 07/11/08 *) (* -rv 11/27/01 *)
-(* -fp 08/09/02 *)
-(* comments are now started by %<whitespace> *)
-(*
-      | lexPragmaKey (_, (_,j)) = lexComment (char(j), j+1)
-      *)
-(* recover: (EOF, (i-1,i-1)) *)
-(* functions lexing delimited comments below take nesting level l *)
-(* pass comment beginning for error message? *)
-(* recover: (EOF, (i-1,i-1)) *)
-(* recover: (EOF, (i-2,i)) *)
-(* recover: (EOL, (i-1,i-1)) *)
-(* recover: (EOF, (i-1,i-1)) *)
-(* fun lex (inputFun) = let ... in ... end *)
-(* -rv 8/27/01 *) (* -ABP 4/4/03 *)
-(* -cs 6/3/01. *) (*  -bp 6/5/99. *)
-(*  -bp 20/11/01. *)
-(*  -bp 04/11/03. *)
-(* -rv 11/27/01. *) (* -fp 08/09/02 *)
-(* charToNat(c) = n converts character c to decimal equivalent *)
-(* raises NotDigit(c) if c is not a digit 0-9 *)
-(* stringToNat(s) = n converts string s to a natural number *)
-(* raises NotDigit(c) if s contains character c which is not a digit *)
-(* isUpper (s) = true, if s is a string starting with an uppercase
-     letter or underscore (_).
-  *)
-(* local ... *) (* functor Lexer *)
-module Lexer = (Make_Lexer)(struct module Stream' = Stream end);;
+  end  module Lexer = (Make_Lexer)(struct module Stream' = Stream end);;

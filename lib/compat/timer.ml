@@ -1,6 +1,4 @@
 
-(* Compatibility shim to cope with Standard Basis version skew *)
-(* Author: Christopher Richards *)
 module type COMPAT_TIMER  =
   sig
     val checkCPUTimer :

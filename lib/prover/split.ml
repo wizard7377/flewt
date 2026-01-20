@@ -1,10 +1,6 @@
 
-(* Splitting: Version 1.4 *)
-(* Author: Carsten Schuermann *)
 module type SPLIT  =
   sig
-    (*! structure IntSyn : INTSYN !*)
-    (*! structure Tomega : TOMEGA !*)
     module State : STATE
     exception Error of string 
     type nonrec operator
@@ -16,8 +12,6 @@ module type SPLIT  =
 
 
 
-(* State definition for Proof Search *)
-(* Author: Carsten Schuermann *)
 module Split(Split:sig
                      module Global : GLOBAL
                      module State' : STATE
@@ -28,25 +22,9 @@ module Split(Split:sig
                      module Index : INDEX
                      module Print : PRINT
                      module TypeCheck : TYPECHECK
-                     (*! structure IntSyn' : INTSYN !*)
-                     (*! structure Tomega' : TOMEGA !*)
-                     (*! sharing Tomega'.IntSyn = IntSyn' !*)
-                     (*! sharing State'.IntSyn = IntSyn' !*)
-                     (*! sharing State'.Tomega = Tomega' !*)
-                     (*! sharing Whnf.IntSyn = IntSyn' !*)
-                     (*! sharing Unify.IntSyn = IntSyn' !*)
-                     (*! sharing Constraints.IntSyn = IntSyn' !*)
-                     (*! sharing Abstract.IntSyn = IntSyn' !*)
-                     (*! sharing Abstract.Tomega = Tomega' !*)
-                     (*! sharing Index.IntSyn = IntSyn' !*)
-                     (*! sharing Print.IntSyn = IntSyn' !*)
-                     (*! sharing TypeCheck.IntSyn = IntSyn' !*)
                      module Subordinate : SUBORDINATE
                    end) : SPLIT =
   struct
-    (*! sharing Subordinate.IntSyn = IntSyn' !*)
-    (*! structure IntSyn = IntSyn' !*)
-    (*! structure Tomega = Tomega' !*)
     module State = State'
     exception Error of string 
     module T = Tomega
@@ -54,159 +32,180 @@ module Split(Split:sig
     module S = State'
     type __Operator =
       | Split of (T.__Prg option ref * T.__Prg * string) 
-    let rec weaken =
-      function
+    let rec weaken __0__ __1__ =
+      match (__0__, __1__) with
       | (I.Null, a) -> I.id
-      | (Decl (__g', (Dec (name, __v) as __d)), a) ->
-          let w' = weaken (__g', a) in
-          if Subordinate.belowEq ((I.targetFam __v), a)
+      | (Decl (__G', (Dec (name, __V) as D)), a) ->
+          let w' = weaken (__G', a) in
+          if Subordinate.belowEq ((I.targetFam __V), a)
           then I.dot1 w'
           else I.comp (w', I.shift)
-    let rec createEVar (__g, __v) =
-      let w = weaken (__g, (I.targetFam __v)) in
+    let rec createEVar (__G) (__V) =
+      let w = weaken (__G, (I.targetFam __V)) in
       let iw = Whnf.invert w in
-      let __g' = Whnf.strengthen (iw, __g) in
-      let x' = I.newEVar (__g', (I.EClo (__v, iw))) in
-      let x = I.EClo (x', w) in x
-    let rec instEVars (__Vs, p, XsRev) = instEVarsW ((Whnf.whnf __Vs), p, XsRev)
-    let rec instEVarsW =
-      function
+      let __G' = Whnf.strengthen (iw, __G) in
+      let __X' = I.newEVar (__G', (I.EClo (__V, iw))) in
+      let __X = I.EClo (__X', w) in ((__X)
+        (* G |- V : L *)(* G  |- w  : G'    *)(* G' |- iw : G     *)
+        (* G' |- X' : V[iw] *)(* G  |- X  : V     *))
+    let rec instEVars (__Vs) p (XsRev) =
+      instEVarsW ((Whnf.whnf __Vs), p, XsRev)
+    let rec instEVarsW __2__ __3__ __4__ =
+      match (__2__, __3__, __4__) with
       | (__Vs, 0, XsRev) -> (__Vs, XsRev)
-      | ((Pi ((Dec (xOpt, V1), _), V2), s), p, XsRev) ->
-          let X1 = I.newEVar (I.Null, (I.EClo (V1, s))) in
-          instEVars
-            ((V2, (I.Dot ((I.Exp X1), s))), (p - 1), ((Some X1) :: XsRev))
-      | ((Pi ((BDec (_, (l, t)), _), V2), s), p, XsRev) ->
-          let L1 = I.newLVar ((I.Shift 0), (l, (I.comp (t, s)))) in
-          instEVars
-            ((V2, (I.Dot ((I.Block L1), s))), (p - 1), (None :: XsRev))
+      | ((Pi ((Dec (xOpt, __V1), _), __V2), s), p, XsRev) ->
+          let __X1 = I.newEVar (I.Null, (I.EClo (__V1, s))) in
+          ((instEVars
+              ((__V2, (I.Dot ((I.Exp __X1), s))), (p - 1),
+                ((Some __X1) :: XsRev)))
+            (* p > 0 *)(* all EVars are global *))
+      | ((Pi ((BDec (_, (l, t)), _), __V2), s), p, XsRev) ->
+          let __L1 = I.newLVar ((I.Shift 0), (l, (I.comp (t, s)))) in
+          ((instEVars
+              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (NONE :: XsRev)))
+            (* p > 0 *)(* --cs Sun Dec  1 06:33:27 2002 *))
+      (* . |- s : G0 *)(* G0 |- t : Gsome *)
     let (caseList : (T.__Dec I.__Ctx * T.__Sub) list ref) = ref nil
     let rec resetCases () = caseList := nil
-    let rec addCase (Psi, t) = (!) ((::) (caseList := (Psi, t))) caseList
+    let rec addCase (Psi) t = (!) ((::) (caseList := (Psi, t))) caseList
     let rec getCases () = !caseList
-    let rec createEVarSpine (__g, __Vs) = createEVarSpineW (__g, (Whnf.whnf __Vs))
-    let rec createEVarSpineW =
-      function
-      | (__g, ((Root _, s) as __Vs)) -> (I.Nil, __Vs)
-      | (__g, (Pi (((Dec (_, V1) as __d), _), V2), s)) ->
-          let x = createEVar (__g, (I.EClo (V1, s))) in
-          let (S, __Vs) = createEVarSpine (__g, (V2, (I.Dot ((I.Exp x), s)))) in
-          ((I.App (x, S)), __Vs)
-    let rec createAtomConst (__g, (Const cid as H)) =
-      let __v = I.constType cid in
-      let (S, __Vs) = createEVarSpine (__g, (__v, I.id)) in ((I.Root (H, S)), __Vs)
-    let rec createAtomBVar (__g, k) =
-      let Dec (_, __v) = I.ctxDec (__g, k) in
-      let (S, __Vs) = createEVarSpine (__g, (__v, I.id)) in
-      ((I.Root ((I.BVar k), S)), __Vs)
-    let rec createAtomProj (__g, H, (__v, s)) =
-      let (S, __Vs') = createEVarSpine (__g, (__v, s)) in ((I.Root (H, S)), __Vs')
-    let rec constCases =
-      function
-      | (__g, __Vs, nil, sc) -> ()
-      | (__g, __Vs, (Const c)::sgn', sc) ->
-          let (__u, __Vs') = createAtomConst (__g, (I.Const c)) in
+    let rec createEVarSpine (__G) (__Vs) =
+      createEVarSpineW (__G, (Whnf.whnf __Vs))
+    let rec createEVarSpineW __5__ __6__ =
+      match (__5__, __6__) with
+      | (__G, ((Root _, s) as Vs)) -> (I.Nil, __Vs)
+      | (__G, (Pi (((Dec (_, __V1) as D), _), __V2), s)) ->
+          let __X = createEVar (__G, (I.EClo (__V1, s))) in
+          let (__S, __Vs) =
+            createEVarSpine (__G, (__V2, (I.Dot ((I.Exp __X), s)))) in
+          ((((I.App (__X, __S)), __Vs))(* G |- V1[s] : L *))
+      (* s = id *)
+    let rec createAtomConst (__G) (Const cid as H) =
+      let __V = I.constType cid in
+      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
+      ((I.Root (__H, __S)), __Vs)
+    let rec createAtomBVar (__G) k =
+      let Dec (_, __V) = I.ctxDec (__G, k) in
+      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
+      ((I.Root ((I.BVar k), __S)), __Vs)
+    let rec createAtomProj (__G) (__H) (__V, s) =
+      let (__S, __Vs') = createEVarSpine (__G, (__V, s)) in
+      ((I.Root (__H, __S)), __Vs')
+    let rec constCases __7__ __8__ __9__ __10__ =
+      match (__7__, __8__, __9__, __10__) with
+      | (__G, __Vs, nil, sc) -> ()
+      | (__G, __Vs, (Const c)::sgn', sc) ->
+          let (__U, __Vs') = createAtomConst (__G, (I.Const c)) in
           let _ =
             CSManager.trail
-              (function
-               | () -> if Unify.unifiable (__g, __Vs, __Vs') then sc __u else ()) in
-          constCases (__g, __Vs, sgn', sc)
-    let rec paramCases =
-      function
-      | (__g, __Vs, 0, sc) -> ()
-      | (__g, __Vs, k, sc) ->
-          let (__u, __Vs') = createAtomBVar (__g, k) in
+              (fun () ->
+                 if Unify.unifiable (__G, __Vs, __Vs') then sc __U else ()) in
+          constCases (__G, __Vs, sgn', sc)
+    let rec paramCases __11__ __12__ __13__ __14__ =
+      match (__11__, __12__, __13__, __14__) with
+      | (__G, __Vs, 0, sc) -> ()
+      | (__G, __Vs, k, sc) ->
+          let (__U, __Vs') = createAtomBVar (__G, k) in
           let _ =
             CSManager.trail
-              (function
-               | () -> if Unify.unifiable (__g, __Vs, __Vs') then sc __u else ()) in
-          paramCases (__g, __Vs, (k - 1), sc)
+              (fun () ->
+                 if Unify.unifiable (__G, __Vs, __Vs') then sc __U else ()) in
+          paramCases (__G, __Vs, (k - 1), sc)
     let rec createEVarSub =
       function
       | I.Null -> I.id
-      | Decl (__g', (Dec (_, __v) as __d)) ->
-          let s = createEVarSub __g' in
-          let __v' = I.EClo (__v, s) in
-          let x = I.newEVar (I.Null, __v') in I.Dot ((I.Exp x), s)
+      | Decl (__G', (Dec (_, __V) as D)) ->
+          let s = createEVarSub __G' in
+          let __V' = I.EClo (__V, s) in
+          let __X = I.newEVar (I.Null, __V') in I.Dot ((I.Exp __X), s)
     let rec blockName cid = I.conDecName (I.sgnLookup cid)
-    let rec blockCases (__g, __Vs, cid, (Gsome, piDecs), sc) =
+    let rec blockCases (__G) (__Vs) cid (Gsome, piDecs) sc =
       let t = createEVarSub Gsome in
-      let sk = I.Shift (I.ctxLength __g) in
+      let sk = I.Shift (I.ctxLength __G) in
       let t' = I.comp (t, sk) in
       let lvar = I.newLVar (sk, (cid, t')) in
-      blockCases' (__g, __Vs, (lvar, 1), (t', piDecs), sc)
-    let rec blockCases' =
-      function
-      | (__g, __Vs, (lvar, i), (t, nil), sc) -> ()
-      | (__g, __Vs, (lvar, i), (t, (Dec (_, __v'))::piDecs), sc) ->
-          let (__u, __Vs') = createAtomProj (__g, (I.Proj (lvar, i)), (__v', t)) in
+      ((blockCases' (__G, __Vs, (lvar, 1), (t', piDecs), sc))
+        (* accounts for subordination *)(* . |- t : Gsome *)
+        (* --cs Sun Dec  1 06:33:41 2002 *)(* G |- t' : Gsome *))
+    let rec blockCases' __15__ __16__ __17__ __18__ __19__ =
+      match (__15__, __16__, __17__, __18__, __19__) with
+      | (__G, __Vs, (lvar, i), (t, nil), sc) -> ()
+      | (__G, __Vs, (lvar, i), (t, (Dec (_, __V'))::piDecs), sc) ->
+          let (__U, __Vs') =
+            createAtomProj (__G, (I.Proj (lvar, i)), (__V', t)) in
           let _ =
             CSManager.trail
-              (function
-               | () -> if Unify.unifiable (__g, __Vs, __Vs') then sc __u else ()) in
+              (fun () ->
+                 if Unify.unifiable (__G, __Vs, __Vs') then sc __U else ()) in
           let t' = I.Dot ((I.Exp (I.Root ((I.Proj (lvar, i)), I.Nil))), t) in
-          blockCases' (__g, __Vs, (lvar, (i + 1)), (t', piDecs), sc)
-    let rec worldCases =
-      function
-      | (__g, __Vs, Worlds nil, sc) -> ()
-      | (__g, __Vs, Worlds (cid::cids), sc) ->
-          (blockCases (__g, __Vs, cid, (I.constBlock cid), sc);
-           worldCases (__g, __Vs, (T.Worlds cids), sc))
-    let rec lowerSplit (__g, __Vs, W, sc) =
-      lowerSplitW (__g, (Whnf.whnf __Vs), W, sc)
-    let rec lowerSplitW (__g, ((Root (Const a, _), s) as __Vs), W, sc) =
-      let _ = constCases (__g, __Vs, (Index.lookup a), sc) in
-      let _ = paramCases (__g, __Vs, (I.ctxLength __g), sc) in
-      let _ = worldCases (__g, __Vs, W, sc) in ()
-    let rec splitEVar ((EVar (_, GX, __v, _) as x), W, sc) =
+          ((blockCases' (__G, __Vs, (lvar, (i + 1)), (t', piDecs), sc))
+            (* G |- t : G' and G' |- ({_:V'},piDecs) decList *)(* so G |- V'[t'] : type *))
+    let rec worldCases __20__ __21__ __22__ __23__ =
+      match (__20__, __21__, __22__, __23__) with
+      | (__G, __Vs, Worlds nil, sc) -> ()
+      | (__G, __Vs, Worlds (cid::cids), sc) ->
+          (blockCases (__G, __Vs, cid, (I.constBlock cid), sc);
+           worldCases (__G, __Vs, (T.Worlds cids), sc))
+    let rec lowerSplit (__G) (__Vs) (__W) sc =
+      lowerSplitW (__G, (Whnf.whnf __Vs), __W, sc)
+    let rec lowerSplitW (__G) ((Root (Const a, _), s) as Vs) (__W) sc =
+      let _ = constCases (__G, __Vs, (Index.lookup a), sc) in
+      let _ = paramCases (__G, __Vs, (I.ctxLength __G), sc) in
+      let _ = worldCases (__G, __Vs, __W, sc) in ((())
+        (* will trail *)(* will trail *)
+        (* will trail *))
+    let rec splitEVar (EVar (_, GX, __V, _) as X) (__W) sc =
       lowerSplit
-        (I.Null, (__v, I.id), W,
-          (function
-           | __u ->
-               if Unify.unifiable (I.Null, (x, I.id), (__u, I.id))
-               then sc ()
-               else ()))
+        (I.Null, (__V, I.id), __W,
+          (fun (__U) ->
+             if Unify.unifiable (I.Null, (__X, I.id), (__U, I.id))
+             then sc ()
+             else ()))(* GX = I.Null *)
     let rec createSub =
       function
       | I.Null -> T.id
-      | Decl (Psi, UDec (Dec (xOpt, V1))) ->
+      | Decl (Psi, UDec (Dec (xOpt, __V1))) ->
           let t' = createSub Psi in
-          let x =
-            I.newEVar (I.Null, (I.EClo (Whnf.whnf (V1, (T.coerceSub t'))))) in
-          T.Dot ((T.Exp x), t')
+          let __X =
+            I.newEVar (I.Null, (I.EClo (Whnf.whnf (__V1, (T.coerceSub t'))))) in
+          ((T.Dot ((T.Exp __X), t'))
+            (* all EVars are global and lowered *))
       | Decl (Psi, UDec (BDec (_, (l, s)))) ->
           let t' = createSub Psi in
-          let __l =
+          let __L =
             I.newLVar ((I.Shift 0), (l, (I.comp (s, (T.coerceSub t'))))) in
-          T.Dot ((T.Block __l), t')
-      | Decl (Psi, PDec (_, F, TC1, TC2)) ->
+          ((T.Dot ((T.Block __L), t'))
+            (* --cs Sun Dec  1 06:34:00 2002 *))
+      | Decl (Psi, PDec (_, __F, TC1, TC2)) ->
           let t' = createSub Psi in
-          let y = T.newEVarTC (I.Null, (T.FClo (F, t')), TC1, TC2) in
-          T.Dot ((T.Prg y), t')
-    let rec mkCases =
-      function
-      | (nil, F) -> nil
-      | ((Psi, t)::cs, F) ->
-          let x = T.newEVar (Psi, (T.FClo (F, t))) in
-          (::) (Psi, t, x) mkCases (cs, F)
-    let rec split (Focus (EVar (Psi, r, F, None, None, _), W)) =
-      let rec splitXs arg__0 arg__1 =
-        match (arg__0, arg__1) with
-        | ((__g, i), (nil, _, _, _)) -> nil
-        | ((__g, i), ((x)::__Xs, F, W, sc)) ->
+          let __Y = T.newEVarTC (I.Null, (T.FClo (__F, t')), TC1, TC2) in
+          ((T.Dot ((T.Prg __Y), t'))(* p > 0 *))(* . |- s : Psi0 *)
+      (* Psi0 |- t : Gsome *)
+    let rec mkCases __24__ __25__ =
+      match (__24__, __25__) with
+      | (nil, __F) -> nil
+      | ((Psi, t)::cs, __F) ->
+          let __X = T.newEVar (Psi, (T.FClo (__F, t))) in
+          (::) (Psi, t, __X) mkCases (cs, __F)
+    let rec split (Focus (EVar (Psi, r, __F, NONE, NONE, _), __W)) =
+      let rec splitXs __26__ __27__ __28__ __29__ __30__ __31__ =
+        match (__26__, __27__, __28__, __29__, __30__, __31__) with
+        | (__G, i, nil, _, _, _) -> nil
+        | (__G, i, (__X)::__Xs, __F, __W, sc) ->
             let _ =
               if (!Global.chatter) >= 6
               then
-                print (((^) "Split " Print.expToString (I.Null, x)) ^ ".\n")
+                print
+                  (((^) "Split " Print.expToString (I.Null, __X)) ^ ".\n")
               else () in
-            let __Os = splitXs (__g, (i + 1)) (__Xs, F, W, sc) in
+            let __Os = splitXs (__G, (i + 1)) (__Xs, __F, __W, sc) in
             let _ = resetCases () in
-            let s = Print.expToString (__g, x) in
+            let s = Print.expToString (__G, __X) in
             let __Os' =
               try
-                splitEVar (x, W, sc);
+                splitEVar (__X, __W, sc);
                 (Split
-                   (r, (T.Case (T.Cases (mkCases ((getCases ()), F)))), s))
+                   (r, (T.Case (T.Cases (mkCases ((getCases ()), __F)))), s))
                   :: __Os
               with
               | Error constrs ->
@@ -217,187 +216,27 @@ module Split(Split:sig
                           ^ "\n")
                    else ();
                    __Os) in
-            __Os' in
+            ((__Os')
+              (* returns a list of operators *)(*            val I.Dec (Some s, _) = I.ctxLookup (G, i) *)) in
       let t = createSub Psi in
       let __Xs = State.collectLFSub t in
       let rec init () = addCase (Abstract.abstractTomegaSub t) in
-      let __g = T.coerceCtx Psi in
-      let __Os = splitXs (__g, 1) (__Xs, F, W, init) in __Os
-    let rec expand (Focus (EVar (Psi, r, F, None, None, _), W) as S) =
-      if Abstract.closedCTX Psi then split S else []
-    let rec apply (Split (r, P, s)) = (:=) r Some P
-    let rec menu (Split (_, _, s)) = "Split " ^ s
-    (* weaken (__g, a) = w'
-
-       Invariant:
-       If   a is a type family
-       then __g |- w' : __g'
-       and  forall x:A in __g'  A subordinate to a
-     *)
-    (* added next case, probably should not arise *)
-    (* Sun Dec 16 10:42:05 2001 -fp !!! *)
-    (*
-      | weaken (I.Decl (__g', __d as I.BDec _), a) =
-           I.dot1 (weaken (__g', a))
-      *)
-    (* createEVar (__g, __v) = x[w] where __g |- x[w] : __v
-
-       Invariant:
-       If __g |- __v : __l
-       then __g |- x[w] : __v
-    *)
-    (* __g |- __v : __l *)
-    (* __g  |- w  : __g'    *)
-    (* __g' |- iw : __g     *)
-    (* __g' |- x' : __v[iw] *)
-    (* __g  |- x  : __v     *)
-    (* instEVars ({x1:V1}...{xp:Vp} __v, p, nil) = (__v[s], [X1,...,Xn])
-       where . |- s : {x1:V1}...{xp:Vp}
-       and s = Xp...X1.id, all Xi are new EVars
-    *)
-    (* p > 0 *)
-    (* all EVars are global *)
-    (* G0 |- t : Gsome *)
-    (* . |- s : G0 *)
-    (* p > 0 *)
-    (* --cs Sun Dec  1 06:33:27 2002 *)
-    (* caseList is a list of possibilities for a variables
-       to be split.  Maintained as a mutable reference so it
-       can be updated in the success continuation.
-    *)
-    (* createEVarSpine (__g, (__v, s)) = (S', (__v', s'))
-
-       Invariant:
-       If   __g |- s : G1   and  G1 |- __v = Pi {V1 .. Vn}. W : __l
-       and  G1, V1 .. Vn |- W atomic
-       then __g |- s' : G2  and  G2 |- __v' : __l
-       and  S = X1; ...; Xn; Nil
-       and  __g |- W [1.2...n. s o ^n] = __v' [s']
-       and  __g |- S : __v [s] >  __v' [s']
-    *)
-    (* s = id *)
-    (* __g |- V1[s] : __l *)
-    (* Uni or other cases should be impossible *)
-    (* createAtomConst (__g, c) = (__u', (__v', s'))
-
-       Invariant:
-       If   S |- c : Pi {V1 .. Vn}. __v
-       then . |- __u' = c @ (X1; .. Xn; Nil)
-       and  . |- __u' : __v' [s']
-    *)
-    (* createAtomBVar (__g, k) = (__u', (__v', s'))
-
-       Invariant:
-       If   __g |- k : Pi {V1 .. Vn}. __v
-       then . |- __u' = k @ (Xn; .. Xn; Nil)
-       and  . |- __u' : __v' [s']
-    *)
-    (* createAtomProj (__g, #i(l), (__v, s)) = (__u', (__v', s'))
-
-       Invariant:
-       If   __g |- #i(l) : Pi {V1 .. Vn}. Va
-       and  __g |- Pi {V1..Vn}. Va = __v[s] : type
-       then . |- __u' = #i(l) @ (X1; .. Xn; Nil)
-       and  . |- __u' : __v' [s']
-    *)
-    (* createEVarSub __g' = s
-
-       Invariant:
-       If   . |- __g' ctx
-       then . |- s : __g' and s instantiates each x:A with an EVar . |- x : A
-
-       Update: Always use empty context. Sat Dec  8 13:19:58 2001 -fp
-    *)
-    (* hack *)
-    (* blockCases (__g, __Vs, B, (Gsome, piDecs), sc) =
-
-       If __g |- __v[s] : type
-          . |- Gsome ctx and Gsome |- piDecs decList
-       then sc is called for any x:A in piDecs such thtat
-            __g |- __v[s] = A[t] : type
-            where t instantiates variable in Gsome with new EVars
-    *)
-    (* accounts for subordination *)
-    (* . |- t : Gsome *)
-    (* --cs Sun Dec  1 06:33:41 2002 *)
-    (* __g |- t' : Gsome *)
-    (* __g |- t : __g' and __g' |- ({_:__v'},piDecs) decList *)
-    (* so __g |- __v'[t'] : type *)
-    (* will trail *)
-    (* will trail *)
-    (* will trail *)
-    (*     | lowerSplitW (__g, (I.Pi ((__d, P), __v), s), W, sc) =
-        let
-          val __d' = I.decSub (__d, s)
-        in
-          lowerSplit (I.Decl (__g, __d'), (__v, I.dot1 s), W, fn __u => sc (I.Lam (__d', __u)))
-        end
-      we assume that all EVars are lowere :-)
-*)
-    (* splitEVar (x, W, sc) = ()
-
-       calls sc () for all cases, after instantiation of x
-       W are the currently possible worlds
-    *)
-    (* GX = I.Null *)
-    (* createSub (Psi) = s
-
-       Invariant:
-       If   Psi is a meta context
-       then s = Xp...X1.id, all Xi are new EVars/LVars/MVars
-       and  . |- s : Psi
-    *)
-    (* all EVars are global and lowered *)
-    (* Psi0 |- t : Gsome *)
-    (* . |- s : Psi0 *)
-    (* --cs Sun Dec  1 06:34:00 2002 *)
-    (* p > 0 *)
-    (* mkCases __l F= __Ss
-
-       Invariant:
-       If   __l is a list of cases (Psi1, t1) .... (Psin, tn)
-       and  Psii |- ti : Psi
-       and  Psi  |- F formula
-       then __Ss is a list of States S1 ... Sn
-       and  Si = (Psii, Fi)
-       where  Psii |- Fi = F [ti]  formula
-    *)
-    (* split S = S1 ... Sn
-
-       Invariant:
-       If   S = (P |> F)
-       then Si = (Pi |> Fi)
-       s.t. there exists substitution si
-            and  Pi |- si : P
-            and  Pi |- Fi = F[si]
-            and  for every __g |- t : P,
-
-                 there ex. an i among 1..n
-                 and a substitution t',
-                 s.t. __g |- t' : Pi
-                 and  t = t' [si]
-    *)
-    (* splitXs (__g, i) (__Xs, F, W, sc) = __Os
+      let __G = T.coerceCtx Psi in
+      let __Os = splitXs (__G, 1) (__Xs, __F, __W, init) in ((__Os)
+        (* splitXs (G, i) (Xs, F, W, sc) = Os
            Invariant:
            If   Psi is a CONTEXT
-           and  __g ~ Psi a context,
-           and  __g |- i : __v
+           and  G ~ Psi a context,
+           and  G |- i : V
            and  Psi |- F formula
-           and  __Xs are all logic variables
-           then __Os is a list of splitting operators
+           and  Xs are all logic variables
+           then Os is a list of splitting operators
         *)
-    (* returns a list of operators *)
-    (*            val I.Dec (Some s, _) = I.ctxLookup (__g, i) *)
-    (* . |- t :: Psi *)
-    (* apply (Op) = Sl'
-
-       Invariant:
-       If   Op = (_, Sl)
-       then Sl' = Sl
-
-       Side effect: If Sl contains inactive states, an exception is raised
-    *)
-    (* trailing required -cs Thu Apr 22 12:05:04 2004 *)
+        (* . |- t :: Psi *))
+    let rec expand (Focus (EVar (Psi, r, __F, NONE, NONE, _), __W) as S) =
+      if Abstract.closedCTX Psi then split __S else []
+    let rec apply (Split (r, __P, s)) = (:=) r Some __P
+    let rec menu (Split (_, _, s)) = "Split " ^ s
     type nonrec operator = __Operator
     let expand = expand
     let apply = apply
