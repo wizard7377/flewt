@@ -40,7 +40,7 @@ module FunTypeCheck(FunTypeCheck:sig
               let (s2, s2') as ps = ((I.dot1 s1), (I.dot1 s1')) in
               if Conv.conv ((__V, s1), (__V', s1')) then ps else raise Conv
           | _ -> raise Conv in
-        try conv (__Gs, __Gs'); true__ with | Conv -> false__
+        try conv (__Gs, __Gs'); true with | Conv -> false
     let rec extend __2__ __3__ =
       match (__2__, __3__) with
       | (__G, nil) -> __G

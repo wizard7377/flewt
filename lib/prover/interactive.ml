@@ -46,7 +46,7 @@ module Interactive(Interactive:sig
         | _ -> raise (Error "Type Constant declaration expected") in
       let mS =
         match ModeTable.modeLookup cid with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let rec convertFor' __0__ __1__ __2__ __3__ __4__ =
         match (__0__, __1__, __2__, __3__, __4__) with
@@ -105,7 +105,7 @@ module Interactive(Interactive:sig
       | Fix of FixedPoint.operator 
       | Elim of Elim.operator 
     let ((Focus) : S.__State list ref) = ref []
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec SplittingToMenu (__O) (__A) = (Split __O) :: __A
     let rec initFocus () = Focus := []
     let rec normalize () =
@@ -113,7 +113,7 @@ module Interactive(Interactive:sig
       | (State (__W, Psi, __P, __F))::Rest ->
           Focus := ((S.State (__W, Psi, (T.derefPrg __P), __F)) :: Rest)
       | _ -> ()
-    let rec reset () = initFocus (); Menu := NONE
+    let rec reset () = initFocus (); Menu := None
     let rec format k =
       if k < 10 then (Int.toString k) ^ ".  " else (Int.toString k) ^ ". "
     let rec menuToString () =
@@ -136,7 +136,7 @@ module Interactive(Interactive:sig
             let s = menuToString' ((k + 1), __M) in
             ((s ^ "\n  ") ^ (format k)) ^ (Elim.menu __O) in
       ((match !Menu with
-        | NONE -> raise (Error "Menu is empty")
+        | None -> raise (Error "Menu is empty")
         | Some (__M) -> menuToString' (1, __M))
         (*          | menuToString' (k, Inference O :: M,kOopt) =
               let
@@ -196,12 +196,12 @@ module Interactive(Interactive:sig
             function
             | [] -> []
             | operators::l -> (@) (map Split operators) splitMenu l in
-          let _ = Global.doubleCheck := true__ in
+          let _ = Global.doubleCheck := true in
           let rec introMenu =
             function
             | [] -> []
             | (Some oper)::l -> (::) (Introduce oper) introMenu l
-            | (NONE)::l -> introMenu l in
+            | (None)::l -> introMenu l in
           let intro = introMenu (map Introduce.expand __F1) in
           let fill =
             foldr
@@ -236,7 +236,7 @@ module Interactive(Interactive:sig
         | (k, _::__M) -> select' ((k - 1), __M)(* no timer yet -- cs *)
         (* no timer yet -- cs *) in
       match !Menu with
-      | NONE -> raise (Error "No menu defined")
+      | None -> raise (Error "No menu defined")
       | Some (__M) ->
           (try select' (k, __M); normalize (); menu (); printmenu ()
            with | Error s -> ())
@@ -305,7 +305,7 @@ module Interactive(Interactive:sig
             findTEVar (S.collectT __P)
         | (StateLF (__U))::_ ->
             (match Names.getEVarOpt n with
-             | NONE -> raise (Error ("cannot focus on " ^ n))
+             | None -> raise (Error ("cannot focus on " ^ n))
              | Some (__Y) ->
                  (Focus := ((!) ((::) (S.StateLF __Y)) Focus);
                   normalize ();

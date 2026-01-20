@@ -35,7 +35,7 @@ module Prover(Prover:sig
     let rec reset () = openStates := nil; solvedStates := nil
     let rec contains __0__ __1__ =
       match (__0__, __1__) with
-      | (nil, _) -> true__
+      | (nil, _) -> true
       | (x::__L, __L') ->
           (List.exists (fun x' -> x = x') __L') && (contains (__L, __L'))
     let rec equiv (__L1) (__L2) =
@@ -80,7 +80,7 @@ module Prover(Prover:sig
     let rec makeConDec (State (name, Prefix (__G, __M, __B), __V)) =
       let rec makeConDec' __2__ __3__ __4__ =
         match (__2__, __3__, __4__) with
-        | (I.Null, __V, k) -> I.ConDec (name, NONE, k, I.Normal, __V, I.Type)
+        | (I.Null, __V, k) -> I.ConDec (name, None, k, I.Normal, __V, I.Type)
         | (Decl (__G, __D), __V, k) ->
             makeConDec' (__G, (I.Pi ((__D, I.Maybe), __V)), (k + 1)) in
       makeConDec' (__G, __V, 0)

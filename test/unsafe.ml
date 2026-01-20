@@ -2,7 +2,7 @@
 (* Twelf.chatter := 0; *)
 (* Twelf.chatter := 1; *)
 (* Twelf.chatter := 2; *)
-(* Twelf.chatter := 3; *) ;;Twelf.unsafe := true__
+(* Twelf.chatter := 3; *) ;;Twelf.unsafe := true
 let rec test file =
   match Twelf.Config.load (Twelf.Config.read file) with
   | Twelf.OK -> Twelf.OK
@@ -25,4 +25,4 @@ let rec test file =
 ;;test "examples/kolm/test.cfg" ;;test "examples/lp/test.cfg"
 ;;test "examples/lp-horn/test.cfg" ;;test "examples/mini-ml/test.cfg"
 ;;test "examples/polylam/test.cfg" ;;test "examples/prop-calc/test.cfg"
-;;test "examples/units/test.cfg" ;;Twelf.unsafe := false__;;
+;;test "examples/units/test.cfg" ;;Twelf.unsafe := false;;

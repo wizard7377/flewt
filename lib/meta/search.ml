@@ -31,14 +31,14 @@ module MTPSearch(MTPSearch:sig
     module C = CompSyn
     let rec isInstantiated =
       function
-      | Root (Const cid, _) -> true__
+      | Root (Const cid, _) -> true
       | Pi (_, __V) -> isInstantiated __V
-      | Root (Def cid, _) -> true__
+      | Root (Def cid, _) -> true
       | Redex (__V, __S) -> isInstantiated __V
       | Lam (_, __V) -> isInstantiated __V
       | EVar ({ contents = Some (__V) }, _, _, _) -> isInstantiated __V
       | EClo (__V, s) -> isInstantiated __V
-      | _ -> false__
+      | _ -> false
     let rec compose' __0__ __1__ =
       match (__0__, __1__) with
       | (IntSyn.Null, __G) -> __G
@@ -55,13 +55,13 @@ module MTPSearch(MTPSearch:sig
     let rec exists (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> false__
+        | I.Null -> false
         | Decl (__K', __Y) -> (__P __Y) || (exists' __K') in
       exists' __K
     let rec occursInExp r (__Vs) = occursInExpW (r, (Whnf.whnf __Vs))
     let rec occursInExpW __6__ __7__ =
       match (__6__, __7__) with
-      | (r, (Uni _, _)) -> false__
+      | (r, (Uni _, _)) -> false
       | (r, (Pi ((__D, _), __V), s)) ->
           (occursInDec (r, (__D, s))) || (occursInExp (r, (__V, (I.dot1 s))))
       | (r, (Root (_, __S), s)) -> occursInSpine (r, (__S, s))
@@ -72,10 +72,10 @@ module MTPSearch(MTPSearch:sig
       | (r, (FgnExp csfe, s)) ->
           I.FgnExpStd.fold csfe
             (fun (__U) -> fun (__B) -> __B || (occursInExp (r, (__U, s))))
-            false__
+            false
     let rec occursInSpine __8__ __9__ =
       match (__8__, __9__) with
-      | (_, (I.Nil, _)) -> false__
+      | (_, (I.Nil, _)) -> false
       | (r, (SClo (__S, s'), s)) ->
           occursInSpine (r, (__S, (I.comp (s', s))))
       | (r, (App (__U, __S), s)) ->
@@ -83,7 +83,7 @@ module MTPSearch(MTPSearch:sig
     let rec occursInDec r (Dec (_, __V), s) = occursInExp (r, (__V, s))
     let rec nonIndex __10__ __11__ =
       match (__10__, __11__) with
-      | (_, nil) -> true__
+      | (_, nil) -> true
       | (r, (EVar (_, _, __V, _))::GE) ->
           (not (occursInExp (r, (__V, I.id)))) && (nonIndex (r, GE))
     let rec selectEVar =
@@ -105,13 +105,13 @@ module MTPSearch(MTPSearch:sig
       match (__14__, __15__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec solve __16__ __17__ __18__ __19__ __20__ =
       match (__16__, __17__, __18__, __19__, __20__) with
       | (max, depth, (Atom p, s), (DProg (__G, dPool) as dp), sc) ->
           matchAtom (max, depth, (p, s), dp, sc)
       | (max, depth, (Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
               (C.DProg
@@ -132,7 +132,7 @@ module MTPSearch(MTPSearch:sig
           (match Assign.assignable (__G, ps', (__Q, s)) with
            | Some cnstr ->
                aSolve ((eqns, s), dp, cnstr, (fun () -> sc I.Nil))
-           | NONE -> ())
+           | None -> ())
       | (max, depth, ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp),
          sc) ->
           let __X = I.newEVar (__G, (I.EClo (__A, s))) in
@@ -237,7 +237,7 @@ module MTPSearch(MTPSearch:sig
       | (max, (EVar (r, __G, __V, _) as X)::GE, sc) ->
           solve
             (max, 0, ((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false__ __G),
+              (Compile.compileCtx false __G),
               (fun (__U') ->
                  try
                    Unify.unify (__G, (__X, I.id), (__U', I.id));

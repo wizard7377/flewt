@@ -51,7 +51,7 @@ module type LAYOUT  =
 
 module Layout : LAYOUT =
   struct
-    let detailed = ref false__
+    let detailed = ref false
     let rec switch { detailed = d; normal = n; normal = n } x =
       if !detailed then d x else n x
     type t =
@@ -65,7 +65,7 @@ module Layout : LAYOUT =
     type nonrec layout = t
     let rec length (__T { length }) = length
     let empty = __T { length = 0; tree = Empty }
-    let rec isEmpty = function | __T { length = 0 } -> true__ | _ -> false__
+    let rec isEmpty = function | __T { length = 0 } -> true | _ -> false
     let rec str s =
       match s with
       | "" -> empty
@@ -89,8 +89,8 @@ module Layout : LAYOUT =
       match len with
       | 0 -> empty
       | _ -> __T { length = (len - 1); tree = (Align { force; rows = ts }) }
-    let align = make true__
-    let mayAlign = make false__
+    let align = make true
+    let mayAlign = make false
     let rec indent t n = __T { length = (length t); tree = (Indent (t, n)) }
     let (tabSize : int) = 8
     let rec K x _ = x

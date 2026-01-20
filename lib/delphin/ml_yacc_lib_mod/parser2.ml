@@ -20,8 +20,8 @@ module LrParser : LR_PARSER =
       end 
     open LrTable
     open Token
-    let DEBUG1 = false__
-    let DEBUG2 = false__
+    let DEBUG1 = false
+    let DEBUG2 = false
     exception ParseError 
     exception ParseImpossible of int 
     module Fifo : FIFO =

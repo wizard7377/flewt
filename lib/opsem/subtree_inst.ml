@@ -22,18 +22,18 @@ module MemoTableInst(MemoTableInst:sig
     let rec delete x (__L : ctx) =
       let rec del __0__ __1__ __2__ =
         match (__0__, __1__, __2__) with
-        | (x, [], __L) -> NONE
+        | (x, [], __L) -> None
         | (x, ((y, __E) as H)::__L, __L') ->
             if x = y
             then Some ((y, __E), ((rev __L') @ __L))
             else del (x, __L, (__H :: __L')) in
       match del (x, (!__L), []) with
-      | NONE -> NONE
+      | None -> None
       | Some ((y, __E), __L') -> (__L := __L'; Some (y, __E))
     let rec member x (__L : ctx) =
       let rec memb __3__ __4__ =
         match (__3__, __4__) with
-        | (x, []) -> NONE
+        | (x, []) -> None
         | (x, ((y, (Dec (n, __U) as E))::__L as H)) ->
             if x = y then Some (y, __E) else memb (x, __L)
         | (x, ((y, (ADec (n, d) as E))::__L as H)) ->
@@ -74,7 +74,7 @@ module MemoTableInst(MemoTableInst:sig
     exception DifferentSpines 
     let rec emptyAnswer () = T.emptyAnsw ()
     let (answList : TableParam.answer list ref) = ref []
-    let added = ref false__
+    let added = ref false
     type nonrec nvar = int
     type nonrec bvar = int
     type nonrec bdepth = int
@@ -127,7 +127,7 @@ module MemoTableInst(MemoTableInst:sig
       | (I.Nil, n) -> n = 0
       | (App (Root (BVar k, I.Nil), __S), n) ->
           (k = n) && (etaSpine (__S, (n - 1)))
-      | (App (__A, __S), n) -> false__
+      | (App (__A, __S), n) -> false
     let rec cidFromHead = function | Const c -> c | Def c -> c
     let rec dotn __12__ __13__ =
       match (__12__, __13__) with
@@ -245,7 +245,7 @@ module MemoTableInst(MemoTableInst:sig
                      (* k2 is globally bound *))
                    else
                      (match member (((k1 - d) + passed), __D1) with
-                      | NONE -> raise (Assignment "EVar nonexistent")
+                      | None -> raise (Assignment "EVar nonexistent")
                       | Some (x, Dec) ->
                           ((if k2 <= (r + d)
                             then raise (Assignment "EVar - BVar clash")
@@ -321,27 +321,27 @@ module MemoTableInst(MemoTableInst:sig
       | (Dec (_, __U), Dec (_, __U')) ->
           Conv.conv ((__U, I.id), (__U', I.id))
       | (ADec (_, d), ADec (_, d')) -> d = d'
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec equalCtx __52__ __53__ __54__ __55__ =
       match (__52__, __53__, __54__, __55__) with
-      | (I.Null, s, I.Null, s') -> true__
+      | (I.Null, s, I.Null, s') -> true
       | (Decl (__G, (Dec (_, __A) as D)), s, Decl
          (__G', (Dec (_, __A') as D')), s') ->
           (Conv.convDec ((__D, s), (__D', s'))) &&
             (equalCtx (__G, (I.dot1 s), __G', (I.dot1 s')))
-      | (_, s, _, s') -> false__
+      | (_, s, _, s') -> false
     let rec equalEqn __56__ __57__ =
       match (__56__, __57__) with
-      | (T.Trivial, T.Trivial) -> true__
+      | (T.Trivial, T.Trivial) -> true
       | (Unify (__G, __X, __N, eqn), Unify (__G', __X', __N', eqn')) ->
           (equalCtx (__G, I.id, __G', I.id)) &&
             ((Conv.conv ((__X, I.id), (__X', I.id))) &&
                ((Conv.conv ((__N, I.id), (__N', I.id))) &&
                   (equalEqn (eqn, eqn'))))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec equalEqn' __58__ __59__ __60__ __61__ =
       match (__58__, __59__, __60__, __61__) with
-      | (d, (__D, T.Trivial), (__D', T.Trivial), asub) -> true__
+      | (d, (__D, T.Trivial), (__D', T.Trivial), asub) -> true
       | (d,
          (__D, Unify
           (((__G, (Root (BVar k, __S) as X), __N, eqn))(* AVar *))),
@@ -357,10 +357,10 @@ module MemoTableInst(MemoTableInst:sig
             (((((if (k - d') > 0
                  then
                    (((match member ((k - d'), __D') with
-                      | NONE -> ()
+                      | None -> ()
                       | Some (x, Dec) ->
                           (match RBSet.lookup asub (k - d') with
-                           | NONE ->
+                           | None ->
                                (((delete (x, __D');
                                   S.insert asub ((k - d'), (I.Idx (k - d')))))
                                (* it is not instantiated yet *))
@@ -375,28 +375,28 @@ module MemoTableInst(MemoTableInst:sig
                equalEqn' (d, (__D, eqn), (__D', eqn'), asub)))
               (* X is the evar in the query, X' is the evar in the index,
              potentially X' is not yet instantiated and X' in D' but X' not in asub *))
-          else false__
-      | (d, _, _, asub) -> false__
+          else false
+      | (d, _, _, asub) -> false
     let rec equalSub __62__ __63__ =
       match (__62__, __63__) with
       | (Shift k, Shift k') -> k = k'
       | (Dot (__F, __S), Dot (__F', __S')) ->
           (equalFront (__F, __F')) && (equalSub (__S, __S'))
-      | (Dot (__F, __S), Shift k) -> false__
-      | (Shift k, Dot (__F, __S)) -> false__
+      | (Dot (__F, __S), Shift k) -> false
+      | (Shift k, Dot (__F, __S)) -> false
     let rec equalFront __64__ __65__ =
       match (__64__, __65__) with
       | (Idx n, Idx n') -> n = n'
       | (Exp (__U), Exp (__V)) -> Conv.conv ((__U, I.id), (__V, I.id))
-      | (I.Undef, I.Undef) -> true__
+      | (I.Undef, I.Undef) -> true
     let rec equalCtx' __66__ __67__ =
       match (__66__, __67__) with
-      | (I.Null, I.Null) -> true__
+      | (I.Null, I.Null) -> true
       | (Decl (Dk, Dec (_, __A)), Decl (__D1, Dec (_, __A1))) ->
           (Conv.conv ((__A, I.id), (__A1, I.id))) && (equalCtx' (Dk, __D1))
       | (Decl (Dk, ADec (_, d')), Decl (__D1, ADec (_, d))) ->
           (d = d') && (equalCtx' (Dk, __D1))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec instanceCtx asub (__D1, __G1) (__D2, __G2) =
       let d1 = I.ctxLength __G1 in
       let d2 = I.ctxLength __G2 in
@@ -405,9 +405,9 @@ module MemoTableInst(MemoTableInst:sig
         try
           let fasub =
             assignCtx ((fun asub -> ()), (d1, 0), (__D1, __G1), (__D2, __G2)) in
-          fasub asub; true__
-        with | Assignment msg -> ((false__)(* print msg;*))
-      else false__
+          fasub asub; true
+        with | Assignment msg -> ((false)(* print msg;*))
+      else false
     let rec collectEVar (__D) nsub =
       let __D' = emptyCtx () in
       let rec collectExp __68__ __69__ __70__ __71__ =
@@ -418,7 +418,7 @@ module MemoTableInst(MemoTableInst:sig
             collectSpine (d, __D', __D, __S)
         | (d, __D', __D, Root (BVar k, __S)) ->
             (match member ((k - d), __D) with
-             | NONE -> collectSpine (d, __D', __D, __S)
+             | None -> collectSpine (d, __D', __D, __S)
              | Some (x, Dec) ->
                  (delete ((x - d), __D); insertList (((x - d), Dec), __D')))
         | (d, __D', __D, (Root (Def k, __S) as U)) ->
@@ -434,9 +434,9 @@ module MemoTableInst(MemoTableInst:sig
       (__D', __D)
     let rec convAssSub' (__G) idx_k (__D) asub d ((evars, avars) as evarsl) =
       match RBSet.lookup asub d with
-      | NONE ->
+      | None ->
           (((match member (d, __D) with
-             | NONE -> IntSyn.Shift ((evars + avars)(* 0 *))
+             | None -> IntSyn.Shift ((evars + avars)(* 0 *))
              | Some (x, Dec (n, __V)) ->
                  let s =
                    convAssSub' (__G, (idx_k + 1), __D, asub, (d + 1), evarsl) in
@@ -485,7 +485,7 @@ module MemoTableInst(MemoTableInst:sig
                 let k1 = k - d in
                 let k2 = k' - d in
                 (((match ((member (k1, D_t)), (member (k2, D_u))) with
-                   | (NONE, NONE) ->
+                   | (None, None) ->
                        ((if k1 = k2
                          then instSpine (d, __S1, __S2, ac)
                          else raise (Instance "Bound variable mismatch\n"))
@@ -510,12 +510,12 @@ module MemoTableInst(MemoTableInst:sig
                                 (* ctxTotal,*))))
                        (* they refer to the same existential variable *)
                        (* instance checking only Sun Oct 27 12:16:10 2002 -bp *))
-                   | (Some (x, (ADec (n, d') as Dec1)), NONE) ->
+                   | (Some (x, (ADec (n, d') as Dec1)), None) ->
                        (fun asub ->
                           ac asub;
                           assign (((d, Dec1, __T, __U, asub))
                             (* ctxTotal,*)))
-                   | (Some (x, Dec1), NONE) ->
+                   | (Some (x, Dec1), None) ->
                        (fun asub ->
                           ac asub;
                           assign (((d, Dec1, __T, __U, asub))
@@ -528,7 +528,7 @@ module MemoTableInst(MemoTableInst:sig
         | (d, (Root ((BVar k as H1), __S1) as T),
            (Root (Const k', __S2) as U), ac) ->
             (match isExists (d, (I.BVar k), D_t) with
-             | NONE -> raise (Instance "Impossible\n")
+             | None -> raise (Instance "Impossible\n")
              | Some (x, (ADec (_, _) as Dec1)) ->
                  (fun asub ->
                     ac asub;
@@ -542,7 +542,7 @@ module MemoTableInst(MemoTableInst:sig
         | (d, (Root ((BVar k as H1), __S1) as T), (Root (Def k', __S2) as U),
            ac) ->
             (match isExists (d, (I.BVar k), D_t) with
-             | NONE -> raise (Instance "Impossible\n")
+             | None -> raise (Instance "Impossible\n")
              | Some (x, (ADec (_, _) as Dec1)) ->
                  (fun asub ->
                     ac asub;
@@ -604,13 +604,13 @@ module MemoTableInst(MemoTableInst:sig
       | ((D_1, Def k), (D_2, Def k')) -> k = k'
       | ((D_1, BVar k), (D_2, BVar k')) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | NONE -> k = k'
-           | Some (x, Dec) -> true__)
+           | None -> k = k'
+           | Some (x, Dec) -> true)
       | ((D_1, BVar k), (D_2, __H2)) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | NONE -> false__
-           | Some (x, Dec) -> true__)
-      | ((D_1, __H1), (D_2, __H2)) -> false__
+           | None -> false
+           | Some (x, Dec) -> true)
+      | ((D_1, __H1), (D_2, __H2)) -> false
     let rec compatible' (D_t, (dt, __T)) (D_u, (du, __U)) (__Ds) rho_t rho_u
       =
       let rec genNVar (rho_t, __T) (rho_u, __U) =
@@ -638,7 +638,7 @@ module MemoTableInst(MemoTableInst:sig
                 let k1 = k - d in
                 let k2 = k' - d in
                 (((match ((member (k1, D_t)), (member (k2, D_u))) with
-                   | (NONE, NONE) ->
+                   | (None, None) ->
                        if k1 = k2
                        then
                          (try
@@ -717,7 +717,7 @@ module MemoTableInst(MemoTableInst:sig
           compatible' ((D_t, __T), (D_u, __U), __Ds, rho_t, rho_u)
     let rec compatibleCtx __104__ __105__ __106__ =
       match (__104__, __105__, __106__) with
-      | (asub, (Dsq, Gsq, eqn_sq), []) -> NONE
+      | (asub, (Dsq, Gsq, eqn_sq), []) -> None
       | (asub, (Dsq, Gsq, eqn_sq),
          (_, Delta', __G', eqn', answRef', _, status')::GRlist) ->
           if instanceCtx (asub, (Dsq, Gsq), (Delta', __G'))
@@ -735,7 +735,7 @@ module MemoTableInst(MemoTableInst:sig
                    | Some (dt, __T) ->
                        instance
                          ((D_t, (dt, __T)), (D_r2, (du, __U)), rho_u, ac)
-                   | NONE -> S.insert rho_u (nv, (du, __U)))
+                   | None -> S.insert rho_u (nv, (du, __U)))
                  (* note by invariant Glocal_e ~ Glocal_t *)
                  (* [ac]T = U *)(* if U is an instance of T then [ac][rc_u]T = U *)
                  (* once the continuations ac are triggered *)));
@@ -766,7 +766,7 @@ module MemoTableInst(MemoTableInst:sig
       findAllCands (G_r, children, __Ds, asub, nil)
     let rec solveEqn __115__ __116__ =
       match (__115__, __116__) with
-      | ((T.Trivial, s), __G) -> true__
+      | ((T.Trivial, s), __G) -> true
       | ((Unify (((__G', e1, __N, eqns))(* evar *)), s),
          __G) ->
           let G'' = compose (__G', __G) in
@@ -775,7 +775,7 @@ module MemoTableInst(MemoTableInst:sig
             (solveEqn ((eqns, s), __G))
     let rec solveEqn' __117__ __118__ =
       match (__117__, __118__) with
-      | ((T.Trivial, s), __G) -> true__
+      | ((T.Trivial, s), __G) -> true
       | ((Unify (((__G', e1, __N, eqns))(* evar *)), s),
          __G) ->
           let G'' = compose (__G', __G) in
@@ -784,7 +784,7 @@ module MemoTableInst(MemoTableInst:sig
             (solveEqn' ((eqns, s), __G))
     let rec solveEqnI' __119__ __120__ =
       match (__119__, __120__) with
-      | ((T.Trivial, s), __G) -> true__
+      | ((T.Trivial, s), __G) -> true
       | ((Unify (((__G', e1, __N, eqns))(* evar *)), s),
          __G) ->
           let G'' = compose (__G', __G) in
@@ -802,7 +802,7 @@ module MemoTableInst(MemoTableInst:sig
             let (Dsq, D_G) = collectEVar (Dq, sq) in
             (((match compatibleCtx (asubst, (D_G, G_r, eqn), (!GRlistRef))
                with
-               | NONE ->
+               | None ->
                    ((raise (Instance "Compatible path -- different ctx\n"))
                    (* compatible path -- but different ctx *))
                | Some ((__D', __G', eqn'), answRef', status') ->
@@ -905,13 +905,13 @@ module MemoTableInst(MemoTableInst:sig
                            choose :=
                              ((fun match__ ->
                                  restc match__; if match__ then () else ()))))
-                 | NONE -> S.insert rho_u (nv, __U))
+                 | None -> S.insert rho_u (nv, __U))
                (* note by invariant Glocal_e ~ Glocal_t *)
                (* here Glocal_t will be only approximately correct! *))) in
       ((if isId rho_t
-        then ((!) choose true__; VariantSub (D_r2, rho_u))
+        then ((!) choose true; VariantSub (D_r2, rho_u))
         else
-          ((((!) choose false__;
+          ((((!) choose false;
              if isId sigma
              then NoCompatibleSub
              else SplitSub ((Dsigma, sigma), (D_r1, rho_t), (D_r2, rho_u))))
@@ -984,23 +984,23 @@ module MemoTableInst(MemoTableInst:sig
       | (Const k, Const k') -> k = k'
       | (BVar k, BVar k') -> k = k'
       | (Def k, Def k') -> k = k'
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec eqTerm __139__ __140__ =
       match (__139__, __140__) with
       | (Root (__H2, __S2), ((Root (__H, __S) as t), rho1)) ->
           if eqHeads (__H2, __H)
           then eqSpine (__S2, (__S, rho1))
-          else false__
+          else false
       | (__T2, (NVar n, rho1)) ->
           (match S.lookup rho1 n with
-           | NONE -> false__
+           | None -> false
            | Some (dt1, __T1) -> eqTerm (__T2, (__T1, (nid ()))))
       | (Lam (__D2, __T2), (Lam (__D, __T), rho1)) ->
           eqTerm (__T2, (__T, rho1))
-      | (_, (_, _)) -> false__
+      | (_, (_, _)) -> false
     let rec eqSpine __141__ __142__ =
       match (__141__, __142__) with
-      | (I.Nil, (I.Nil, rho1)) -> true__
+      | (I.Nil, (I.Nil, rho1)) -> true
       | (App (__T2, __S2), (App (__T, __S), rho1)) ->
           (eqTerm (__T2, (__T, rho1))) && (eqSpine (__S2, (__S, rho1)))
     let rec divergingSub (__Ds, sigma) (Dr1, rho1) (Dr2, rho2) =
@@ -1010,7 +1010,7 @@ module MemoTableInst(MemoTableInst:sig
              S.exists sigma (fun _ -> fun (d, t) -> eqTerm (t2, (t, rho1))))
     let rec variantCtx __143__ __144__ =
       match (__143__, __144__) with
-      | ((__G, eqn), []) -> NONE
+      | ((__G, eqn), []) -> None
       | ((__G, eqn), (l', D_G, __G', eqn', answRef', _, status')::GRlist) ->
           if (equalCtx' (__G, __G')) && (equalEqn (eqn, eqn'))
           then Some (l', answRef', status')
@@ -1021,7 +1021,7 @@ module MemoTableInst(MemoTableInst:sig
         | ((Leaf (_, GRlistRef) as N), (Dsq, sq),
            ((l, G_r, eqn, answRef, stage, status) as GR)) ->
             (match variantCtx ((G_r, eqn), (!GRlistRef)) with
-             | NONE ->
+             | None ->
                  ((let (D_nsub, D_G) = collectEVar (Dsq, sq) in
                    let GR' = (l, D_G, G_r, eqn, answRef, stage, status) in
                    (((((fun () ->
@@ -1088,10 +1088,10 @@ module MemoTableInst(MemoTableInst:sig
     let rec answCheckVariant s' answRef (__O) =
       let rec member __150__ __151__ =
         match (__150__, __151__) with
-        | ((__D, sk), []) -> false__
+        | ((__D, sk), []) -> false
         | ((__D, sk), ((__D1, s1), _)::__S) ->
             if (equalSub (sk, s1)) && (equalCtx' (__D, __D1))
-            then true__
+            then true
             else member ((__D, sk), __S) in
       let (DEVars, sk) = A.abstractAnswSub s' in
       if member ((DEVars, sk), (T.solutions answRef))
@@ -1105,7 +1105,7 @@ module MemoTableInst(MemoTableInst:sig
                n := 0;
                (!) ((:=) Tree) (makeTree ());
                answList := [];
-               added := false__;
+               added := false;
                (n, Tree)) indexArray)
       (* Reset Subsitution Tree *))
     let rec makeCtx __152__ __153__ __154__ =
@@ -1135,11 +1135,11 @@ module MemoTableInst(MemoTableInst:sig
             (* sq not in index --> insert it *)) in
       ((match result with
         | (sf, NewEntry answRef) ->
-            (sf (); added := true__; T.NewEntry answRef)
+            (sf (); added := true; T.NewEntry answRef)
         | (_, RepeatedEntry (asub, answRef, status)) ->
             T.RepeatedEntry (asub, answRef, status)
         | (sf, DivergingEntry (asub, answRef)) ->
-            (sf (); added := true__; T.DivergingEntry (asub, answRef)))
+            (sf (); added := true; T.DivergingEntry (asub, answRef)))
         (* n = |G| *)(* Dq = DAVars, DEVars *)(* l = |D| *))
     let rec insertIntoTree a (DAVars) (DEVars) (__G) (__U) eqn answRef status
       =
@@ -1160,11 +1160,11 @@ module MemoTableInst(MemoTableInst:sig
             ((l, (n + 1)), __G, eqn, answRef, (!TableParam.stageCtr), status)) in
       ((match result with
         | (sf, NewEntry answRef) ->
-            (sf (); added := true__; T.NewEntry answRef)
+            (sf (); added := true; T.NewEntry answRef)
         | (_, RepeatedEntry (asub, answRef, status)) ->
             T.RepeatedEntry (asub, answRef, status)
         | (sf, DivergingEntry (asub, answRef)) ->
-            (sf (); added := true__; T.DivergingEntry (asub, answRef)))
+            (sf (); added := true; T.DivergingEntry (asub, answRef)))
         (* sq = query substitution *))
     let rec answCheck s' answRef (__O) = answCheckVariant (s', answRef, __O)
     let rec updateTable () =
@@ -1175,11 +1175,11 @@ module MemoTableInst(MemoTableInst:sig
             let l = length (T.solutions answRef) in
             ((if (=) l T.lookup answRef
               then update AList Flag
-              else (T.updateAnswLookup (l, answRef); update AList true__))
+              else (T.updateAnswLookup (l, answRef); update AList true))
               (* no new solutions were added in the previous stage *)
               (* new solutions were added *)) in
-      let Flag = update (!answList) false__ in
-      let r = Flag || (!added) in added := false__; r
+      let Flag = update (!answList) false in
+      let r = Flag || (!added) in added := false; r
     let reset = reset
     let callCheck (DAVars) (DEVars) (__G) (__U) eqn status =
       callCheck
@@ -1195,7 +1195,7 @@ module MemoTableInst(MemoTableInst:sig
     let rec memberCtx (__G, __V) (__G') =
       let rec instanceCtx' __5__ __6__ __7__ =
         match (__5__, __6__, __7__) with
-        | ((__G, __V), I.Null, n) -> NONE
+        | ((__G, __V), I.Null, n) -> None
         | ((__G, __V), Decl (__G', (Dec (_, __V') as D')), n) ->
             if Match.instance (__G, (__V, I.id), (__V', (I.Shift n)))
             then Some __D'

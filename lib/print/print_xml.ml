@@ -70,7 +70,7 @@ module PrintXML(PrintXML:sig
           (* if Pi is dependent but anonymous, invent name here *))
       | (__G, (Root (__H, __S), s)) ->
           (match fmtSpine (__G, (__S, s)) with
-           | NONE -> fmtCon (__G, __H)
+           | None -> fmtCon (__G, __H)
            | Some fmts ->
                F.HVbox
                  [Str "<App>";
@@ -92,15 +92,15 @@ module PrintXML(PrintXML:sig
     let rec fmtExp (__G) (__U, s) = fmtExpW (__G, (Whnf.whnf (__U, s)))
     let rec fmtSpine __4__ __5__ =
       match (__4__, __5__) with
-      | (__G, (I.Nil, _)) -> NONE
+      | (__G, (I.Nil, _)) -> None
       | (__G, (SClo (__S, s'), s)) -> fmtSpine (__G, (__S, (I.comp (s', s))))
       | (__G, (App (__U, __S), s)) ->
           (match fmtSpine (__G, (__S, s)) with
-           | NONE -> Some [fmtExp (__G, (__U, s))]
+           | None -> Some [fmtExp (__G, (__U, s))]
            | Some fmts -> Some ([fmtExp (__G, (__U, s)); F.Break] @ fmts))
     let rec fmtDec __6__ __7__ =
       match (__6__, __7__) with
-      | (__G, (Dec (NONE, __V), s)) ->
+      | (__G, (Dec (None, __V), s)) ->
           sexp [Str "<Dec>"; F.Break; fmtExp (__G, (__V, s)); Str "</Dec>"]
       | (__G, (Dec (Some x, __V), s)) ->
           sexp
@@ -112,7 +112,7 @@ module PrintXML(PrintXML:sig
             Str "</Dec>"]
     let rec fmtDec' __8__ __9__ =
       match (__8__, __9__) with
-      | (__G, (Dec (NONE, __V), s)) -> sexp [fmtExp (__G, (__V, s))]
+      | (__G, (Dec (None, __V), s)) -> sexp [fmtExp (__G, (__V, s))]
       | (__G, (Dec (Some x, __V), s)) -> sexp [fmtExp (__G, (__V, s))]
     let rec fmtConDec =
       function

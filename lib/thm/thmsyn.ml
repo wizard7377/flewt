@@ -95,7 +95,7 @@ module ThmSyn(ThmSyn:sig
             else error (r, "Free variables in theorem declaration") in
       (((GBs,
           (I.ConDec
-             (name, NONE, i, I.Normal,
+             (name, None, i, I.Normal,
                (theoremToConDec' (__G, (I.Uni I.Type))), I.Kind))))
         (* theoremToConDec' G V = V'
 

@@ -34,7 +34,7 @@ module TypecheckEE : TYPECHECK =
                  if equiv_exp (__U, __V)
                  then ()
                  else raise (Fail_exp2 ("check_exp: Root,BVar", __U, __V))
-             | NONE -> raise (Fail "focus: var out of bounds")))
+             | None -> raise (Fail "focus: var out of bounds")))
           (* DeBruijn indices start at 1 *))
       | (ctx, Pi
          { var; arg = __A1; body = __A2; arg = __A1; body = __A2; body = __A2
@@ -123,12 +123,12 @@ module TypecheckEE : TYPECHECK =
             (match ((Sig.lookup c), (Sig.lookup c')) with
              | (Decl decl, Def def) ->
                  if (<>) (((fun r -> r.root)) def) ((fun r -> r.id)) decl
-                 then false__
+                 then false
                  else
                    equiv_exp (exp, (reduce (((fun r -> r.def) def), __S')))
              | (Def def, Decl decl) ->
                  if (<>) (((fun r -> r.root)) def) ((fun r -> r.id)) decl
-                 then false__
+                 then false
                  else
                    equiv_exp ((reduce (((fun r -> r.def) def), __S)), exp')
              | (Abbrev { def }, _) -> equiv_exp ((reduce (def, __S)), exp')
@@ -141,7 +141,7 @@ module TypecheckEE : TYPECHECK =
                   root = rc'; root = rc' })
                  ->
                  if rc <> rc'
-                 then false__
+                 then false
                  else
                    if h = h'
                    then
@@ -151,13 +151,13 @@ module TypecheckEE : TYPECHECK =
                      then equiv_exp ((reduce (def, __S)), exp')
                      else equiv_exp (exp, (reduce (def', __S')))
              | (_, _) -> raise (Fail "equiv_exp: bad case"))
-      | _ -> false__
+      | _ -> false
     let rec equiv_spine __18__ __19__ =
       match (__18__, __19__) with
-      | (S.Nil, Nil) -> true__
+      | (S.Nil, Nil) -> true
       | (App (__E, __S), App (__E', __S')) ->
           (equiv_exp (__E, __E')) && (equiv_spine (__S, __S'))
-      | _ -> false__
+      | _ -> false
     let rec check_dec __20__ __21__ =
       match (__20__, __21__) with
       | (c, Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->

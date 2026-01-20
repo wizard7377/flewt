@@ -26,8 +26,8 @@ module IntegersMod(IntegersMod:sig val p : int end) : FIELD =
       if check (String.explode str)
       then
         match Int.fromString str with
-        | Some n -> (if n < p then Some n else NONE)
-        | NONE -> NONE
-      else NONE
+        | Some n -> (if n < p then Some n else None)
+        | None -> None
+      else None
     let toString = Int.toString
   end ;;

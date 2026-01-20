@@ -38,6 +38,6 @@ module Integers(Integer:INTEGER) : INTEGERS =
             if c = '~'
             then List.all Char.isDigit chars'
             else List.all Char.isDigit chars
-        | nil -> false__ in
-      if check (String.explode str) then Integer.fromString str else NONE
+        | nil -> false in
+      if check (String.explode str) then Integer.fromString str else None
   end ;;

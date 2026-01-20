@@ -39,17 +39,16 @@ module Trail : TRAIL =
         | Cons (faction, ftrail) -> Cons ((reset faction), (resume' ftrail))
         (*	  | resume' (Mark ftrail) = (Mark (resume' ftrail)) *) in
       let trail' = resume' (!ftrail) in trail := trail'
-    let rec mark trail = (:=) trail Mark (!trail)
+    let rec mark trail = trail := Mark (!trail)
     let rec unwind trail undo =
       let rec unwind' =
         function
         | Nil -> Nil
         | Mark trail -> trail
         | Cons (action, trail) -> (undo action; unwind' trail) in
-      (:=) trail unwind' (!trail)
-    let rec log trail action = (:=) trail Cons (action, (!trail))
-    type nonrec 'a trail = 'a trail
-    let trail = trail
+      trail := unwind' (!trail)
+    let rec log trail action = trail := Cons (action, (!trail))
+
     let suspend = suspend
     let resume = resume
     let reset = reset

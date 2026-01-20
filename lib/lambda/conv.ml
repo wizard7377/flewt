@@ -15,9 +15,9 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
     open IntSyn
     let rec eqUni __0__ __1__ =
       match (__0__, __1__) with
-      | (Type, Type) -> true__
-      | (Kind, Kind) -> true__
-      | _ -> false__
+      | (Type, Type) -> true
+      | (Kind, Kind) -> true
+      | _ -> false
     let rec convExpW __2__ __3__ =
       match (__2__, __3__) with
       | ((Uni (__L1), _), (Uni (__L2), _)) -> eqUni (__L1, __L2)
@@ -44,7 +44,7 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
                    (convExpW ((Whnf.expandDef __Us1), (Whnf.expandDef __Us2)))
              | (Def d1, _) -> convExpW ((Whnf.expandDef __Us1), __Us2)
              | (_, Def d2) -> convExpW (__Us1, (Whnf.expandDef __Us2))
-             | _ -> false__))
+             | _ -> false))
           (* s1' = s2' = ^|G| *)(* they must have the same string representation *)
           (* because of strict *))
       | ((Pi (DP1, __V1), s1), (Pi (DP2, __V2), s2)) ->
@@ -73,7 +73,7 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
           FgnExpStd.EqualTo.apply csfe2 (EClo __Us1)
       | ((EVar (r1, _, _, _), s1), (EVar (r2, _, _, _), s2)) ->
           (r1 = r2) && (convSub (s1, s2))
-      | _ -> false__(* Note that under Head, why is NSDef never used?? *)
+      | _ -> false(* Note that under Head, why is NSDef never used?? *)
       (* ABP -- 2/18/03 Added missing case*)(* s2 = id *)
       (* s1 = id *)(* G |- D1[s1] = D2[s2] by typing invariant *)
       (* order of calls critical to establish convSpine invariant *)
@@ -82,7 +82,7 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
       convExpW ((Whnf.whnf __Us1), (Whnf.whnf __Us2))
     let rec convSpine __4__ __5__ =
       match (__4__, __5__) with
-      | ((Nil, _), (Nil, _)) -> true__
+      | ((Nil, _), (Nil, _)) -> true
       | ((App (__U1, __S1), s1), (App (__U2, __S2), s2)) ->
           (convExp ((__U1, s1), (__U2, s2))) &&
             (convSpine ((__S1, s1), (__S2, s2)))
@@ -90,10 +90,10 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
           convSpine ((__S1, (comp (s1', s1))), __Ss2)
       | (__Ss1, (SClo (__S2, s2'), s2)) ->
           convSpine (__Ss1, (__S2, (comp (s2', s2))))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec convSub __6__ __7__ =
       match (__6__, __7__) with
-      | (Shift n, Shift m) -> true__
+      | (Shift n, Shift m) -> true
       | (Shift n, (Dot _ as s2)) ->
           convSub ((Dot ((Idx (n + 1)), (Shift (n + 1)))), s2)
       | ((Dot _ as s1), Shift m) ->
@@ -107,8 +107,8 @@ module Conv(Conv:sig module Whnf : WHNF end) : CONV =
                 convExp ((__U1, id), ((Root ((BVar n2), Nil)), id))
             | (Idx n1, Exp (__U2)) ->
                 convExp (((Root ((BVar n1), Nil)), id), (__U2, id))
-            | (Undef, Undef) -> true__
-            | _ -> false__)
+            | (Undef, Undef) -> true
+            | _ -> false)
             (* other block cases don't matter -cs 2/18/03 *))
             && (convSub (s1, s2))(* n = m by invariants *)
     let rec convDec __8__ __9__ =

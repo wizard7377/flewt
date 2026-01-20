@@ -8,7 +8,7 @@ module Server(Server:sig
                        module Twelf : TWELF
                      end) : SERVER =
   struct
-    let (globalConfig : Twelf.Config.config option ref) = ref NONE
+    let (globalConfig : Twelf.Config.config option ref) = ref None
     let rec readLine () =
       let rec getLine () =
         try Compat.inputLine97 TextIO.stdIn
@@ -61,8 +61,8 @@ module Server(Server:sig
       function | Twelf.Prover.FRS -> "FRS" | Twelf.Prover.RFS -> "RFS"
     let rec getBool =
       function
-      | "true"::nil -> true__
-      | "false"::nil -> false__
+      | "true"::nil -> true
+      | "false"::nil -> false
       | nil -> error "Missing boolean value"
       | t::nil -> error ((quote t) ^ " is not a boolean")
       | ts -> error "Extraneous arguments"
@@ -76,10 +76,10 @@ module Server(Server:sig
       | ts -> error "Extraneous arguments"
     let rec getLimit =
       function
-      | "*"::nil -> NONE
+      | "*"::nil -> None
       | t::ts -> Some (getNat (t :: ts))
       | nil -> error "Missing `*' or natural number"
-    let rec limitToString = function | NONE -> "*" | Some i -> Int.toString i
+    let rec limitToString = function | None -> "*" | Some i -> Int.toString i
     let rec getTableStrategy =
       function
       | "Variant"::nil -> Twelf.Table.Variant
@@ -233,13 +233,13 @@ module Server(Server:sig
            serve Twelf.OK)
       | ("Config.load", args) ->
           ((match !globalConfig with
-            | NONE ->
+            | None ->
                 (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.load (valOf (!globalConfig))))
       | ("Config.append", args) ->
           ((match !globalConfig with
-            | NONE ->
+            | None ->
                 (:=) globalConfig Some (Twelf.Config.read "sources.cfg")
             | _ -> ());
            serve (Twelf.Config.append (valOf (!globalConfig))))

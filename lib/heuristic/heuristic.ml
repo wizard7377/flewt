@@ -28,10 +28,10 @@ module Heuristic : HEURISTIC =
         ind: int option  ;c: int  ;m: int  ;r: int  ;p: int   > 
     let rec compare __0__ __1__ =
       match (__0__, __1__) with
-      | ({ sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | ({ sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
            c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
            m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 },
-         { sd = k2; ind = NONE; c = c2; m = m2; r = r2; p = p2; ind = NONE;
+         { sd = k2; ind = None; c = c2; m = m2; r = r2; p = p2; ind = None;
            c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
            m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 })
           ->
@@ -43,7 +43,7 @@ module Heuristic : HEURISTIC =
            | (EQUAL, EQUAL, result, _) -> result
            | (EQUAL, result, _, _) -> result
            | (result, _, _, _) -> result)
-      | ({ sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | ({ sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
            c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
            m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 },
          { sd = k2; ind = Some i2; c = c2; m = m2; r = r2; p = p2;
@@ -57,7 +57,7 @@ module Heuristic : HEURISTIC =
       | ({ sd = k1; ind = Some i1; c = c1; m = m1; r = r1; p = p1;
            ind = Some i1; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;
            r = r1; p = p1; m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 },
-         { sd = k2; ind = NONE; c = c2; m = m2; r = r2; p = p2; ind = NONE;
+         { sd = k2; ind = None; c = c2; m = m2; r = r2; p = p2; ind = None;
            c = c2; m = m2; r = r2; p = p2; c = c2; m = m2; r = r2; p = p2;
            m = m2; r = r2; p = p2; r = r2; p = p2; p = p2 })
           ->
@@ -86,7 +86,7 @@ module Heuristic : HEURISTIC =
     let rec ratio c m = (Real.fromInt c) / (Real.fromInt m)
     let rec sum =
       function
-      | { sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | { sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
           c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
           m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           realFmt
@@ -99,7 +99,7 @@ module Heuristic : HEURISTIC =
                (Real.fromInt r1))
     let rec indexToString =
       function
-      | { sd = s1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | { sd = s1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
           c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
           m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           ((((((((((((("(c/m=" ^ (Int.toString c1)) ^ "/") ^
@@ -113,7 +113,7 @@ module Heuristic : HEURISTIC =
                 ^ ", p=")
                ^ (Int.toString p1))
               ^ "sum = ")
-             ^ (sum { sd = s1; ind = NONE; c = c1; m = m1; r = r1; p = p1 }))
+             ^ (sum { sd = s1; ind = None; c = c1; m = m1; r = r1; p = p1 }))
             ^ " )"
       | { sd = s1; ind = Some idx; c = c1; m = m1; r = r1; p = p1;
           ind = Some idx; c = c1; m = m1; r = r1; p = p1; c = c1; m = m1;

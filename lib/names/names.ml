@@ -141,11 +141,11 @@ module Names(Names:sig
       | Postfix _ -> 1
     let rec checkAtomic __0__ __1__ __2__ =
       match (__0__, __1__, __2__) with
-      | (name, Pi (__D, __V), 0) -> true__
+      | (name, Pi (__D, __V), 0) -> true
       | (name, Pi (__D, __V), n) -> checkAtomic (name, __V, (n - 1))
-      | (_, Uni _, 0) -> true__
-      | (_, Root _, 0) -> true__
-      | (name, _, _) -> false__(* raise Error ("Constant " ^ name ^ " takes too many explicit arguments for given fixity") *)
+      | (_, Uni _, 0) -> true
+      | (_, Root _, 0) -> true
+      | (name, _, _) -> false(* raise Error ("Constant " ^ name ^ " takes too many explicit arguments for given fixity") *)
       (* allow extraneous arguments, Sat Oct 23 14:18:27 1999 -fp *)
     let rec checkArgNumber __3__ __4__ =
       match (__3__, __4__) with
@@ -174,14 +174,14 @@ module Names(Names:sig
       List.foldr (fun id -> fun s -> (id ^ ".") ^ s) name ids
     let rec validateQualName =
       function
-      | nil -> NONE
+      | nil -> None
       | id::ids as l ->
           if List.exists (fun s -> s = "") l
-          then NONE
+          then None
           else Some (Qid ((rev ids), id))
     let rec stringToQid name =
       validateQualName (rev (String.fields (fun c -> c = '.') name))
-    let rec unqualified = function | Qid (nil, id) -> Some id | _ -> NONE
+    let rec unqualified = function | Qid (nil, id) -> Some id | _ -> None
     type nonrec namespace =
       (IntSyn.mid StringTree.__Table * IntSyn.cid StringTree.__Table)
     let rec newNamespace () =
@@ -190,7 +190,7 @@ module Names(Names:sig
       let condec = IntSyn.sgnLookup cid in
       let id = IntSyn.conDecName condec in
       match StringTree.insertShadow constTable (id, cid) with
-      | NONE -> ()
+      | None -> ()
       | Some _ ->
           raise
             (Error
@@ -200,7 +200,7 @@ module Names(Names:sig
       let strdec = IntSyn.sgnStructLookup mid in
       let id = IntSyn.strDecName strdec in
       match StringTree.insertShadow structTable (id, mid) with
-      | NONE -> ()
+      | None -> ()
       | Some _ ->
           raise
             (Error
@@ -213,15 +213,15 @@ module Names(Names:sig
       if from >= to__ then () else (f from; fromTo f ((from + 1), to__))
     let maxCid = Global.maxCid
     let (shadowArray : IntSyn.cid option Array.array) =
-      Array.array ((maxCid + 1), NONE)
-    let rec shadowClear () = Array.modify (fun _ -> NONE) shadowArray
+      Array.array ((maxCid + 1), None)
+    let rec shadowClear () = Array.modify (fun _ -> None) shadowArray
     let (fixityArray : Fixity.fixity Array.array) =
       Array.array ((maxCid + 1), Fixity.Nonfix)
     let rec fixityClear () =
       Array.modify (fun _ -> Fixity.Nonfix) fixityArray
     let (namePrefArray : (string list * string list) option Array.array) =
-      Array.array ((maxCid + 1), NONE)
-    let rec namePrefClear () = Array.modify (fun _ -> NONE) namePrefArray
+      Array.array ((maxCid + 1), None)
+    let rec namePrefClear () = Array.modify (fun _ -> None) namePrefArray
     let (topNamespace : IntSyn.cid HashTable.__Table) = HashTable.new__ 4096
     let topInsert = HashTable.insertShadow topNamespace
     let topLookup = HashTable.lookup topNamespace
@@ -231,9 +231,9 @@ module Names(Names:sig
       (((StringTree.new__ 0), (StringTree.new__ 0)) : namespace)
     let maxMid = Global.maxMid
     let (structShadowArray : IntSyn.mid option Array.array) =
-      Array.array ((maxMid + 1), NONE)
+      Array.array ((maxMid + 1), None)
     let rec structShadowClear () =
-      Array.modify (fun _ -> NONE) structShadowArray
+      Array.modify (fun _ -> None) structShadowArray
     let (componentsArray : namespace Array.array) =
       Array.array ((maxMid + 1), dummyNamespace)
     let rec componentsClear () =
@@ -248,34 +248,34 @@ module Names(Names:sig
       let condec = IntSyn.sgnLookup cid in
       let id = IntSyn.conDecName condec in
       match topInsert (id, cid) with
-      | NONE -> ()
+      | None -> ()
       | Some (_, cid') -> Array.update (shadowArray, cid, (Some cid'))
     let rec uninstallConst cid =
       let condec = IntSyn.sgnLookup cid in
       let id = IntSyn.conDecName condec in
       (match Array.sub (shadowArray, cid) with
-       | NONE -> if (=) (topLookup id) Some cid then topDelete id else ()
+       | None -> if (=) (topLookup id) Some cid then topDelete id else ()
        | Some cid' ->
-           (topInsert (id, cid'); Array.update (shadowArray, cid, NONE)));
+           (topInsert (id, cid'); Array.update (shadowArray, cid, None)));
       Array.update (fixityArray, cid, Fixity.Nonfix);
-      Array.update (namePrefArray, cid, NONE)
+      Array.update (namePrefArray, cid, None)
     let rec installStructName mid =
       let strdec = IntSyn.sgnStructLookup mid in
       let id = IntSyn.strDecName strdec in
       match topStructInsert (id, mid) with
-      | NONE -> ()
+      | None -> ()
       | Some (_, mid') -> Array.update (structShadowArray, mid, (Some mid'))
     let rec uninstallStruct mid =
       let strdec = IntSyn.sgnStructLookup mid in
       let id = IntSyn.strDecName strdec in
       (match Array.sub (structShadowArray, mid) with
-       | NONE ->
+       | None ->
            if (=) (topStructLookup id) Some mid
            then topStructDelete id
            else ()
        | Some mid' ->
            (topStructInsert (id, mid');
-            Array.update (structShadowArray, mid, NONE)));
+            Array.update (structShadowArray, mid, None)));
       Array.update (componentsArray, mid, dummyNamespace)
     let rec resetFrom mark markStruct =
       let (limit, limitStruct) = IntSyn.sgnSize () in
@@ -299,35 +299,35 @@ module Names(Names:sig
       | (structTable, id::[]) -> StringTree.lookup structTable id
       | (structTable, id::ids) ->
           (match StringTree.lookup structTable id with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> findStruct ((structComps mid), ids))
     let rec findTopStruct =
       function
       | id::[] -> HashTable.lookup topStructNamespace id
       | id::ids ->
           (match HashTable.lookup topStructNamespace id with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> findStruct ((structComps mid), ids))
     let rec findUndefStruct __10__ __11__ __12__ =
       match (__10__, __11__, __12__) with
       | (structTable, id::[], ids') ->
           (match StringTree.lookup structTable id with
-           | NONE -> Some (Qid ((rev ids'), id))
-           | Some _ -> NONE)
+           | None -> Some (Qid ((rev ids'), id))
+           | Some _ -> None)
       | (structTable, id::ids, ids') ->
           (match StringTree.lookup structTable id with
-           | NONE -> Some (Qid ((rev ids'), id))
+           | None -> Some (Qid ((rev ids'), id))
            | Some mid ->
                findUndefStruct ((structComps mid), ids, (id :: ids')))
     let rec findTopUndefStruct =
       function
       | id::[] ->
           (match HashTable.lookup topStructNamespace id with
-           | NONE -> Some (Qid (nil, id))
-           | Some _ -> NONE)
+           | None -> Some (Qid (nil, id))
+           | Some _ -> None)
       | id::ids ->
           (match HashTable.lookup topStructNamespace id with
-           | NONE -> Some (Qid (nil, id))
+           | None -> Some (Qid (nil, id))
            | Some mid -> findUndefStruct ((structComps mid), ids, [id]))
     let rec constLookupIn __13__ __14__ =
       match (__13__, __14__) with
@@ -335,7 +335,7 @@ module Names(Names:sig
           StringTree.lookup constTable id
       | ((structTable, constTable), Qid (ids, id)) ->
           (match findStruct (structTable, ids) with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> StringTree.lookup (constComps mid) id)
     let rec structLookupIn __15__ __16__ =
       match (__15__, __16__) with
@@ -343,100 +343,100 @@ module Names(Names:sig
           StringTree.lookup structTable id
       | ((structTable, constTable), Qid (ids, id)) ->
           (match findStruct (structTable, ids) with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> StringTree.lookup (structComps mid) id)
     let rec constUndefIn __17__ __18__ =
       match (__17__, __18__) with
       | ((structTable, constTable), Qid (nil, id)) ->
           (match StringTree.lookup constTable id with
-           | NONE -> Some (Qid (nil, id))
-           | Some _ -> NONE)
+           | None -> Some (Qid (nil, id))
+           | Some _ -> None)
       | ((structTable, constTable), Qid (ids, id)) ->
           (match findUndefStruct (structTable, ids, nil) with
            | Some _ as opt -> opt
-           | NONE ->
+           | None ->
                (match StringTree.lookup
                         (constComps (valOf (findStruct (structTable, ids))))
                         id
                 with
-                | NONE -> Some (Qid (ids, id))
-                | Some _ -> NONE))
+                | None -> Some (Qid (ids, id))
+                | Some _ -> None))
     let rec structUndefIn __19__ __20__ =
       match (__19__, __20__) with
       | ((structTable, constTable), Qid (nil, id)) ->
           (match StringTree.lookup structTable id with
-           | NONE -> Some (Qid (nil, id))
-           | Some _ -> NONE)
+           | None -> Some (Qid (nil, id))
+           | Some _ -> None)
       | ((structTable, constTable), Qid (ids, id)) ->
           (match findUndefStruct (structTable, ids, nil) with
            | Some _ as opt -> opt
-           | NONE ->
+           | None ->
                (match StringTree.lookup
                         (structComps (valOf (findStruct (structTable, ids))))
                         id
                 with
-                | NONE -> Some (Qid (ids, id))
-                | Some _ -> NONE))
+                | None -> Some (Qid (ids, id))
+                | Some _ -> None))
     let rec constLookup =
       function
       | Qid (nil, id) -> HashTable.lookup topNamespace id
       | Qid (ids, id) ->
           (match findTopStruct ids with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> StringTree.lookup (constComps mid) id)
     let rec structLookup =
       function
       | Qid (nil, id) -> HashTable.lookup topStructNamespace id
       | Qid (ids, id) ->
           (match findTopStruct ids with
-           | NONE -> NONE
+           | None -> None
            | Some mid -> StringTree.lookup (structComps mid) id)
     let rec constUndef =
       function
       | Qid (nil, id) ->
           (match HashTable.lookup topNamespace id with
-           | NONE -> Some (Qid (nil, id))
-           | Some _ -> NONE)
+           | None -> Some (Qid (nil, id))
+           | Some _ -> None)
       | Qid (ids, id) ->
           (match findTopUndefStruct ids with
            | Some _ as opt -> opt
-           | NONE ->
+           | None ->
                (match StringTree.lookup
                         (constComps (valOf (findTopStruct ids))) id
                 with
-                | NONE -> Some (Qid (ids, id))
-                | Some _ -> NONE))
+                | None -> Some (Qid (ids, id))
+                | Some _ -> None))
     let rec structUndef =
       function
       | Qid (nil, id) ->
           (match HashTable.lookup topStructNamespace id with
-           | NONE -> Some (Qid (nil, id))
-           | Some _ -> NONE)
+           | None -> Some (Qid (nil, id))
+           | Some _ -> None)
       | Qid (ids, id) ->
           (match findTopUndefStruct ids with
            | Some _ as opt -> opt
-           | NONE ->
+           | None ->
                (match StringTree.lookup
                         (structComps (valOf (findTopStruct ids))) id
                 with
-                | NONE -> Some (Qid (ids, id))
-                | Some _ -> NONE))
+                | None -> Some (Qid (ids, id))
+                | Some _ -> None))
     let rec structPath mid ids =
       let strdec = IntSyn.sgnStructLookup mid in
       let ids' = (IntSyn.strDecName strdec) :: ids in
       match IntSyn.strDecParent strdec with
-      | NONE -> ids'
+      | None -> ids'
       | Some mid' -> structPath (mid', ids')
     let rec maybeShadow __21__ __22__ =
       match (__21__, __22__) with
-      | (qid, false__) -> qid
-      | (Qid (nil, id), true__) -> Qid (nil, (("%" ^ id) ^ "%"))
-      | (Qid (id::ids, name), true__) ->
+      | (qid, false) -> qid
+      | (Qid (nil, id), true) -> Qid (nil, (("%" ^ id) ^ "%"))
+      | (Qid (id::ids, name), true) ->
           Qid (((("%" ^ id) ^ "%") :: ids), name)
     let rec conDecQid condec =
       let id = IntSyn.conDecName condec in
       match IntSyn.conDecParent condec with
-      | NONE -> Qid (nil, id)
+      | None -> Qid (nil, id)
       | Some mid -> Qid ((structPath (mid, nil)), id)
     let rec constQid cid =
       let condec = IntSyn.sgnLookup cid in
@@ -447,7 +447,7 @@ module Names(Names:sig
       let id = IntSyn.strDecName strdec in
       let qid =
         match IntSyn.strDecParent strdec with
-        | NONE -> Qid (nil, id)
+        | None -> Qid (nil, id)
         | Some mid -> Qid ((structPath (mid, nil)), id) in
       maybeShadow (qid, ((<>) (structLookup qid) Some mid))
     let rec installFixity cid fixity =
@@ -457,7 +457,7 @@ module Names(Names:sig
     let rec getFixity cid = Array.sub (fixityArray, cid)
     let rec fixityLookup qid =
       match constLookup qid with
-      | NONE -> Fixity.Nonfix
+      | None -> Fixity.Nonfix
       | Some cid -> getFixity cid
     let rec installNamePref' cid (ePref, uPref) =
       let __L = IntSyn.constUni cid in
@@ -491,19 +491,19 @@ module Names(Names:sig
     let rec extent = function | Exist -> Global | Univ ext -> ext
     let rec namePrefOf'' __25__ __26__ =
       match (__25__, __26__) with
-      | (Exist, NONE) -> "X"
-      | (Univ _, NONE) -> "x"
+      | (Exist, None) -> "X"
+      | (Univ _, None) -> "x"
       | (Exist, Some (ePref, uPref)) -> hd ePref
       | (Univ _, Some (ePref, uPref)) -> hd uPref
     let rec namePrefOf' __27__ __28__ =
       match (__27__, __28__) with
-      | (Exist, NONE) -> "X"
-      | (Univ _, NONE) -> "x"
+      | (Exist, None) -> "X"
+      | (Univ _, None) -> "x"
       | (role, Some (Const cid)) ->
           namePrefOf'' (role, (Array.sub (namePrefArray, cid)))
       | (role, Some (Def cid)) ->
           namePrefOf'' (role, (Array.sub (namePrefArray, cid)))
-      | (role, Some (FVar _)) -> namePrefOf'' (role, NONE)
+      | (role, Some (FVar _)) -> namePrefOf'' (role, None)
       | (role, Some (NSDef cid)) ->
           namePrefOf'' (role, (Array.sub (namePrefArray, cid)))(* the following only needed because reconstruction replaces
            undetermined types with FVars *)
@@ -521,7 +521,7 @@ module Names(Names:sig
     let rec evarLookup (__X) =
       let rec evlk __43__ __44__ =
         match (__43__, __44__) with
-        | (r, nil) -> NONE
+        | (r, nil) -> None
         | (r, (EVar (r', _, _, _), name)::l) ->
             if r = r' then Some name else evlk (r, l)
         | (r, (AVar r', name)::l) ->
@@ -534,7 +534,7 @@ module Names(Names:sig
     let rec evarCnstr' __45__ __46__ =
       match (__45__, __46__) with
       | (nil, acc) -> acc
-      | (((EVar ({ contents = NONE }, _, _, cnstrs), name) as Xn)::l, acc) ->
+      | (((EVar ({ contents = None }, _, _, cnstrs), name) as Xn)::l, acc) ->
           (match Constraints.simplify (!cnstrs) with
            | nil -> evarCnstr' (l, acc)
            | _::_ -> evarCnstr' (l, (Xn :: acc)))
@@ -546,7 +546,7 @@ module Names(Names:sig
     let rec indexClear () = StringTree.clear indexTable
     let rec nextIndex' __47__ __48__ =
       match (__47__, __48__) with
-      | (name, NONE) -> (indexInsert (name, 1); 1)
+      | (name, None) -> (indexInsert (name, 1); 1)
       | (name, Some i) -> (indexInsert (name, (i + 1)); i + 1)
     let rec nextIndex name = nextIndex' (name, (indexLookup name))
     let rec varReset (__G) =
@@ -555,18 +555,18 @@ module Names(Names:sig
       evarInsert (__X, name); varInsert (name, (EVAR __X))
     let rec getEVarOpt name =
       match varLookup name with
-      | NONE -> NONE
+      | None -> None
       | Some (EVAR (__X)) -> Some __X
     let rec varDefined name =
-      match varLookup name with | NONE -> false__ | Some _ -> true__
+      match varLookup name with | None -> false | Some _ -> true
     let rec conDefined name =
       match constLookup (Qid (nil, name)) with
-      | NONE -> false__
-      | Some _ -> true__
+      | None -> false
+      | Some _ -> true
     let rec ctxDefined (__G) name =
       let rec cdfd =
         function
-        | IntSyn.Null -> false__
+        | IntSyn.Null -> false
         | Decl (__G', Dec (Some name', _)) -> (name = name') || (cdfd __G')
         | Decl (__G', BDec (Some name', _)) -> (name = name') || (cdfd __G')
         | Decl (__G', NDec (Some name')) -> (name = name') || (cdfd __G')
@@ -596,12 +596,12 @@ module Names(Names:sig
           (((evarInsert (__X, name); name))
             (* use name preferences below *))
       | (__G, (AVar r as X)) ->
-          let name = tryNextName (__G, (namePrefOf' (Exist, NONE))) in
+          let name = tryNextName (__G, (namePrefOf' (Exist, None))) in
           (((evarInsert (__X, name); name))
             (* use name preferences below *))
     let rec evarName (__G) (__X) =
       match evarLookup __X with
-      | NONE ->
+      | None ->
           let name = newEVarName (__G, __X) in
           (varInsert (name, (EVAR __X)); name)
       | Some name -> name
@@ -616,7 +616,7 @@ module Names(Names:sig
       (* Evars can depend on NDec :-( *))
     let rec decName' __34__ __35__ __36__ =
       match (__34__, __35__, __36__) with
-      | (role, __G, Dec (NONE, __V)) ->
+      | (role, __G, Dec (None, __V)) ->
           let name = findName (__G, (namePrefOf (role, __V)), (extent role)) in
           IntSyn.Dec ((Some name), __V)
       | (role, __G, (Dec (Some name, __V) as D)) ->
@@ -625,7 +625,7 @@ module Names(Names:sig
               ((conDefined name) || (ctxDefined (__G, name)))
           then IntSyn.Dec ((Some (tryNextName (__G, (baseOf name)))), __V)
           else __D
-      | (role, __G, (BDec (NONE, ((cid, t) as b)) as D)) ->
+      | (role, __G, (BDec (None, ((cid, t) as b)) as D)) ->
           let name =
             findName
               (__G, ((^) "#" IntSyn.conDecName (IntSyn.sgnLookup cid)),
@@ -637,9 +637,9 @@ module Names(Names:sig
               ((conDefined name) || (ctxDefined (__G, name)))
           then IntSyn.BDec ((Some (tryNextName (__G, (baseOf name)))), b)
           else __D
-      | (role, __G, ADec (NONE, d)) ->
+      | (role, __G, ADec (None, d)) ->
           let name =
-            findName (__G, (namePrefOf' (role, NONE)), (extent role)) in
+            findName (__G, (namePrefOf' (role, None)), (extent role)) in
           IntSyn.ADec ((Some name), d)
       | (role, __G, (ADec (Some name, d) as D)) ->
           if
@@ -647,7 +647,7 @@ module Names(Names:sig
               ((conDefined name) || (ctxDefined (__G, name)))
           then IntSyn.ADec ((Some (tryNextName (__G, (baseOf name)))), d)
           else __D
-      | (role, __G, (NDec (NONE) as D)) ->
+      | (role, __G, (NDec (None) as D)) ->
           let name = findName (__G, "@x", Local) in
           let _ = print name in IntSyn.NDec (Some name)
       | (role, __G, (NDec (Some name) as D)) ->

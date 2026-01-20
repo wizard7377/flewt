@@ -54,11 +54,11 @@ module Opsem(Opsem:sig
       | (Psi, (__P', t1), PClo (PClo (__P, t2), t3)) ->
           matchVal (Psi, (__P', t1), (T.PClo (__P, (T.comp (t2, t3)))))
       | (Psi, (__P', t1), PClo
-         (EVar (_, ({ contents = NONE } as r), _, _, _, _), t2)) ->
+         (EVar (_, ({ contents = None } as r), _, _, _, _), t2)) ->
           let iw = T.invertSub t2 in
           (((:=) r Some (T.PClo (__P', (T.comp (t1, iw)))))
             (* ABP -- just make sure this is right *))
-      | (Psi, (__P', t1), EVar (_, ({ contents = NONE } as r), _, _, _, _))
+      | (Psi, (__P', t1), EVar (_, ({ contents = None } as r), _, _, _, _))
           -> (:=) r Some (T.PClo (__P', t1))
       | (Psi, (__V, t), EVar
          (__D, ({ contents = Some (__P) } as r), __F, _, _, _)) ->
@@ -187,11 +187,11 @@ module Opsem(Opsem:sig
     let rec createVarSub __18__ __19__ =
       match (__18__, __19__) with
       | (Psi, I.Null) -> T.Shift (I.ctxLength Psi)
-      | (Psi, (Decl (Psi', PDec (name, __F, NONE, NONE)) as Psi'')) ->
+      | (Psi, (Decl (Psi', PDec (name, __F, None, None)) as Psi'')) ->
           let t = createVarSub (Psi, Psi') in
           let t' =
             T.Dot
-              ((T.Prg (T.newEVarTC (Psi, (T.forSub (__F, t)), NONE, NONE))),
+              ((T.Prg (T.newEVarTC (Psi, (T.forSub (__F, t)), None, None))),
                 t) in
           t'
       | (Psi, Decl (Psi', UDec (Dec (name, __V)))) ->
@@ -199,14 +199,14 @@ module Opsem(Opsem:sig
           T.Dot
             ((T.Exp
                 (I.EVar
-                   ((ref NONE), (T.coerceCtx Psi),
+                   ((ref None), (T.coerceCtx Psi),
                      (I.EClo (__V, (T.coerceSub t))), (ref [])))), t)
       | (Psi, Decl (Psi', UDec (BDec (name, (cid, s))))) ->
           let t = createVarSub (Psi, Psi') in
           T.Dot
             ((T.Block
                 (I.LVar
-                   ((ref NONE), I.id, (cid, (I.comp (s, (T.coerceSub t))))))),
+                   ((ref None), I.id, (cid, (I.comp (s, (T.coerceSub t))))))),
               t)
     let rec matchSub __20__ __21__ __22__ =
       match (__20__, __21__, __22__) with

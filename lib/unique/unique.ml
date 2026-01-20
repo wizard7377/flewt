@@ -39,7 +39,7 @@ module Unique(Unique:sig
     let rec pName __0__ __1__ =
       match (__0__, __1__) with
       | (cid, Some x) -> (((^) "#" cName cid) ^ "_") ^ x
-      | (cid, NONE) -> ((^) "#" cName cid) ^ "_?"
+      | (cid, None) -> ((^) "#" cName cid) ^ "_?"
     let rec instEVars __2__ __3__ =
       match (__2__, __3__) with
       | (__G, (Pi ((Dec (_, __V1), _), __V2), s)) ->
@@ -57,7 +57,7 @@ module Unique(Unique:sig
       Unify.unifiable (__G, (__U, s), (__U', s'))
     let rec unifiableSpines __6__ __7__ __8__ __9__ =
       match (__6__, __7__, __8__, __9__) with
-      | (__G, (I.Nil, s), (I.Nil, s'), M.Mnil) -> true__
+      | (__G, (I.Nil, s), (I.Nil, s'), M.Mnil) -> true
       | (__G, (App (__U1, __S2), s), (App (U1', S2'), s'), Mapp
          (Marg (M.Plus, _), ms2)) ->
           (unifiable (__G, (__U1, s), (U1', s'))) &&

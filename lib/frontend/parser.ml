@@ -134,7 +134,7 @@ module Parser(Parser:sig
           Parsing.error (r, ((^) "Expected `.', found " L.toString t))
     let rec parseBound' =
       function
-      | Cons ((ID (_, "*"), r), s') -> (NONE, s')
+      | Cons ((ID (_, "*"), r), s') -> (None, s')
       | Cons ((ID (_, name), r), s') ->
           (try ((Some (L.stringToNat name)), s')
            with | Overflow -> Parsing.error (r, "Bound too large")

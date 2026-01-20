@@ -59,8 +59,8 @@ module Approx(Approx:sig module Whnf : WHNF end) : APPROX =
     let Type = Level 1
     let Kind = Level 2
     let Hyperkind = Level 3
-    let rec newLVar () = LVar (ref NONE)
-    let rec newCVar () = CVar (ref NONE)
+    let rec newLVar () = LVar (ref None)
+    let rec newCVar () = CVar (ref None)
     let rec whnfUni =
       function
       | Next (__L) ->
@@ -84,13 +84,13 @@ module Approx(Approx:sig module Whnf : WHNF end) : APPROX =
     let rec getReplacementName (CVar r as U) (__V) (__L) allowed =
       match varLookupRef r with
       | Some (_, name) -> name
-      | NONE ->
+      | None ->
           let _ = if allowed then () else raise Ambiguous in
           let pref = match whnfUni __L with | Level 2 -> "A" | Level 3 -> "K" in
           let rec try__ i =
             let name = ((^) ("%" ^ pref) Int.toString i) ^ "%" in
             match varLookupName name with
-            | NONE -> (varInsert ((__U, __V, __L), name); name)
+            | None -> (varInsert ((__U, __V, __L), name); name)
             | Some _ -> try__ (i + 1) in
           ((try__ 1)(* others impossible by invariant *))
     let rec findByReplacementName name =
@@ -139,7 +139,7 @@ module Approx(Approx:sig module Whnf : WHNF end) : APPROX =
       | (__G, Uni (__L), _, allowed) -> I.Uni (apxToUni __L)
       | (__G, Arrow (__V1, __V2), __L, allowed) ->
           let V1' = apxToClass (__G, __V1, Type, allowed) in
-          let __D = I.Dec (NONE, V1') in
+          let __D = I.Dec (None, V1') in
           let V2' = apxToClass ((I.Decl (__G, __D)), __V2, __L, allowed) in
           I.Pi ((__D, I.Maybe), V2')
       | (__G, (CVar r as V), __L, allowed) ->
@@ -263,11 +263,11 @@ module Approx(Approx:sig module Whnf : WHNF end) : APPROX =
       | _ -> raise (Unify "Type/kind expression clash")
     let rec match__ (__U1) (__U2) = matchW ((whnf __U1), (whnf __U2))
     let rec matchable (__U1) (__U2) =
-      try match__ (__U1, __U2); true__ with | Unify _ -> false__
+      try match__ (__U1, __U2); true with | Unify _ -> false
     let rec makeGroundUni =
       function
-      | Level _ -> false__
+      | Level _ -> false
       | Next (__L) -> makeGroundUni __L
       | LVar { contents = Some (__L) } -> makeGroundUni __L
-      | LVar ({ contents = NONE } as r) -> ((:=) r Some (Level 1); true__)
+      | LVar ({ contents = None } as r) -> ((:=) r Some (Level 1); true)
   end ;;

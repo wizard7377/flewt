@@ -54,7 +54,7 @@ module MTPi(MTPi:sig
     let ((History) :
       (StateSyn.__State Ring.ring * StateSyn.__State Ring.ring) list ref) =
       ref nil
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec initOpen () = (:=) Open Ring.init []
     let rec initSolved () = (:=) Solved Ring.init []
     let rec empty () = Ring.empty (!Open)
@@ -74,7 +74,7 @@ module MTPi(MTPi:sig
           (History := History'; Open := Open'; Solved := Solved')
     let rec abort s = print ("* " ^ s); raise (Error s)
     let rec reset () =
-      initOpen (); initSolved (); History := nil; Menu := NONE
+      initOpen (); initSolved (); History := nil; Menu := None
     let rec cLToString =
       function
       | nil -> ""
@@ -109,7 +109,7 @@ module MTPi(MTPi:sig
     let rec InferenceToMenu (__O) (__A) = (Inference __O) :: __A
     let rec menu () =
       if empty ()
-      then Menu := NONE
+      then Menu := None
       else
         (let __S = current () in
          let SplitO = MTPSplitting.expand __S in
@@ -127,9 +127,9 @@ module MTPi(MTPi:sig
     let rec menuToString () =
       let rec menuToString' __2__ __3__ __4__ =
         match (__2__, __3__, __4__) with
-        | (k, nil, (NONE, _)) -> ((Some k), "")
+        | (k, nil, (None, _)) -> ((Some k), "")
         | (k, nil, ((Some _ as kopt'), _)) -> (kopt', "")
-        | (k, (Splitting (__O))::__M, ((NONE, NONE) as kOopt')) ->
+        | (k, (Splitting (__O))::__M, ((None, None) as kOopt')) ->
             let kOopt'' =
               if MTPSplitting.applicable __O
               then ((Some k), (Some __O))
@@ -164,9 +164,9 @@ module MTPi(MTPi:sig
             let (kopt, s) = menuToString' ((k + 1), __M, kOopt) in
             (kopt, (((s ^ "\n  ") ^ (format k)) ^ (Inference.menu __O))) in
       match !Menu with
-      | NONE -> raise (Error "Menu is empty")
+      | None -> raise (Error "Menu is empty")
       | Some (__M) ->
-          let (kopt, s) = menuToString' (1, __M, (NONE, NONE)) in s
+          let (kopt, s) = menuToString' (1, __M, (None, None)) in s
     let rec printMenu () =
       if empty ()
       then
@@ -185,7 +185,7 @@ module MTPi(MTPi:sig
          print "\n")
     let rec contains __5__ __6__ =
       match (__5__, __6__) with
-      | (nil, _) -> true__
+      | (nil, _) -> true
       | (x::__L, __L') ->
           (List.exists (fun x' -> x = x') __L') && (contains (__L, __L'))
     let rec equiv (__L1) (__L2) =
@@ -263,7 +263,7 @@ module MTPi(MTPi:sig
         | (k, _::__M) -> select' ((k - 1), __M) in
       try
         match !Menu with
-        | NONE -> raise (Error "No menu defined")
+        | None -> raise (Error "No menu defined")
         | Some (__M) -> select' (k, __M)
       with | Error s -> abort ("MTPSplitting. Error: " ^ s)
       | Error s -> abort ("Filling Error: " ^ s)

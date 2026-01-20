@@ -94,7 +94,7 @@ module Syntax =
       | (Shift (n, m), n') -> if n' >= n then srVar (n' + m) else srVar n'
       | (VarOptDot (no, s), n') ->
           if n' = 0
-          then (match no with | Some n -> srVar n | NONE -> raise MissingVar)
+          then (match no with | Some n -> srVar n | None -> raise MissingVar)
           else substNth (s, (n' - 1))
       | (Compose [], n) -> srVar n
       | (Compose (h::tl), n) -> subst_sr h (substNth ((Compose tl), n))
@@ -125,7 +125,7 @@ module Syntax =
           ATerm (ARoot ((Const n), (subst_spine s sp)))
       | (s, ARoot (Var n, sp)) ->
           reduce ((substNth (s, n)), (subst_spine s sp))
-      | (s, ERoot ((({ contents = NONE }, _) as ev), sl)) ->
+      | (s, ERoot ((({ contents = None }, _) as ev), sl)) ->
           ATerm (ERoot (ev, (subst_compose (s, sl))))
       | (s, (ERoot _ as t)) -> subst_term s (eroot_elim t)(* XXX right??? *)
     let rec subst_aterm_plus __15__ __16__ =
@@ -134,7 +134,7 @@ module Syntax =
           AElt (ARoot ((Const n), (subst_spine s sp)))
       | (s, ARoot (Var n, sp)) ->
           reduce_plus ((substNth (s, n)), (subst_spine s sp))
-      | (s, ERoot ((({ contents = NONE }, _) as ev), sl)) ->
+      | (s, ERoot ((({ contents = None }, _) as ev), sl)) ->
           AElt (ERoot (ev, (subst_compose (s, sl))))
       | (s, (ERoot _ as t)) -> subst_spinelt s (eroot_elim_plus t)
     let rec subst_tp __17__ __18__ =
@@ -158,7 +158,7 @@ module Syntax =
       | (srTerm ((ATerm (ARoot (h, sp)) as t), a), []) -> t
       | (srTerm (ATerm (ERoot (({ contents = Some _ }, _), _) as t), a), [])
           -> reduce ((srTerm ((eroot_elim t), a)), [])
-      | (srTerm (ATerm (ERoot (({ contents = NONE }, _), _) as t), a), []) ->
+      | (srTerm (ATerm (ERoot (({ contents = None }, _), _) as t), a), []) ->
           ATerm t
       | (srEVar ((x, a), sl), sp) ->
           let (a', subst) = lower (substs_comp sl) (a, sp) in
@@ -175,7 +175,7 @@ module Syntax =
       | (srTerm (ATerm (ARoot (h, sp) as t), a), []) -> AElt t
       | (srTerm (ATerm (ERoot (({ contents = Some _ }, _), _) as t), a), [])
           -> reduce_plus ((srTerm ((eroot_elim t), a)), [])
-      | (srTerm (ATerm (ERoot (({ contents = NONE }, _), _) as t), a), []) ->
+      | (srTerm (ATerm (ERoot (({ contents = None }, _), _) as t), a), []) ->
           AElt t
       | (srEVar ((x, a), sl), sp) ->
           let (a', subst) = lower (substs_comp sl) (a, sp) in
@@ -255,7 +255,7 @@ module Syntax =
           EVarDot (ev, (s :: sl), (subst_compose (s, s')))
       | (s, VarOptDot (no, s')) ->
           (match no with
-           | NONE -> VarOptDot (NONE, (subst_compose (s, s')))
+           | None -> VarOptDot (None, (subst_compose (s, s')))
            | Some n -> composeNth (s, n, s'))(* ZeroDotShift (Shift (n-1,m)) = Shift(n,m) but the former is 'smaller' *)
     let rec shift t = shift_term 0 t
     let rec shift_nterm __34__ __35__ =

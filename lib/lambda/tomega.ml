@@ -280,7 +280,7 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
           Abs ((I.decSub (__D, s)), (TCSub (TC, (I.dot1 s))))
     let rec TCSubOpt __8__ __9__ =
       match (__8__, __9__) with
-      | (NONE, s) -> NONE
+      | (None, s) -> None
       | (Some (TC), s) -> Some (TCSub (TC, s))
     let rec normalizeTC' =
       function
@@ -296,7 +296,7 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       | Abs (__D, TC) ->
           Abs ((Whnf.normalizeDec (__D, I.id)), (normalizeTC TC))
     let rec normalizeTCOpt =
-      function | NONE -> NONE | Some (TC) -> Some (normalizeTC TC)
+      function | None -> None | Some (TC) -> Some (normalizeTC TC)
     let rec convTC' __10__ __11__ =
       match (__10__, __11__) with
       | (Arg (__Us1, _), Arg (__Us2, _)) -> Conv.conv (__Us1, __Us2)
@@ -304,7 +304,7 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       | (Simul (__Os1), Simul (__Os2)) -> convTCs (__Os1, __Os2)
     let rec convTCs __12__ __13__ =
       match (__12__, __13__) with
-      | (nil, nil) -> true__
+      | (nil, nil) -> true
       | ((__O1)::__L1, (__O2)::__L2) ->
           (convTC' (__O1, __O2)) && (convTCs (__L1, __L2))
     let rec convTC __14__ __15__ =
@@ -314,12 +314,12 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
           (convTC (TC1, TC1')) && (convTC (TC2, TC2'))
       | (Abs (__D, TC), Abs (__D', TC')) ->
           (Conv.convDec ((__D, I.id), (__D', I.id))) && (convTC (TC, TC'))
-      | _ -> false__
+      | _ -> false
     let rec convTCOpt __16__ __17__ =
       match (__16__, __17__) with
-      | (NONE, NONE) -> true__
+      | (None, None) -> true
       | (Some (TC1), Some (TC2)) -> convTC (TC1, TC2)
-      | _ -> false__
+      | _ -> false
     let rec transformTC' __18__ __19__ =
       match (__18__, __19__) with
       | (__G, Arg k) ->
@@ -382,9 +382,9 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       | (True, _) -> True
     let rec decSub __31__ __32__ =
       match (__31__, __32__) with
-      | (PDec (x, __F, TC1, NONE), t) ->
+      | (PDec (x, __F, TC1, None), t) ->
           let s = coerceSub t in
-          PDec (x, (forSub (__F, t)), (TCSubOpt (TC1, s)), NONE)
+          PDec (x, (forSub (__F, t)), (TCSubOpt (TC1, s)), None)
       | (UDec (__D), t) -> UDec (I.decSub (__D, (coerceSub t)))
     let rec invertSub s =
       let rec getFrontIndex =
@@ -393,31 +393,31 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
         | Prg (__P) -> getPrgIndex __P
         | Exp (__U) -> getExpIndex __U
         | Block (__B) -> getBlockIndex __B
-        | Undef -> NONE
+        | Undef -> None
       and getPrgIndex =
         function
         | Redex (Var k, Nil) -> Some k
         | Redex (__P, Nil) -> getPrgIndex __P
         | PClo (__P, t) ->
             (match getPrgIndex __P with
-             | NONE -> NONE
+             | None -> None
              | Some i -> getFrontIndex (varSub (i, t)))
-        | _ -> NONE(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
+        | _ -> None(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
       and getExpIndex =
         function
         | Root (BVar k, I.Nil) -> Some k
         | Redex (__U, I.Nil) -> getExpIndex __U
         | EClo (__U, t) ->
             (match getExpIndex __U with
-             | NONE -> NONE
+             | None -> None
              | Some i -> getFrontIndex (revCoerceFront (I.bvarSub (i, t))))
         | Lam (Dec (_, __U1), __U2) as U ->
-            (try Some (Whnf.etaContract __U) with | Whnf.Eta -> NONE)
-        | _ -> NONE
-      and getBlockIndex = function | Bidx k -> Some k | _ -> NONE in
+            (try Some (Whnf.etaContract __U) with | Whnf.Eta -> None)
+        | _ -> None
+      and getBlockIndex = function | Bidx k -> Some k | _ -> None in
       let rec lookup __33__ __34__ __35__ =
         match (__33__, __34__, __35__) with
-        | (n, Shift _, p) -> NONE
+        | (n, Shift _, p) -> None
         | (n, Dot (Undef, s'), p) -> lookup ((n + 1), s', p)
         | (n, Dot (Idx k, s'), p) ->
             if k = p then Some n else lookup ((n + 1), s', p) in
@@ -427,19 +427,19 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
         | (p, si) ->
             (match lookup (1, s, p) with
              | Some k -> invertSub'' ((p - 1), (Dot ((Idx k), si)))
-             | NONE -> invertSub'' ((p - 1), (Dot (Undef, si)))) in
+             | None -> invertSub'' ((p - 1), (Dot (Undef, si)))) in
       let rec invertSub' __38__ __39__ =
         match (__38__, __39__) with
         | (n, Shift p) -> invertSub'' (p, (Shift n))
         | (n, Dot (_, s')) -> invertSub' ((n + 1), s') in
       ((invertSub' (0, s))
-        (* returns NONE if not found *)(* getPrgIndex returns NONE if it is not an index *)
-        (* getExpIndex returns NONE if it is not an index *)
-        (* getBlockIndex returns NONE if it is not an index *)(* Suggested by ABP
+        (* returns None if not found *)(* getPrgIndex returns None if it is not an index *)
+        (* getExpIndex returns None if it is not an index *)
+        (* getBlockIndex returns None if it is not an index *)(* Suggested by ABP
          * If you do not want this, remove the getFrontIndex and other
           | lookup (n, Dot (Ft, s'), p) =
               (case getFrontIndex(Ft) of
-                 NONE => lookup (n+1, s', p)
+                 None => lookup (n+1, s', p)
                | Some k => if (k=p) then Some n else lookup (n+1, s', p))
         *))
     let rec coerceCtx =
@@ -451,7 +451,7 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       let w = weakenSub Psi in let s = invertSub w in ((coerceCtx Psi), w, s)
     let rec convFor __40__ __41__ =
       match (__40__, __41__) with
-      | ((True, _), (True, _)) -> true__
+      | ((True, _), (True, _)) -> true
       | ((All ((__D1, _), __F1), t1), (All ((__D2, _), __F2), t2)) ->
           (convDec ((__D1, t1), (__D2, t2))) &&
             (convFor ((__F1, (dot1 t1)), (__F2, (dot1 t2))))
@@ -461,7 +461,7 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       | ((And (__F1, F1'), t1), (And (__F2, F2'), t2)) ->
           (convFor ((__F1, t1), (__F2, t2))) &&
             (convFor ((F1', t1), (F2', t2)))
-      | _ -> false__
+      | _ -> false
     let rec convDec __42__ __43__ =
       match (__42__, __43__) with
       | ((UDec (__D1), t1), (UDec (__D2), t2)) ->
@@ -472,19 +472,19 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
            convTCOpt (TC2, TC2'))
     let rec newEVar (Psi) (__F) =
       EVar
-        (Psi, (ref NONE), __F, NONE, NONE,
+        (Psi, (ref None), __F, None, None,
           (I.newEVar ((coerceCtx Psi), (I.Uni I.Type))))
     let rec newEVarTC (Psi) (__F) (TC) (TC') =
       EVar
-        (Psi, (ref NONE), __F, TC, TC',
+        (Psi, (ref None), __F, TC, TC',
           (I.newEVar ((coerceCtx Psi), (I.Uni I.Type))))
     let rec exists __44__ __45__ =
       match (__44__, __45__) with
-      | (x, []) -> false__
+      | (x, []) -> false
       | (x, y::__W2) -> (x = y) || (exists (x, __W2))
     let rec subset __46__ __47__ =
       match (__46__, __47__) with
-      | ([], _) -> true__
+      | ([], _) -> true
       | (x::__W1, __W2) -> (exists (x, __W2)) && (subset (__W1, __W2))
     let rec eqWorlds (Worlds (__W1)) (Worlds (__W2)) =
       (subset (__W1, __W2)) && (subset (__W2, __W1))
@@ -576,10 +576,10 @@ module Tomega(Tomega:sig module Whnf : WHNF module Conv : CONV end) : TOMEGA
       | (SClo (__S, t1), t2) -> normalizeSpine (__S, (comp (t1, t2)))
     let rec normalizeDec __57__ __58__ =
       match (__57__, __58__) with
-      | (PDec (name, __F, TC1, NONE), t) ->
+      | (PDec (name, __F, TC1, None), t) ->
           PDec
             (name, (forSub (__F, t)),
-              (normalizeTCOpt (TCSubOpt (TC1, (coerceSub t)))), NONE)
+              (normalizeTCOpt (TCSubOpt (TC1, (coerceSub t)))), None)
       | (UDec (__D), t) -> UDec (Whnf.normalizeDec (__D, (coerceSub t)))
     let rec normalizeSub =
       function

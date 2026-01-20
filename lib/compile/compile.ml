@@ -32,15 +32,15 @@ module Compile(Compile:sig
       | BVAR of int 
       | FGN 
       | DEF of int 
-    let rec notCS = function | I.FromCS -> false__ | _ -> true__
+    let rec notCS = function | I.FromCS -> false | _ -> true
     type __Opt = CompSyn.__Opt
     let optimize = CompSyn.optimize
     let rec cidFromHead = function | Const c -> c | Def c -> c
     let rec isConstraint =
       function
       | Const c ->
-          (match I.constStatus c with | Constraint _ -> true__ | _ -> false__)
-      | __H -> false__
+          (match I.constStatus c with | Constraint _ -> true | _ -> false)
+      | __H -> false
     let rec head = function | Root (h, _) -> h | Pi (_, __A) -> head __A
     let rec seen i (Vars) = List.exists (fun d -> fun x -> x = i) Vars
     let rec etaSpine __0__ __1__ =
@@ -48,7 +48,7 @@ module Compile(Compile:sig
       | (I.Nil, n) -> n = 0
       | (App (Root (BVar k, I.Nil), __S), n) ->
           (k = n) && (etaSpine (__S, (n - 1)))
-      | (App (__A, __S), n) -> false__
+      | (App (__A, __S), n) -> false
     let rec collectHead __2__ __3__ __4__ __5__ __6__ =
       match (__2__, __3__, __4__, __5__, __6__) with
       | ((BVar k as h), __S, __K, Vars, depth) ->
@@ -57,13 +57,13 @@ module Compile(Compile:sig
               (if etaSpine (__S, depth)
                then
                  (if seen ((k - depth), Vars)
-                  then (((depth, (BVAR (k - depth))) :: __K), Vars, true__)
-                  else (__K, ((depth, (k - depth)) :: Vars), false__))
-               else (((depth, (BVAR (k - depth))) :: __K), Vars, true__))
-            else (__K, Vars, false__))
+                  then (((depth, (BVAR (k - depth))) :: __K), Vars, true)
+                  else (__K, ((depth, (k - depth)) :: Vars), false))
+               else (((depth, (BVAR (k - depth))) :: __K), Vars, true))
+            else (__K, Vars, false))
           (* check if h is an eta-expanded variable *)
           (* h is a locally bound variable and need not be collected *))
-      | (_, _, __K, Vars, depth) -> (__K, Vars, false__)(* check if k is in Vars *)
+      | (_, _, __K, Vars, depth) -> (__K, Vars, false)(* check if k is in Vars *)
     let rec collectSpine __7__ __8__ __9__ __10__ =
       match (__7__, __8__, __9__, __10__) with
       | (I.Nil, __K, Vars, depth) -> (__K, Vars)
@@ -133,18 +133,18 @@ module Compile(Compile:sig
             (if etaSpine (__S, depth)
              then
                (if seen ((k - depth), Vars)
-                then ((left - 1), Vars, (I.BVar (left + depth)), true__)
+                then ((left - 1), Vars, (I.BVar (left + depth)), true)
                 else
                   (left, ((depth, (k - depth)) :: Vars),
-                    (I.BVar (k + total)), false__))
-             else ((left - 1), Vars, (I.BVar (left + depth)), true__))
-          else (left, Vars, h, false__)
+                    (I.BVar (k + total)), false))
+             else ((left - 1), Vars, (I.BVar (left + depth)), true))
+          else (left, Vars, h, false)
       | (__G, (Const k as h), __S, left, Vars, depth, total) ->
-          (left, Vars, h, false__)
+          (left, Vars, h, false)
       | (__G, (FgnConst (k, ConDec) as h), __S, left, Vars, depth, total) ->
-          (left, Vars, h, false__)
+          (left, Vars, h, false)
       | (__G, (Skonst k as h), __S, left, Vars, depth, total) ->
-          (left, Vars, h, false__)(*
+          (left, Vars, h, false)(*
      | linearHead(G, (h as I.NSDef k), s, S, left, Vars, depth, total) =
          (left, Vars, h, false)
      *)
@@ -237,9 +237,9 @@ module Compile(Compile:sig
       | (fromCS, __G, (Root _ as R)) -> C.Atom __R
       | (fromCS, __G, Pi ((Dec (_, __A1), I.No), __A2)) ->
           let Ha1 = I.targetHead __A1 in
-          let __R = compileDClauseN fromCS false__ (__G, __A1) in
+          let __R = compileDClauseN fromCS false (__G, __A1) in
           let goal =
-            compileGoalN fromCS ((I.Decl (__G, (I.Dec (NONE, __A1)))), __A2) in
+            compileGoalN fromCS ((I.Decl (__G, (I.Dec (None, __A1)))), __A2) in
           ((C.Impl (__R, __A1, Ha1, goal))
             (* A1 is used to build the proof term, Ha1 for indexing *)
             (* never optimize when compiling local assumptions *))
@@ -380,19 +380,19 @@ module Compile(Compile:sig
       match !C.optimize with
       | C.No ->
           C.sProgInstall
-            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
+            (a, (C.SClause (compileDClauseN fromCS true (I.Null, __A))))
       | C.LinearHeads ->
           C.sProgInstall
-            (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
+            (a, (C.SClause (compileDClauseN fromCS true (I.Null, __A))))
       | C.Indexing ->
           let ((__G, Head), __R) =
             compileSClauseN fromCS
               (I.Null, I.Null, (Whnf.normalize (__A, I.id))) in
           let _ =
             C.sProgInstall
-              (a, (C.SClause (compileDClauseN fromCS true__ (I.Null, __A)))) in
+              (a, (C.SClause (compileDClauseN fromCS true (I.Null, __A)))) in
           (match Head with
-           | NONE -> raise (Error "Install via normal index")
+           | None -> raise (Error "Install via normal index")
            | Some (__H, Eqs) ->
                SubTree.sProgInstall
                  ((cidFromHead (I.targetHead __A)),
@@ -406,16 +406,16 @@ module Compile(Compile:sig
            | C.No ->
                C.sProgInstall
                  (a,
-                   (C.SClause (compileDClauseN fromCS true__ (I.Null, __A))))
+                   (C.SClause (compileDClauseN fromCS true (I.Null, __A))))
            | _ ->
                C.sProgInstall
                  (a,
-                   (C.SClause (compileDClauseN fromCS true__ (I.Null, __A)))))
+                   (C.SClause (compileDClauseN fromCS true (I.Null, __A)))))
       | (I.Clause, a, ConDef (_, _, _, _, __A, I.Type, _)) ->
           C.sProgInstall
             (a,
               (C.SClause
-                 (compileDClauseN I.Clause true__
+                 (compileDClauseN I.Clause true
                     (I.Null, (Whnf.normalize (__A, I.id))))))
       | (_, _) -> ()(* we don't use substitution tree indexing for skolem constants yet -bp*)
     let rec install fromCS cid =

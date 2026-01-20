@@ -49,7 +49,7 @@ module MTProver(MTProver:sig
     let rec reset () = openStates := nil; solvedStates := nil
     let rec contains __5__ __6__ =
       match (__5__, __6__) with
-      | (nil, _) -> true__
+      | (nil, _) -> true
       | (x::__L, __L') ->
           (List.exists (fun x' -> x = x') __L') && (contains (__L, __L'))
     let rec equiv (__L1) (__L2) =

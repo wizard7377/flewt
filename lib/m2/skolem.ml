@@ -39,7 +39,7 @@ module Skolem(Skolem:sig
                    let Dec (_, __V') = __D in
                    let V'' = k (Whnf.normalize (__V', s)) in
                    let name' = Names.skonstName (name ^ "#") in
-                   let SD = I.SkoDec (name', NONE, imp, V'', __L) in
+                   let SD = I.SkoDec (name', None, imp, V'', __L) in
                    let sk = I.sgnAdd SD in
                    let __H = I.Skonst sk in
                    let _ = IndexSkolem.install I.Ordinary __H in

@@ -48,7 +48,7 @@ module Mpi(Mpi:sig
     let ((History) :
       (MetaSyn.__State Ring.ring * MetaSyn.__State Ring.ring) list ref) =
       ref nil
-    let ((Menu) : __MenuItem list option ref) = ref NONE
+    let ((Menu) : __MenuItem list option ref) = ref None
     let rec initOpen () = (:=) Open Ring.init []
     let rec initSolved () = (:=) Solved Ring.init []
     let rec empty () = Ring.empty (!Open)
@@ -75,7 +75,7 @@ module Mpi(Mpi:sig
           (History := History'; Open := Open'; Solved := Solved')
     let rec abort s = print ("* " ^ s); raise (Error s)
     let rec reset () =
-      initOpen (); initSolved (); History := nil; Menu := NONE
+      initOpen (); initSolved (); History := nil; Menu := None
     let rec cLToString =
       function
       | nil -> ""
@@ -95,7 +95,7 @@ module Mpi(Mpi:sig
       | ((__O)::__L, __A) -> RecursionToMenu (__L, ((Recursion __O) :: __A))
     let rec menu () =
       if empty ()
-      then Menu := NONE
+      then Menu := None
       else
         (let __S = current () in
          let SplitO = Splitting.expand __S in
@@ -123,12 +123,12 @@ module Mpi(Mpi:sig
             (((menuToString' ((k + 1), __M)) ^ "\n") ^ (format k)) ^
               (Recursion.menu __O) in
       match !Menu with
-      | NONE -> raise (Error "Menu is empty")
+      | None -> raise (Error "Menu is empty")
       | Some (__M) -> menuToString' (1, __M)
     let rec makeConDec (State (name, Prefix (__G, __M, __B), __V)) =
       let rec makeConDec' __8__ __9__ __10__ =
         match (__8__, __9__, __10__) with
-        | (I.Null, __V, k) -> I.ConDec (name, NONE, k, I.Normal, __V, I.Type)
+        | (I.Null, __V, k) -> I.ConDec (name, None, k, I.Normal, __V, I.Type)
         | (Decl (__G, __D), __V, k) ->
             makeConDec' (__G, (I.Pi ((__D, I.Maybe), __V)), (k + 1)) in
       makeConDec' (__G, __V, 0)
@@ -153,7 +153,7 @@ module Mpi(Mpi:sig
          print "\n")
     let rec contains __11__ __12__ =
       match (__11__, __12__) with
-      | (nil, _) -> true__
+      | (nil, _) -> true
       | (x::__L, __L') ->
           (List.exists (fun x' -> x = x') __L') && (contains (__L, __L'))
     let rec equiv (__L1) (__L2) =
@@ -177,11 +177,11 @@ module Mpi(Mpi:sig
         | nil -> nil
         | name::nL ->
             (match Names.stringToQid name with
-             | NONE ->
+             | None ->
                  raise (Error ("Malformed qualified identifier " ^ name))
              | Some qid ->
                  (match Names.constLookup qid with
-                  | NONE ->
+                  | None ->
                       raise
                         (Error
                            (((^) "Type family " Names.qidToString qid) ^
@@ -215,7 +215,7 @@ module Mpi(Mpi:sig
         | (k, _::__M) -> select' ((k - 1), __M) in
       try
         match !Menu with
-        | NONE -> raise (Error "No menu defined")
+        | None -> raise (Error "No menu defined")
         | Some (__M) -> select' (k, __M)
       with | Error s -> abort ("Splitting Error: " ^ s)
       | Error s -> abort ("Filling Error: " ^ s)

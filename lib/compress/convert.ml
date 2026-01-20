@@ -29,7 +29,7 @@ module Convert =
       match (__2__, __3__) with
       | (__G, Id s) ->
           (match findid __G s with
-           | Var n -> ((Var n), NONE, true__, [])
+           | Var n -> ((Var n), None, true, [])
            | Const n ->
                ((Const n), (Some (modesofclass (List.nth ((!sigmat), n)))),
                  (List.nth ((!sigmap), n)), []))
@@ -74,7 +74,7 @@ module Convert =
           let s' =
             map (eltconvert __G)
               (match mopt with
-               | NONE -> map (fun elt -> (elt, MINUS)) s
+               | None -> map (fun elt -> (elt, MINUS)) s
                | Some m -> safezip (s, m)) in
           if p then ATerm (ARoot (h, s')) else NTerm (NRoot (h, s'))
     let rec typeconvert __11__ __12__ =
@@ -83,7 +83,7 @@ module Convert =
           let ct = typeconvert (__G, t) in
           let ct' = typeconvert ((v :: __G), t') in
           TPi ((modeconvert m), ct, ct')
-      | (__G, Pi (m, (_, NONE), _)) ->
+      | (__G, Pi (m, (_, None), _)) ->
           raise (Convert "can't handle implicit pi")
       | (__G, Arrow (t, t')) ->
           let ct = typeconvert (__G, t) in
@@ -106,7 +106,7 @@ module Convert =
       | (__G, PlusArrow (t, t')) ->
           let ct = typeconvert (__G, t) in
           let ct' = kindconvert (("" :: __G), t') in KPi (PLUS, ct, ct')
-      | (__G, Pi (m, (_, NONE), _)) ->
+      | (__G, Pi (m, (_, None), _)) ->
           raise (Convert "can't handle implicit pi")
       | (__G, Parse.Type) -> Type
       | _ -> raise (Convert "level mismatch")

@@ -41,7 +41,7 @@ module SparseArray2(SparseArray2:sig module IntTable : TABLE end) :
     let rec toInt m n = let sum = m + n in (( * ) sum (sum + 1) div 2) + n
     let rec unsafeSub { table; default; default } i j =
       match IntTable.lookup table (toInt (i, j)) with
-      | NONE -> default
+      | None -> default
       | Some v -> v
     let rec unsafeUpdate { table; default; default } i j v =
       IntTable.insert table ((toInt (i, j)), v)

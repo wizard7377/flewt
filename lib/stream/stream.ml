@@ -61,7 +61,7 @@ module Stream(Stream:sig module BasicStream : BASIC_STREAM end) : STREAM =
     open BasicStream
     exception EmptyStream 
     let rec null s = null' (expose s)
-    let rec null' = function | Empty -> true__ | Cons _ -> false__
+    let rec null' = function | Empty -> true | Cons _ -> false
     let rec hd s = hd' (expose s)
     let rec hd' = function | Empty -> raise EmptyStream | Cons (x, s) -> x
     let rec tl s = tl' (expose s)
@@ -80,7 +80,7 @@ module Stream(Stream:sig module BasicStream : BASIC_STREAM end) : STREAM =
     let rec exists p s = exists' p (expose s)
     let rec exists' __4__ __5__ =
       match (__4__, __5__) with
-      | (p, Empty) -> false__
+      | (p, Empty) -> false
       | (p, Cons (x, s)) -> (p x) || (exists p s)
     let rec takePos __6__ __7__ =
       match (__6__, __7__) with

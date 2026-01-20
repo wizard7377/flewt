@@ -55,15 +55,15 @@ module MTPStrategy(MTPStrategy:sig
       else ()
     let rec findMin =
       function
-      | nil -> NONE
+      | nil -> None
       | __L ->
           let rec findMin' __0__ __1__ =
             match (__0__, __1__) with
             | (nil, result) -> result
-            | ((__O')::__L', NONE) ->
+            | ((__O')::__L', None) ->
                 if MTPSplitting.applicable __O'
                 then findMin' (__L', (Some __O'))
-                else findMin' (__L', NONE)
+                else findMin' (__L', None)
             | ((__O')::__L', Some (__O)) ->
                 if MTPSplitting.applicable __O'
                 then
@@ -71,11 +71,11 @@ module MTPStrategy(MTPStrategy:sig
                    | LESS -> findMin' (__L', (Some __O'))
                    | _ -> findMin' (__L', (Some __O)))
                 else findMin' (__L', (Some __O)) in
-          findMin' (__L, NONE)
+          findMin' (__L, None)
     let rec split ((__S)::givenStates) ((openStates, solvedStates) as os) =
       match findMin (Timers.time Timers.splitting MTPSplitting.expand __S)
       with
-      | NONE -> fill (givenStates, ((__S :: openStates), solvedStates))
+      | None -> fill (givenStates, ((__S :: openStates), solvedStates))
       | Some splitOp ->
           let _ = printSplitting splitOp in
           let SL = Timers.time Timers.splitting MTPSplitting.apply splitOp in

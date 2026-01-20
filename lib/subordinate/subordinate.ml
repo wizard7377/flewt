@@ -66,13 +66,13 @@ module Subordinate(Subordinate:sig
     let rec reachable b a = reach (b, a, IntSet.empty)
     let rec addNewEdge b a =
       ((!) ((:=) memoCounter) memoCounter) + 1;
-      memoInsert ((b, a), (true__, (!memoCounter)));
+      memoInsert ((b, a), (true, (!memoCounter)));
       updateFam (b, (IntSet.insert (a, (adjNodes b))))
     let (fTable : bool Table.__Table) = Table.new__ 32
     let fLookup = Table.lookup fTable
     let fInsert = Table.insert fTable
     let rec fGet a =
-      match fLookup a with | Some frozen -> frozen | NONE -> false__
+      match fLookup a with | Some frozen -> frozen | None -> false
     let rec fSet a frozen =
       let _ =
         Global.chPrint 5
@@ -113,7 +113,7 @@ module Subordinate(Subordinate:sig
           (fun a ->
              appReachable
                (fun b ->
-                  fSet (b, true__);
+                  fSet (b, true);
                   (:=) freezeList IntSet.insert (b, (!freezeList))) a) __L' in
       let cids = IntSet.foldl (::) nil (!freezeList) in cids
     let rec frozen (__L) =
@@ -122,16 +122,16 @@ module Subordinate(Subordinate:sig
     let rec computeBelow a b =
       try
         reachable (b, a);
-        memoInsert ((b, a), (false__, (!memoCounter)));
-        false__
+        memoInsert ((b, a), (false, (!memoCounter)));
+        false
       with
-      | Reachable -> (memoInsert ((b, a), (true__, (!memoCounter))); true__)
+      | Reachable -> (memoInsert ((b, a), (true, (!memoCounter))); true)
     let rec below a b =
       ((match memoLookup (b, a) with
-        | NONE -> computeBelow (a, b)
-        | Some (true__, c) -> true__
-        | Some (false__, c) ->
-            if (!) ((=) c) memoCounter then false__ else computeBelow (a, b))
+        | None -> computeBelow (a, b)
+        | Some (true, c) -> true
+        | Some (false, c) ->
+            if (!) ((=) c) memoCounter then false else computeBelow (a, b))
       (* true entries remain valid *))
     let rec belowEq a b = (a = b) || (below (a, b))
     let rec equiv a b = (belowEq (a, b)) && (belowEq (b, a))
@@ -158,14 +158,14 @@ module Subordinate(Subordinate:sig
       let a's' = map expandFamilyAbbrevs a's in
       let _ = aboveList := nil in
       let _ = Table.app (fun b -> fun _ -> addIfBelowEq a's' b) soGraph in
-      let _ = List.app (fun b -> fSet (b, false__)) (!aboveList) in
+      let _ = List.app (fun b -> fSet (b, false)) (!aboveList) in
       !aboveList
     let (defGraph : IntSet.intset Table.__Table) = Table.new__ 32
     let rec occursInDef a =
-      match Table.lookup defGraph a with | NONE -> false__ | Some _ -> true__
+      match Table.lookup defGraph a with | None -> false | Some _ -> true
     let rec insertNewDef b a =
       match Table.lookup defGraph a with
-      | NONE -> Table.insert defGraph (a, (IntSet.insert (b, IntSet.empty)))
+      | None -> Table.insert defGraph (a, (IntSet.insert (b, IntSet.empty)))
       | Some bs -> Table.insert defGraph (a, (IntSet.insert (b, bs)))
     let rec installConDec __0__ __1__ =
       match (__0__, __1__) with
@@ -222,7 +222,7 @@ module Subordinate(Subordinate:sig
     let rec install c =
       let __V = I.constType c in
       match I.targetFamOpt __V with
-      | NONE -> (insertNewFam c; installKindN (__V, c))
+      | None -> (insertNewFam c; installKindN (__V, c))
       | Some a ->
           ((((((match IntSyn.sgnLookup c with
                 | ConDec _ -> checkFreeze (c, a)
@@ -301,7 +301,7 @@ module Subordinate(Subordinate:sig
       maxHeight := 0
     let rec analyzeAnc =
       function
-      | Anc (NONE, _, _) -> incArray 0
+      | Anc (None, _, _) -> incArray 0
       | Anc (_, h, _) -> (incArray h; max h)
     let rec analyze =
       function

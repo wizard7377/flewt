@@ -50,7 +50,7 @@ module StrategyFRS(StrategyFRS:sig
       if (!Global.chatter) > 3 then print "[QED]\n" else ()
     let rec findMin =
       function
-      | nil -> NONE
+      | nil -> None
       | (__O)::__L ->
           let rec findMin' __7__ __8__ __9__ =
             match (__7__, __8__, __9__) with
@@ -63,7 +63,7 @@ module StrategyFRS(StrategyFRS:sig
           findMin' (__L, (Splitting.index __O), (Some __O))
     let rec split ((__S)::givenStates) ((openStates, solvedStates) as os) =
       match findMin (Timers.time Timers.splitting Splitting.expand __S) with
-      | NONE -> fill (givenStates, ((__S :: openStates), solvedStates))
+      | None -> fill (givenStates, ((__S :: openStates), solvedStates))
       | Some splitOp ->
           let _ = printSplitting () in
           let SL = Timers.time Timers.splitting Splitting.apply splitOp in
@@ -152,7 +152,7 @@ module StrategyRFS(StrategyRFS:sig
       if (!Global.chatter) > 3 then print "[QED]\n" else ()
     let rec findMin =
       function
-      | nil -> NONE
+      | nil -> None
       | (__O)::__L ->
           let rec findMin' __0__ __1__ __2__ =
             match (__0__, __1__, __2__) with
@@ -165,7 +165,7 @@ module StrategyRFS(StrategyRFS:sig
           findMin' (__L, (Splitting.index __O), (Some __O))
     let rec split ((__S)::givenStates) ((openStates, solvedStates) as os) =
       match findMin (Timers.time Timers.splitting Splitting.expand __S) with
-      | NONE -> recurse (givenStates, ((__S :: openStates), solvedStates))
+      | None -> recurse (givenStates, ((__S :: openStates), solvedStates))
       | Some splitOp ->
           let _ = printSplitting () in
           let SL = Timers.time Timers.splitting Splitting.apply splitOp in

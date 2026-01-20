@@ -80,7 +80,7 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
             if c = '~'
             then List.all Char.isDigit chars'
             else List.all Char.isDigit chars
-        | nil -> false__ in
+        | nil -> false in
       let rec check_denominator chars = List.all Char.isDigit chars in
       let fields = String.fields (fun c -> c = '/') str in
       if (List.length fields) = 1
@@ -90,8 +90,8 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
          then
            match I.fromString numerator with
            | Some n -> Some (Fract ((I.sign n), (I.abs n), (I.fromInt 1)))
-           | _ -> NONE
-         else NONE)
+           | _ -> None
+         else None)
       else
         if (List.length fields) = 2
         then
@@ -105,9 +105,9 @@ module Rationals(Integers:INTEGERS) : RATIONALS =
              with
              | (Some n, Some d) ->
                  Some (normalize (Fract ((I.sign n), (I.abs n), d)))
-             | _ -> NONE
-           else NONE)
-        else NONE
+             | _ -> None
+           else None)
+        else None
     let rec toString (Fract (s, n, d)) =
       let nStr = I.toString (I.( * ) ((I.fromInt s), n)) in
       let dStr = I.toString d in

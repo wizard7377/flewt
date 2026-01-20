@@ -69,7 +69,7 @@ module ReconMode(ReconMode:sig
           let r = P.join (r1, r2) in
           let qid = Names.Qid (ids, id) in
           match Names.constLookup qid with
-          | NONE ->
+          | None ->
               error
                 (r,
                   (((^) "Undeclared identifier " Names.qidToString

@@ -24,7 +24,7 @@ module Rep =
       | AbbrevDef (_, _, _, _, _, _) -> defSize (Sgn.o_def cid)
       | _ -> 0
     open SMLofNJ.Cont
-    let (k : Reductio.eq_c option ref) = ref NONE
+    let (k : Reductio.eq_c option ref) = ref None
     exception Crap 
     let rec sanityCheck cid =
       try
@@ -51,18 +51,18 @@ module Rep =
               let DEF_TYPE y = Sgn.def cid in
               let kclass z = Sgn.classifier cid in
               Reductio.check_type Reductio.CON_LF ((Syntax.explodeKind z), y)
-          | _ -> true__)
+          | _ -> true)
         (* we're not checking block declarations or anything else like that *))
       with | Syntax _ -> (print ((^) "--> " Int.toString cid); raise Match)
     let rec gen_graph n autoCompress =
       let _ = autoCompress n in
       let rec sanity n =
         if n < 0
-        then true__
+        then true
         else
           (sanity (n - 1)) &&
             (if sanityCheck n
-             then true__
+             then true
              else
                (print (("insane: <" ^ (Int.toString n)) ^ ">\n"); raise Crap)) in
       let _ = sanity n in

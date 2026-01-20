@@ -23,12 +23,12 @@ module ParseQuery(ParseQuery:sig
       match (__0__, __1__, __2__) with
       | (name, f, Cons ((L.COLON, r), s')) ->
           returnQuery ((Some name), (ParseTerm.parseTerm' (LS.expose s')))
-      | (name, f, _) -> returnQuery (NONE, (ParseTerm.parseTerm' f))
+      | (name, f, _) -> returnQuery (None, (ParseTerm.parseTerm' f))
     let rec parseQuery' =
       function
       | Cons ((ID (L.Upper, name), r), s') as f ->
           parseQuery1 (name, f, (LS.expose s'))
-      | f -> returnQuery (NONE, (ParseTerm.parseTerm' f))
+      | f -> returnQuery (None, (ParseTerm.parseTerm' f))
     let rec parseQuery s = parseQuery' (LS.expose s)
     let rec parseDefine4 optName optT s =
       let (tm', f') = ParseTerm.parseTerm' (LS.expose s) in
@@ -44,14 +44,14 @@ module ParseQuery(ParseQuery:sig
       | (optName, Cons ((L.COLON, r), s')) ->
           parseDefine3 (optName, (ParseTerm.parseTerm' (LS.expose s')))
       | (optName, Cons ((L.EQUAL, r), s')) ->
-          parseDefine4 (optName, NONE, s')
+          parseDefine4 (optName, None, s')
       | (_, Cons ((t, r), _)) ->
           Parsing.error (r, ((^) "Expected `:' or `=', found " L.toString t))
     let rec parseDefine1 =
       function
       | Cons ((ID (idCase, name), r), s') ->
           parseDefine2 ((Some name), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseDefine2 (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseDefine2 (None, (LS.expose s'))
       | Cons ((t, r), _) ->
           Parsing.error
             (r, ((^) "Expected identifier or `_', found " L.toString t))
@@ -67,7 +67,7 @@ module ParseQuery(ParseQuery:sig
     let rec parseSolve2 __11__ __12__ __13__ =
       match (__11__, __12__, __13__) with
       | (defns, Cons ((L.UNDERSCORE, r), s'), r0) ->
-          parseSolve3 (defns, NONE, (LS.expose s'), r0)
+          parseSolve3 (defns, None, (LS.expose s'), r0)
       | (defns, Cons ((ID (_, name), r), s'), r0) ->
           parseSolve3 (defns, (Some name), (LS.expose s'), r0)
       | (_, Cons ((t, r), s'), r0) ->

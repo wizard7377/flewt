@@ -86,7 +86,7 @@ module PrintTwega(PrintTwega:sig
             fmtSpine (__G, (__S, s))]
     let rec fmtDec __6__ __7__ =
       match (__6__, __7__) with
-      | (__G, (Dec (NONE, __V), s)) ->
+      | (__G, (Dec (None, __V), s)) ->
           sexp
             [Str "tw~decl";
             F.Break;

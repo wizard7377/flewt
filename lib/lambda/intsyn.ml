@@ -387,13 +387,13 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
     let rec strDecName (StrDec (name, _)) = name
     let rec strDecParent (StrDec (_, parent)) = parent
     let maxCid = Global.maxCid
-    let dummyEntry = ConDec ("", NONE, 0, Normal, (Uni Kind), Kind)
+    let dummyEntry = ConDec ("", None, 0, Normal, (Uni Kind), Kind)
     let sgnArray =
       (Array.array ((maxCid + 1), dummyEntry) : __ConDec Array.array)
     let nextCid = ref 0
     let maxMid = Global.maxMid
     let sgnStructArray =
-      (Array.array ((maxMid + 1), (StrDec ("", NONE))) : __StrDec Array.array)
+      (Array.array ((maxMid + 1), (StrDec ("", None))) : __StrDec Array.array)
     let nextMid = ref 0
     let rec sgnClean i =
       if (!) ((>=) i) nextCid
@@ -473,7 +473,7 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
           (match bvarSub (k, s) with | Idx k' -> Bidx k' | Block (__B) -> __B)
       | (LVar ({ contents = Some (__B) }, sk, _), s) ->
           blockSub (__B, (comp (sk, s)))
-      | (LVar (({ contents = NONE } as r), sk, (l, t)), s) ->
+      | (LVar (({ contents = None } as r), sk, (l, t)), s) ->
           LVar (r, (comp (sk, s)), (l, t))
       | ((Inst (ULs) as L), s') ->
           Inst (map (fun (__U) -> EClo (__U, s')) ULs)(* comp(^k, s) = ^k' for some k' by invariant *)
@@ -522,24 +522,24 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
               ((Dot ((Exp (Root ((Proj (v, j)), Nil))), t)), __L, (n - 1),
                 (j + 1)) in
       ((blockDec' (s, Lblock, i, 1))(* G |- s : Gsome *))
-    let rec newEVar (__G) (__V) = EVar ((ref NONE), __G, __V, (ref nil))
-    let rec newAVar () = AVar (ref NONE)
-    let rec newTypeVar (__G) = EVar ((ref NONE), __G, (Uni Type), (ref nil))
-    let rec newLVar sk (cid, t) = LVar ((ref NONE), sk, (cid, t))
+    let rec newEVar (__G) (__V) = EVar ((ref None), __G, __V, (ref nil))
+    let rec newAVar () = AVar (ref None)
+    let rec newTypeVar (__G) = EVar ((ref None), __G, (Uni Type), (ref nil))
+    let rec newLVar sk (cid, t) = LVar ((ref None), sk, (cid, t))
     let rec headOpt =
       function
       | Root (__H, _) -> Some __H
       | Lam (_, __U) -> headOpt __U
-      | _ -> NONE
+      | _ -> None
     let rec ancestor' =
       function
-      | NONE -> Anc (NONE, 0, NONE)
+      | None -> Anc (None, 0, None)
       | Some (Const c) -> Anc ((Some c), 1, (Some c))
       | Some (Def d) ->
           (match sgnLookup d with
            | ConDef (_, _, _, _, _, _, Anc (_, height, cOpt)) ->
                Anc ((Some d), (height + 1), cOpt))
-      | Some _ -> Anc (NONE, 0, NONE)(* FgnConst possible, BVar impossible by strictness *)
+      | Some _ -> Anc (None, 0, None)(* FgnConst possible, BVar impossible by strictness *)
     let rec ancestor (__U) = ancestor' (headOpt __U)
     let rec defAncestor d =
       match sgnLookup d with | ConDef (_, _, _, _, _, _, anc) -> anc
@@ -551,7 +551,7 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
       | Lam (_, __V) -> targetHeadOpt __V
       | EVar ({ contents = Some (__V) }, _, _, _) -> targetHeadOpt __V
       | EClo (__V, s) -> targetHeadOpt __V
-      | _ -> NONE
+      | _ -> None
     let rec targetHead (__A) = valOf (targetHeadOpt __A)
     let rec targetFamOpt =
       function
@@ -562,7 +562,7 @@ module IntSyn(IntSyn:sig module Global : GLOBAL end) : INTSYN =
       | Lam (_, __V) -> targetFamOpt __V
       | EVar ({ contents = Some (__V) }, _, _, _) -> targetFamOpt __V
       | EClo (__V, s) -> targetFamOpt __V
-      | _ -> NONE
+      | _ -> None
     let rec targetFam (__A) = valOf (targetFamOpt __A)
   end 
 module IntSyn : INTSYN = (Make_IntSyn)(struct module Global = Global end) ;;

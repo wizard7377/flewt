@@ -19,11 +19,11 @@ module GrowArray : GROWARRAY =
   struct
     module A = Array
     type nonrec 'a growarray = (int * 'a option A.array) ref
-    let rec empty () = ref (0, (A.array (16, NONE)))
+    let rec empty () = ref (0, (A.array (16, None)))
     let rec growarray n i = ref (n, (A.array (n, (Some i))))
     let rec sub { contents = (used, a) } n =
       if (n < used) && (n >= 0)
-      then match A.sub (a, n) with | NONE -> raise Subscript | Some z -> z
+      then match A.sub (a, n) with | None -> raise Subscript | Some z -> z
       else raise Subscript
     let rec length { contents = (l, _) } = l
     let rec accomodate ({ contents = (l, a) } as r) n =
@@ -33,7 +33,7 @@ module GrowArray : GROWARRAY =
         (let rec nextpower x = if x >= (n + 1) then x else nextpower (x * 2) in
          let ns = nextpower (A.length a) in
          let na =
-           A.tabulate (ns, (fun i -> if i < l then A.sub (a, i) else NONE)) in
+           A.tabulate (ns, (fun i -> if i < l then A.sub (a, i) else None)) in
          r := (l, na))
     let rec update r n x =
       if n < 0
@@ -48,10 +48,10 @@ module GrowArray : GROWARRAY =
       let _ = accomodate r (n + 1) in
       let (_, a) = !r in A.update (a, n, (Some x)); r := ((n + 1), a)
     let rec used arr n =
-      try ignore (sub arr n); true__ with | Subscript -> false__
+      try ignore (sub arr n); true with | Subscript -> false
     let rec finalize { contents = (n, a) } =
       A.tabulate
         (n,
           (fun x ->
-             match A.sub (a, x) with | NONE -> raise Subscript | Some z -> z))
+             match A.sub (a, x) with | None -> raise Subscript | Some z -> z))
   end ;;

@@ -89,8 +89,8 @@ module TableParam(TableParam:sig module Global : GLOBAL end) : TABLEPARAM =
       i
     let rec noAnswers answ =
       ((match List.take ((solutions answ), (lookup answ)) with
-        | [] -> true__
-        | __L -> false__)
+        | [] -> true
+        | __L -> false)
       (*solutions(answ) *))
     type nonrec asub = IntSyn.__Exp RBSet.ordSet
     let (aid : unit -> asub) = RBSet.new__
@@ -103,12 +103,12 @@ module TableParam(TableParam:sig module Global : GLOBAL end) : TABLEPARAM =
       | new__ [@sml.renamed "new__"][@sml.renamed "new__"]
       | repeated [@sml.renamed "repeated"][@sml.renamed "repeated"]
     let strategy = ref Variant
-    let divHeuristic = ref false__
+    let divHeuristic = ref false
     let stageCtr = ref 0
-    let termDepth = (ref NONE : int option ref)
-    let ctxDepth = (ref NONE : int option ref)
-    let ctxLength = (ref NONE : int option ref)
-    let strengthen = ref false__
+    let termDepth = (ref None : int option ref)
+    let ctxDepth = (ref None : int option ref)
+    let ctxLength = (ref None : int option ref)
+    let strengthen = ref false
   end ;;
 
 

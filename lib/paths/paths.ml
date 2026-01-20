@@ -92,7 +92,7 @@ module Paths() : PATHS =
           let regString =
             (^) ((lineColToString lcfrom) ^ "-") lineColToString lcto in
           ((((filename ^ ":") ^ regString) ^ " ") ^ "Error: \n") ^ msg
-      | (loc, NONE, msg) -> wrapLoc0 (loc, msg)
+      | (loc, None, msg) -> wrapLoc0 (loc, msg)
     let rec wrapLoc loc msg = wrapLoc' (loc, (Some (getLinesInfo ())), msg)
     type __Path =
       | Label of __Path 
@@ -135,7 +135,7 @@ module Paths() : PATHS =
       let rec toPath =
         function
         | leaf (Reg (i, j)) -> Here
-        | bind (Reg (i, j), NONE, u) ->
+        | bind (Reg (i, j), None, u) ->
             if inside u then Body (toPath u) else Here
         | bind (Reg (i, j), Some u1, u2) ->
             if inside u1
@@ -146,11 +146,11 @@ module Paths() : PATHS =
             then Head
             else
               (match toPathSpine (s, 1) with
-               | NONE -> Here
+               | None -> Here
                | Some (n, path) -> Arg ((n + imp), path))(* check? mark? *)
       and toPathSpine __5__ __6__ =
         match (__5__, __6__) with
-        | (nils, n) -> NONE
+        | (nils, n) -> None
         | (app (u, s), n) ->
             if inside u
             then Some (n, (toPath u))
@@ -170,7 +170,7 @@ module Paths() : PATHS =
     let rec pathToRegion __9__ __10__ =
       match (__9__, __10__) with
       | (u, Here) -> toRegion u
-      | (bind (r, NONE, u), Label path) -> r
+      | (bind (r, None, u), Label path) -> r
       | (bind (r, Some u1, u2), Label path) -> pathToRegion (u1, path)
       | (bind (r, _, u), Body path) -> pathToRegion (u, path)
       | (root (r, _, _, _, _), Label path) -> r
@@ -210,7 +210,7 @@ module Paths() : PATHS =
       match (__16__, __17__) with
       | (def (n, u, Some v), occ) ->
           pathToRegion (v, (skipImplicit (n, (occToPath (occ, Here)))))
-      | (def (n, u, NONE), occ) -> pathToRegion (u, Here)
+      | (def (n, u, None), occ) -> pathToRegion (u, Here)
     let rec occToRegionClause __18__ __19__ =
       match (__18__, __19__) with
       | ((dec _ as d), occ) -> occToRegionDec d occ

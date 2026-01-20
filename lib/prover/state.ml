@@ -48,7 +48,7 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       | LetPairExp (__D1, __D2, __P1, __P2) ->
           (@) (findPrg __P1) findPrg __P2
       | LetUnit (__P1, __P2) -> (@) (findPrg __P1) findPrg __P2
-      | EVar (_, { contents = NONE }, _, _, _, _) as X -> [__X]
+      | EVar (_, { contents = None }, _, _, _, _) as X -> [__X]
       | EVar (_, { contents = Some (__P) }, _, _, _, _) as X -> findPrg __P
       | Const _ -> []
       | Var _ -> []
@@ -131,8 +131,8 @@ module State(State:sig module Formatter : FORMATTER end) : STATE =
       let __X = T.newEVar (I.Null, __F) in State (__W, I.Null, __X, __F)
     let rec close (State (__W, _, __P, _)) =
       match ((findPrg __P), (findExp (I.Null, __P) [])) with
-      | (nil, nil) -> true__
-      | _ -> false__
+      | (nil, nil) -> true
+      | _ -> false
     let close = close
     let init = init
     let collectT = findPrg

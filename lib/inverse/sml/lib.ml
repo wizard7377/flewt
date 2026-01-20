@@ -130,9 +130,9 @@ module Lib : LIB =
     let rec orelse' x y = x || y
     let rec fst x y = x
     let rec snd x y = y
-    let rec is_none = function | NONE -> true__ | Some _ -> false__
-    let rec is_some = function | NONE -> false__ | Some _ -> true__
-    let rec the = function | NONE -> raise (Fail "the") | Some x -> x
+    let rec is_none = function | None -> true | Some _ -> false
+    let rec is_some = function | None -> false | Some _ -> true
+    let rec the = function | None -> raise (Fail "the") | Some x -> x
     let rec x ((+=)) n = (x := (!x)) + n
     let rec x ((-=)) n = (x := (!x)) - n
     let rec incr x = x += 1
@@ -159,9 +159,9 @@ module Lib : LIB =
     let rec uncurry f x y = f x y
     let rec curry3 f x y z = f (x, y, z)
     let rec id x = x
-    let rec can f x = try f x; true__ with | _ -> false__
-    let rec cant f x = try f x; false__ with | _ -> true__
-    let rec can2 f x y = try f x y; true__ with | _ -> false__
+    let rec can f x = try f x; true with | _ -> false
+    let rec cant f x = try f x; false with | _ -> true
+    let rec can2 f x y = try f x y; true with | _ -> false
     let rec ceq x y = x = y
     let rec oo f g x y = f (g x y)
     let rec ooo f g x y z = f (g x y z)
@@ -190,7 +190,7 @@ module Lib : LIB =
             let (ln, even') = log (Int.div (n, 2)) even in
             let even'' = even' && ((Int.mod__ (n, 2)) = 0) in
             ((1 + ln), even'') in
-      log n true__
+      log n true
     let rec real_max xs = foldr Real.max 0.0 xs
     let rec real_sum rs = foldr (+) 0.0 rs
     let rec string_ord (s1 : string) s2 =
@@ -202,7 +202,7 @@ module Lib : LIB =
     let rec eq_ord x y = if x = y then EQUAL else LESS
     let rec assert__ b s =
       if b then () else raise (Fail ("Assertion Failure: " ^ s))
-    let warn = ref true__
+    let warn = ref true
     let rec warning s =
       if !warn then TextIO.print (("Warning: " ^ s) ^ "\n") else ()
     let rec list x = [x]
@@ -294,11 +294,11 @@ module Lib : LIB =
       | (x, n) -> if n > 0 then (::) x replicate x (n - 1) else []
     let rec exists __40__ __41__ =
       match (__40__, __41__) with
-      | (f, []) -> false__
+      | (f, []) -> false
       | (f, h::t) -> (f h) || (exists f t)
     let rec forall __42__ __43__ =
       match (__42__, __43__) with
-      | (f, []) -> true__
+      | (f, []) -> true
       | (f, h::t) -> (f h) && (forall f t)
     let rec last =
       function | [] -> raise (Fail "Last") | h::[] -> h | h::t -> last t
@@ -309,7 +309,7 @@ module Lib : LIB =
       | h::t -> (::) h butlast t
     let rec gen_list_eq ord l1 l2 =
       itlist2 (fun x -> fun y -> fun z -> ((ord (x, y)) = EQUAL) && z) l1 l2
-        true__
+        true
     let rec list_eq l1 l2 = gen_list_eq eq_ord l1 l2
     let rec partition __44__ __45__ =
       match (__44__, __45__) with
@@ -350,7 +350,7 @@ module Lib : LIB =
     let rec find_index p =
       let rec ind __54__ __55__ =
         match (__54__, __55__) with
-        | (n, []) -> NONE
+        | (n, []) -> None
         | (n, h::t) -> if p h then Some n else ind (n + 1) t in
       ind 0
     let rec index x l = find_index (ceq x) l
@@ -359,7 +359,7 @@ module Lib : LIB =
       let l' = rev l in
       match find_index p l' with
       | Some n' -> Some ((n - n') - 1)
-      | NONE -> NONE
+      | None -> None
     let rec last_index x l = find_last_index (ceq x) l
     let rec flatten l = itlist (curry (@)) l []
     let rec chop_list __56__ __57__ =
@@ -384,16 +384,16 @@ module Lib : LIB =
     let rec exn_index f l =
       let rec exn_index __62__ __63__ __64__ =
         match (__62__, __63__, __64__) with
-        | (f, [], n) -> NONE
+        | (f, [], n) -> None
         | (f, h::t, n) -> if can f h then exn_index f t (n + 1) else Some n in
       exn_index f l 0
     let rec gen_setify ord s = uniq ord (sort ord s)
     let rec setify s = gen_setify eq_ord s
     let rec gen_mem __65__ __66__ __67__ =
       match (__65__, __66__, __67__) with
-      | (ord, x, []) -> false__
+      | (ord, x, []) -> false
       | (ord, x, h::t) ->
-          if (ord (x, h)) = EQUAL then true__ else gen_mem ord x t
+          if (ord (x, h)) = EQUAL then true else gen_mem ord x t
     let rec mem x l = gen_mem eq_ord x l
     let rec insert x l = if mem x l then l else x :: l
     let rec gen_disjoint ord l1 l2 =
@@ -401,7 +401,7 @@ module Lib : LIB =
     let rec disjoint l = gen_disjoint eq_ord l
     let rec gen_pairwise_disjoint __68__ __69__ =
       match (__68__, __69__) with
-      | (p, []) -> true__
+      | (p, []) -> true
       | (p, h::t) ->
           (forall (gen_disjoint p h) t) && (gen_pairwise_disjoint p t)
     let rec pairwise_disjoint t = gen_pairwise_disjoint eq_ord t
@@ -419,16 +419,16 @@ module Lib : LIB =
     let rec set_eq l1 l2 = (subset l1 l2) && (subset l2 l1)
     let rec find __72__ __73__ =
       match (__72__, __73__) with
-      | (p, []) -> NONE
+      | (p, []) -> None
       | (p, h::t) -> if p h then Some h else find p t
     let rec assoc x l =
       match find (fun p -> (fst p) = x) l with
       | Some (x, y) -> Some y
-      | NONE -> NONE
+      | None -> None
     let rec rev_assoc x l =
       match find (fun p -> (snd p) = x) l with
       | Some (x, y) -> Some x
-      | NONE -> NONE
+      | None -> None
     let rec char_max c1 c2 = if (<) (Char.ord c1) Char.ord c2 then c1 else c2
     let rec string_lt x y = x < y
     let rec collect l = itlist (curry (^)) l ""
@@ -462,39 +462,39 @@ module Lib : LIB =
     let newline = Char.toString '\n'
     let rec ends_with s e =
       try (substring (s, ((-) (size s) size e), (size e))) = e
-      with | _ -> false__
+      with | _ -> false
     let rec starts_with s e =
-      try (substring (s, 0, (size e))) = e with | _ -> false__
+      try (substring (s, 0, (size e))) = e with | _ -> false
     let rec strip_path c s =
       let n =
         match index c (String.explode s) with
         | Some x -> x
-        | NONE -> raise (Fail "strip_path") in
+        | None -> raise (Fail "strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
     let rec rev_strip_path c s =
       let no = last_index c (String.explode s) in
       let n =
-        match no with | Some x -> x | NONE -> raise (Fail "rev_strip_path") in
+        match no with | Some x -> x | None -> raise (Fail "rev_strip_path") in
       let m = substring (s, 0, n) in
       let m' = substring (s, (n + 1), (((size s) - n) - 1)) in (m, m')
     let rec the = function | Some x -> x | _ -> raise (Fail "the")
-    let rec is_some = function | Some _ -> true__ | _ -> false__
-    let rec is_none = function | NONE -> true__ | _ -> false__
+    let rec is_some = function | Some _ -> true | _ -> false
+    let rec is_none = function | None -> true | _ -> false
     let rec list_of_opt_list =
       function
       | [] -> []
-      | (NONE)::t -> list_of_opt_list t
+      | (None)::t -> list_of_opt_list t
       | (Some x)::t -> (::) x list_of_opt_list t
     let rec get_opt __74__ __75__ =
       match (__74__, __75__) with
       | (Some x, _) -> x
-      | (NONE, err) -> raise (Fail err)
-    let rec get_list = function | Some l -> l | NONE -> []
+      | (None, err) -> raise (Fail err)
+    let rec get_list = function | Some l -> l | None -> []
     let rec conv_opt __76__ __77__ =
       match (__76__, __77__) with
       | (f, Some l) -> Some (f l)
-      | (f, NONE) -> NONE
+      | (f, None) -> None
     let rec time f x =
       let timer = Timer.startCPUTimer () in
       try
@@ -525,7 +525,7 @@ module Lib : LIB =
       let str = OS.FileSys.openDir dir in
       let fs = ref [] in
       let f = ref (OS.FileSys.readDir str) in
-      while (!f) <> NONE do (::= fs the (!f); (:=) f OS.FileSys.readDir str)
+      while (!f) <> None do (::= fs the (!f); (:=) f OS.FileSys.readDir str)
         done;
       !fs
   end ;;

@@ -58,7 +58,7 @@ module ReconQuery(ReconQuery:sig
       match (__0__, __1__) with
       | (Some name, __Xs) ->
           List.exists (fun _ -> fun name' -> name = name') __Xs
-      | _ -> false__
+      | _ -> false
     let rec queryToQuery (query (optName, tm)) (Loc (fileName, r)) =
       let _ = Names.varReset IntSyn.Null in
       let _ = T.resetErrors fileName in
@@ -80,7 +80,7 @@ module ReconQuery(ReconQuery:sig
       (((__V, optName, __Xs))
         (* construct an external term for the result of the query
         val res = (case optName
-                     of NONE => T.omitted (r)
+                     of None => T.omitted (r)
                       | Some name => T.evar (name, r)) *)
         (* ??? Since the reconstruction of a query is subject to constraints,
            couldn't optName "occur" in a constraint involving the type
@@ -92,14 +92,14 @@ module ReconQuery(ReconQuery:sig
         with
         | Error msg ->
             raise (Abstract.Error (Paths.wrap ((Paths.toRegion oc1), msg))) in
-      let name = match optName with | NONE -> "_" | Some name -> name in
+      let name = match optName with | None -> "_" | Some name -> name in
       let ocd = Paths.def (i, oc1, oc2Opt) in
       let cd =
         try
           Strict.check ((__U', __V'), (Some ocd));
           IntSyn.ConDef
-            (name, NONE, i, __U', __V', __L, (IntSyn.ancestor __U'))
-        with | Error _ -> IntSyn.AbbrevDef (name, NONE, i, __U', __V', __L) in
+            (name, None, i, __U', __V', __L, (IntSyn.ancestor __U'))
+        with | Error _ -> IntSyn.AbbrevDef (name, None, i, __U', __V', __L) in
       let cd = Names.nameConDec cd in
       let _ =
         if (!Global.chatter) >= 3
@@ -114,22 +114,22 @@ module ReconQuery(ReconQuery:sig
              (__V', (IntSyn.Uni __L));
            Timers.time Timers.checking TypeCheck.check (__U', __V'))
         else () in
-      let conDecOpt = match optName with | NONE -> NONE | Some _ -> Some cd in
+      let conDecOpt = match optName with | None -> None | Some _ -> Some cd in
       (((conDecOpt, (Some ocd)))
         (* is this necessary? -kw *))
     let rec finishSolve (solve (nameOpt, tm, r)) (__U) (__V) =
       let (i, (__U', __V')) =
         try Timers.time Timers.abstract Abstract.abstractDef (__U, __V)
         with | Error msg -> raise (Abstract.Error (Paths.wrap (r, msg))) in
-      let name = match nameOpt with | NONE -> "_" | Some name -> name in
+      let name = match nameOpt with | None -> "_" | Some name -> name in
       let cd =
         try
-          Strict.check ((__U', __V'), NONE);
+          Strict.check ((__U', __V'), None);
           IntSyn.ConDef
-            (name, NONE, i, __U', __V', IntSyn.Type, (IntSyn.ancestor __U'))
+            (name, None, i, __U', __V', IntSyn.Type, (IntSyn.ancestor __U'))
         with
         | Error _ ->
-            IntSyn.AbbrevDef (name, NONE, i, __U', __V', IntSyn.Type) in
+            IntSyn.AbbrevDef (name, None, i, __U', __V', IntSyn.Type) in
       let cd = Names.nameConDec cd in
       let _ =
         if (!Global.chatter) >= 3
@@ -144,7 +144,7 @@ module ReconQuery(ReconQuery:sig
              (__V', (IntSyn.Uni IntSyn.Type));
            Timers.time Timers.checking TypeCheck.check (__U', __V'))
         else () in
-      let conDecOpt = match nameOpt with | NONE -> NONE | Some _ -> Some cd in
+      let conDecOpt = match nameOpt with | None -> None | Some _ -> Some cd in
       ((conDecOpt)(* is this necessary? -kw *))
     let rec solveToSolve defines (solve (optName, tm, r0) as sol) (Loc
       (fileName, r)) =
@@ -152,7 +152,7 @@ module ReconQuery(ReconQuery:sig
       let _ = T.resetErrors fileName in
       let rec mkd =
         function
-        | define (_, tm1, NONE) -> T.jterm tm1
+        | define (_, tm1, None) -> T.jterm tm1
         | define (_, tm1, Some tm2) -> T.jof (tm1, tm2) in
       let rec mkj =
         function
@@ -170,17 +170,17 @@ module ReconQuery(ReconQuery:sig
         match (__2__, __3__, __4__) with
         | (__M, nil, _) ->
             (match finishSolve (sol, __M, __V) with
-             | NONE -> nil
-             | Some condec -> [(condec, NONE)])
+             | None -> nil
+             | Some condec -> [(condec, None)])
         | (__M, def::defs, JAnd (JTerm ((__U, oc1), __V, __L), f)) ->
-            (match finishDefine (def, ((__U, oc1), (__V, NONE), __L)) with
-             | (NONE, _) -> sc (__M, defs, f)
+            (match finishDefine (def, ((__U, oc1), (__V, None), __L)) with
+             | (None, _) -> sc (__M, defs, f)
              | (Some condec, ocdOpt) ->
                  (::) (condec, ocdOpt) sc (__M, defs, f))
         | (__M, def::defs, JAnd (JOf ((__U, oc1), (__V, oc2), __L), f)) ->
             (match finishDefine (def, ((__U, oc1), (__V, (Some oc2)), __L))
              with
-             | (NONE, _) -> sc (__M, defs, f)
+             | (None, _) -> sc (__M, defs, f)
              | (Some condec, ocdOpt) ->
                  (::) (condec, ocdOpt) sc (__M, defs, f)) in
       (((__V, (fun (__M) -> sc (__M, defines, defines'))))

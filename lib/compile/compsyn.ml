@@ -131,7 +131,7 @@ module CompSyn(CompSyn:sig
     let rec detTableCheck cid =
       match Table.lookup detTable cid with
       | Some deterministic -> deterministic
-      | NONE -> false__
+      | None -> false
     let rec detTableReset () = Table.clear detTable
     let rec goalSub __0__ __1__ =
       match (__0__, __1__) with

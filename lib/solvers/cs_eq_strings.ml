@@ -13,7 +13,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       Root ((Const (!concatID)), (App (__U, (App (__V, Nil)))))
     let rec toString s = ("\"" ^ s) ^ "\""
     let rec stringConDec str =
-      ConDec ((toString str), NONE, 0, Normal, (string ()), Type)
+      ConDec ((toString str), None, 0, Normal, (string ()), Type)
     let rec stringExp str =
       Root ((FgnConst ((!myID), (stringConDec str))), Nil)
     let rec fromString string =
@@ -22,11 +22,11 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
         ((String.sub (string, 0)) = '"') &&
           ((String.sub (string, (len - 1))) = '"')
       then Some (String.substring (string, 1, (len - 2)))
-      else NONE
+      else None
     let rec parseString string =
       match fromString string with
       | Some str -> Some (stringConDec str)
-      | NONE -> NONE
+      | None -> None
     let rec solveString (__G) (__S) k = Some (stringExp (Int.toString k))
     type __Concat =
       | Concat of __Atom list 
@@ -97,7 +97,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       let rec index' i =
         if i <= max
         then
-          (if String.isPrefix str1 (String.extract (str2, i, NONE))
+          (if String.isPrefix str1 (String.extract (str2, i, None))
            then (::) i index' (i + 1)
            else index' (i + 1))
         else nil in
@@ -107,17 +107,17 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       let rec split' i =
         Split
           ((String.extract (str2, 0, (Some i))),
-            (String.extract (str2, (i + len), NONE))) in
+            (String.extract (str2, (i + len), None))) in
       List.map split' (index (str1, str2))
     let rec sameConcat (Concat (AL1)) (Concat (AL2)) =
       let rec sameConcat' __2__ __3__ =
         match (__2__, __3__) with
-        | (nil, nil) -> true__
+        | (nil, nil) -> true
         | ((String str1)::AL1, (String str2)::AL2) ->
             (str1 = str2) && (sameConcat' (AL1, AL2))
         | ((Exp (__Us1))::AL1, (Exp (__Us2))::AL2) ->
             (sameExp (__Us1, __Us2)) && (sameConcat' (AL1, AL2))
-        | _ -> false__ in
+        | _ -> false in
       sameConcat' (AL1, AL2)
     let rec sameExpW __4__ __5__ =
       match (__4__, __5__) with
@@ -128,16 +128,16 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
                (k1 = k2) && (sameSpine ((__S1, s1), (__S2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
                (n1 = n2) && (sameSpine ((__S1, s1), (__S2, s2)))
-           | _ -> false__)
+           | _ -> false)
       | ((((EVar (r1, __G1, __V1, cnstrs1) as U1), s1) as Us1),
          (((EVar (r2, __G2, __V2, cnstrs2) as U2), s2) as Us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
-      | _ -> false__
+      | _ -> false
     let rec sameExp (__Us1) (__Us2) =
       sameExpW ((Whnf.whnf __Us1), (Whnf.whnf __Us2))
     let rec sameSpine __6__ __7__ =
       match (__6__, __7__) with
-      | ((Nil, s1), (Nil, s2)) -> true__
+      | ((Nil, s1), (Nil, s2)) -> true
       | ((SClo (__S1, s1'), s1), __Ss2) ->
           sameSpine ((__S1, (comp (s1', s1))), __Ss2)
       | (__Ss1, (SClo (__S2, s2'), s2)) ->
@@ -145,10 +145,10 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       | ((App (__U1, __S1), s1), (App (__U2, __S2), s2)) ->
           (sameExp ((__U1, s1), (__U2, s2))) &&
             (sameSpine ((__S1, s1), (__S2, s2)))
-      | _ -> false__
+      | _ -> false
     let rec sameSub __8__ __9__ =
       match (__8__, __9__) with
-      | (Shift _, Shift _) -> true__
+      | (Shift _, Shift _) -> true
       | (Dot (Idx k1, s1), Dot (Idx k2, s2)) ->
           (k1 = k2) && (sameSub (s1, s2))
       | ((Dot (Idx _, _) as s1), Shift k2) ->
@@ -157,7 +157,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       | (Shift k1, (Dot (Idx _, _) as s2)) ->
           sameSub
             ((Dot ((Idx (Int.(+) (k1, 1))), (Shift (Int.(+) (k1, 1))))), s2)
-      | _ -> false__
+      | _ -> false
     type __StringUnify =
       | MultAssign of (__Dec __Ctx * __Exp * __Exp * __Sub) list 
       | MultDelay of (__Exp list * __Cnstr ref) 
@@ -210,7 +210,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       | (__G, Concat ((String prefix)::AL), str, cnstr) ->
           if String.isPrefix prefix str
           then
-            let suffix = String.extract (str, (String.size prefix), NONE) in
+            let suffix = String.extract (str, (String.size prefix), None) in
             unifyString (__G, (Concat AL), suffix, cnstr)
           else Failure
       | (__G, Concat (AL), str, cnstr) ->
@@ -227,7 +227,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
                 then
                   let rec assign __12__ __13__ =
                     match (__12__, __13__) with
-                    | (r, nil) -> NONE
+                    | (r, nil) -> None
                     | (r,
                        (_, EVar (r', _, _, _), Root
                         (FgnConst (cs, conDec), Nil), _)::__L) ->
@@ -238,7 +238,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
                   (match unifyString' (AL, candidates) with
                    | (MultAssign (__L), parsed::parsedL) ->
                        (match assign r __L with
-                        | NONE ->
+                        | None ->
                             let ss = Whnf.invert s in
                             let __W = stringExp parsed in
                             ((MultAssign ((__G, __U, __W, ss) :: __L)),
@@ -258,7 +258,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
                   List.mapPartial
                     (function
                      | Split (prefix, "") -> Some (Decomp (prefix, parsedL))
-                     | Split (prefix, suffix) -> NONE) (split (str, parse)) in
+                     | Split (prefix, suffix) -> None) (split (str, parse)) in
                 let candidates' =
                   List.foldr (@) nil (List.map successors candidates) in
                 unifyString' (nil, candidates')
@@ -355,7 +355,7 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
       let rec makeLam __31__ __32__ =
         match (__31__, __32__) with
         | (__E, 0) -> __E
-        | (__E, n) -> Lam ((Dec (NONE, (string ()))), (makeLam __E (n - 1))) in
+        | (__E, n) -> Lam ((Dec (None, (string ()))), (makeLam __E (n - 1))) in
       let rec expand __33__ __34__ =
         match (__33__, __34__) with
         | ((Nil, s), arity) -> ((makeParams arity), arity)
@@ -371,16 +371,16 @@ module CSEqStrings(CSEqStrings:sig module Whnf : WHNF module Unify : UNIFY
         (2,
           (fun (App (__U1, App (__U2, Nil))) ->
              opConcat ((fromExp (__U1, id)), (fromExp (__U2, id)))))
-    let rec arrow (__U) (__V) = Pi (((Dec (NONE, __U)), No), __V)
+    let rec arrow (__U) (__V) = Pi (((Dec (None, __U)), No), __V)
     let rec init cs installF =
       myID := cs;
       (:=) stringID installF
         ((ConDec
-            ("string", NONE, 0, (Constraint ((!myID), solveString)),
-              (Uni Type), Kind)), NONE, [MS.Mnil]);
+            ("string", None, 0, (Constraint ((!myID), solveString)),
+              (Uni Type), Kind)), None, [MS.Mnil]);
       (:=) concatID installF
         ((ConDec
-            ("++", NONE, 0, (Foreign ((!myID), (makeFgnBinary catConcat))),
+            ("++", None, 0, (Foreign ((!myID), (makeFgnBinary catConcat))),
               (arrow ((string ()), (arrow ((string ()), (string ()))))),
               Type)), (Some (FX.Infix (FX.maxPrec, FX.Right))), nil);
       installFgnExpOps ();

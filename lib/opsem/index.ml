@@ -74,16 +74,16 @@ module TableIndex(TableIndex:sig
     type __Strategy =
       | Variant 
       | Subsumption 
-    let added = ref false__
+    let added = ref false
     let strategy = ref Variant
-    let termDepth = (ref NONE : int option ref)
-    let ctxDepth = (ref NONE : int option ref)
-    let ctxLength = (ref NONE : int option ref)
+    let termDepth = (ref None : int option ref)
+    let ctxDepth = (ref None : int option ref)
+    let ctxLength = (ref None : int option ref)
     let strengthen = AbstractTabled.strengthen
     let (query :
       (IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp * IntSyn.__Sub *
         (CompSyn.pskeleton -> unit)) option ref)
-      = ref NONE
+      = ref None
     module I = IntSyn
     module C = CompSyn
     module A = AbstractTabled
@@ -127,7 +127,7 @@ module TableIndex(TableIndex:sig
                   print
                     ((Print.expToString
                         (I.Null, (A.raiseType ((concat (__G, __D)), __U))))
-                       ^ ", NONE\n"))
+                       ^ ", None\n"))
              | a::answ ->
                  (printT __T;
                   print
@@ -164,10 +164,10 @@ module TableIndex(TableIndex:sig
     let rec lengthSpine =
       function | I.Nil -> 0 | SClo (__S, s') -> (+) 1 lengthSpine __S
     let rec exceedsTermDepth i =
-      match !termDepth with | NONE -> false__ | Some n -> i > n
+      match !termDepth with | None -> false | Some n -> i > n
     let rec exceedsCtxDepth i =
       match !ctxDepth with
-      | NONE -> false__
+      | None -> false
       | Some n ->
           (print
              (((^) (((^) "\n exceedsCtxDepth " Int.toString i) ^ " > ")
@@ -175,14 +175,14 @@ module TableIndex(TableIndex:sig
                 ^ " ? ");
            i > n)
     let rec exceedsCtxLength i =
-      match !ctxLength with | NONE -> false__ | Some n -> i > n
+      match !ctxLength with | None -> false | Some n -> i > n
     let rec max x y = if x > y then x else y
     let rec oroption __8__ __9__ __10__ =
       match (__8__, __9__, __10__) with
-      | (NONE, NONE, NONE) -> false__
-      | (Some k, _, _) -> true__
-      | (_, Some n, _) -> true__
-      | (_, _, Some n) -> true__
+      | (None, None, None) -> false
+      | (Some k, _, _) -> true
+      | (_, Some n, _) -> true
+      | (_, _, Some n) -> true
     let rec abstractionSet () =
       oroption ((!termDepth), (!ctxDepth), (!ctxLength))
     let rec exceeds (__U) = countDecl (0, 0, __U)
@@ -259,17 +259,17 @@ module TableIndex(TableIndex:sig
       | (Shift k, Shift k') -> k = k'
       | (Dot (__F, __S), Dot (__F', __S')) ->
           (equalFront (__F, __F')) && (equalSub (__S, __S'))
-      | (Dot (__F, __S), Shift k) -> false__
-      | (Shift k, Dot (__F, __S)) -> false__
+      | (Dot (__F, __S), Shift k) -> false
+      | (Shift k, Dot (__F, __S)) -> false
     let rec equalFront __25__ __26__ =
       match (__25__, __26__) with
       | (Idx n, Idx n') -> n = n'
       | (Exp (__U), Exp (__V)) -> Conv.conv ((__U, I.id), (__V, I.id))
-      | (I.Undef, I.Undef) -> true__
+      | (I.Undef, I.Undef) -> true
     let rec equalSub1 (Dot (ms, s)) (Dot (ms', s')) = equalSub (s, s')
     let rec equalCtx __27__ __28__ =
       match (__27__, __28__) with
-      | (I.Null, I.Null) -> true__
+      | (I.Null, I.Null) -> true
       | (Decl (Dk, Dec (_, __A)), Decl (__D1, Dec (_, __A1))) ->
           (Conv.conv ((__A, I.id), (__A1, I.id))) && (equalCtx (Dk, __D1))
     let rec callCheckVariant (__G) (__D) (__U) =
@@ -286,7 +286,7 @@ module TableIndex(TableIndex:sig
                   print
                     ((Print.expToString (I.Null, Upi)) ^ "\n to Table \n"))
                else ();
-               added := true__;
+               added := true;
                if abstractionSet ()
                then
                  (((if exceeds (A.raiseType (__G, __U))
@@ -298,10 +298,10 @@ module TableIndex(TableIndex:sig
                               ^ " exceeds depth or length \n")
                        else ();
                        Some [])
-                    else NONE))
+                    else None))
                  (* print ("\n term " ^ Print.expToString (I.Null, Upi) ^
                   " exceeds depth or length ? \n"); *))
-               else NONE))
+               else None))
             (* if termdepth(U) > n then force the tabled engine to suspend
                * and treat it like it is already in the table, but no answ available *))
         | ((__G, __D, __U), (((k, __G', __D', __U'), answ) as H)::__T) ->
@@ -334,7 +334,7 @@ module TableIndex(TableIndex:sig
                      (I.Null, (A.raiseType ((concat (__G, __D)), __U))))
                     ^ " to Table \n")
              else ();
-             added := true__;
+             added := true;
              if exceeds (A.raiseType (__G, __U))
              then
                (if (!Global.chatter) >= 4
@@ -345,7 +345,7 @@ module TableIndex(TableIndex:sig
                        ^ " exceeds depth or length \n")
                 else ();
                 Some [])
-             else NONE)
+             else None)
         | ((__G, __D, __U), ((k, __G', __D', __U'), answ)::__T) ->
             if subsumes ((__G, __D, __U), (__G', __D', __U'))
             then
@@ -362,10 +362,10 @@ module TableIndex(TableIndex:sig
       lookup ((__G, __D, __U), (!table))
     let rec member __33__ __34__ =
       match (__33__, __34__) with
-      | ((Dk, sk), []) -> false__
+      | ((Dk, sk), []) -> false
       | ((Dk, sk), ((__D1, s1), _)::__S) ->
           if (equalSub (sk, s1)) && (equalCtx (Dk, __D1))
-          then true__
+          then true
           else member ((Dk, sk), __S)(* do we really need to compare Gus and Gs1 ?  *)
     let rec answCheckVariant (__G) (__D) (__U) s (__O) =
       let Upi = A.raiseType ((concat (__G, __D)), __U) in
@@ -426,7 +426,7 @@ module TableIndex(TableIndex:sig
       lookup (__G, __D, __U, s) (!table) []
     let rec memberSubsumes __41__ __42__ =
       match (__41__, __42__) with
-      | ((__G, __D, __U, s), (__G', __U', [])) -> false__
+      | ((__G, __D, __U, s), (__G', __U', [])) -> false
       | ((__G, __D, __U, s), (__G', __U', ((__D1, s1), _)::__A)) ->
           let Upi = A.raiseType (__G, __U) in
           let Upi' = A.raiseType (__G', __U') in
@@ -439,7 +439,7 @@ module TableIndex(TableIndex:sig
               (if (!Global.chatter) >= 5
                then print "\n answer in table subsumes answer \n "
                else ();
-               true__)
+               true)
             else memberSubsumes ((__G, __D, __U, s), (__G', __U', __A)))
             (* assume G' and G are the same for now *))
     let rec shift __43__ __44__ =
@@ -514,7 +514,7 @@ module TableIndex(TableIndex:sig
                   let (Dk', sk') = A.abstractAnsw (Dk, s') in
                   let rs = reinstSub (__G', Dk', I.id) in
                   (((((match !query with
-                       | NONE -> ()
+                       | None -> ()
                        | Some (__G1, __D1, __U1, s1, sc1) ->
                            (if (!Global.chatter) >= 4
                             then
@@ -627,11 +627,11 @@ module TableIndex(TableIndex:sig
     let rec lookup { solutions = __S; lookup = i; lookup = i } = i
     let rec noAnswers =
       function
-      | [] -> true__
+      | [] -> true
       | (((__G', __D', __U'), answ) as H)::__L' ->
           (match List.take ((solutions answ), (lookup answ)) with
            | [] -> noAnswers __L'
-           | __L -> false__)
+           | __L -> false)
     let rec callCheck (__G) (__D) (__U) =
       match !strategy with
       | Variant -> callCheckVariant (__G, __D, __U)
@@ -657,11 +657,11 @@ module TableIndex(TableIndex:sig
                 update __T
                   (((k, __G, __D, __U),
                      { solutions = __S; lookup = (List.length __S) }) :: __T')
-                  true__)
+                  true)
               (* no new solutions were added in the previous stage *)
               (* new solutions were added *)) in
-      let (Flag, __T) = update (!table) [] false__ in
-      let r = Flag || (!added) in ((added := false__; (:=) table rev __T; r)
+      let (Flag, __T) = update (!table) [] false in
+      let r = Flag || (!added) in ((added := false; (:=) table rev __T; r)
         (* in each stage incrementally increase termDepth *)
         (*          termDepth := (!termDepth +1); *))
     let table = table

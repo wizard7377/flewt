@@ -91,7 +91,7 @@ module Splitting(Splitting:sig
                    (I.Dot ((I.Exp __U'), s)))))
     let rec occursInExp __13__ __14__ =
       match (__13__, __14__) with
-      | (k, Uni _) -> false__
+      | (k, Uni _) -> false
       | (k, Pi (DP, __V)) ->
           (occursInDecP (k, DP)) || (occursInExp ((k + 1), __V))
       | (k, Root (__C, __S)) ->
@@ -103,32 +103,32 @@ module Splitting(Splitting:sig
             (fun (__U) ->
                fun (__B) ->
                  __B || (occursInExp (k, (Whnf.normalize (__U, I.id)))))
-            false__
+            false
     let rec occursInCon __15__ __16__ =
       match (__15__, __16__) with
       | (k, BVar k') -> k = k'
-      | (k, Const _) -> false__
-      | (k, Def _) -> false__
-      | (k, Skonst _) -> false__
+      | (k, Const _) -> false
+      | (k, Def _) -> false
+      | (k, Skonst _) -> false
     let rec occursInSpine __17__ __18__ =
       match (__17__, __18__) with
-      | (_, I.Nil) -> false__
+      | (_, I.Nil) -> false
       | (k, App (__U, __S)) ->
           (occursInExp (k, __U)) || (occursInSpine (k, __S))
     let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
     let rec occursInDecP k (__D, _) = occursInDec (k, __D)
-    let rec isIndexInit k = false__
+    let rec isIndexInit k = false
     let rec isIndexSucc (__D) isIndex k =
       (occursInDec (k, __D)) || (isIndex (k + 1))
     let rec isIndexFail (__D) isIndex k = isIndex (k + 1)
     let rec checkVar __19__ __20__ =
       match (__19__, __20__) with
-      | (Decl (__M, M.Top), 1) -> true__
-      | (Decl (__M, M.Bot), 1) -> false__
+      | (Decl (__M, M.Top), 1) -> true
+      | (Decl (__M, M.Bot), 1) -> false
       | (Decl (__M, _), k) -> checkVar (__M, (k - 1))
     let rec checkExp __21__ __22__ =
       match (__21__, __22__) with
-      | (__M, Uni _) -> true__
+      | (__M, Uni _) -> true
       | (__M, Pi ((__D, __P), __V)) ->
           (checkDec (__M, __D)) && (checkExp ((I.Decl (__M, M.Top)), __V))
       | (__M, Lam (__D, __V)) ->
@@ -138,15 +138,15 @@ module Splitting(Splitting:sig
       | (__M, Root (_, __S)) -> checkSpine (__M, __S)
     let rec checkSpine __23__ __24__ =
       match (__23__, __24__) with
-      | (__M, I.Nil) -> true__
+      | (__M, I.Nil) -> true
       | (__M, App (__U, __S)) ->
           (checkExp (__M, __U)) && (checkSpine (__M, __S))
     let rec checkDec (__M) (Dec (_, __V)) = checkExp (__M, __V)
     let rec modeEq __25__ __26__ =
       match (__25__, __26__) with
-      | (Marg (ModeSyn.Plus, _), M.Top) -> true__
-      | (Marg (ModeSyn.Minus, _), M.Bot) -> true__
-      | _ -> false__
+      | (Marg (ModeSyn.Plus, _), M.Top) -> true
+      | (Marg (ModeSyn.Minus, _), M.Bot) -> true
+      | _ -> false
     let rec inheritBelow __27__ __28__ __29__ __30__ =
       match (__27__, __28__, __29__, __30__) with
       | (b', k', Lam (__D', __U'), Bdd') ->

@@ -42,12 +42,12 @@ module OLDSearch(OLDSearch:sig
       match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec solve __2__ __3__ __4__ __5__ =
       match (__2__, __3__, __4__, __5__) with
       | ((Atom p, s), dp, sc, acck) -> matchAtom ((p, s), dp, sc, acck)
       | ((Impl (r, __A, __H, g), s), DProg (__G, dPool), sc, acck) ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           solve
             ((g, (I.dot1 s)),
               (C.DProg
@@ -141,7 +141,7 @@ module OLDSearch(OLDSearch:sig
     let rec occursInExp r (__Vs) = occursInExpW (r, (Whnf.whnf __Vs))
     let rec occursInExpW __16__ __17__ =
       match (__16__, __17__) with
-      | (r, (Uni _, _)) -> false__
+      | (r, (Uni _, _)) -> false
       | (r, (Pi ((__D, _), __V), s)) ->
           (occursInDec (r, (__D, s))) || (occursInExp (r, (__V, (I.dot1 s))))
       | (r, (Root (_, __S), s)) -> occursInSpine (r, (__S, s))
@@ -152,10 +152,10 @@ module OLDSearch(OLDSearch:sig
       | (r, (FgnExp csfe, s)) ->
           I.FgnExpStd.fold csfe
             (fun (__U) -> fun (__B) -> __B || (occursInExp (r, (__U, s))))
-            false__
+            false
     let rec occursInSpine __18__ __19__ =
       match (__18__, __19__) with
-      | (_, (I.Nil, _)) -> false__
+      | (_, (I.Nil, _)) -> false
       | (r, (SClo (__S, s'), s)) ->
           occursInSpine (r, (__S, (I.comp (s', s))))
       | (r, (App (__U, __S), s)) ->
@@ -163,7 +163,7 @@ module OLDSearch(OLDSearch:sig
     let rec occursInDec r (Dec (_, __V), s) = occursInExp (r, (__V, s))
     let rec nonIndex __20__ __21__ =
       match (__20__, __21__) with
-      | (_, nil) -> true__
+      | (_, nil) -> true
       | (r, (EVar (_, _, __V, _))::GE) ->
           (not (occursInExp (r, (__V, I.id)))) && (nonIndex (r, GE))
     let rec selectEVar __22__ __23__ __24__ =
@@ -179,7 +179,7 @@ module OLDSearch(OLDSearch:sig
       | (max, (EVar (r, __G, __V, _))::GE, sc) ->
           solve
             (((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false__ __G),
+              (Compile.compileCtx false __G),
               (fun (__U') ->
                  fun (acc', _) ->
                    Unify.instantiateEVar (r, __U', nil);
@@ -208,7 +208,7 @@ module OLDSearch(OLDSearch:sig
       | ((EVar (r, __G, __V, _))::GE, acc, sc) ->
           solve
             (((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false__ __G),
+              (Compile.compileCtx false __G),
               (fun (__U') ->
                  fun (acc', _) ->
                    Unify.instantiateEVar (r, __U', nil);

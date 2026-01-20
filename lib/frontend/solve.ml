@@ -45,19 +45,19 @@ module Solve(Solve:sig
     let rec exceeds __0__ __1__ =
       match (__0__, __1__) with
       | (Some n, Some m) -> n >= m
-      | (Some n, NONE) -> false__
-      | (NONE, _) -> true__
+      | (Some n, None) -> false
+      | (None, _) -> true
     let rec boundEq __2__ __3__ =
       match (__2__, __3__) with
       | (Some n, Some m) -> n = m
-      | (NONE, NONE) -> true__
-      | _ -> false__
-    let rec boundToString = function | Some n -> Int.toString n | NONE -> "*"
+      | (None, None) -> true
+      | _ -> false
+    let rec boundToString = function | Some n -> Int.toString n | None -> "*"
     let rec boundMin __4__ __5__ =
       match (__4__, __5__) with
       | (Some n, Some m) -> Some (Int.min (n, m))
-      | (b, NONE) -> b
-      | (NONE, b) -> b
+      | (b, None) -> b
+      | (None, b) -> b
     let rec checkSolutions expected try__ solutions =
       if boundEq ((boundMin (expected, try__)), (Some solutions))
       then ()
@@ -83,12 +83,12 @@ module Solve(Solve:sig
     let rec moreSolutions () =
       print "More? ";
       (match String.sub ((Compat.inputLine97 TextIO.stdIn), 0) with
-       | 'y' -> true__
-       | 'Y' -> true__
-       | ';' -> true__
+       | 'y' -> true
+       | 'Y' -> true
+       | ';' -> true
        | 'q' -> raise (AbortQuery "Query error -- explicit quit")
        | 'Q' -> raise (AbortQuery "Query error -- explicit quit")
-       | _ -> false__)
+       | _ -> false)
     exception Done 
     exception Completed 
     exception Solution of IntSyn.__Exp 
@@ -212,7 +212,7 @@ module Solve(Solve:sig
              ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n"))
         else if (!Global.chatter) >= 3 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
+         | None -> ()
          | Some name ->
              if (!Global.chatter) >= 3
              then
@@ -225,7 +225,7 @@ module Solve(Solve:sig
             (match Timers.time Timers.printing Print.evarCnstrsToStringOpt
                      __Xs
              with
-             | NONE -> ()
+             | None -> ()
              | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
@@ -259,7 +259,7 @@ module Solve(Solve:sig
         if (!Global.chatter) >= 3
         then Msg.message "____________________________________________\n\n"
         else if (!Global.chatter) >= 4 then Msg.message " OK\n" else ())
-        (* optName = Some(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(X) or None, Xs = free variables in query excluding X *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
          in the printed query, since the new variables in this query
          may not necessarily have global scope.
@@ -308,7 +308,7 @@ module Solve(Solve:sig
              ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n"))
         else if (!Global.chatter) >= 3 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
+         | None -> ()
          | Some name ->
              (if (!Global.chatter) > 3
               then
@@ -332,7 +332,7 @@ module Solve(Solve:sig
             (match Timers.time Timers.printing Print.evarCnstrsToStringOpt
                      __Xs
              with
-             | NONE -> ()
+             | None -> ()
              | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
@@ -367,7 +367,7 @@ module Solve(Solve:sig
         if (!Global.chatter) >= 3
         then Msg.message "____________________________________________\n\n"
         else if (!Global.chatter) >= 4 then Msg.message " OK\n" else ())
-        (* optName = Some(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(X) or None, Xs = free variables in query excluding X *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
                in the printed query, since the new variables in this query
                may not necessarily have global scope.
@@ -414,12 +414,12 @@ module Solve(Solve:sig
       let g =
         Timers.time Timers.compiling Compile.compileGoal (IntSyn.Null, __A) in
       let solutions = ref 0 in
-      let status = ref false__ in
-      let solExists = ref false__ in
+      let status = ref false in
+      let solExists = ref false in
       let stages = ref 1 in
       let rec scInit (__O) =
         ((!) ((:=) solutions) solutions) + 1;
-        solExists := true__;
+        solExists := true;
         if (!Global.chatter) >= 3
         then
           (Msg.message
@@ -429,7 +429,7 @@ module Solve(Solve:sig
              ((Timers.time Timers.printing evarInstToString __Xs) ^ " \n"))
         else if (!Global.chatter) >= 1 then Msg.message "." else ();
         (match optName with
-         | NONE -> ()
+         | None -> ()
          | Some name ->
              (Msg.message ((CompSyn.pskeletonToString __O) ^ "\n");
               Timers.time Timers.ptrecon PtRecon.solve
@@ -449,7 +449,7 @@ module Solve(Solve:sig
             (match Timers.time Timers.printing Print.evarCnstrsToStringOpt
                      __Xs
              with
-             | NONE -> ()
+             | None -> ()
              | Some str ->
                  Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
           else ())
@@ -458,7 +458,7 @@ module Solve(Solve:sig
         then Msg.message "More solutions?\n"
         else ();
         (match numSol with
-         | NONE -> ()
+         | None -> ()
          | Some n ->
              if (!solutions) = n
              then
@@ -476,7 +476,7 @@ module Solve(Solve:sig
                (("\n ================= " ^ " Number of tries exceeds stages ")
                   ^ " ======================= \n")
            else ();
-           status := false__;
+           status := false;
            raise Done)
         else ();
         if (!Global.chatter) >= 1
@@ -490,12 +490,12 @@ module Solve(Solve:sig
           (Msg.message
              (("\n ================= " ^ " Number of tries exceeds stages ")
                 ^ " ======================= \n");
-           status := false__;
+           status := false;
            raise Done)
         else ();
         ((if Tabled.nextStage ()
           then ((stages := (!stages)) + 1; loop ())
-          else status := true__)
+          else status := true)
         (* table did not change,
                          * i.e. all solutions have been found
                          * we check for *all* solutions
@@ -564,7 +564,7 @@ module Solve(Solve:sig
            Msg.message "\n____________________________________________\n\n")
         else if (!Global.chatter) >= 3 then Msg.message " OK\n" else ();
         Tabled.updateGlobalTable (g, (!status)))
-        (* optName = Some(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(X) or None, Xs = free variables in query excluding X *)
         (* times itself *)(* Problem: we cannot give an answer substitution for the variables
         in the printed query, since the new variables in this query
         may not necessarily have global scope.
@@ -584,7 +584,7 @@ module Solve(Solve:sig
     let rec qLoops s = qLoops' (Timers.time Timers.parsing S.expose s)
     let rec qLoops' =
       function
-      | S.Empty -> true__
+      | S.Empty -> true
       | Cons (query, s') ->
           let (__A, optName, __Xs) =
             ReconQuery.queryToQuery
@@ -599,7 +599,7 @@ module Solve(Solve:sig
                 ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n")
             else ();
             (match optName with
-             | NONE -> ()
+             | None -> ()
              | Some name ->
                  if (!Global.chatter) >= 3
                  then
@@ -613,7 +613,7 @@ module Solve(Solve:sig
                 (match Timers.time Timers.printing
                          Print.evarCnstrsToStringOpt __Xs
                  with
-                 | NONE -> ()
+                 | None -> ()
                  | Some str ->
                      Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
               else ())
@@ -636,9 +636,9 @@ module Solve(Solve:sig
     let rec qLoopsT s = qLoopsT' (Timers.time Timers.parsing S.expose s)
     let rec qLoopsT' =
       function
-      | S.Empty -> true__
+      | S.Empty -> true
       | Cons (query, s') ->
-          let solExists = ref false__ in
+          let solExists = ref false in
           let (__A, optName, __Xs) =
             ReconQuery.queryToQuery
               (query, (Paths.Loc ("stdIn", (Paths.Reg (0, 0))))) in
@@ -653,7 +653,7 @@ module Solve(Solve:sig
                 ((Timers.time Timers.printing evarInstToString __Xs) ^ "\n")
             else ();
             (match optName with
-             | NONE -> ()
+             | None -> ()
              | Some name ->
                  if (!Global.chatter) >= 3
                  then
@@ -665,12 +665,12 @@ module Solve(Solve:sig
                 (match Timers.time Timers.printing
                          Print.evarCnstrsToStringOpt __Xs
                  with
-                 | NONE -> ()
+                 | None -> ()
                  | Some str ->
                      Msg.message (("Remaining constraints:\n" ^ str) ^ "\n"))
               else ())
             (* Question: should we collect constraints from M? *));
-            solExists := true__;
+            solExists := true;
             if moreSolutions () then () else raise Done in
           let rec loop () =
             ((if Tabled.nextStage () then loop () else raise Completed)

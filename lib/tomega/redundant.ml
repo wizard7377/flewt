@@ -13,13 +13,13 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
     module I = IntSyn
     let rec optionRefEqual r1 r2 func =
       if r1 = r2
-      then true__
+      then true
       else
         (match (r1, r2) with
-         | ({ contents = NONE }, { contents = NONE }) -> true__
+         | ({ contents = None }, { contents = None }) -> true
          | ({ contents = Some (__P1) }, { contents = Some (__P2) }) ->
              func (__P1, __P2)
-         | _ -> false__)
+         | _ -> false)
     let rec convert =
       function
       | Lam (__D, __P) -> T.Lam (__D, (convert __P))
@@ -51,14 +51,14 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           (optionRefEqual (r, r', blockEqual)) &&
             ((IsubEqual (sub1, sub1')) &&
                ((cid = cid') && (IsubEqual (sub1', sub2'))))
-      | _ -> false__(* Should not occur -- ap 2/18/03 *)
+      | _ -> false(* Should not occur -- ap 2/18/03 *)
     let rec decEqual __2__ __3__ =
       match (__2__, __3__) with
       | (UDec (__D1), (UDec (__D2), t2)) ->
           Conv.convDec ((__D1, I.id), (__D2, (T.coerceSub t2)))
       | (PDec (_, __F1, _, _), (PDec (_, __F2, _, _), t2)) ->
           T.convFor ((__F1, T.id), (__F2, t2))
-      | _ -> false__
+      | _ -> false
     let rec caseEqual __4__ __5__ =
       match (__4__, __5__) with
       | ((Psi1, t1, __P1)::__O1, ((Psi2, t2, __P2)::__O2, tAfter)) ->
@@ -66,21 +66,21 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           let t = Opsem.createVarSub (Psi1, Psi2) in
           let t' = T.comp (t2', t) in
           let doMatch =
-            try Opsem.matchSub (Psi1, t1, t'); true__
-            with | NoMatch -> false__ in
+            try Opsem.matchSub (Psi1, t1, t'); true
+            with | NoMatch -> false in
           ((if doMatch
             then
               let newT = T.normalizeSub t in
               let stillMatch = IsSubRenamingOnly newT in
               stillMatch && (prgEqual (__P1, (__P2, (cleanSub newT))))
-            else false__)
+            else false)
             (* Note:  (Psi1 |- t1: Psi0) *)(* Psi1 |- t: Psi2 *)
             (* Psi1 |- t' : Psi_0 *))
-      | (nil, (nil, t2)) -> true__
-      | _ -> false__(* Recall that we (Psi2, t2, P2)[tAfter] = (Psi2, (tAfterInv \circ t2), P2) *)
+      | (nil, (nil, t2)) -> true
+      | _ -> false(* Recall that we (Psi2, t2, P2)[tAfter] = (Psi2, (tAfterInv \circ t2), P2) *)
     let rec spineEqual __6__ __7__ =
       match (__6__, __7__) with
-      | (T.Nil, (T.Nil, t2)) -> true__
+      | (T.Nil, (T.Nil, t2)) -> true
       | (AppExp (__E1, __S1), (AppExp (__E2, __S2), t2)) ->
           (Conv.conv ((__E1, I.id), (__E2, (T.coerceSub t2)))) &&
             (spineEqual (__S1, (__S2, t2)))
@@ -91,7 +91,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           (prgEqual (__P1, (__P2, t2))) && (spineEqual (__S1, (__S2, t2)))
       | (SClo (__S, t1), (SClo (s, t2a), t2)) ->
           raise (Error "SClo should not exist!")
-      | _ -> false__(* there are no SClo created in converter *)
+      | _ -> false(* there are no SClo created in converter *)
     let rec prgEqual __8__ __9__ =
       match (__8__, __9__) with
       | (Lam (__D1, __P1), (Lam (__D2, __P2), t2)) ->
@@ -107,11 +107,11 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
             (prgEqual (__P1, (__P2, t2)))
       | (PairPrg (P1a, P1b), (PairPrg (P2a, P2b), t2)) ->
           (prgEqual (P1a, (P2a, t2))) && (prgEqual (P1b, (P2b, t2)))
-      | (T.Unit, (T.Unit, t2)) -> true__
+      | (T.Unit, (T.Unit, t2)) -> true
       | (Const lemma1, (Const lemma2, _)) -> lemma1 = lemma2
       | (Var x1, (Var x2, t2)) ->
           (match getFrontIndex (T.varSub (x2, t2)) with
-           | NONE -> false__
+           | None -> false
            | Some i -> x1 = i)
       | (Redex (__P1, __S1), (Redex (__P2, __S2), t2)) ->
           (prgEqual (__P1, (__P2, t2))) && (spineEqual (__S1, (__S2, t2)))
@@ -127,13 +127,13 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
       | (EVar (Psi1, P1optRef, __F1, _, _, _),
          (EVar (Psi2, P2optref, __F2, _, _, _), t2)) ->
           raise (Error "No EVARs should exist!")
-      | _ -> false__(* there are no PClo created in converter *)
+      | _ -> false(* there are no PClo created in converter *)
       (*      | prgEqual ((T.Root (H1, S1)), (T.Root (H2, S2), t2)) =
                 (case (H1, H2)
                    of (T.Const lemma1, T.Const lemma2) => ((lemma1=lemma2) andalso (spineEqual(S1, (S2,t2))))
                  |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
-                              NONE => false
+                              None => false
                             | Some i => ((x1 = i) andalso (spineEqual(S1, (S2,t2)))))
                  |  _ => false)
 *)
@@ -156,40 +156,40 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
       | Prg (__P) -> getPrgIndex __P
       | Exp (__U) -> getExpIndex __U
       | Block (__B) -> getBlockIndex __B
-      | T.Undef -> NONE
+      | T.Undef -> None
     let rec getPrgIndex =
       function
       | Var k -> Some k
       | Redex (__P, T.Nil) -> getPrgIndex __P
       | PClo (__P, t) ->
           (match getPrgIndex __P with
-           | NONE -> NONE
+           | None -> None
            | Some i -> getFrontIndex (T.varSub (i, t)))
-      | _ -> NONE(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
+      | _ -> None(* it is possible in the matchSub that we will get PClo under a sub (usually id) *)
     let rec getExpIndex =
       function
       | Root (BVar k, I.Nil) -> Some k
       | Redex (__U, I.Nil) -> getExpIndex __U
       | EClo (__U, t) ->
           (match getExpIndex __U with
-           | NONE -> NONE
+           | None -> None
            | Some i -> getFrontIndex (T.revCoerceFront (I.bvarSub (i, t))))
       | Lam (Dec (_, __U1), __U2) as U ->
-          (try Some (Whnf.etaContract __U) with | Whnf.Eta -> NONE)
-      | _ -> NONE
-    let rec getBlockIndex = function | Bidx k -> Some k | _ -> NONE
+          (try Some (Whnf.etaContract __U) with | Whnf.Eta -> None)
+      | _ -> None
+    let rec getBlockIndex = function | Bidx k -> Some k | _ -> None
     let rec cleanSub =
       function
       | Shift _ as S -> __S
       | Dot (Ft1, s1) ->
           (match getFrontIndex Ft1 with
-           | NONE -> T.Dot (Ft1, (cleanSub s1))
+           | None -> T.Dot (Ft1, (cleanSub s1))
            | Some index -> T.Dot ((T.Idx index), (cleanSub s1)))
     let rec IsSubRenamingOnly =
       function
-      | Shift n -> true__
+      | Shift n -> true
       | Dot (Ft1, s1) ->
-          (match getFrontIndex Ft1 with | NONE -> false__ | Some _ -> true__)
+          (match getFrontIndex Ft1 with | None -> false | Some _ -> true)
             && (IsSubRenamingOnly s1)
     let rec mergeSpines __12__ __13__ =
       match (__12__, __13__) with
@@ -246,7 +246,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           else raise (Error "Constants do not match.")
       | (Var x1, (Var x2, t2)) ->
           (match getFrontIndex (T.varSub (x2, t2)) with
-           | NONE -> raise (Error "Variables do not match.")
+           | None -> raise (Error "Variables do not match.")
            | Some i ->
                if x1 = i
                then T.Var x1
@@ -293,7 +293,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
                      else raise Error "Roots do not match"
                    |  (T.Var x1, T.Var x2) =>
                            (case getFrontIndex(T.varSub(x2,t2)) of
-                              NONE => raise Error "Root does not match."
+                              None => raise Error "Root does not match."
                             | Some i =>
                                 (if (x1 = i) then
                                    T.Root (T.Var x1, mergeSpines((S1),(S2,t2)))
@@ -304,11 +304,11 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
     let rec invertSub s =
       let rec lookup __16__ __17__ __18__ =
         match (__16__, __17__, __18__) with
-        | (n, Shift _, p) -> NONE
+        | (n, Shift _, p) -> None
         | (n, Dot (T.Undef, s'), p) -> lookup ((n + 1), s', p)
         | (n, Dot (Ft, s'), p) ->
             (match getFrontIndex Ft with
-             | NONE -> lookup ((n + 1), s', p)
+             | None -> lookup ((n + 1), s', p)
              | Some k -> if k = p then Some n else lookup ((n + 1), s', p)) in
       let rec invertSub'' __19__ __20__ =
         match (__19__, __20__) with
@@ -316,7 +316,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
         | (p, si) ->
             (match lookup (1, s, p) with
              | Some k -> invertSub'' ((p - 1), (T.Dot ((T.Idx k), si)))
-             | NONE -> invertSub'' ((p - 1), (T.Dot (T.Undef, si)))) in
+             | None -> invertSub'' ((p - 1), (T.Dot (T.Undef, si)))) in
       let rec invertSub' __21__ __22__ =
         match (__21__, __22__) with
         | (n, Shift p) -> invertSub'' (p, (T.Shift n))
@@ -342,8 +342,8 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
           let t = Opsem.createVarSub (Psi1, Psi2) in
           let t' = T.comp (t3, t) in
           let doMatch =
-            try Opsem.matchSub (Psi1, t1, t'); true__
-            with | NoMatch -> false__ in
+            try Opsem.matchSub (Psi1, t1, t'); true
+            with | NoMatch -> false in
           ((if doMatch
             then
               let newT = T.normalizeSub t in
@@ -389,7 +389,7 @@ module Redundant(Redundant:sig module Opsem : OPSEM end) : REDUNDANT =
       let t = Opsem.createVarSub (Psi1, Psi2) in
       let t' = T.comp (s2, t) in
       let doMatch =
-        try Opsem.matchSub (Psi1, s1, t'); true__ with | NoMatch -> false__ in
+        try Opsem.matchSub (Psi1, s1, t'); true with | NoMatch -> false in
       ((if not doMatch
         then [__C; __C']
         else

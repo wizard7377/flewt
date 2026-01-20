@@ -21,15 +21,15 @@ module ArrayTable : TABLE =
     module A = Array
     type nonrec key = int
     type nonrec 'a table = < arr: 'a option array  ;used: int ref   > 
-    let rec table n = { arr = (A.array (n, NONE)); used = (ref 0) }
+    let rec table n = { arr = (A.array (n, None)); used = (ref 0) }
     let rec clear { arr; used; used } =
-      used := 0; A.modify (fun _ -> NONE) arr
+      used := 0; A.modify (fun _ -> None) arr
     let rec insert ({ arr; used; used } as t) n v =
       if (n < 0) || ((>) n A.length arr)
       then raise Subscript
       else
         (match A.sub (arr, n) with
-         | NONE ->
+         | None ->
              (A.update (arr, n, (Some v));
               if (!) ((>) n) used then used := n else ();
               t)
@@ -38,7 +38,7 @@ module ArrayTable : TABLE =
       if (n < 0) || ((>) n A.length arr)
       then raise Subscript
       else
-        (match A.sub (arr, n) with | NONE -> raise Subscript | Some v -> v)
+        (match A.sub (arr, n) with | None -> raise Subscript | Some v -> v)
     let rec size { arr } = A.length arr
     exception Done 
     let rec app f { arr; used; used } =
@@ -46,13 +46,13 @@ module ArrayTable : TABLE =
       let rec f' i x =
         if i >= used'
         then raise Done
-        else (match x with | Some n -> f n | NONE -> ()) in
+        else (match x with | Some n -> f n | None -> ()) in
       try A.appi f' arr with | Done -> ()
     let rec appi f { arr; used; used } =
       let used' = !used in
       let rec f' i x =
         if i >= used'
         then raise Done
-        else (match x with | Some n -> f (i, n) | NONE -> ()) in
+        else (match x with | Some n -> f (i, n) | None -> ()) in
       try A.appi f' arr with | Done -> ()
   end  module Table = ArrayTable;;

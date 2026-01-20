@@ -41,13 +41,13 @@ module ModeDec() : MODEDEC =
           checkName' mS
     let rec modeConsistent __0__ __1__ =
       match (__0__, __1__) with
-      | (M.Star, M.Plus) -> false__
-      | (M.Star, M.Minus) -> false__
-      | (M.Star, M.Minus1) -> false__
-      | (M.Minus, M.Plus) -> false__
-      | (M.Minus, M.Minus1) -> false__
-      | (M.Minus1, M.Plus) -> false__
-      | _ -> true__(* m1 should be M.Plus *)(* m1 should be M.Minus1 *)
+      | (M.Star, M.Plus) -> false
+      | (M.Star, M.Minus) -> false
+      | (M.Star, M.Minus1) -> false
+      | (M.Minus, M.Plus) -> false
+      | (M.Minus, M.Minus1) -> false
+      | (M.Minus1, M.Plus) -> false
+      | _ -> true(* m1 should be M.Plus *)(* m1 should be M.Minus1 *)
       (* m1 should be M.Plus *)(* m1 should be M.Minus1 *)
       (* m1 should be M.Minus *)(* m1 should be M.Plus *)
     let rec empty __2__ __3__ __4__ =
@@ -55,7 +55,7 @@ module ModeDec() : MODEDEC =
       | (0, ms, __V) -> (ms, __V)
       | (k, ms, Pi (_, __V)) ->
           empty
-            ((k - 1), (I.Decl (ms, ((M.Marg (M.Star, NONE)), Implicit))),
+            ((k - 1), (I.Decl (ms, ((M.Marg (M.Star, None)), Implicit))),
               __V)
     let rec inferVar __5__ __6__ __7__ =
       match (__5__, __6__, __7__) with

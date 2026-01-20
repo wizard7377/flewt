@@ -14,7 +14,7 @@ module RedBlackTree(RedBlackTree:sig
     let rec lookup dict key =
       let rec lk =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' (key1, datum1) left right =
@@ -87,7 +87,7 @@ module RedBlackTree(RedBlackTree:sig
         | (RIGHTR (a, x, z), b) -> zip (z, (Red (x, a, b))) in
       let rec bbZip __2__ __3__ =
         match (__2__, __3__) with
-        | (TOP, t) -> (true__, t)
+        | (TOP, t) -> (true, t)
         | (LEFTB (x, Red (y, c, d), z), a) ->
             bbZip ((LEFTR (x, c, (LEFTB (y, d, z)))), a)
         | (LEFTB (x, Black (w, Red (y, c, d), e), z), a) ->
@@ -95,13 +95,13 @@ module RedBlackTree(RedBlackTree:sig
         | (LEFTR (x, Black (w, Red (y, c, d), e), z), a) ->
             bbZip ((LEFTR (x, (Black (y, c, (Red (w, d, e)))), z)), a)
         | (LEFTB (x, Black (y, c, Red (w, d, e)), z), a) ->
-            (false__,
+            (false,
               (zip (z, (Black (y, (Black (x, a, c)), (Black (w, d, e)))))))
         | (LEFTR (x, Black (y, c, Red (w, d, e)), z), a) ->
-            (false__,
+            (false,
               (zip (z, (Red (y, (Black (x, a, c)), (Black (w, d, e)))))))
         | (LEFTR (x, Black (y, c, d), z), a) ->
-            (false__, (zip (z, (Black (x, a, (Red (y, c, d)))))))
+            (false, (zip (z, (Black (x, a, (Red (y, c, d)))))))
         | (LEFTB (x, Black (y, c, d), z), a) ->
             bbZip (z, (Black (x, a, (Red (y, c, d)))))
         | (RIGHTB (Red (y, c, d), x, z), b) ->
@@ -113,16 +113,16 @@ module RedBlackTree(RedBlackTree:sig
         | (RIGHTR (Black (y, Red (w, c, d), e), x, z), b) ->
             bbZip ((RIGHTR ((Black (w, c, (Red (y, d, e)))), x, z)), b)
         | (RIGHTB (Black (y, c, Red (w, d, e)), x, z), b) ->
-            (false__,
+            (false,
               (zip (z, (Black (y, c, (Black (x, (Red (w, d, e)), b)))))))
         | (RIGHTR (Black (y, c, Red (w, d, e)), x, z), b) ->
-            (false__,
+            (false,
               (zip (z, (Red (y, c, (Black (w, (Red (w, d, e)), b)))))))
         | (RIGHTR (Black (y, c, d), x, z), b) ->
-            (false__, (zip (z, (Black (x, (Red (y, c, d)), b)))))
+            (false, (zip (z, (Black (x, (Red (y, c, d)), b)))))
         | (RIGHTB (Black (y, c, d), x, z), b) ->
             bbZip (z, (Black (x, (Red (y, c, d)), b)))
-        | (z, t) -> (false__, (zip (z, t)))(* case 2R *)
+        | (z, t) -> (false, (zip (z, t)))(* case 2R *)
         (* case 2R *)(* case 4R *)
         (* case 4R *)(* case 3R *)
         (* case 3R *)(* case 1R *)
@@ -132,7 +132,7 @@ module RedBlackTree(RedBlackTree:sig
         (* case 3L *)(* case 1L *) in
       let rec delMin __4__ __5__ =
         match (__4__, __5__) with
-        | (Red (y, Empty, b), z) -> (y, (false__, (zip (z, b))))
+        | (Red (y, Empty, b), z) -> (y, (false, (zip (z, b))))
         | (Black (y, Empty, b), z) -> (y, (bbZip (z, b)))
         | (Black (y, a, b), z) -> delMin (a, (LEFTB (y, b, z)))
         | (Red (y, a, b), z) -> delMin (a, (LEFTR (y, b, z)))
@@ -167,13 +167,13 @@ module RedBlackTree(RedBlackTree:sig
              | EQUAL -> joinRed (a, b, z)
              | LESS -> del (a, (LEFTR (entry1, b, z)))
              | GREATER -> del (b, (RIGHTR (a, entry1, z)))) in
-      ((try del (t, TOP); true__ with | NotFound -> false__)
+      ((try del (t, TOP); true with | NotFound -> false)
         (* bbZip propagates a black deficit up the tree until either the top
          * is reached, or the deficit can be covered.  It returns a boolean
          * that is true if there is still a deficit and the zipped tree.
          *))
     let rec insertShadow dict ((key, datum) as entry) =
-      let oldEntry = ref NONE in
+      let oldEntry = ref None in
       let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
@@ -188,7 +188,7 @@ module RedBlackTree(RedBlackTree:sig
                  ((:=) oldEntry Some entry1; Black (entry, left, right))
              | LESS -> restore_left (Black (entry1, (ins left), right))
              | GREATER -> restore_right (Black (entry1, left, (ins right)))) in
-      ((oldEntry := NONE;
+      ((oldEntry := None;
         ((((match ins dict with
             | Red ((_, Red _, _) as t) -> Black t
             | Red ((_, _, Red _) as t) -> Black t

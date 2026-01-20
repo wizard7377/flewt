@@ -22,12 +22,12 @@ module Reductio =
           type_const_head_eq (n, n', sp, sp')
       | (TPi (m, a, b), TPi (m', a', b')) ->
           (m = m') && ((tp_eq (a, a')) && (tp_eq (b, b')))
-      | _ -> false__
+      | _ -> false
     let rec sp_eq __2__ __3__ =
       match (__2__, __3__) with
-      | ([], []) -> true__
+      | ([], []) -> true
       | (e::sp, e'::sp') -> (elt_eq (e, e')) && (sp_eq (sp, sp'))
-      | _ -> false__
+      | _ -> false
     let rec elt_eq t t' = elt_eq' ((elt_eroot_elim t), (elt_eroot_elim t'))
     let rec elt_eq' __4__ __5__ =
       match (__4__, __5__) with
@@ -35,27 +35,27 @@ module Reductio =
       | (AElt t, AElt t') -> atm_eq (t, t')
       | (Ascribe (t, a), Ascribe (t', a')) ->
           (ntm_eq (t, t')) && (tp_eq (a, a'))
-      | (Omit, Omit) -> true__
-      | _ -> false__
+      | (Omit, Omit) -> true
+      | _ -> false
     let rec tm_eq __6__ __7__ =
       match (__6__, __7__) with
       | (NTerm t, NTerm t') -> ntm_eq (t, t')
       | (ATerm t, ATerm t') -> atm_eq (t, t')
-      | _ -> false__
+      | _ -> false
     let rec atm_eq __8__ __9__ =
       match (__8__, __9__) with
       | ((ARoot (Const n, sp) as tm), (ARoot (Const n', sp') as tm')) ->
           const_head_eq (n, n', sp, sp', (ATerm tm), (ATerm tm'))
       | (ARoot (Var n, sp), ARoot (Var n', sp')) ->
           (n = n') && (sp_eq (sp, sp'))
-      | _ -> false__
+      | _ -> false
     let rec ntm_eq t t' = ntm_eq' ((ntm_eroot_elim t), (ntm_eroot_elim t'))
     let rec ntm_eq' __10__ __11__ =
       match (__10__, __11__) with
       | ((NRoot (Const n, sp) as tm), (NRoot (Const n', sp') as tm')) ->
           const_head_eq (n, n', sp, sp', (NTerm tm), (NTerm tm'))
       | (Lam t, Lam t') -> tm_eq (t, t')
-      | _ -> false__
+      | _ -> false
     let rec const_head_eq n n' sp sp' tm tm' =
       let def = Sgn.def n in
       let def' = Sgn.def n' in
@@ -64,8 +64,8 @@ module Reductio =
       let rec redux t n sp =
         reduce ((srTerm (t, (typeOf (Sgn.classifier n)))), sp) in
       match (eq_and_strict, def, def') with
-      | (true__, _, _) -> sp_eq (sp, sp')
-      | (false__, Sgn.DEF_NONE, Sgn.DEF_NONE) -> false__
+      | (true, _, _) -> sp_eq (sp, sp')
+      | (false, Sgn.DEF_NONE, Sgn.DEF_NONE) -> false
       | (_, DEF_TERM t, DEF_TERM t') ->
           tm_eq ((redux t n sp), (redux t' n' sp'))
       | (_, DEF_TERM t, Sgn.DEF_NONE) -> tm_eq ((redux t n sp), tm')
@@ -78,8 +78,8 @@ module Reductio =
         (n = n') && ((def = Sgn.DEF_NONE) || (not (Sgn.abbreviation n))) in
       let rec redux a n sp = tp_reduce (a, (kindOf (Sgn.classifier n)), sp) in
       match (eq_and_strict, def, def') with
-      | (true__, _, _) -> sp_eq (sp, sp')
-      | (false__, Sgn.DEF_NONE, Sgn.DEF_NONE) -> false__
+      | (true, _, _) -> sp_eq (sp, sp')
+      | (false, Sgn.DEF_NONE, Sgn.DEF_NONE) -> false
       | (_, DEF_TYPE a, DEF_TYPE a') ->
           tp_eq ((redux a n sp), (redux a' n' sp'))
       | (_, DEF_TYPE a, Sgn.DEF_NONE) ->
@@ -125,13 +125,13 @@ module Reductio =
           let (vs, shift) = pp_normalize' s in
           (match no with
            | Some n -> ((n :: vs), shift)
-           | NONE -> raise (Error "??? I'm not sure this is really wrong"))
+           | None -> raise (Error "??? I'm not sure this is really wrong"))
       | Compose sl -> prepattern (substs_comp sl)(* XXX: Correct??? *)
       (* using the fact that Shift (n+1) m = ZeroDotShift (Shift n m) *)
     let rec prepattern s = pp_normalize s
     let rec pp_ispat __12__ __13__ =
       match (__12__, __13__) with
-      | ([], shift) -> true__
+      | ([], shift) -> true
       | (n::s, shift) ->
           let rec isn x = x = n in
           let rec hasn s = List.exists isn s in
@@ -145,12 +145,12 @@ module Reductio =
       let inds = List.tabulate (shift, (fun x -> x)) in
       let rec search __16__ __17__ __18__ =
         match (__16__, __17__, __18__) with
-        | (n, [], x) -> NONE
+        | (n, [], x) -> None
         | (n, h::tl, x) -> if x = h then Some n else search (n + 1) tl x in
       makesubst ((map (search 0 vs) inds), (length vs))
     let rec flex_left __19__ __20__ __21__ =
       match (__19__, __20__, __21__) with
-      | ((({ contents = NONE } as r), a), (s : subst), rhs) ->
+      | ((({ contents = None } as r), a), (s : subst), rhs) ->
           let pps = try prepattern s with | Domain -> raise NonPattern in
           let _ = if pp_ispat pps then () else raise NonPattern in
           let ppsi = pp_invert pps in
@@ -209,8 +209,8 @@ module Reductio =
         reduce ((srTerm (t, (typeOf (Sgn.classifier n)))), sp) in
       let eq =
         match (eq_and_strict, def, def') with
-        | (true__, _, _) -> SpineC (s, s')
-        | (false__, Sgn.DEF_NONE, Sgn.DEF_NONE) -> raise (Matching err)
+        | (true, _, _) -> SpineC (s, s')
+        | (false, Sgn.DEF_NONE, Sgn.DEF_NONE) -> raise (Matching err)
         | (_, DEF_TERM t, DEF_TERM t') ->
             EltC ((Elt (redux t n s)), (Elt (redux t' n' s')))
         | (_, DEF_TERM t, Sgn.DEF_NONE) -> EltC ((Elt (redux t n s)), elt')
@@ -226,8 +226,8 @@ module Reductio =
       let rec redux a n sp = tp_reduce (a, (kindOf (Sgn.classifier n)), sp) in
       let eq =
         match (eq_and_strict, def, def') with
-        | (true__, _, _) -> SpineC (s, s')
-        | (false__, Sgn.DEF_NONE, Sgn.DEF_NONE) -> raise (Matching err)
+        | (true, _, _) -> SpineC (s, s')
+        | (false, Sgn.DEF_NONE, Sgn.DEF_NONE) -> raise (Matching err)
         | (_, DEF_TYPE a, DEF_TYPE a') ->
             TypeC ((redux a n s), (redux a' n' s'))
         | (_, DEF_TYPE a, Sgn.DEF_NONE) ->
@@ -252,10 +252,10 @@ module Reductio =
     let rec constraint_gen' __24__ __25__ __26__ __27__ =
       match (__24__, __25__, __26__, __27__) with
       | (__G, [], (TRoot _ as a), CG_CHECK (TRoot _ as a')) ->
-          ([TypeC (a, a')], [], NONE)
+          ([TypeC (a, a')], [], None)
       | (__G, [], TRoot (n, s), CG_SYNTH) -> ([], [], (Some (TRoot (n, s))))
       | (__G, (Omit)::s, TPi (OMIT, a, z), c) ->
-          let (ev : evar) = ((ref NONE), a) in
+          let (ev : evar) = ((ref None), a) in
           let z' = subst_tp (EVarDotId ev) z in
           let (p, q, aa) = constraint_gen' __G (s, z', c) in (p, q, aa)
       | (__G, (Elt m)::s, TPi (MINUS, a, z), c) ->
@@ -279,7 +279,7 @@ module Reductio =
       match (__28__, __29__, __30__) with
       | (__G, [], Type) -> ([], [])
       | (__G, (Omit)::s, KPi (OMIT, a, z)) ->
-          let (ev : evar) = ((ref NONE), a) in
+          let (ev : evar) = ((ref None), a) in
           let z' = subst_knd (EVarDotId ev) z in
           let (p, q) = tp_constraint_gen __G (s, z') in (p, q)
       | (__G, (Elt m)::s, KPi (MINUS, a, z)) ->
@@ -308,7 +308,7 @@ module Reductio =
         if check_typing_constraints __G q
         then ()
         else raise (Matching "residual typing constraints failed") in
-      ((true__)
+      ((true)
         (* evar side-effects affect q, raises Matching if matching fails *))
     let rec check_spinelt __31__ __32__ __33__ =
       match (__31__, __32__, __33__) with
@@ -322,7 +322,7 @@ module Reductio =
       | (__G, NTerm (Lam t), TPi (_, a, b)) ->
           check ((ctxcons (a, __G)), t, b)
       | (__G, ATerm t, a) ->
-          (try tp_eq ((synth (__G, t)), a) with | Error s -> false__)
+          (try tp_eq ((synth (__G, t)), a) with | Error s -> false)
       | (__G, NTerm (NRoot (Const n, s)), a) ->
           let b =
             match Sgn.classifier n with
@@ -331,10 +331,10 @@ module Reductio =
           let (p, q, _) = constraint_gen __G (s, b, (CG_CHECK a)) in
           ((matching_succeeds __G (p, q))
             (* creates ref cells for evars *))
-      | _ -> false__
+      | _ -> false
     let rec check_kind __37__ __38__ =
       match (__37__, __38__) with
-      | (__G, Type) -> true__
+      | (__G, Type) -> true
       | (__G, KPi (OMIT, a, k)) ->
           (check_type CON_LF (__G, a)) &&
             ((check_kind ((ctxcons (a, __G)), k)) &&
@@ -358,8 +358,8 @@ module Reductio =
             | CON_LF ->
                 raise
                   (Error "TPi(OMIT) where a pure LF function type expected")
-            | CON_PLUS -> true__
-            | CON_MINUS -> false__ in
+            | CON_PLUS -> true
+            | CON_MINUS -> false in
           (check_type CON_LF (__G, a)) &&
             ((check_type con ((ctxcons (a, __G)), b)) &&
                (Strict.check_strict_type plusconst b))
@@ -373,7 +373,7 @@ module Reductio =
                  (check_type con ((ctxcons (a, __G)), b)))
     let rec check_type' __42__ __43__ __44__ =
       match (__42__, __43__, __44__) with
-      | (__G, Type, []) -> true__
+      | (__G, Type, []) -> true
       | (__G, KPi (_, a, k), m::s) ->
           let _ =
             if check_spinelt (__G, m, a)
@@ -381,7 +381,7 @@ module Reductio =
             else raise (Error "argument type mismatch") in
           let k' = subst_knd (TermDot ((termof m), a, Id)) k in
           check_type' (__G, k', s)
-      | _ -> false__
+      | _ -> false
     let rec synth __45__ __46__ =
       match (__45__, __46__) with
       | (__G, ARoot (Var n, s)) -> synth' (__G, (ctxLookup (__G, n)), s)
@@ -421,11 +421,11 @@ module Reductio =
     let rec check_minusconst_type t = check_type CON_MINUS ([], t)
     let rec check_strictness_type __52__ __53__ =
       match (__52__, __53__) with
-      | (_, TRoot (n, s)) -> true__
+      | (_, TRoot (n, s)) -> true
       | (plusconst, TPi (OMIT, _, b)) ->
           (check_strictness_type plusconst b) &&
             (Strict.check_strict_type plusconst b)
       | (plusconst, TPi (_, _, b)) -> check_strictness_type plusconst b
-    let check_plusconst_strictness = check_strictness_type true__
-    let check_minusconst_strictness = check_strictness_type false__
+    let check_plusconst_strictness = check_strictness_type true
+    let check_minusconst_strictness = check_strictness_type false
   end;;

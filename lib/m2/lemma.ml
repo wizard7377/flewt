@@ -42,7 +42,7 @@ module Lemma(Lemma:sig
           (M.State
              (name, GM',
                (I.Pi
-                  (((I.Dec (NONE, __U')), I.No),
+                  (((I.Dec (None, __U')), I.No),
                     (I.EClo (__V, (I.comp (s', I.shift)))))))))
         (* Vs' = type *))
     let apply = apply

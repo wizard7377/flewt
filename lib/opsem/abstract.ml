@@ -46,7 +46,7 @@ module AbstractTabled(AbstractTabled:sig
       | Shift n -> n = 0
       | Dot (Idx n, s') as s -> isId' (s, 0)
       | Dot (I.Undef, s') as s -> isId' (s, 0)
-      | Dot (Exp _, s) -> false__
+      | Dot (Exp _, s) -> false
     let rec isId' __2__ __3__ =
       match (__2__, __3__) with
       | (Shift n, k) -> n = k
@@ -54,16 +54,16 @@ module AbstractTabled(AbstractTabled:sig
       | (Dot (I.Undef, s), k) -> isId' (s, (k + 1))
     let rec equalCtx __4__ __5__ __6__ __7__ =
       match (__4__, __5__, __6__, __7__) with
-      | (I.Null, s, I.Null, s') -> true__
+      | (I.Null, s, I.Null, s') -> true
       | (Decl (__G, __D), s, Decl (__G', __D'), s') ->
           (Conv.convDec ((__D, s), (__D', s'))) &&
             (equalCtx (__G, (I.dot1 s), __G', (I.dot1 s')))
-      | (Decl (__G, __D), s, I.Null, s') -> false__
-      | (I.Null, s, Decl (__G', __D'), s') -> false__
+      | (Decl (__G, __D), s, I.Null, s') -> false
+      | (I.Null, s, Decl (__G', __D'), s') -> false
     let rec eqEVarW __8__ __9__ =
       match (__8__, __9__) with
       | (EVar (r1, _, _, _), EV (EVar (r2, _, _, _))) -> r1 = r2
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec eqEVar (__X1) (EV (__X2)) =
       let (X1', s) = Whnf.whnf (__X1, I.id) in
       let (X2', s) = Whnf.whnf (__X2, I.id) in eqEVarW X1' (EV X2')(* Sun Dec  1 14:04:17 2002 -bp  may raise exception
@@ -71,14 +71,14 @@ module AbstractTabled(AbstractTabled:sig
     let rec member' (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> NONE
+        | I.Null -> None
         | Decl (__K', (l, EV (__Y))) ->
             if __P (EV __Y) then Some l else exists' __K' in
       exists' __K
     let rec member (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> NONE
+        | I.Null -> None
         | Decl (__K', (i, __Y)) -> if __P __Y then Some i else exists' __K' in
       exists' __K
     let rec update' (__P) (__K) =
@@ -163,7 +163,7 @@ module AbstractTabled(AbstractTabled:sig
       | (Gss, Gl, (Uni (__L), s), __K, DupVars, flag, d) -> (__K, DupVars)
       | (Gss, Gl, (Pi ((__D, _), __V), s), __K, DupVars, flag, d) ->
           let (__K', _) =
-            collectDec (Gss, (__D, s), (__K, DupVars), d, false__) in
+            collectDec (Gss, (__D, s), (__K, DupVars), d, false) in
           ((collectExp
               (Gss, (I.Decl (Gl, (I.decSub (__D, s)))), (__V, (I.dot1 s)),
                 __K', DupVars, flag, d))
@@ -172,7 +172,7 @@ module AbstractTabled(AbstractTabled:sig
           collectSpine (Gss, Gl, (__S, s), __K, DupVars, flag, d)
       | (Gss, Gl, (Lam (__D, __U), s), __K, DupVars, flag, d) ->
           let (__K', _) =
-            collectDec (Gss, (__D, s), (__K, DupVars), d, false__) in
+            collectDec (Gss, (__D, s), (__K, DupVars), d, false) in
           collectExp
             (Gss, (I.Decl (Gl, (I.decSub (__D, s)))), (__U, (I.dot1 s)),
               __K', DupVars, flag, (d + 1))
@@ -183,7 +183,7 @@ module AbstractTabled(AbstractTabled:sig
             (fun (__U) ->
                fun (KD') ->
                  let (__K', Dup) = KD' in
-                 collectExp (Gss, Gl, (__U, s), __K', Dup, false__, d))
+                 collectExp (Gss, Gl, (__U, s), __K', Dup, false, d))
             (__K, (I.Decl (DupVars, (FGN d))))
     let rec collectExp (Gss) (Gl) (__Us) (__K) (DupVars) flag d =
       collectExpW (Gss, Gl, (Whnf.whnf __Us), __K, DupVars, flag, d)
@@ -216,11 +216,11 @@ module AbstractTabled(AbstractTabled:sig
                          collectSub(Gss, Gl, s, K', DupVars, flag, d)
                        end *)
             (* since X has occurred before, we do not traverse its type V' *))
-        | NONE ->
+        | None ->
             let label = if flag then Body else TypeLabel in
             let (__K', DupVars') =
               collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false__,
+                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
                   d) in
             ((collectSub
                 (Gss, Gl, (I.comp (w, s)),
@@ -247,11 +247,11 @@ module AbstractTabled(AbstractTabled:sig
                     in
                       collectSub(Gss, Gl, s, K', DupVars, flag, d)
                     end*))
-        | NONE ->
+        | None ->
             let label = if flag then Body else TypeLabel in
             let (__K', DupVars') =
               collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false__,
+                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
                   d) in
             ((if flag
               then
@@ -302,12 +302,12 @@ module AbstractTabled(AbstractTabled:sig
                        collectSub(Gss, Gl, s, K', DupVars, flag, d)
                      end *)
             (* since X has occurred before, we do not traverse its type V' *))
-        | NONE ->
+        | None ->
             let label = if flag then Body else TypeLabel in
             let __V' = raiseType (GX, __V) in
             let (__K', DupVars') =
               collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false__,
+                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
                   d) in
             ((collectSub
                 (Gss, Gl, s, (I.Decl (__K', (label, (EV __X)))), DupVars',
@@ -331,12 +331,12 @@ module AbstractTabled(AbstractTabled:sig
                      in
                        collectSub(Gss, Gl, s, K', DupVars, flag, d)
                      end             *))
-      | NONE ->
+      | None ->
           let label = if flag then Body else TypeLabel in
           let __V' = raiseType (GX, __V) in
           let (__K', DupVars') =
             collectExp
-              ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false__,
+              ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
                 d) in
           ((if flag
             then
@@ -400,12 +400,12 @@ module AbstractTabled(AbstractTabled:sig
          (__K, DupVars), d) ->
           let (__K', DupVars') =
             collectCtx (Gss, (C.DProg (__G, dPool)), (__K, DupVars), (d - 1)) in
-          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false__)
+          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false)
       | (Gss, DProg (Decl (__G, __D), Decl (dPool, Dec (r, s, Ha))),
          (__K, DupVars), d) ->
           let (__K', DupVars') =
             collectCtx (Gss, (C.DProg (__G, dPool)), (__K, DupVars), (d - 1)) in
-          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false__)
+          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false)
     let rec abstractExpW __51__ __52__ __53__ __54__ __55__ __56__ __57__
       __58__ __59__ =
       match (__51__, __52__, __53__, __54__, __55__, __56__, __57__, __58__,
@@ -416,7 +416,7 @@ module AbstractTabled(AbstractTabled:sig
       | (flag, __Gs, posEA, Vars, Gl, total, depth,
          (Pi ((__D, __P), __V), s), eqn) ->
           let (posEA', Vars', __D, _) =
-            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), NONE) in
+            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), None) in
           let (posEA'', Vars'', __V', eqn2) =
             abstractExp
               (flag, __Gs, posEA', Vars', Gl, total, (depth + 1),
@@ -431,7 +431,7 @@ module AbstractTabled(AbstractTabled:sig
       | (flag, __Gs, posEA, Vars, Gl, total, depth, (Lam (__D, __U), s), eqn)
           ->
           let (posEA', Vars', __D', _) =
-            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), NONE) in
+            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), None) in
           let (posEA'', Vars'', __U', eqn2) =
             abstractExp
               (flag, __Gs, posEA', Vars', (I.Decl (Gl, __D')), total,
@@ -486,7 +486,7 @@ module AbstractTabled(AbstractTabled:sig
                        I.Nil, eqn) in
                  (posEA', Vars', (I.Root ((I.BVar (i + depth)), __S)), eqn1)))
             (* enforce linearization *)(* do not enforce linearization -- used for type labels *))
-        | NONE ->
+        | None ->
             let label = if flag then Body else TypeLabel in
             let BV = I.BVar (epos + depth) in
             let pos = ((epos - 1), apos) in
@@ -537,7 +537,7 @@ module AbstractTabled(AbstractTabled:sig
                    (posEA', Vars'', I.Root(I.BVar(i + depth), S), eqn1)
                  end) *)
             (* do not enforce linearization -- used for type labels *))
-        | NONE ->
+        | None ->
             ((if flag
               then
                 let label = if flag then Body else TypeLabel in
@@ -623,7 +623,7 @@ module AbstractTabled(AbstractTabled:sig
       | (flag, __Gs, epos, Vars, total, Dot (Exp (__U), s)) ->
           let ((ep, _), Vars', __U', _) =
             abstractExp
-              (false__, __Gs, (epos, 0), Vars, I.Null, total, 0, (__U, I.id),
+              (false, __Gs, (epos, 0), Vars, I.Null, total, 0, (__U, I.id),
                 TableParam.Trivial) in
           let (epos'', Vars'', s') =
             abstractSub' (flag, __Gs, ep, Vars', total, s) in
@@ -632,17 +632,17 @@ module AbstractTabled(AbstractTabled:sig
       __92__ =
       match (__85__, __86__, __87__, __88__, __89__, __90__, __91__, __92__)
       with
-      | (__Gs, posEA, Vars, Gl, total, depth, (Dec (x, __V), s), NONE) ->
+      | (__Gs, posEA, Vars, Gl, total, depth, (Dec (x, __V), s), None) ->
           let (posEA', Vars', __V', eqn) =
             abstractExp
-              (false__, __Gs, posEA, Vars, Gl, total, depth, (__V, s),
+              (false, __Gs, posEA, Vars, Gl, total, depth, (__V, s),
                 TableParam.Trivial) in
           (((posEA', Vars', (I.Dec (x, __V')), eqn))
             (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*))
       | (__Gs, posEA, Vars, Gl, total, depth, (Dec (x, __V), s), Some eqn) ->
           let (posEA', Vars', __V', eqn') =
             abstractExp
-              (true__, __Gs, posEA, Vars, Gl, total, depth, (__V, s), eqn) in
+              (true, __Gs, posEA, Vars, Gl, total, depth, (__V, s), eqn) in
           (((posEA', Vars', (I.Dec (x, __V')), eqn'))
             (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*))
     let rec abstractCtx' __93__ __94__ __95__ __96__ __97__ __98__ __99__
@@ -657,7 +657,7 @@ module AbstractTabled(AbstractTabled:sig
           let ((epos', _), Vars', __D', _) =
             abstractDec
               (__Gs, (epos, total), Vars, I.Null, total, (depth - 1),
-                (__D, I.id), NONE) in
+                (__D, I.id), None) in
           abstractCtx'
             (__Gs, epos', Vars', total, (depth - 1), (C.DProg (__G, dPool)),
               (I.Decl (__G', __D')), eqn)
@@ -667,7 +667,7 @@ module AbstractTabled(AbstractTabled:sig
           let ((epos', _), Vars', __D', _) =
             abstractDec
               (__Gs, (epos, total), Vars, I.Null, total, (depth - 1),
-                (__D, I.id), NONE) in
+                (__D, I.id), None) in
           abstractCtx'
             (__Gs, epos', Vars', total, (depth - 1), (C.DProg (__G, dPool)),
               (I.Decl (__G', __D')), eqn)
@@ -682,16 +682,16 @@ module AbstractTabled(AbstractTabled:sig
           let __V' = raiseType (GX, VX) in
           let (_, Vars', V'', _) =
             abstractExp
-              (false__, __Gs, (0, 0), Vars, I.Null, 0, (total - 1),
+              (false, __Gs, (0, 0), Vars, I.Null, 0, (total - 1),
                 (__V', I.id), TableParam.Trivial) in
           let DEVars' = makeEVarCtx (__Gs, Vars', DEVars, __K', (total - 1)) in
-          let DEVars'' = I.Decl (DEVars', (I.Dec (NONE, V''))) in DEVars''
+          let DEVars'' = I.Decl (DEVars', (I.Dec (None, V''))) in DEVars''
     let rec makeAVarCtx (Vars) (DupVars) =
       let rec avarCtx __106__ __107__ __108__ =
         match (__106__, __107__, __108__) with
         | (Vars, I.Null, k) -> I.Null
         | (Vars, Decl
-           (__K', AV ((EVar ({ contents = NONE }, GX, VX, _) as E), d)), k)
+           (__K', AV ((EVar ({ contents = None }, GX, VX, _) as E), d)), k)
             ->
             I.Decl
               ((avarCtx (Vars, __K', (k + 1))),
@@ -736,7 +736,7 @@ module AbstractTabled(AbstractTabled:sig
       | (I.Null, s) -> s
       | (Decl
          (__K',
-          (_, EV (EVar (({ contents = NONE } as I), GX, VX, cnstr) as E))),
+          (_, EV (EVar (({ contents = None } as I), GX, VX, cnstr) as E))),
          s) ->
           let __V' = raiseType (GX, VX) in
           let __X =
@@ -763,7 +763,7 @@ module AbstractTabled(AbstractTabled:sig
         else (__G, I.id, (I.ctxLength __G)) in
       let (__K, DupVars) = collectCtx ((__Gs, ss), dp, (I.Null, I.Null), d) in
       let (__K', DupVars') =
-        collectExp ((__Gs, ss), I.Null, (p, s), __K, DupVars, true__, d) in
+        collectExp ((__Gs, ss), I.Null, (p, s), __K, DupVars, true, d) in
       let epos = I.ctxLength __K' in
       let apos = I.ctxLength DupVars' in
       let total = epos + apos in
@@ -771,7 +771,7 @@ module AbstractTabled(AbstractTabled:sig
         abstractCtx ((__Gs, ss), epos, I.Null, total, d, dp) in
       let (((posEA'', Vars'', __U', eqn'))(* = 0 *)) =
         abstractExp
-          (true__, (__Gs, ss), (epos', total), Vars', I.Null, total, d,
+          (true, (__Gs, ss), (epos', total), Vars', I.Null, total, d,
             (p, s), eqn) in
       let DAVars = makeAVarCtx (Vars'', DupVars') in
       let DEVars =
@@ -796,10 +796,10 @@ module AbstractTabled(AbstractTabled:sig
     let abstractEVarCtx = abstractEVarCtx
     let abstractAnswSub s =
       let (__K, _) =
-        collectSub ((I.Null, I.id), I.Null, s, I.Null, I.Null, false__, 0) in
+        collectSub ((I.Null, I.id), I.Null, s, I.Null, I.Null, false, 0) in
       let epos = I.ctxLength __K in
       let (((_, Vars, s'))(*0 *)) =
-        abstractSub' (((false__, (I.Null, I.id), epos, I.Null, epos, s))
+        abstractSub' (((false, (I.Null, I.id), epos, I.Null, epos, s))
           (* total *)) in
       let DEVars = makeEVarCtx ((I.Null, I.id), Vars, I.Null, Vars, 0) in
       let s1' = ctxToEVarSub (DEVars, I.id) in (((DEVars, s'))

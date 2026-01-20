@@ -27,12 +27,12 @@ let rec head_to_layout __0__ __1__ =
   | (sgn, Const c) -> ($) (const_to_string sgn c)
   | (sgn, BVar n) -> ($) (Int.toString n)
 let rec needs_parens_in_arg_pos =
-  function | Uni _ -> false__ | Root (_, Nil) -> false__ | _ -> true__
+  function | Uni _ -> false | Root (_, Nil) -> false | _ -> true
 let rec needs_sparens_in_arg_pos =
   function
-  | Nil -> false__
+  | Nil -> false
   | App (__E, Nil) -> needs_parens_in_arg_pos __E
-  | _ -> true__
+  | _ -> true
 let rec maybe_paren (__E) l =
   if needs_parens_in_arg_pos __E then paren l else l
 let rec maybe_sparen (__S) l =

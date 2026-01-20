@@ -37,18 +37,18 @@ module MemoTable(MemoTable:sig
     let rec delete x (__L : ctx) =
       let rec del __0__ __1__ __2__ =
         match (__0__, __1__, __2__) with
-        | (x, [], __L) -> NONE
+        | (x, [], __L) -> None
         | (x, ((y, __E) as H)::__L, __L') ->
             if x = y
             then Some ((y, __E), ((rev __L') @ __L))
             else del (x, __L, (__H :: __L')) in
       match del (x, (!__L), []) with
-      | NONE -> NONE
+      | None -> None
       | Some ((y, __E), __L') -> (__L := __L'; Some (y, __E))
     let rec member x (__L : ctx) =
       let rec memb __3__ __4__ =
         match (__3__, __4__) with
-        | (x, []) -> NONE
+        | (x, []) -> None
         | (x, ((y, __E)::__L as H)) ->
             if x = y then Some (y, __E) else memb (x, __L) in
       memb (x, (!__L))
@@ -93,7 +93,7 @@ module MemoTable(MemoTable:sig
     exception DifferentSpines 
     let rec emptyAnswer () = T.emptyAnsw ()
     let (answList : TableParam.answer list ref) = ref []
-    let added = ref false__
+    let added = ref false
     type nonrec nvar = int
     type nonrec bvar = int
     type nonrec bdepth = int
@@ -127,7 +127,7 @@ module MemoTable(MemoTable:sig
               (ctxToAVarSub (__G', __D, s)))
     let rec solveEqn' __21__ __22__ =
       match (__21__, __22__) with
-      | ((T.Trivial, s), __G) -> true__
+      | ((T.Trivial, s), __G) -> true
       | ((Unify (((__G', e1, __N, eqns))(* evar *)), s),
          __G) ->
           let G'' = compose (__G', __G) in
@@ -141,44 +141,44 @@ module MemoTable(MemoTable:sig
       | (Dec (_, __U), Dec (_, __U')) ->
           Conv.conv ((__U, I.id), (__U', I.id))
       | (ADec (_, d), ADec (_, d')) -> d = d'
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec equalCtx __25__ __26__ __27__ __28__ =
       match (__25__, __26__, __27__, __28__) with
-      | (I.Null, s, I.Null, s') -> true__
+      | (I.Null, s, I.Null, s') -> true
       | (Decl (__G, __D), s, Decl (__G', __D'), s') ->
           (Conv.convDec ((__D, s), (__D', s'))) &&
             (equalCtx (__G, (I.dot1 s), __G', (I.dot1 s')))
-      | (_, _, _, _) -> false__
+      | (_, _, _, _) -> false
     let rec equalEqn __29__ __30__ =
       match (__29__, __30__) with
-      | (T.Trivial, T.Trivial) -> true__
+      | (T.Trivial, T.Trivial) -> true
       | (Unify (__G, __X, __N, eqn), Unify (__G', __X', __N', eqn')) ->
           (equalCtx (__G, I.id, __G', I.id)) &&
             ((Conv.conv ((__X, I.id), (__X', I.id))) &&
                ((Conv.conv ((__N, I.id), (__N', I.id))) &&
                   (equalEqn (eqn, eqn'))))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec equalSub __31__ __32__ =
       match (__31__, __32__) with
       | (Shift k, Shift k') -> k = k'
       | (Dot (__F, __S), Dot (__F', __S')) ->
           (equalFront (__F, __F')) && (equalSub (__S, __S'))
-      | (Dot (__F, __S), Shift k) -> false__
-      | (Shift k, Dot (__F, __S)) -> false__
+      | (Dot (__F, __S), Shift k) -> false
+      | (Shift k, Dot (__F, __S)) -> false
     let rec equalFront __33__ __34__ =
       match (__33__, __34__) with
       | (Idx n, Idx n') -> n = n'
       | (Exp (__U), Exp (__V)) -> Conv.conv ((__U, I.id), (__V, I.id))
-      | (I.Undef, I.Undef) -> true__
+      | (I.Undef, I.Undef) -> true
     let rec equalSub1 (Dot (ms, s)) (Dot (ms', s')) = equalSub (s, s')
     let rec equalCtx' __35__ __36__ =
       match (__35__, __36__) with
-      | (I.Null, I.Null) -> true__
+      | (I.Null, I.Null) -> true
       | (Decl (Dk, Dec (_, __A)), Decl (__D1, Dec (_, __A1))) ->
           (Conv.conv ((__A, I.id), (__A1, I.id))) && (equalCtx' (Dk, __D1))
       | (Decl (Dk, ADec (_, d')), Decl (__D1, ADec (_, d))) ->
           (d = d') && (equalCtx' (Dk, __D1))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec compareCtx (__G) (__G') = equalCtx' (__G, __G')
     let rec isExists d (BVar k) (__D) = member ((k - d), __D)
     let rec compHeads __37__ __38__ =
@@ -187,13 +187,13 @@ module MemoTable(MemoTable:sig
       | ((D_1, Def k), (D_2, Def k')) -> k = k'
       | ((D_1, BVar k), (D_2, BVar k')) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | NONE -> k = k'
-           | Some (x, Dec) -> true__)
+           | None -> k = k'
+           | Some (x, Dec) -> true)
       | ((D_1, BVar k), (D_2, __H2)) ->
           (match isExists (0, (I.BVar k), D_1) with
-           | NONE -> false__
-           | Some (x, Dec) -> true__)
-      | ((D_1, __H1), (D_2, __H2)) -> false__
+           | None -> false
+           | Some (x, Dec) -> true)
+      | ((D_1, __H1), (D_2, __H2)) -> false
     let rec compatible' (D_t, __T) (D_u, __U) (__Ds) rho_t rho_u =
       let rec genNVar (rho_t, __T) (rho_u, __U) =
         S.insert rho_t (((!nctr) + 1), __T);
@@ -220,7 +220,7 @@ module MemoTable(MemoTable:sig
                 let k1 = k - d in
                 let k2 = k' - d in
                 (((match ((member (k1, D_t)), (member (k2, D_u))) with
-                   | (NONE, NONE) ->
+                   | (None, None) ->
                        if k1 = k2
                        then
                          (try
@@ -317,13 +317,13 @@ module MemoTable(MemoTable:sig
                            choose :=
                              ((fun match__ ->
                                  restc match__; if match__ then () else ()))))
-                 | NONE -> S.insert rho_u (nv, __U))
+                 | None -> S.insert rho_u (nv, __U))
                (* note by invariant Glocal_e ~ Glocal_t *)
                (* here Glocal_t will be only approximately correct! *))) in
       ((if isId rho_t
-        then ((!) choose true__; VariantSub (D_r2, rho_u))
+        then ((!) choose true; VariantSub (D_r2, rho_u))
         else
-          ((((!) choose false__;
+          ((((!) choose false;
              if isId sigma
              then NoCompatibleSub
              else SplitSub ((Dsigma, sigma), (D_r1, rho_t), (D_r2, rho_u))))
@@ -345,7 +345,7 @@ module MemoTable(MemoTable:sig
               [ref (Leaf (Drho2, (ref [GR2]))); ref (Leaf (Drho1, GRlist))])
     let rec compatibleCtx __58__ __59__ =
       match (__58__, __59__) with
-      | ((__G, eqn), []) -> NONE
+      | ((__G, eqn), []) -> None
       | ((__G, eqn), (l', __G', eqn', answRef', _, status')::GRlist) ->
           if (equalCtx' (__G, __G')) && (equalEqn (eqn, eqn'))
           then Some (l', answRef', status')
@@ -388,26 +388,26 @@ module MemoTable(MemoTable:sig
       | (Const k, Const k') -> k = k'
       | (BVar k, BVar k') -> k = k'
       | (Def k, Def k') -> k = k'
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec eqTerm __69__ __70__ =
       match (__69__, __70__) with
       | (Root (__H2, __S2), ((Root (__H, __S) as t), rho1)) ->
           if eqHeads (__H2, __H)
           then eqSpine (__S2, (__S, rho1))
-          else false__
+          else false
       | (__T2, (NVar n, rho1)) ->
           (match S.lookup rho1 n with
-           | NONE -> false__
+           | None -> false
            | Some (__T1) -> eqTerm (__T2, (__T1, (nid ()))))
       | (Lam (__D2, __T2), (Lam (__D, __T), rho1)) ->
           eqTerm (__T2, (__T, rho1))
-      | (_, (_, _)) -> false__
+      | (_, (_, _)) -> false
     let rec eqSpine __71__ __72__ =
       match (__71__, __72__) with
-      | (I.Nil, (I.Nil, rho1)) -> true__
+      | (I.Nil, (I.Nil, rho1)) -> true
       | (App (__T2, __S2), (App (__T, __S), rho1)) ->
           (eqTerm (__T2, (__T, rho1))) && (eqSpine (__S2, (__S, rho1)))
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec divergingSub (__Ds, sigma) (Dr1, rho1) (Dr2, rho2) =
       S.exists rho2
         (fun n2 ->
@@ -419,7 +419,7 @@ module MemoTable(MemoTable:sig
         | ((Leaf ((__D, _), GRlistRef) as N), (D_u, nsub_u),
            (((evarl, l), G_r, eqn, answRef, stage, status) as GR)) ->
             (match compatibleCtx ((G_r, eqn), (!GRlistRef)) with
-             | NONE ->
+             | None ->
                  ((if
                      (!TableParam.divHeuristic) &&
                        (divergingCtx (stage, G_r, GRlistRef))
@@ -489,10 +489,10 @@ module MemoTable(MemoTable:sig
     let rec answCheckVariant s' answRef (__O) =
       let rec member __78__ __79__ =
         match (__78__, __79__) with
-        | ((__D, sk), []) -> false__
+        | ((__D, sk), []) -> false
         | ((__D, sk), ((__D1, s1), _)::__S) ->
             if (equalSub (sk, s1)) && (equalCtx' (__D, __D1))
-            then true__
+            then true
             else member ((__D, sk), __S) in
       let (DEVars, sk) = A.abstractAnswSub s' in
       if member ((DEVars, sk), (T.solutions answRef))
@@ -506,7 +506,7 @@ module MemoTable(MemoTable:sig
              n := 0;
              (!) ((:=) Tree) (makeTree ());
              answList := [];
-             added := false__;
+             added := false;
              (n, Tree)) indexArray
     let rec makeCtx __80__ __81__ __82__ =
       match (__80__, __81__, __82__) with
@@ -535,7 +535,7 @@ module MemoTable(MemoTable:sig
       match result with
       | (sf, NewEntry answRef) ->
           (sf ();
-           added := true__;
+           added := true;
            if (!Global.chatter) >= 5 then print "\t -- Add goal \n" else ();
            T.NewEntry answRef)
       | (_, RepeatedEntry (((_, asub) as s), answRef, status)) ->
@@ -545,7 +545,7 @@ module MemoTable(MemoTable:sig
            T.RepeatedEntry ((esub, asub), answRef, status))
       | (sf, DivergingEntry answRef) ->
           (sf ();
-           added := true__;
+           added := true;
            if (!Global.chatter) >= 5
            then print "\t -- Add diverging goal\n"
            else ();
@@ -566,7 +566,7 @@ module MemoTable(MemoTable:sig
             ((l, (n + 1)), __G, eqn, answRef, (!TableParam.stageCtr), status)) in
       match result with
       | (sf, NewEntry answRef) ->
-          (added := true__;
+          (added := true;
            if (!Global.chatter) >= 5 then print "\t -- Add goal \n" else ();
            T.NewEntry answRef)
       | (_, RepeatedEntry (asub, answRef, status)) ->
@@ -576,7 +576,7 @@ module MemoTable(MemoTable:sig
            T.RepeatedEntry (asub, answRef, status))
       | (sf, DivergingEntry answRef) ->
           (sf ();
-           added := true__;
+           added := true;
            if (!Global.chatter) >= 5
            then print "\t -- Add diverging goal\n"
            else ();
@@ -590,11 +590,11 @@ module MemoTable(MemoTable:sig
             let l = length (T.solutions answRef) in
             ((if (=) l T.lookup answRef
               then update AList Flag
-              else (T.updateAnswLookup (l, answRef); update AList true__))
+              else (T.updateAnswLookup (l, answRef); update AList true))
               (* no new solutions were added in the previous stage *)
               (* new solutions were added *)) in
-      let Flag = update (!answList) false__ in
-      let r = Flag || (!added) in added := false__; r
+      let Flag = update (!answList) false in
+      let r = Flag || (!added) in added := false; r
     let reset = reset
     let callCheck (DAVars) (DEVars) (__G) (__U) eqn status =
       callCheck
@@ -610,7 +610,7 @@ module MemoTable(MemoTable:sig
     let rec memberCtx (__G, __V) (__G') =
       let rec memberCtx' __7__ __8__ __9__ =
         match (__7__, __8__, __9__) with
-        | ((__G, __V), I.Null, n) -> NONE
+        | ((__G, __V), I.Null, n) -> None
         | ((__G, __V), Decl (__G', (Dec (_, __V') as D')), n) ->
             if Conv.conv ((__V, I.id), (__V', (I.Shift n)))
             then Some __D'

@@ -344,10 +344,10 @@ module Recursion(Recursion:sig
           ((valOf (ModeTable.modeLookup c1)),
             ((__S1, s1), ((I.constType c1), I.id)),
             ((__S2, s2), ((I.constType c2), I.id)))
-      else false__(* s1 = s2 = id *)
+      else false(* s1 = s2 = id *)
     let rec inputConvSpine __65__ __66__ __67__ =
       match (__65__, __66__, __67__) with
-      | (ModeSyn.Mnil, ((__S1, _), _), ((__S2, _), _)) -> true__
+      | (ModeSyn.Mnil, ((__S1, _), _), ((__S2, _), _)) -> true
       | (mS, ((SClo (__S1, s1'), s1), __Vs1), (__Ss2, __Vs2)) ->
           inputConvSpine
             (mS, ((__S1, (I.comp (s1', s1))), __Vs1), (__Ss2, __Vs2))
@@ -383,7 +383,7 @@ module Recursion(Recursion:sig
             compExpW ((Whnf.whnf __Vs1), (Whnf.whnf __Vs2))
           and compExpW __68__ __69__ =
             match (__68__, __69__) with
-            | (__Vs1, (Root _, _)) -> false__
+            | (__Vs1, (Root _, _)) -> false
             | (((__V1, s1) as Vs1), (Pi ((__D2, _), __V2), s2)) ->
                 (compDec (__Vs1, (__D2, s2))) ||
                   (compExp

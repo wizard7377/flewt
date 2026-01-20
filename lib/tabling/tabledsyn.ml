@@ -25,19 +25,19 @@ module TabledSyn(TabledSyn:sig
     module I = IntSyn
     let (tabledSignature : bool Table.__Table) = Table.new__ 0
     let rec reset () = Table.clear tabledSignature
-    let rec installTabled a = Table.insert tabledSignature (a, false__)
+    let rec installTabled a = Table.insert tabledSignature (a, false)
     let rec installKeepTable a =
-      ((Table.insertShadow tabledSignature (a, true__); ())
+      ((Table.insertShadow tabledSignature (a, true); ())
       (* Table.delete tabledSignature a; *))
     let rec tabledLookup a =
       match Table.lookup tabledSignature a with
-      | NONE -> false__
-      | Some _ -> true__
+      | None -> false
+      | Some _ -> true
     let rec keepTable a =
       match Table.lookup tabledSignature a with
-      | NONE -> false__
-      | Some true__ -> true__
-      | Some false__ -> false__
+      | None -> false
+      | Some true -> true
+      | Some false -> false
     let reset = reset
     let installTabled = installTabled
     let installKeepTable = installKeepTable

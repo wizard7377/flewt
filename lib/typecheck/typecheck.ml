@@ -38,7 +38,7 @@ module TypeCheck(TypeCheck:sig
       match (__2__, __3__) with
       | (__G, LVar ({ contents = Some (__B) }, sk, (l, t))) ->
           LVarToString (__G, (I.blockSub (__B, sk)))
-      | (__G, LVar ({ contents = NONE }, sk, (cid, t))) ->
+      | (__G, LVar ({ contents = None }, sk, (cid, t))) ->
           ((^) (((^) "#" I.conDecName (I.sgnLookup cid)) ^ "[") subToString
              (__G, t))
             ^ "]"(* whnf for Blocks ? Sun Dec  1 11:38:17 2002 -cs *)

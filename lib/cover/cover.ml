@@ -190,10 +190,10 @@ module Cover(Cover:sig
       Unify.unifiable (__G, __Us1, __Us2)
     let rec matchEqns =
       function
-      | nil -> true__
+      | nil -> true
       | (Eqn (__G, __Us1, ((__U2, s2) as Us2)))::es ->
           ((match Whnf.makePatSub s2 with
-            | NONE -> unifiable (__G, __Us1, __Us2)
+            | None -> unifiable (__G, __Us1, __Us2)
             | Some s2' -> unifiable (__G, __Us1, (__U2, s2')))
             (* constraints will be left in this case *)) &&
             (matchEqns es)(* was: unifiable (G, Us1, Us2) *)(* Sat Dec  7 20:59:46 2002 -fp *)
@@ -530,7 +530,7 @@ module Cover(Cover:sig
       | (nil, ksn) -> ksn
       | (k::ks, ksn) -> join (ks, (insert (k, ksn)))
     let rec selectCand =
-      function | Covered -> NONE | CandList klist -> selectCand' (klist, nil)
+      function | Covered -> None | CandList klist -> selectCand' (klist, nil)
       (* success: case is covered! *)
     let rec selectCand' __150__ __151__ =
       match (__150__, __151__) with
@@ -556,7 +556,7 @@ module Cover(Cover:sig
       | ((Pi ((BDec (_, (l, t)), _), __V2), s), p, XsRev) ->
           let __L1 = I.newLVar ((I.Shift 0), (l, (I.comp (t, s)))) in
           ((instEVars
-              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (NONE :: XsRev)))
+              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (None :: XsRev)))
             (* p > 0 *)(* new -fp Sun Dec  1 20:58:06 2002 *)
             (* new -cs  Sun Dec  1 06:27:57 2002 *))
       (* . |- s : G0 *)(* G0 |- t : Gsome *)
@@ -690,25 +690,25 @@ module Cover(Cover:sig
                (fun () ->
                   ((^) "Inactive split:\n" Print.cnstrsToString constrs) ^
                     "\n");
-             NONE))
+             None))
       (* Constraints.Error could be raised by abstract *))
     let rec occursInExp __177__ __178__ =
       match (__177__, __178__) with
-      | (k, Uni _) -> false__
+      | (k, Uni _) -> false
       | (k, Pi (DP, __V)) ->
           (occursInDecP (k, DP)) || (occursInExp ((k + 1), __V))
       | (k, Root (__H, __S)) ->
           (occursInHead (k, __H)) || (occursInSpine (k, __S))
       | (k, Lam (__D, __V)) ->
           (occursInDec (k, __D)) || (occursInExp ((k + 1), __V))
-      | (k, FgnExp (cs, ops)) -> false__
+      | (k, FgnExp (cs, ops)) -> false
     let rec occursInHead __179__ __180__ =
       match (__179__, __180__) with
       | (k, BVar k') -> k = k'
-      | (k, _) -> false__
+      | (k, _) -> false
     let rec occursInSpine __181__ __182__ =
       match (__181__, __182__) with
-      | (_, I.Nil) -> false__
+      | (_, I.Nil) -> false
       | (k, App (__U, __S)) ->
           (occursInExp (k, __U)) || (occursInSpine (k, __S))
     let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
@@ -719,7 +719,7 @@ module Cover(Cover:sig
       | (k, Root (__H, __S), ci) -> occursInMatchPosSpine (k, __S, ci)
     let rec occursInMatchPosSpine __186__ __187__ __188__ =
       match (__186__, __187__, __188__) with
-      | (k, I.Nil, Cnil) -> false__
+      | (k, I.Nil, Cnil) -> false
       | (k, App (__U, __S), Match ci) ->
           (occursInExp (k, __U)) || (occursInMatchPosSpine (k, __S, ci))
       | (k, App (__U, __S), Skip ci) -> occursInMatchPosSpine (k, __S, ci)
@@ -731,7 +731,7 @@ module Cover(Cover:sig
       | ((Pi ((Dec (xOpt, __V1), _), __V2), s), p, XsRev, ci) ->
           let __X1 = Whnf.newLoweredEVar (I.Null, (__V1, s)) in
           let EVarOpt =
-            if occursInMatchPos (1, __V2, ci) then Some __X1 else NONE in
+            if occursInMatchPos (1, __V2, ci) then Some __X1 else None in
           ((instEVarsSkip
               ((__V2, (I.Dot ((I.Exp __X1), s))), (p - 1),
                 (EVarOpt :: XsRev), ci))
@@ -740,17 +740,17 @@ module Cover(Cover:sig
       | ((Pi ((BDec (_, (l, t)), _), __V2), s), p, XsRev, ci) ->
           let __L1 = I.newLVar ((I.Shift 0), (l, (I.comp (t, s)))) in
           ((instEVarsSkip
-              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (NONE :: XsRev),
+              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (None :: XsRev),
                 ci))
             (* p > 0 *)(* -fp Sun Dec  1 21:09:38 2002 *)
             (* -cs Sun Dec  1 06:30:59 2002 *))(* . |- s : G0 *)
       (* G0 |- t : Gsome *)
     let rec targetBelowEq __193__ __194__ =
       match (__193__, __194__) with
-      | (a, EVar ({ contents = NONE }, GY, VY, { contents = nil })) ->
+      | (a, EVar ({ contents = None }, GY, VY, { contents = nil })) ->
           Subordinate.belowEq (a, (I.targetFam VY))
-      | (a, EVar ({ contents = NONE }, GY, VY, { contents = _::_ })) ->
-          true__(* if contraints remain, consider recursive and thereby unsplittable *)
+      | (a, EVar ({ contents = None }, GY, VY, { contents = _::_ })) ->
+          true(* if contraints remain, consider recursive and thereby unsplittable *)
     let rec recursive =
       function
       | EVar ({ contents = Some (__U) }, GX, VX, _) as X ->
@@ -789,7 +789,7 @@ module Cover(Cover:sig
     let rec finitarySplits __195__ __196__ __197__ __198__ __199__ =
       match (__195__, __196__, __197__, __198__, __199__) with
       | (nil, k, __W, f, cands) -> cands
-      | ((NONE)::__Xs, k, __W, f, cands) ->
+      | ((None)::__Xs, k, __W, f, cands) ->
           finitarySplits (__Xs, (k + 1), __W, f, cands)
       | ((Some (__X))::__Xs, k, __W, f, cands) ->
           finitarySplits
@@ -810,7 +810,7 @@ module Cover(Cover:sig
           eqInpSpine (ms, (__S1, (I.comp (s1', s1))), __Ss2)
       | (ms, __Ss1, (SClo (__S2, s2'), s2)) ->
           eqInpSpine (ms, __Ss1, (__S2, (I.comp (s2', s2))))
-      | (M.Mnil, (I.Nil, s), (I.Nil, s')) -> true__
+      | (M.Mnil, (I.Nil, s), (I.Nil, s')) -> true
       | (Mapp (Marg (M.Plus, _), ms'), (App (__U, __S), s),
          (App (__U', __S'), s')) ->
           (eqExp ((__U, s), (__U', s'))) &&
@@ -835,7 +835,7 @@ module Cover(Cover:sig
       | (I.Null, k) -> nil
       | (Decl (__G', Dec (_, Root (Const a, __S))), k) ->
           (match UniqueTable.modeLookup a with
-           | NONE -> contractionCands (__G', (k + 1))
+           | None -> contractionCands (__G', (k + 1))
            | Some ms ->
                (match eqInp (__G', (k + 1), a, (__S, (I.Shift k)), ms) with
                 | nil -> contractionCands (__G', (k + 1))
@@ -858,7 +858,7 @@ module Cover(Cover:sig
           unifyUOutSpine (ms, (__S1, (I.comp (s1', s1))), __Ss2)
       | (ms, __Ss1, (SClo (__S2, s2'), s2)) ->
           unifyUOutSpine (ms, __Ss1, (__S2, (I.comp (s2', s2))))
-      | (M.Mnil, (I.Nil, s1), (I.Nil, s2)) -> true__
+      | (M.Mnil, (I.Nil, s1), (I.Nil, s2)) -> true
       | (Mapp (Marg (M.Minus1, _), ms'), (App (__U1, __S1), s1),
          (App (__U2, __S2), s2)) ->
           (((Unify.unifiable (I.Null, (__U1, s1), (__U2, s2))) &&
@@ -880,18 +880,18 @@ module Cover(Cover:sig
         ((List.nth (XsRev, (k1 - 1))), (List.nth (XsRev, (k2 - 1))))
     let rec unifyUOut1 __216__ __217__ =
       match (__216__, __217__) with
-      | (XsRev, nil) -> true__
-      | (XsRev, k1::nil) -> true__
+      | (XsRev, nil) -> true
+      | (XsRev, k1::nil) -> true
       | (XsRev, k1::k2::ks) ->
           (unifyUOut2 (XsRev, k1, k2)) && (unifyUOut1 (XsRev, (k2 :: ks)))
     let rec unifyUOut __218__ __219__ =
       match (__218__, __219__) with
-      | (XsRev, nil) -> true__
+      | (XsRev, nil) -> true
       | (XsRev, ks::kss) ->
           (unifyUOut1 (XsRev, ks)) && (unifyUOut (XsRev, kss))
     let rec contractAll (__V) p ucands =
       let ((__V1, s), XsRev) = instEVars ((__V, I.id), p, nil) in
-      ((if unifyUOut (XsRev, ucands) then Some (abstract (__V1, s)) else NONE)
+      ((if unifyUOut (XsRev, ucands) then Some (abstract (__V1, s)) else None)
         (* as in splitVar, may raise Constraints.Error *)
         (* as in splitVar *)(* unique outputs not simultaneously unifiable *))
     let rec contract (__V) p ci lab =
@@ -920,7 +920,7 @@ module Cover(Cover:sig
         (* no progress if constraints remain *)) in
       let _ =
         match VpOpt' with
-        | NONE ->
+        | None ->
             chatter 6
               (fun () -> "Case impossible: conflicting unique outputs\n")
         | Some (__V', p') ->
@@ -945,12 +945,12 @@ module Cover(Cover:sig
           split
             (__V, p, (selectCand (match__ (I.Null, __V, p, ci, ccs))), wci,
               ccs, lab, missing)
-      | (NONE, wci, ccs, lab, missing) ->
+      | (None, wci, ccs, lab, missing) ->
           (chatter 6 (fun () -> "Covered\n"); missing)(* V is covered by unique output inconsistency *)
     let rec split __227__ __228__ __229__ __230__ __231__ __232__ __233__ =
       match (__227__, __228__, __229__, __230__, __231__, __232__, __233__)
       with
-      | (__V, p, NONE, wci, ccs, lab, missing) ->
+      | (__V, p, None, wci, ccs, lab, missing) ->
           (chatter 6 (fun () -> "Covered\n"); missing)
       | (__V, p, Some nil, ((__W, ci) as wci), ccs, lab, missing) ->
           (chatter 6
@@ -962,7 +962,7 @@ module Cover(Cover:sig
           ->
           (((match splitVar (__V, p, k, wci) with
              | Some cases -> covers (cases, wci, ccs, lab, missing)
-             | NONE -> split (__V, p, (Some ksn), wci, ccs, lab, missing)))
+             | None -> split (__V, p, (Some ksn), wci, ccs, lab, missing)))
           (* splitting variable k generated constraints *))
       (* splitVar shows splitting as it happens *)(* candidates are in reverse order, so non-index candidates are split first *)
       (* some candidates: split first candidate, ignoring multiplicities *)
@@ -1227,7 +1227,7 @@ module Cover(Cover:sig
       function
       | Shift 0 -> nil
       | Dot (Exp (__X), s) -> (::) (Some __X) subToXsRev s
-      | Dot (_, s) -> (::) NONE subToXsRev s(* n = 0 *)
+      | Dot (_, s) -> (::) None subToXsRev s(* n = 0 *)
     let (caseList : __CoverGoal list ref) = ref nil
     let rec resetCases () = caseList := nil
     let rec addCase cg = (!) ((::) (caseList := cg)) caseList
@@ -1250,7 +1250,7 @@ module Cover(Cover:sig
                (fun () ->
                   ((^) "Inactive split:\n" Print.cnstrsToString constrs) ^
                     "\n");
-             NONE))
+             None))
       (* Constraints.Error could be raised by abstract *))
     let rec finitary (CGoal (__G, __S)) w =
       let s = newEVarSubst (I.Null, __G) in
@@ -1263,7 +1263,7 @@ module Cover(Cover:sig
       let XsRev = subToXsRev s in
       ((if unifyUOut (XsRev, ucands)
         then Some (abstractSpine (__S, s))
-        else NONE)
+        else None)
         (* as in splitVar, may raise Constraints.Error *)
         (* for unif, EVars are always global *))
     let rec contract (CGoal (__G, __S) as cg) lab =
@@ -1291,7 +1291,7 @@ module Cover(Cover:sig
         (* no progress if constraints remain *)) in
       let _ =
         match cgOpt' with
-        | NONE ->
+        | None ->
             chatter 6
               (fun () -> "Case impossible: conflicting unique outputs\n")
         | Some cg' ->
@@ -1307,11 +1307,11 @@ module Cover(Cover:sig
           let cand = selectCand cands in
           ((split (cg, cand, w, ccs, lab, missing))
             (* determine splitting candidates *)(* select one candidate *))
-      | (NONE, w, ccs, lab, missing) ->
+      | (None, w, ccs, lab, missing) ->
           (chatter 6 (fun () -> "Covered\n"); missing)(* cg is covered by unique output inconsistency *)
     let rec split __18__ __19__ __20__ __21__ __22__ __23__ =
       match (__18__, __19__, __20__, __21__, __22__, __23__) with
-      | (cg, NONE, w, ccs, lab, missing) ->
+      | (cg, None, w, ccs, lab, missing) ->
           (chatter 6 (fun () -> "Covered\n"); missing)
       | (cg, Some nil, w, ccs, lab, missing) ->
           (chatter 6
@@ -1322,7 +1322,7 @@ module Cover(Cover:sig
           (chatter 6 (fun () -> ((^) "Splitting on " Int.toString k) ^ "\n");
            (match splitVar (cg, k, w) with
             | Some cases -> covers (cases, w, ccs, lab, missing)
-            | NONE ->
+            | None ->
                 (chatter 6
                    (fun () ->
                       "Splitting failed due to generated constraints\n");

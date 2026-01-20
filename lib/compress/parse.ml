@@ -44,12 +44,12 @@ module Parse =
     let rec vardecToString __0__ __1__ =
       match (__0__, __1__) with
       | (v, Some t) -> (v ^ ":") ^ (termToString t)
-      | (v, NONE) -> v
-    let id = maybe (function | ID s -> Some s | _ -> NONE)
+      | (v, None) -> v
+    let id = maybe (function | ID s -> Some s | _ -> None)
     let rec swap x y = (y, x)
     let rec vardec () =
       (||) ((` ((<<) id) COLON) && (($) term wth Some)) id wth
-        (fun s -> (s, NONE))
+        (fun s -> (s, None))
     let rec term () =
       parsefixityadj
         (alt

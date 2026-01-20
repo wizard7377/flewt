@@ -44,11 +44,11 @@ module Print(Print:sig
   struct
     module Formatter = Formatter'
     module Tomega = Tomega
-    let implicit = ref false__
-    let printInfix = ref false__
-    let printDepth = ref (NONE : int option)
-    let printLength = ref (NONE : int option)
-    let noShadow = ref false__
+    let implicit = ref false
+    let printInfix = ref false
+    let printDepth = ref (None : int option)
+    let printLength = ref (None : int option)
+    let noShadow = ref false
     module I = IntSyn
     module FX = Names.Fixity
     module F = Formatter
@@ -65,15 +65,15 @@ module Print(Print:sig
     let Str = F.String
     let rec Str0 s n = F.String0 n s
     let rec sym s = Str0 (Symbol.sym s)
-    let rec nameOf = function | Some id -> id | NONE -> "_"
+    let rec nameOf = function | Some id -> id | None -> "_"
     let rec fmtEVar (__G) (__X) =
       Str0 (Symbol.evar (Names.evarName (__G, __X)))
     let rec fmtAVar (__G) (__X) =
       Str0 (Symbol.evar ((Names.evarName (__G, __X)) ^ "_"))
     let rec isNil =
       function
-      | I.Nil -> true__
-      | App _ -> false__
+      | I.Nil -> true
+      | App _ -> false
       | SClo (__S, _) -> isNil __S
     let rec subToSpine depth s =
       let rec sTS __0__ __1__ =
@@ -119,7 +119,7 @@ module Print(Print:sig
       | (i, I.Nil, n) -> TooFew(* n >= 1 *)
     let rec exceeded __11__ __12__ =
       match (__11__, __12__) with
-      | (_, NONE) -> false__
+      | (_, None) -> false
       | ((n : int), Some (m : int)) -> n >= m
     type ctxt =
       | Ctxt of (FX.fixity * F.format list * int) 
@@ -170,14 +170,14 @@ module Print(Print:sig
       let (Gsome, Gblock) = I.constBlock cid in
       match parmDec (Gblock, i) with
       | Dec (Some pname, _) -> pname
-      | Dec (NONE, _) -> Int.toString i
+      | Dec (None, _) -> Int.toString i
     let rec projName __15__ __16__ =
       match (__15__, __16__) with
       | (__G, Proj (Bidx k, i)) ->
           let BDec (Some bname, (cid, t)) = I.ctxLookup (__G, k) in
           (((^) (bname ^ "_") parmName (cid, i))
             (* names should have been assigned by invar
-         iant, NONE imppossible *))
+         iant, None imppossible *))
       | (__G, Proj (LVar (r, _, (cid, t)), i)) -> (^) "_" parmName (cid, i)
       | (__G, Proj (Inst iota, i)) -> "*"(* no longer Tue Mar  1 13:32:21 2011 -cs *)
       (* note: this obscures LVar identity! *)
@@ -207,7 +207,7 @@ module Print(Print:sig
       | (__G, (Proj (Bidx k, i) as H)) ->
           Str0 (Symbol.const (projName (__G, __H)))
       | (__G,
-         (Proj (LVar (({ contents = NONE } as r), sk, (cid, t)), i) as H)) ->
+         (Proj (LVar (({ contents = None } as r), sk, (cid, t)), i) as H)) ->
           let n = lookuplvar r in
           ((fmtConstPath
               ((fun l0 ->
@@ -219,7 +219,7 @@ module Print(Print:sig
           let name = I.conDecName conDec in
           (((match ((Names.constLookup (Names.Qid (nil, name))), (!noShadow))
              with
-             | (Some _, false__) -> Str0 (Symbol.const (("%" ^ name) ^ "%"))
+             | (Some _, false) -> Str0 (Symbol.const (("%" ^ name) ^ "%"))
              | _ -> Str0 (Symbol.const name)))
             (* the user has re-defined this name *)(* will need to be changed if qualified constraint constant
              names are introduced... anyway, why should the user be
@@ -241,10 +241,10 @@ module Print(Print:sig
       | (App (__U1, __S), s) -> fst (__S, s)
       | (SClo (__S, s'), s) -> snd (__S, (I.comp (s', s)))
     let rec elide l =
-      match !printLength with | NONE -> false__ | Some l' -> l > l'
+      match !printLength with | None -> false | Some l' -> l > l'
     let ldots = sym "..."
     let rec addots l =
-      match !printLength with | NONE -> false__ | Some l' -> l = l'
+      match !printLength with | None -> false | Some l' -> l = l'
     let rec parens (fixity', fixity) fmt =
       if FX.leq ((FX.prec fixity), (FX.prec fixity'))
       then F.Hbox [sym "("; fmt; sym ")"]
@@ -255,7 +255,7 @@ module Print(Print:sig
       | (Infix (p, FX.Right), Infix (p', FX.Right)) -> p = p'
       | (Prefix p, Prefix p') -> p = p'
       | (Postfix p, Postfix p') -> p = p'
-      | _ -> false__(* Nonfix should never be asked *)
+      | _ -> false(* Nonfix should never be asked *)
       (* Infix(_,None) should never be asked *)
     let rec addAccum __25__ __26__ __27__ =
       match (__25__, __26__, __27__) with
@@ -769,7 +769,7 @@ module Print(Print:sig
     let rec collectConstraints =
       function
       | nil -> nil
-      | (EVar ({ contents = NONE }, _, _, cnstrs))::__Xs ->
+      | (EVar ({ contents = None }, _, _, cnstrs))::__Xs ->
           mergeConstraints
             ((Constraints.simplify (!cnstrs)), (collectConstraints __Xs))
       | _::__Xs -> collectConstraints __Xs
@@ -779,8 +779,8 @@ module Print(Print:sig
       F.HVbox (fmtDecList' (__G, (__D, s)))
     let rec formatExp (__G) (__U) = fmtExp (__G, 0, noCtxt, (__U, I.id))
     let rec formatSpine (__G) (__S) = fmtSpine (__G, 0, 0, (__S, I.id))
-    let rec formatConDec condec = fmtConDec (false__, condec)
-    let rec formatConDecI condec = fmtConDec (true__, condec)
+    let rec formatConDec condec = fmtConDec (false, condec)
+    let rec formatConDecI condec = fmtConDec (true, condec)
     let rec formatCnstr (Cnstr) = F.Vbox0 0 1 (fmtCnstr Cnstr)
     let rec formatCnstrs cnstrL = F.Vbox0 0 1 (fmtCnstrL cnstrL)
     let rec formatCtx (__G0) (__G) = F.HVbox (fmtCtx (__G0, __G))
@@ -796,7 +796,7 @@ module Print(Print:sig
     let rec evarCnstrsToStringOpt (Xnames) =
       let __Ys = collectEVars (Xnames, nil) in
       let cnstrL = collectConstraints __Ys in
-      ((match cnstrL with | nil -> NONE | _ -> Some (cnstrsToString cnstrL))
+      ((match cnstrL with | nil -> None | _ -> Some (cnstrsToString cnstrL))
         (* collect EVars in instantiations *))
     let rec printSgn () =
       IntSyn.sgnApp

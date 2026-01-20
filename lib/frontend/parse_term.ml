@@ -49,7 +49,7 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
       | (L.Lower, ids, name, r) -> ExtSyn.lcid (ids, name, r)
       | (L.Upper, ids, name, r) -> ExtSyn.ucid (ids, name, r)
       | (L.Quoted, ids, name, r) -> ExtSyn.quid (ids, name, r)
-    let rec isQuoted = function | L.Quoted -> true__ | _ -> false__
+    let rec isQuoted = function | L.Quoted -> true | _ -> false
     type nonrec stack = ExtSyn.term operator list
     type nonrec opr = ExtSyn.term operator
     module P :
@@ -310,7 +310,7 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
                Parsing.error (r, ("Cannot bind prefix identifier " ^ name))
            | Postfix _ ->
                Parsing.error (r, ("Cannot bind postfix identifier " ^ name)))
-      | Cons ((L.UNDERSCORE, r), s') -> parseDec1 (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseDec1 (None, (LS.expose s'))
       | Cons ((L.EOF, r), s') ->
           Parsing.error (r, "Unexpected end of stream in declaration")
       | Cons ((t, r), s') ->
@@ -321,8 +321,8 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
       match (__28__, __29__) with
       | (x, Cons ((L.COLON, r), s')) ->
           let (tm, f'') = parseExp (s', nil) in ((x, (Some tm)), f'')
-      | (x, (Cons ((L.RBRACE, _), _) as f)) -> ((x, NONE), f)
-      | (x, (Cons ((L.RBRACKET, _), _) as f)) -> ((x, NONE), f)
+      | (x, (Cons ((L.RBRACE, _), _) as f)) -> ((x, None), f)
+      | (x, (Cons ((L.RBRACKET, _), _) as f)) -> ((x, None), f)
       | (x, Cons ((t, r), s')) ->
           Parsing.error
             (r,
@@ -339,7 +339,7 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
       | (r0, ((x, yOpt), Cons ((L.RBRACE, r), s)), p) ->
           let dec =
             match yOpt with
-            | NONE -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
+            | None -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
             | Some y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
           let (tm, f') = parseExp (s, nil) in
           parseExp' (f', (P.shiftAtom ((ExtSyn.pi (dec, tm)), p)))
@@ -350,7 +350,7 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
       | (r0, ((x, yOpt), Cons ((L.RBRACKET, r), s)), p) ->
           let dec =
             match yOpt with
-            | NONE -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
+            | None -> ExtSyn.dec0 (x, (Paths.join (r0, r)))
             | Some y -> ExtSyn.dec (x, y, (Paths.join (r0, r))) in
           let (tm, f') = parseExp (s, nil) in
           parseExp' (f', (P.shiftAtom ((ExtSyn.lam (dec, tm)), p)))
@@ -366,14 +366,14 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
       let (f'', r2) = stripRBrace f' in
       let d =
         match yOpt with
-        | NONE -> ExtSyn.dec0 (x, (Paths.join (r, r2)))
+        | None -> ExtSyn.dec0 (x, (Paths.join (r, r2)))
         | Some y -> ExtSyn.dec (x, y, (Paths.join (r, r2))) in
       (d, f'')
     let rec parseCtx __39__ __40__ __41__ =
       match (__39__, __40__, __41__) with
       | (b, ds, Cons (((L.LBRACE, r), s') as BS)) ->
           let (d, f') = parseBracedDec (r, (LS.expose s')) in
-          parseCtx (false__, (d :: ds), f')
+          parseCtx (false, (d :: ds), f')
       | (b, ds, (Cons ((t, r), s') as f)) ->
           if b
           then Parsing.error (r, ((^) "Expected `{', found " L.toString t))
@@ -387,5 +387,5 @@ module ParseTerm(ParseTerm:sig module ExtSyn' : EXTSYN module Names : NAMES
     let parseCompile' f = parseCompile' (f, nil)
     let parseTerm' f = parseExp' (f, nil)
     let parseDec' = parseDec'
-    let parseCtx' f = parseCtx (true__, nil, f)
+    let parseCtx' f = parseCtx (true, nil, f)
   end ;;

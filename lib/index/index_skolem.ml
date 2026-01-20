@@ -28,7 +28,7 @@ module IndexSkolem(IndexSkolem:sig
            | _ -> ())
     let rec remove a cid =
       match Queue.deleteEnd (Array.sub (indexArray, a)) with
-      | NONE -> ()
+      | None -> ()
       | Some (Const cid', queue') ->
           if cid = cid' then Array.update (indexArray, a, queue') else ()
       | Some (Skonst cid', queue') ->
@@ -50,7 +50,7 @@ module IndexSkolem(IndexSkolem:sig
     let rec lookup a =
       let rec lk __2__ __3__ =
         match (__2__, __3__) with
-        | (l, NONE) -> l
+        | (l, None) -> l
         | (l, Some q') -> (Array.update (indexArray, a, q'); l) in
       lk (Queue.toList (Array.sub (indexArray, a)))
     let reset = reset

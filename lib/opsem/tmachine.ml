@@ -17,7 +17,7 @@ module TMachine(TMachine:sig
       match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec compose __2__ __3__ =
       match (__2__, __3__) with
       | (__G, IntSyn.Null) -> __G
@@ -34,7 +34,7 @@ module TMachine(TMachine:sig
           I.Pi (((I.decSub (__D, s)), I.Maybe), (goalToType (g, (I.dot1 s))))
       | (Impl (_, __A, _, g), s) ->
           I.Pi
-            (((I.Dec (NONE, (I.EClo (__A, s)))), I.No),
+            (((I.Dec (None, (I.EClo (__A, s)))), I.No),
               (goalToType (g, (I.dot1 s))))
       | (Atom p, s) -> I.EClo (p, s)
     let rec solve' __8__ __9__ __10__ =
@@ -43,7 +43,7 @@ module TMachine(TMachine:sig
           matchAtom ((p, s), dp, sc)
       | ((Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
           let Dec (Some x, _) as D' =
-            N.decUName (__G, (I.Dec (NONE, (I.EClo (__A, s))))) in
+            N.decUName (__G, (I.Dec (None, (I.EClo (__A, s))))) in
           let _ = T.signal (__G, (T.IntroHyp (Ha, __D'))) in
           solve'
             ((g, (I.dot1 s)),
@@ -67,18 +67,18 @@ module TMachine(TMachine:sig
       | (ps', (Eq (__Q), s), DProg (__G, dPool), HcHa, sc) ->
           (T.signal (__G, (T.Unify (HcHa, (I.EClo (__Q, s)), (I.EClo ps'))));
            (((match Unify.unifiable' (__G, (__Q, s), ps') with
-              | NONE ->
-                  (((T.signal (__G, (T.Resolved HcHa)); sc I.Nil; true__))
+              | None ->
+                  (((T.signal (__G, (T.Resolved HcHa)); sc I.Nil; true))
                   (* call success continuation *))
               | Some msg ->
-                  (T.signal (__G, (T.FailUnify (HcHa, msg))); false__)))
+                  (T.signal (__G, (T.FailUnify (HcHa, msg))); false)))
            (* effect: instantiate EVars *)(* deep backtracking *)))
       | (ps', (Assign (__Q, eqns), s), (DProg (__G, dPool) as dp), HcHa, sc)
           ->
           (((match Assign.assignable (__G, ps', (__Q, s)) with
              | Some cnstr ->
                  aSolve ((eqns, s), dp, HcHa, cnstr, (fun () -> sc I.Nil))
-             | NONE -> ((false__)
+             | None -> ((false)
                  (* T.signal (G, T.FailUnify (HcHa, "Assignment failed")); *))))
           (* T.signal (G, T.Unify (HcHa, I.EClo (Q, s), I.EClo ps')); *))
       | (ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), HcHa, sc) ->
@@ -111,8 +111,8 @@ module TMachine(TMachine:sig
       match (__16__, __17__, __18__, __19__, __20__) with
       | ((C.Trivial, s), (DProg (__G, dPool) as dp), HcHa, cnstr, sc) ->
           if Assign.solveCnstr cnstr
-          then (T.signal (__G, (T.Resolved HcHa)); sc (); true__)
-          else ((false__)
+          then (T.signal (__G, (T.Resolved HcHa)); sc (); true)
+          else ((false)
             (* T.signal (G, T.FailUnify (HcHa, "Dynamic residual equations failed")); *))
       | ((UnifyEq (__G', e1, __N, eqns), s), (DProg (__G, dPool) as dp),
          HcHa, cnstr, sc) ->
@@ -120,7 +120,7 @@ module TMachine(TMachine:sig
           let s' = shiftSub (__G', s) in
           if Assign.unifiable (G'', (__N, s'), (e1, s'))
           then aSolve ((eqns, s), dp, HcHa, cnstr, sc)
-          else ((false__)
+          else ((false)
             (* T.signal (G, T.FailUnify (HcHa, "Static residual equations failed")); *))
     let rec matchAtom ((Root (Ha, __S), s) as ps') (DProg (__G, dPool) as dp)
       sc =
@@ -255,8 +255,8 @@ module TMachine(TMachine:sig
             CSManager.trail
               (fun () ->
                  match cnstrSolve (__G, (I.SClo (__S, s)), try__) with
-                 | Some (__U) -> (sc __U; true__)
-                 | NONE -> false__) in
+                 | Some (__U) -> (sc __U; true)
+                 | None -> false) in
           if succeeded then matchConstraint (cnstrSolve, (try__ + 1)) else () in
         ((match I.constStatus (cidFromHead Ha) with
           | Constraint (cs, cnstrSolve) -> matchConstraint (cnstrSolve, 0)

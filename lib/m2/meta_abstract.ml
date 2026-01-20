@@ -46,12 +46,12 @@ module MetaAbstract(MetaAbstract:sig
       TypeCheck.typeCheck (__G, (__V, (I.Uni I.Type)))
     let rec modeEq __0__ __1__ =
       match (__0__, __1__) with
-      | (Marg (ModeSyn.Plus, _), M.Top) -> true__
-      | (Marg (ModeSyn.Minus, _), M.Bot) -> true__
-      | _ -> false__
+      | (Marg (ModeSyn.Plus, _), M.Top) -> true
+      | (Marg (ModeSyn.Minus, _), M.Bot) -> true
+      | _ -> false
     let rec atxLookup __2__ __3__ =
       match (__2__, __3__) with
-      | (I.Null, _) -> NONE
+      | (I.Null, _) -> None
       | (Decl (__M, BV), r) -> atxLookup (__M, r)
       | (Decl (__M, (EV (r', _, _) as E)), r) ->
           if r = r' then Some __E else atxLookup (__M, r)
@@ -103,7 +103,7 @@ module MetaAbstract(MetaAbstract:sig
       | (lG0, __G, (EVar (r, GX, __V, cnstrs), s), mode,
          ((__A, depth) as Adepth)) ->
           (match atxLookup (__A, r) with
-           | NONE ->
+           | None ->
                let _ = checkEmpty (!cnstrs) in
                let lGp' = ((I.ctxLength GX) - lG0) + depth in
                let w = weaken (lGp', GX, (I.targetFam __V)) in
@@ -331,7 +331,7 @@ module MetaAbstract(MetaAbstract:sig
             then typecheck ((M.Prefix (__G', __M', __B')), V'')
             else () in
           ((M.Prefix
-              ((I.Decl (__G', (Names.decName (__G', (I.Dec (NONE, V'')))))),
+              ((I.Decl (__G', (Names.decName (__G', (I.Dec (None, V'')))))),
                 (I.Decl (__M', m)),
                 (I.Decl
                    (__B',

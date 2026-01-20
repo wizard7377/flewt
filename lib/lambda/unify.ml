@@ -83,8 +83,8 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
     let rec resume trail = Trail.resume (trail, globalTrail, reset)
     let rec undo =
       function
-      | Instantiate refU -> refU := NONE
-      | InstantiateBlock refB -> refB := NONE
+      | Instantiate refU -> refU := None
+      | InstantiateBlock refB -> refB := None
       | Add ({ contents = cnstr::cnstrL } as cnstrs) -> cnstrs := cnstrL
       | Solve (cnstr, Cnstr) -> cnstr := Cnstr
     let rec reset () = Trail.reset globalTrail
@@ -125,7 +125,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
     let rec resetAwakenCnstrs () = awakenCnstrs := nil
     let rec nextCnstr () =
       match !awakenCnstrs with
-      | nil -> NONE
+      | nil -> None
       | cnstr::cnstrL -> (awakenCnstrs := cnstrL; Some cnstr)
     let rec instantiateEVar refU (__V) cnstrL =
       (:=) refU Some __V;
@@ -431,7 +431,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
                  (* because of strict *)(*  unifyExpW (G, Whnf.expandDef (Us1), Whnf.expandDef (Us2)) *))
              | (Def d1, Const c2) ->
                  (((match defAncestor d1 with
-                    | Anc (_, _, NONE) ->
+                    | Anc (_, _, None) ->
                         unifyExpW (__G, (Whnf.expandDef __Us1), __Us2)
                     | Anc (_, _, Some c1) ->
                         if c1 = c2
@@ -440,7 +440,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
                  (* conservative *))
              | (Const c1, Def d2) ->
                  (((match defAncestor d2 with
-                    | Anc (_, _, NONE) ->
+                    | Anc (_, _, None) ->
                         unifyExpW (__G, __Us1, (Whnf.expandDef __Us2))
                     | Anc (_, _, Some c2) ->
                         if c1 = c2
@@ -512,7 +512,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
                         ((instantiateEVar
                             (r1, (EClo ((newEVar (G1', V1')), s')),
                               (!cnstrs1)))
-                          (* invertExp ((V1, id), s', ref NONE) *)))))
+                          (* invertExp ((V1, id), s', ref None) *)))))
                     (* added for definitions Mon Sep  1 19:53:13 2003 -fp *)
                     (* X[s] = X[s] *)(* compute ss' directly? *)
                     (* without the next optimization, bugs/hangs/sources.cfg
@@ -532,7 +532,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
                let U2' = pruneExp (__G, __Us2, ss1, r1) in
                ((instantiateEVar (r1, U2', (!cnstrs1)))
                  (* instantiateEVar (r1, EClo (U2, comp(s2, ss1)), !cnstrs1) *)
-                 (* invertExpW (Us2, s1, ref NONE) *)))
+                 (* invertExpW (Us2, s1, ref None) *)))
             else
               if Whnf.isPatSub s2
               then
@@ -540,7 +540,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
                  let U1' = pruneExp (__G, __Us1, ss2, r2) in
                  ((instantiateEVar (r2, U1', (!cnstrs2)))
                    (* instantiateEVar (r2, EClo (U1, comp(s1, ss2)), !cnstr2) *)
-                   (* invertExpW (Us1, s2, ref NONE) *)))
+                   (* invertExpW (Us1, s2, ref None) *)))
               else
                 (let cnstr = ref (Eqn (__G, (EClo __Us1), (EClo __Us2))) in
                  addConstraint (cnstrs1, cnstr))
@@ -673,7 +673,7 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
       unifyExp (__G, __Us1, __Us2); awakeCnstr (nextCnstr ())
     let rec awakeCnstr =
       function
-      | NONE -> ()
+      | None -> ()
       | Some { contents = Solved } -> awakeCnstr (nextCnstr ())
       | Some ({ contents = Eqn (__G, __U1, __U2) } as cnstr) ->
           (solveConstraint cnstr; unify1 (__G, (__U1, id), (__U2, id)))
@@ -704,11 +704,11 @@ module Unify(Unify:sig module Whnf : WHNF module Trail : TRAIL end) : UNIFY =
     let unifySub = unifySub
     let unifyBlock = unifyBlock
     let rec invertible (__G) (__Us) ss rOccur =
-      try invertExp (__G, __Us, ss, rOccur); true__
-      with | NotInvertible -> false__
+      try invertExp (__G, __Us, ss, rOccur); true
+      with | NotInvertible -> false
     let invertSub = invertSub
     let rec unifiable (__G) (__Us1) (__Us2) =
-      try unify (__G, __Us1, __Us2); true__ with | Unify msg -> false__
+      try unify (__G, __Us1, __Us2); true with | Unify msg -> false
     let rec unifiable' (__G) (__Us1) (__Us2) =
-      try unify (__G, __Us1, __Us2); NONE with | Unify msg -> Some msg
+      try unify (__G, __Us1, __Us2); None with | Unify msg -> Some msg
   end ;;

@@ -25,7 +25,7 @@ module AbsMachine(AbsMachine:sig
       match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec compose __2__ __3__ =
       match (__2__, __3__) with
       | (__G, IntSyn.Null) -> __G
@@ -44,7 +44,7 @@ module AbsMachine(AbsMachine:sig
       | ((Atom p, s), (DProg (__G, dPool) as dp), sc) ->
           matchAtom ((p, s), dp, sc)
       | ((Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           solve
             ((g, (I.dot1 s)),
               (C.DProg
@@ -67,7 +67,7 @@ module AbsMachine(AbsMachine:sig
           (match Assign.assignable (__G, ps', (__Q, s)) with
            | Some cnstr ->
                aSolve ((eqns, s), dp, cnstr, (fun () -> sc I.Nil))
-           | NONE -> ())
+           | None -> ())
       | (ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), sc) ->
           let __X = I.newEVar (__G, (I.EClo (__A, s))) in
           ((rSolve
@@ -171,8 +171,8 @@ module AbsMachine(AbsMachine:sig
             CSManager.trail
               (fun () ->
                  match cnstrSolve (__G, (I.SClo (__S, s)), try__) with
-                 | Some (__U) -> (sc __U; true__)
-                 | NONE -> false__) in
+                 | Some (__U) -> (sc __U; true)
+                 | None -> false) in
           if succeeded then matchConstraint (cnstrSolve, (try__ + 1)) else () in
         ((match I.constStatus (cidFromHead Ha) with
           | Constraint (cs, cnstrSolve) -> matchConstraint (cnstrSolve, 0)

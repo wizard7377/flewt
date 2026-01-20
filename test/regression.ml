@@ -17,9 +17,9 @@ module RegressionTest =
       | Twelf.ABORT -> (reportError file; Twelf.ABORT)
     let rec testUnsafe file =
       let _ = print ("Test Unsafe: " ^ file) in
-      let _ = Twelf.unsafe := true__ in
+      let _ = Twelf.unsafe := true in
       let stat = try Twelf.make file with | e -> Twelf.ABORT in
-      let _ = Twelf.unsafe := false__ in
+      let _ = Twelf.unsafe := false in
       match stat with
       | Twelf.OK -> Twelf.OK
       | Twelf.ABORT -> (reportError file; Twelf.ABORT)
@@ -65,9 +65,9 @@ module RegressionTest =
           | None -> (TextIO.closeIn file; conclude ())
           | Some s ->
               (try
-                 Twelf.doubleCheck := false__;
+                 Twelf.doubleCheck := false;
                  getstatus ((runline s), "OK.\n");
-                 Twelf.doubleCheck := true__;
+                 Twelf.doubleCheck := true;
                  getstatus ((runline s), "Double checked.\n");
                  readfile ()
                with | Aborted -> readfile ()) in

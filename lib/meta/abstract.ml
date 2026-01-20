@@ -61,11 +61,11 @@ module MTPAbstract(MTPAbstract:sig
     let rec eqEVar __0__ __1__ =
       match (__0__, __1__) with
       | (EVar (r1, _, _, _), EV (r2, _, _, _)) -> r1 = r2
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec exists (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> false__
+        | I.Null -> false
         | Decl (__K', __Y) -> (__P __Y) || (exists' __K') in
       exists' __K
     let rec or__ __2__ __3__ =
@@ -282,13 +282,13 @@ module MTPAbstract(MTPAbstract:sig
           let V'' = abstractExp (__K', 0, (__V', I.id)) in
           let _ = checkType V'' in
           let (__G', __B') = abstractCtx __K' in
-          let __D' = I.Dec (NONE, V'') in
+          let __D' = I.Dec (None, V'') in
           ((I.Decl (__G', __D')), (I.Decl (__B', __T)))
       | Decl (__K', EV (_, __V', (S.None as T), _)) ->
           let V'' = abstractExp (__K', 0, (__V', I.id)) in
           let _ = checkType V'' in
           let (__G', __B') = abstractCtx __K' in
-          let __D' = I.Dec (NONE, V'') in
+          let __D' = I.Dec (None, V'') in
           ((I.Decl (__G', __D')), (I.Decl (__B', S.None)))
       | Decl (__K', BV (__D, __T)) ->
           let __D' = abstractDec (__K', 0, (__D, I.id)) in
@@ -378,7 +378,7 @@ module MTPAbstract(MTPAbstract:sig
       function
       | I.Null -> I.Null
       | Decl (__G, __D) ->
-          I.Decl ((convert __G), (BV (__D, (S.Parameter NONE))))
+          I.Decl ((convert __G), (BV (__D, (S.Parameter None))))
     let rec createEmptyB =
       function | 0 -> I.Null | n -> I.Decl ((createEmptyB (n - 1)), S.None)
     let rec lower __71__ __72__ =

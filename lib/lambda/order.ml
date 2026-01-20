@@ -60,18 +60,18 @@ module Order(Order:sig module Table : TABLE end) : ORDER =
     let rec install cid (__O) = Table.insert OrderTable (cid, __O)
     let rec uninstall cid =
       match Table.lookup OrderTable cid with
-      | NONE -> false__
-      | Some _ -> (Table.delete OrderTable cid; true__)
+      | None -> false
+      | Some _ -> (Table.delete OrderTable cid; true)
     let rec installROrder cid (__P) = Table.insert RedOrderTable (cid, __P)
     let rec uninstallROrder cid =
       match Table.lookup RedOrderTable cid with
-      | NONE -> false__
-      | Some _ -> (Table.delete RedOrderTable cid; true__)
+      | None -> false
+      | Some _ -> (Table.delete RedOrderTable cid; true)
     let rec lookup cid = Table.lookup OrderTable cid
     let rec lookupROrder cid = Table.lookup RedOrderTable cid
     let rec selLookup a =
       match lookup a with
-      | NONE ->
+      | None ->
           raise
             (Error
                ((^) "No termination order assigned for " I.conDecName
@@ -79,7 +79,7 @@ module Order(Order:sig module Table : TABLE end) : ORDER =
       | Some (TDec (__S, _)) -> __S
     let rec selLookupROrder a =
       match lookupROrder a with
-      | NONE ->
+      | None ->
           raise
             (Error
                (((^) "No reduction order assigned for " I.conDecName
@@ -88,7 +88,7 @@ module Order(Order:sig module Table : TABLE end) : ORDER =
       | Some (RDec (__P, _)) -> __P
     let rec mutLookupROrder a =
       match lookupROrder a with
-      | NONE ->
+      | None ->
           raise
             (Error
                (((^) "No order assigned for " I.conDecName (I.sgnLookup a)) ^
@@ -96,7 +96,7 @@ module Order(Order:sig module Table : TABLE end) : ORDER =
       | Some (RDec (_, __M)) -> __M
     let rec mutLookup a =
       match lookup a with
-      | NONE ->
+      | None ->
           raise
             (Error
                ((^) "No order assigned for " I.conDecName (I.sgnLookup a)))

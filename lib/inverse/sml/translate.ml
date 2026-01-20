@@ -85,10 +85,10 @@ module Translate : TRANSLATE =
       | cdec -> raise (Trans1 cdec)
     let rec can_translate =
       function
-      | ConDec _ -> true__
-      | ConDef _ -> true__
-      | AbbrevDef _ -> true__
-      | _ -> false__
+      | ConDec _ -> true
+      | ConDef _ -> true
+      | AbbrevDef _ -> true
+      | _ -> false
     let rec translate_signat' () =
       let n = L.fst (IntSyn.sgnSize ()) in
       let ns = L.upto (0, (n - 1)) in

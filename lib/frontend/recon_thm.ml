@@ -140,7 +140,7 @@ module ReconThm(ReconThm:sig
             let (cps, rs) = callpats' __L in
             let qid = Names.Qid (nil, name) in
             (((match Names.constLookup qid with
-               | NONE ->
+               | None ->
                    error
                      (r,
                        (((^) "Undeclared identifier " Names.qidToString
@@ -170,7 +170,7 @@ module ReconThm(ReconThm:sig
     let rec tableddecl name r =
       let qid = Names.Qid (nil, name) in
       ((match Names.constLookup qid with
-        | NONE ->
+        | None ->
             error
               (r,
                 (((^) "Undeclared identifier " Names.qidToString
@@ -183,7 +183,7 @@ module ReconThm(ReconThm:sig
     let rec keepTabledecl name r =
       let qid = Names.Qid (nil, name) in
       ((match Names.constLookup qid with
-        | NONE ->
+        | None ->
             error
               (r,
                 (((^) "Undeclared identifier " Names.qidToString

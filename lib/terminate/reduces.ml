@@ -33,7 +33,7 @@ module Reduces(Reduces:sig
     exception Error' of (P.occ * string) 
     let rec error c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> raise (Error ((fileName ^ ":") ^ msg))
+      | (fileName, None) -> raise (Error ((fileName ^ ":") ^ msg))
       | (fileName, Some occDec) ->
           raise
             (Error
@@ -147,7 +147,7 @@ module Reduces(Reduces:sig
         | Less (__O1, __O2) -> C.Less ((select' __O1), (select' __O2))
         | Leq (__O1, __O2) -> C.Leq ((select' __O1), (select' __O2))
         | Eq (__O1, __O2) -> C.Eq ((select' __O1), (select' __O2)) in
-      try Some (selectP (R.selLookupROrder c)) with | Error s -> NONE
+      try Some (selectP (R.selLookupROrder c)) with | Error s -> None
     let rec abstractRO (__G) (__D) (__O) = C.Pi (__D, __O)
     let rec getROrder (__G) (__Q) (__Vs) occ =
       getROrderW (__G, __Q, (Whnf.whnf __Vs), occ)
@@ -157,7 +157,7 @@ module Reduces(Reduces:sig
           let __O = selectROrder (a, (__S, s)) in
           let _ =
             match __O with
-            | NONE -> ()
+            | None -> ()
             | Some (__O) ->
                 if (!Global.chatter) > 5
                 then
@@ -175,14 +175,14 @@ module Reduces(Reduces:sig
               ((I.Decl (__G, (N.decLUName (__G, (I.decSub (__D, s)))))),
                 (I.Decl (__Q, C.All)), (__V, (I.dot1 s)), (P.body occ)) in
           (match __O with
-           | NONE -> NONE
+           | None -> None
            | Some (__O') ->
                Some (abstractRO (__G, (I.decSub (__D, s)), __O')))
       | (__G, __Q, (Pi (((Dec (_, __V1) as D), I.No), __V2), s), occ) ->
           let __O =
             getROrder
               (__G, __Q, (__V2, (I.comp (I.invShift, s))), (P.body occ)) in
-          (match __O with | NONE -> NONE | Some (__O') -> Some __O')
+          (match __O with | None -> None | Some (__O') -> Some __O')
       | (__G, __Q, ((Root (Def a, __S), s) as Vs), occ) ->
           raise
             (Error'
@@ -286,7 +286,7 @@ module Reduces(Reduces:sig
           let _ =
             checkGoal (__G0, __Q0, Rl, (__V', (I.Shift (n + 1))), __Vs, occ) in
           let RO = getROrder (__G0, __Q0, (__V', (I.Shift (n + 1))), occ) in
-          let Rl' = match RO with | NONE -> Rl | Some (__O) -> __O :: Rl in
+          let Rl' = match RO with | None -> Rl | Some (__O) -> __O :: Rl in
           checkSubgoals (__G0, __Q0, Rl', __Vs, (n + 1), (__G, __Q))
       | (__G0, __Q0, Rl, __Vs, n, (Decl (__G, __D), Decl (__Q, C.Exist))) ->
           checkSubgoals (__G0, __Q0, Rl, __Vs, (n + 1), (__G, __Q))
@@ -360,7 +360,7 @@ module Reduces(Reduces:sig
          (__V, s), occ) ->
           let Rl' =
             match getROrder (__G, __Q, (__V1, s'), occ) with
-            | NONE -> Rl
+            | None -> Rl
             | Some (__O) -> __O :: Rl in
           checkRImp
             (__G, __Q, Rl', (__V2, (I.comp (I.invShift, s'))), (__V, s), occ)
@@ -391,7 +391,7 @@ module Reduces(Reduces:sig
           let Rl'' =
             match getROrder (__G', __Q', (__V1, (I.comp (s, I.shift))), occ)
             with
-            | NONE -> Rl'
+            | None -> Rl'
             | Some (__O) -> __O :: Rl' in
           (((checkRClause
                (__G', __Q', Rl'', (__V2, (I.dot1 s)), (P.body occ));
@@ -402,7 +402,7 @@ module Reduces(Reduces:sig
       | (__G, __Q, Rl, ((Root (Const a, __S), s) as Vs), occ) ->
           let RO =
             match selectROrder (a, (__S, s)) with
-            | NONE ->
+            | None ->
                 raise
                   (Error'
                      (occ,

@@ -23,14 +23,14 @@ module ModeTable(ModeTable:sig module Table : TABLE end) : MODETABLE =
     let rec modeLookup a =
       match Table.lookup modeSignature a with
       | Some (mS::_) -> Some mS
-      | NONE -> NONE
+      | None -> None
     let rec mmodeLookup a =
-      match Table.lookup modeSignature a with | Some mSs -> mSs | NONE -> nil
+      match Table.lookup modeSignature a with | Some mSs -> mSs | None -> nil
     let rec installMode a mS = Table.insert modeSignature (a, [mS])
     let rec uninstallMode a =
       match modeLookup a with
-      | NONE -> false__
-      | Some _ -> (Table.delete modeSignature a; true__)
+      | None -> false
+      | Some _ -> (Table.delete modeSignature a; true)
     let rec installMmode a mS =
       let mSs = mmodeLookup a in Table.insert modeSignature (a, (mS :: mSs))
     let reset = reset

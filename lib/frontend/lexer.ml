@@ -488,6 +488,6 @@ module Lexer(Lexer:sig module Stream' : STREAM end) : LEXER =
       stn (0, 0)
     let rec isUpper =
       function
-      | "" -> false__
+      | "" -> false
       | s -> let c = String.sub (s, 0) in (Char.isUpper c) || (c = '_')
   end  module Lexer = (Make_Lexer)(struct module Stream' = Stream end);;

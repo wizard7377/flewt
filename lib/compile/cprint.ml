@@ -31,7 +31,7 @@ module CPrint(CPrint:sig
           ((^) ((((^) (t ^ "ASSUME  ") Print.expToString (__G, __A)) ^ "\n")
                   ^ (clauseToString (t ^ "\t") (__G, p)))
              goalToString t
-             ((IntSyn.Decl (__G, (IntSyn.Dec (NONE, __A)))), g))
+             ((IntSyn.Decl (__G, (IntSyn.Dec (None, __A)))), g))
             ^ "\n"
       | (t, __G, All (__D, g)) ->
           let __D' = Names.decLUName (__G, __D) in
@@ -61,10 +61,10 @@ module CPrint(CPrint:sig
             ^ (auxToString t (__G, ga))
       | (t, __G, And (r, __A, g)) ->
           (^) (clauseToString t
-                 ((IntSyn.Decl (__G, (IntSyn.Dec (NONE, __A)))), r))
+                 ((IntSyn.Decl (__G, (IntSyn.Dec (None, __A)))), r))
             goalToString t (__G, g)
       | (t, __G, In (r, __A, g)) ->
-          let __D = Names.decEName (__G, (IntSyn.Dec (NONE, __A))) in
+          let __D = Names.decEName (__G, (IntSyn.Dec (None, __A))) in
           (^) (((^) (((clauseToString t ((IntSyn.Decl (__G, __D)), r)) ^ t) ^
                        "META    ")
                   Print.decToString (__G, __D))
@@ -87,7 +87,7 @@ module CPrint(CPrint:sig
       | (t, __G, True) -> t ^ "True "
       | (t, __G, Conjunct (Goal, __A, Sg)) ->
           (^) (((^) t goalToString t
-                  ((IntSyn.Decl (__G, (IntSyn.Dec (NONE, __A)))), Goal))
+                  ((IntSyn.Decl (__G, (IntSyn.Dec (None, __A)))), Goal))
                  ^ " and ")
             subgoalsToString t (__G, Sg)
     let rec conDecToString __14__ __15__ =

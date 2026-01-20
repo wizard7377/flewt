@@ -18,7 +18,7 @@ module Word8VectorSlice : MONO_VECTOR_SLICE =
     type nonrec slice = (Word8Vector.vector * int * int option)
     let rec slice s = s
     let vector = Word8Vector.extract
-    let rec full v = (v, 0, NONE)
+    let rec full v = (v, 0, None)
   end 
 module type COMPAT_WORD8_VECTOR_SLICE  =
   sig val full : Word8Vector.vector -> Word8VectorSlice.slice end

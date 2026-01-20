@@ -36,7 +36,7 @@ module Worldify(Worldify:sig
     exception Error' of (P.occ * string) 
     let rec wrapMsg c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
+      | (fileName, None) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (P.occToRegionDec occDec occ))),
@@ -45,7 +45,7 @@ module Worldify(Worldify:sig
                  ^ msg))
     let rec wrapMsgBlock c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
+      | (fileName, None) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (P.occToRegionDec occDec occ))),
@@ -82,8 +82,8 @@ module Worldify(Worldify:sig
       | (__G, Shift _, __Xs) -> __Xs
     let rec noConstraints (__G) s =
       match collectConstraints (collectEVars (__G, s, nil)) with
-      | nil -> true__
-      | _ -> false__
+      | nil -> true
+      | _ -> false
     let rec formatD (__G) (__D) =
       F.Hbox
         (((::) ((::) (F.String "{") Print.formatDec (__G, __D)) F.String "}")
@@ -169,20 +169,20 @@ module Worldify(Worldify:sig
     let rec decEName (__G) (__D) = I.Decl (__G, (Names.decEName (__G, __D)))
     let rec equivList __8__ __9__ __10__ =
       match (__8__, __9__, __10__) with
-      | (__G, (_, nil), nil) -> true__
+      | (__G, (_, nil), nil) -> true
       | (__G, (t, (Dec (_, __V1))::__L1), (Dec (_, __V2))::__L2) ->
           (try
              Unify.unify (__G, (__V1, t), (__V2, I.id));
              equivList (__G, ((I.dot1 t), __L1), __L2)
-           with | Unify _ -> false__)
-      | _ -> false__
+           with | Unify _ -> false)
+      | _ -> false
     let rec equivBlock (__G, __L) (__L') =
       let t = createEVarSub (I.Null, __G) in
       equivList (I.Null, (t, __L), __L')
     let rec equivBlocks __11__ __12__ =
       match (__11__, __12__) with
-      | (__W1, nil) -> true__
-      | (nil, __L') -> false__
+      | (__W1, nil) -> true
+      | (nil, __L') -> false
       | (b::__W1, __L') ->
           (equivBlock ((I.constBlock b), __L')) || (equivBlocks __W1 __L')
     let rec strengthen __13__ __14__ __15__ =
@@ -208,17 +208,17 @@ module Worldify(Worldify:sig
       subsumedBlocks a __W1 __W2
     let rec eqCtx __19__ __20__ =
       match (__19__, __20__) with
-      | (I.Null, I.Null) -> true__
+      | (I.Null, I.Null) -> true
       | (Decl (__G1, __D1), Decl (__G2, __D2)) ->
           (eqCtx (__G1, __G2)) && (Conv.convDec ((__D1, I.id), (__D2, I.id)))
-      | _ -> false__
+      | _ -> false
     let rec eqList __21__ __22__ =
       match (__21__, __22__) with
-      | (nil, nil) -> true__
+      | (nil, nil) -> true
       | ((__D1)::__L1, (__D2)::__L2) ->
           (Conv.convDec ((__D1, I.id), (__D2, I.id))) &&
             (eqList (__L1, __L2))
-      | _ -> false__
+      | _ -> false
     let rec eqBlock b1 b2 =
       let (__G1, __L1) = I.constBlock b1 in
       let (__G2, __L2) = I.constBlock b2 in
@@ -282,7 +282,7 @@ module Worldify(Worldify:sig
             else (Trace.constraintsRemain (); ()) in
           (((try
                accR
-                 (((decUName (__G, (I.BDec (NONE, (c, t))))),
+                 (((decUName (__G, (I.BDec (None, (c, t))))),
                     (__V, (I.comp (s, I.shift)))),
                    (Seq (1, piDecs, (I.comp (t, I.shift)))), k')
              with
@@ -290,7 +290,7 @@ module Worldify(Worldify:sig
                  raise
                    (Success
                       (Whnf.normalize
-                         ((I.Pi (((I.BDec (NONE, (c, t))), I.Maybe), __V)),
+                         ((I.Pi (((I.BDec (None, (c, t))), I.Maybe), __V)),
                            I.id)))))
             (* G |- t : someDecs *))
       | ((__G, ((Pi (((Dec (_, __V1) as D), _), __V2) as V), s)),

@@ -20,18 +20,18 @@ module Queue : QUEUE =
     let rec insert x (inp, out) = ((x :: inp), out)
     let rec delete __0__ __1__ =
       match (__0__, __1__) with
-      | (nil, nil) -> NONE
+      | (nil, nil) -> None
       | (inp, x::out) -> Some (x, (inp, out))
       | (inp, nil) -> delete (nil, (List.rev inp))
     let rec insertFront x (inp, out) = (inp, (x :: out))
     let rec deleteEnd __2__ __3__ =
       match (__2__, __3__) with
-      | (nil, nil) -> NONE
+      | (nil, nil) -> None
       | (x::inp, out) -> Some (x, (inp, out))
       | (nil, out) -> delete ((List.rev out), nil)
     let rec toList __4__ __5__ =
       match (__4__, __5__) with
-      | (nil, out) -> (out, NONE)
+      | (nil, out) -> (out, None)
       | (inp, out) ->
           let out' = (@) out List.rev inp in (out', (Some (nil, out')))
   end ;;

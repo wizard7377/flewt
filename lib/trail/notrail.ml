@@ -1,4 +1,4 @@
-
+open Trail_core
 module NoTrail : TRAIL =
   struct
     type nonrec 'a trail = unit
@@ -10,3 +10,4 @@ module NoTrail : TRAIL =
     let rec unwind () undo = ()
     let rec log () action = ()
   end ;;
+ 

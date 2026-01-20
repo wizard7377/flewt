@@ -56,9 +56,9 @@ module Inference(Inference:sig
                             raise (UniqueSearch.Error "Too many solutions")))
              with
              | (VF'')::[] -> Some VF''
-             | [] -> NONE
-           with | Error _ -> NONE)
-      | (__G, __B, __V) -> NONE
+             | [] -> None
+           with | Error _ -> None)
+      | (__G, __B, __V) -> None
     let rec expand' __5__ __6__ __7__ =
       match (__5__, __6__, __7__) with
       | ((__G0, __B0), (I.Null, I.Null), n) ->
@@ -71,14 +71,14 @@ module Inference(Inference:sig
           let s = I.Shift (n + 1) in
           let __Vs = Whnf.normalize (__V, s) in
           (match forward (__G0, __B0, __Vs) with
-           | NONE -> (((I.Decl (G0', __D)), (I.Decl (B0', __T))), sc')
+           | None -> (((I.Decl (G0', __D)), (I.Decl (B0', __T))), sc')
            | Some (__V') ->
                (((I.Decl (G0', __D)), (I.Decl (B0', (S.Lemma S.RLdone)))),
                  ((fun (__G', __B') ->
                      fun w' ->
                        let V'' = Whnf.normalize (__V', w') in
                        ((sc'
-                           (((I.Decl (__G', (I.Dec (NONE, V'')))),
+                           (((I.Decl (__G', (I.Dec (None, V'')))),
                               (I.Decl
                                  (__B',
                                    (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),

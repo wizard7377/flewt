@@ -41,10 +41,10 @@ module Converter(Converter:sig
     module S = Subordinate
     module A = Abstract
     module TA = TomegaAbstract
-    let rec isIdx1 = function | Idx 1 -> true__ | _ -> false__
+    let rec isIdx1 = function | Idx 1 -> true | _ -> false
     let rec modeSpine a =
       match ModeTable.modeLookup a with
-      | NONE -> raise (Error "Mode declaration expected")
+      | None -> raise (Error "Mode declaration expected")
       | Some mS -> mS
     let rec typeOf a =
       match I.sgnLookup a with
@@ -111,10 +111,10 @@ module Converter(Converter:sig
       | (Decl (Psi, UDec (__D)), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
           ((I.Decl (Psi', (T.UDec (strengthenDec (__D, s'))))), (I.dot1 s'))
-      | (Decl (Psi, PDec (name, __F, NONE, NONE)), s) ->
+      | (Decl (Psi, PDec (name, __F, None, None)), s) ->
           let (Psi', s') = strengthenPsi (Psi, s) in
           ((I.Decl
-              (Psi', (T.PDec (name, (strengthenFor (__F, s')), NONE, NONE)))),
+              (Psi', (T.PDec (name, (strengthenFor (__F, s')), None, None)))),
             (I.dot1 s'))
     let rec strengthenPsi' __14__ __15__ =
       match (__14__, __15__) with
@@ -156,7 +156,7 @@ module Converter(Converter:sig
         | _ -> raise (Error "Type Constant declaration expected") in
       let mS =
         match ModeTable.modeLookup cid with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let _ = validMode mS in
       let rec convertFor' __22__ __23__ __24__ __25__ __26__ =
@@ -218,7 +218,7 @@ module Converter(Converter:sig
     let rec convertFor (__L) = let (_, __F') = createIH __L in __F'
     let rec occursInExpN __29__ __30__ =
       match (__29__, __30__) with
-      | (k, Uni _) -> false__
+      | (k, Uni _) -> false
       | (k, Pi (DP, __V)) ->
           (occursInDecP (k, DP)) || (occursInExpN ((k + 1), __V))
       | (k, Root (__H, __S)) ->
@@ -230,18 +230,18 @@ module Converter(Converter:sig
             (fun (__U) ->
                fun (DP) ->
                  DP || (occursInExp (k, (Whnf.normalize (__U, I.id)))))
-            false__(* | occursInExpN (k, I.FgnExp (cs, ops)) =
+            false(* | occursInExpN (k, I.FgnExp (cs, ops)) =
          occursInExpN (k, Whnf.normalize (#toInternal(ops) (), I.id)) MERGE Fri Aug 22 23:09:53 2003 --cs *)
     let rec occursInHead __31__ __32__ =
       match (__31__, __32__) with
       | (k, BVar k') -> k = k'
-      | (k, Const _) -> false__
-      | (k, Def _) -> false__
-      | (k, FgnConst _) -> false__
-      | (k, Proj _) -> false__
+      | (k, Const _) -> false
+      | (k, Def _) -> false
+      | (k, FgnConst _) -> false
+      | (k, Proj _) -> false
     let rec occursInSpine __33__ __34__ =
       match (__33__, __34__) with
-      | (_, I.Nil) -> false__
+      | (_, I.Nil) -> false
       | (k, App (__U, __S)) ->
           (occursInExpN (k, __U)) || (occursInSpine (k, __S))
     let rec occursInDec k (Dec (_, __V)) = occursInExpN (k, __V)
@@ -277,8 +277,8 @@ module Converter(Converter:sig
         | (App (__U, __S'), Mapp (Marg (m', _), mS)) ->
             let __L = args (__S', mS) in
             (match M.modeEqual (m, m') with
-             | true__ -> __U :: __L
-             | false__ -> __L) in
+             | true -> __U :: __L
+             | false -> __L) in
       let rec strengthenArgs __43__ __44__ =
         match (__43__, __44__) with
         | (nil, s) -> nil
@@ -286,7 +286,7 @@ module Converter(Converter:sig
             (::) (strengthenExp (__U, s)) strengthenArgs (__L, s) in
       let rec occursInArgs __45__ __46__ =
         match (__45__, __46__) with
-        | (n, nil) -> false__
+        | (n, nil) -> false
         | (n, (__U)::__L) ->
             (occursInExp (n, __U)) || (occursInArgs (n, __L)) in
       let rec occursInPsi __47__ __48__ =
@@ -299,7 +299,7 @@ module Converter(Converter:sig
             (occursInSub (n, s, __G)) || (occursInPsi ((n + 1), (Psi1, __L)))
       and occursInSub __49__ __50__ __51__ =
         match (__49__, __50__, __51__) with
-        | (_, _, I.Null) -> false__
+        | (_, _, I.Null) -> false
         | (n, Shift k, __G) ->
             occursInSub
               (n, (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), __G)
@@ -317,7 +317,7 @@ module Converter(Converter:sig
       let rec occursBlock (__G) (Psi2, __L) =
         let rec occursBlock __55__ __56__ =
           match (__55__, __56__) with
-          | (I.Null, n) -> false__
+          | (I.Null, n) -> false
           | (Decl (__G, __D), n) ->
               (occursInPsi (n, (Psi2, __L))) || (occursBlock (__G, (n + 1))) in
         occursBlock (__G, 1) in
@@ -326,7 +326,7 @@ module Converter(Converter:sig
         | (I.Null, (bw, w1)) -> (bw, w1)
         | (Decl (__G, __D), (bw, w1)) ->
             if isIdx1 (I.bvarSub (1, w1))
-            then inBlock (__G, (true__, (dot1inv w1)))
+            then inBlock (__G, (true, (dot1inv w1)))
             else inBlock (__G, (bw, (strengthenSub (w1, I.shift)))) in
       let rec blockSub __59__ __60__ =
         match (__59__, __60__) with
@@ -363,12 +363,12 @@ module Converter(Converter:sig
                  let __L' = strengthenArgs (__L, w2') in
                  let (Psi1'', w', z') = strengthen' (Psi1, Psi2', __L', w1') in
                  (Psi1'', (I.comp (w', I.shift)), z'))
-        | (Decl (Psi1, (PDec (name, __F, NONE, NONE) as D)), Psi2, __L, w1)
+        | (Decl (Psi1, (PDec (name, __F, None, None) as D)), Psi2, __L, w1)
             ->
             let w1' = dot1inv w1 in
             let (Psi1', w', z') = strengthen' (Psi1, (__D :: Psi2), __L, w1') in
             let __F' = strengthenFor (__F, w') in
-            ((I.Decl (Psi1', (T.PDec (name, __F', NONE, NONE)))),
+            ((I.Decl (Psi1', (T.PDec (name, __F', None, None)))),
               (I.dot1 w'), (I.dot1 z'))
         | (Decl (Psi1, (UDec (BDec (name, (cid, s))) as LD)), Psi2, __L, w1)
             ->
@@ -558,7 +558,7 @@ module Converter(Converter:sig
             let ValDec (_, __P, __F) = T.lemmaLookup l in ((T.Const l), __F) in
           let rec lookup __89__ __90__ =
             match (__89__, __90__) with
-            | ((b::[], NONE, __F), a) ->
+            | ((b::[], None, __F), a) ->
                 if a = b
                 then let __P = T.Var n in (__P, __F)
                 else lookupbase a
@@ -657,7 +657,7 @@ module Converter(Converter:sig
                 ((fun p ->
                     __P
                       (T.Let
-                         ((T.PDec (NONE, F''', NONE, NONE)), P''',
+                         ((T.PDec (None, F''', None, None)), P''',
                            (T.Case (T.Cases [(Psi2, t, p)]))))), __Q)))
             (* Psi1 = Psi0, G, B *)(* n = |Psi0, G', B'| *)
             (* m = |Psi0| *)(* strengthened invariant Psi0 might be empty --cs Fri Apr 11 15:25:32 2003 *)
@@ -720,7 +720,7 @@ module Converter(Converter:sig
               List.foldr
                 (fun a ->
                    fun b -> b && (Subordinate.belowEq (a, (I.targetFam __V))))
-                true__ fams
+                true fams
             then transformList (__L, (I.comp (w, I.shift)))
             else
               (let __L' = transformList (__L, (I.dot1 w)) in
@@ -774,7 +774,7 @@ module Converter(Converter:sig
         | (cid::cids', Sig) ->
             let BlockDec (s, m, __G, __L) = I.sgnLookup cid in
             let (__G0, s') = mediateSub __G in
-            let __D' = Names.decName (__G0, (I.BDec (NONE, (cid, s')))) in
+            let __D' = Names.decName (__G0, (I.BDec (None, (cid, s')))) in
             let s'' = I.comp (s', I.shift) in
             let Sig' = findDec ((I.Decl (__G0, __D')), 1, __L, s'', Sig) in
             ((findDecs' (cids', Sig'))
@@ -807,7 +807,7 @@ module Converter(Converter:sig
       | a::__L -> ((I.conDecName (I.sgnLookup a)) ^ "/") ^ (name __L)
     let rec convertPrg (__L) projs =
       let (name, __F0) = createIH __L in
-      let __D0 = T.PDec ((Some name), __F0, NONE, NONE) in
+      let __D0 = T.PDec ((Some name), __F0, None, None) in
       let Psi0 = I.Decl (I.Null, __D0) in
       let Prec = fun p -> T.Rec (__D0, p) in
       let rec convertWorlds =
@@ -875,11 +875,11 @@ module Converter(Converter:sig
       match (__116__, __117__, __118__, __119__) with
       | (Psi, depth, (And (__F1, __F2) as F), Pattern) ->
           createProjection
-            ((I.Decl (Psi, (T.PDec (NONE, __F1, NONE, NONE)))), (depth + 1),
+            ((I.Decl (Psi, (T.PDec (None, __F1, None, None)))), (depth + 1),
               (T.forSub (__F2, (T.Shift 1))),
               (T.PairPrg ((T.Var (depth + 2)), Pattern)))
       | (Psi, depth, __F, Pattern) ->
-          let Psi' = I.Decl (Psi, (T.PDec (NONE, __F, NONE, NONE))) in
+          let Psi' = I.Decl (Psi, (T.PDec (None, __F, None, None))) in
           let depth' = depth + 1 in
           (fun k ->
              let PDec (_, __F', _, _) = T.ctxDec (Psi', k) in
@@ -892,9 +892,9 @@ module Converter(Converter:sig
       | (nil, _, __F, Proj) -> nil
       | (cid::cids, n, __F, Proj) ->
           let (__P', __F') = Proj n in
-          let __P = T.Lam ((T.PDec (NONE, __F, NONE, NONE)), __P') in
+          let __P = T.Lam ((T.PDec (None, __F, None, None)), __P') in
           let F'' =
-            T.All (((T.PDec (NONE, __F, NONE, NONE)), T.Explicit), __F') in
+            T.All (((T.PDec (None, __F, None, None)), T.Explicit), __F') in
           let name = I.conDecName (I.sgnLookup cid) in
           let _ = TomegaTypeCheck.checkPrg (I.Null, (__P, F'')) in
           let lemma = T.lemmaAdd (T.ValDec (("#" ^ name), __P, F'')) in
@@ -918,7 +918,7 @@ module Converter(Converter:sig
       function
       | cid::[] ->
           let __F = convertFor [cid] in
-          let __P = convertPrg ([cid], NONE) in
+          let __P = convertPrg ([cid], None) in
           let name = I.conDecName (I.sgnLookup cid) in
           let _ = TomegaTypeCheck.checkPrg (I.Null, (__P, __F)) in
           let _ =
@@ -955,7 +955,7 @@ module Converter(Converter:sig
       let __W = WorldSyn.lookup a in
       let (__W', wmap) = transformWorlds ([a], __W) in
       let Some (_, (__P', __Q')) =
-        traversePos ([], wmap, NONE)
+        traversePos ([], wmap, None)
           ((I.Null, __G, I.Null), __V,
             (Some
                ((I.Shift (I.ctxLength __G)),
@@ -963,7 +963,7 @@ module Converter(Converter:sig
                    (mkResult (I.ctxLength __G)))))) in
       let (_, _, P'') = __P' __Q' in P''
     let convertFor = convertFor
-    let convertPrg (__L) = convertPrg (__L, NONE)
+    let convertPrg (__L) = convertPrg (__L, None)
     let installFor = installFor
     let installPrg = installPrg
     let traverse = traverse

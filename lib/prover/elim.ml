@@ -32,7 +32,7 @@ module Elim(Elim:sig
     exception Success of int 
     let rec stripTC (TC) = TC
     let rec stripTCOpt =
-      function | NONE -> NONE | Some (TC) -> Some (stripTC TC)
+      function | None -> None | Some (TC) -> Some (stripTC TC)
     let rec stripDec =
       function
       | UDec (__D) -> T.UDec __D
@@ -52,28 +52,28 @@ module Elim(Elim:sig
       matchCtx (Psi, 1, nil)(* Y is lowered *)
     let rec apply =
       function
-      | Local ((EVar (Psi, r, __G, NONE, NONE, _) as R), n) ->
+      | Local ((EVar (Psi, r, __G, None, None, _) as R), n) ->
           let PDec (_, __F0, _, _) = T.ctxDec (Psi, n) in
           (match __F0 with
            | All ((UDec (Dec (_, __V)), _), __F) ->
                let __X = I.newEVar ((T.coerceCtx (strip Psi)), __V) in
-               let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec NONE)) in
+               let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
                let __D =
                  T.PDec
-                   (x, (T.forSub (__F, (T.Dot ((T.Exp __X), T.id)))), NONE,
-                     NONE) in
+                   (x, (T.forSub (__F, (T.Dot ((T.Exp __X), T.id)))), None,
+                     None) in
                let Psi' = I.Decl (Psi, __D) in
                let __Y = T.newEVar ((strip Psi'), (T.forSub (__G, T.shift))) in
                (((:=) r Some
                    (T.Let
                       (__D, (T.Redex ((T.Var n), (T.AppExp (__X, T.Nil)))),
                         __Y)))
-                 (* the NONE, NONE may breach an invariant *)(* revisit when we add subterm orderings *))
+                 (* the None, None may breach an invariant *)(* revisit when we add subterm orderings *))
            | Ex ((__D1, _), __F) ->
                let D1' = Names.decName ((T.coerceCtx Psi), __D1) in
                let Psi' = I.Decl (Psi, (T.UDec D1')) in
-               let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec NONE)) in
-               let __D2 = T.PDec (x, __F, NONE, NONE) in
+               let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec None)) in
+               let __D2 = T.PDec (x, __F, None, None) in
                let Psi'' = I.Decl (Psi', __D2) in
                let __Y =
                  T.newEVar ((strip Psi''), (T.forSub (__G, (T.Shift 2)))) in

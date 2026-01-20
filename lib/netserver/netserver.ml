@@ -46,37 +46,37 @@ module NetServer(NetServer:sig
       let (c, a) = SS.position " " (Compat.Substring.full s) in
       ((SS.string c), (SS.string (SS.dropl Char.isSpace a)))
     let rec quote string = ("`" ^ string) ^ "'"
-    let (examplesDir : string option ref) = ref NONE
+    let (examplesDir : string option ref) = ref None
     let rec setExamplesDir s = (:=) examplesDir Some s
     exception Error of string 
     let rec error msg = raise (Error msg)
     let rec serveExample e =
       if
         match e with
-        | "ccc" -> true__
-        | "cut-elim" -> true__
-        | "handbook" -> true__
-        | "lp-horn" -> true__
-        | "prop-calc" -> true__
-        | "units" -> true__
-        | "church-rosser" -> true__
-        | "fj" -> true__
-        | "incll" -> true__
-        | "mini-ml" -> true__
-        | "small-step" -> true__
-        | "alloc-sem" -> true__
-        | "compile" -> true__
-        | "fol" -> true__
-        | "kolm" -> true__
-        | "modal" -> true__
-        | "tabled" -> true__
-        | "arith" -> true__
-        | "cpsocc" -> true__
-        | "guide" -> true__
-        | "lp" -> true__
-        | "polylam" -> true__
-        | "tapl-ch13" -> true__
-        | _ -> false__
+        | "ccc" -> true
+        | "cut-elim" -> true
+        | "handbook" -> true
+        | "lp-horn" -> true
+        | "prop-calc" -> true
+        | "units" -> true
+        | "church-rosser" -> true
+        | "fj" -> true
+        | "incll" -> true
+        | "mini-ml" -> true
+        | "small-step" -> true
+        | "alloc-sem" -> true
+        | "compile" -> true
+        | "fol" -> true
+        | "kolm" -> true
+        | "modal" -> true
+        | "tabled" -> true
+        | "arith" -> true
+        | "cpsocc" -> true
+        | "guide" -> true
+        | "lp" -> true
+        | "polylam" -> true
+        | "tapl-ch13" -> true
+        | _ -> false
       then
         try
           OS.FileSys.chDir (((Option.valOf (!examplesDir)) ^ "/") ^ e);
@@ -125,7 +125,7 @@ module NetServer(NetServer:sig
         (Substring.dropr (fun x -> x = '\r') (Compat.Substring.full s))
     let rec flashProto () =
       let (buf : string ref) = ref "" in
-      let rec isnull = function | '\000' -> true__ | _ -> false__ in
+      let rec isnull = function | '\000' -> true | _ -> false in
       let rec recv u s =
         let _ = ((!) ((:=) buf) buf) ^ s in
         let rem::cmds = rev (String.fields isnull (!buf)) in
@@ -141,7 +141,7 @@ module NetServer(NetServer:sig
     let rec humanProto () =
       let (buf : string ref) = ref "" in
       let rec isnewl =
-        function | '\n' -> true__ | '\r' -> false__ | _ -> false__ in
+        function | '\n' -> true | '\r' -> false | _ -> false in
       let rec recv u s =
         let _ = ((!) ((:=) buf) buf) ^ s in
         let rem::cmds = rev (String.fields isnewl (!buf)) in
@@ -158,15 +158,15 @@ module NetServer(NetServer:sig
     let rec httpProto dir =
       let (ibuf : string ref) = ref "" in
       let (obuf : string ref) = ref "" in
-      let parsingHeaders = ref true__ in
+      let parsingHeaders = ref true in
       let contentLength = ref 0 in
       let (method__ : string ref) = ref "" in
       let (url : string ref) = ref "" in
       let (headers : string list ref) = ref [] in
-      let rec isnewl = function | '\n' -> true__ | _ -> false__ in
+      let rec isnewl = function | '\n' -> true | _ -> false in
       let rec handlePostRequest u =
         let shouldQuit =
-          try ((fun r -> r.exec)) u (!ibuf); false__ with | Quit -> true__ in
+          try ((fun r -> r.exec)) u (!ibuf); false with | Quit -> true in
         let response = !obuf in
         let clmsg =
           ((^) "Content-Length: " Int.toString (size response)) ^ "\n" in
@@ -231,9 +231,9 @@ module NetServer(NetServer:sig
             if k = "Content-Length"
             then
               contentLength :=
-                (match Int.fromString v with | NONE -> 0 | Some n -> n)
+                (match Int.fromString v with | None -> 0 | Some n -> n)
             else () in
-          let () = app proc_one headers in parsingHeaders := false__
+          let () = app proc_one headers in parsingHeaders := false
         with | Bind -> raise EOF in
       let rec interp __5__ __6__ =
         match (__5__, __6__) with
@@ -251,7 +251,7 @@ module NetServer(NetServer:sig
         else recvContent u in
       let rec send u s = ((!) ((:=) obuf) obuf) ^ s in
       let rec reset () =
-        parsingHeaders := true__;
+        parsingHeaders := true;
         ibuf := "";
         obuf := "";
         contentLength := 0;
@@ -261,7 +261,7 @@ module NetServer(NetServer:sig
       { init = (fun () -> ()); reset; send; recv; done__ = (fun () -> ()) }
     let rec protoServer proto portNum =
       let sock = INetSock.TCP.socket () in
-      let _ = S.Ctl.setREUSEADDR (sock, true__) in
+      let _ = S.Ctl.setREUSEADDR (sock, true) in
       let _ = S.bind (sock, (INetSock.any portNum)) in
       let _ = S.listen (sock, maxConnections) in
       let rec read_one conn u () =

@@ -38,7 +38,7 @@ module RelFun(RelFun:sig
         | _ -> raise (Error "Type Constant declaration expected") in
       let mS =
         match ModeTable.modeLookup cid with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let rec convertFor' __2__ __3__ __4__ __5__ __6__ =
         match (__2__, __3__, __4__, __5__, __6__) with
@@ -92,7 +92,7 @@ module RelFun(RelFun:sig
       | a::__L -> F.And ((convertOneFor a), (convertFor __L))
     let rec occursInExpN __9__ __10__ =
       match (__9__, __10__) with
-      | (k, Uni _) -> false__
+      | (k, Uni _) -> false
       | (k, Pi (DP, __V)) ->
           (occursInDecP (k, DP)) || (occursInExpN ((k + 1), __V))
       | (k, Root (__H, __S)) ->
@@ -104,16 +104,16 @@ module RelFun(RelFun:sig
             (fun (__U) ->
                fun (__B) ->
                  __B || (occursInExpN (k, (Whnf.normalize (__U, I.id)))))
-            false__
+            false
     let rec occursInHead __11__ __12__ =
       match (__11__, __12__) with
       | (k, BVar k') -> k = k'
-      | (k, Const _) -> false__
-      | (k, Def _) -> false__
-      | (k, FgnConst _) -> false__
+      | (k, Const _) -> false
+      | (k, Def _) -> false
+      | (k, FgnConst _) -> false
     let rec occursInSpine __13__ __14__ =
       match (__13__, __14__) with
-      | (_, I.Nil) -> false__
+      | (_, I.Nil) -> false
       | (k, App (__U, __S)) ->
           (occursInExpN (k, __U)) || (occursInSpine (k, __S))
     let rec occursInDec k (Dec (_, __V)) = occursInExpN (k, __V)
@@ -123,7 +123,7 @@ module RelFun(RelFun:sig
     let rec dot1inv w = Weaken.strengthenSub ((I.comp (I.shift, w)), I.shift)
     let rec shiftinv w = Weaken.strengthenSub (w, I.shift)
     let rec eqIdx __15__ __16__ =
-      match (__15__, __16__) with | (Idx n, Idx k) -> n = k | _ -> false__
+      match (__15__, __16__) with | (Idx n, Idx k) -> n = k | _ -> false
     let rec peel w =
       if eqIdx ((I.bvarSub (1, w)), (I.Idx 1)) then dot1inv w else shiftinv w
     let rec peeln __17__ __18__ =
@@ -140,7 +140,7 @@ module RelFun(RelFun:sig
     let rec strengthen (Psi) (a, __S) w m =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let rec args __21__ __22__ =
         match (__21__, __22__) with
@@ -148,8 +148,8 @@ module RelFun(RelFun:sig
         | (App (__U, __S'), Mapp (Marg (m', _), mS)) ->
             let __L = args (__S', mS) in
             (match M.modeEqual (m, m') with
-             | true__ -> __U :: __L
-             | false__ -> __L) in
+             | true -> __U :: __L
+             | false -> __L) in
       let rec strengthenArgs __23__ __24__ =
         match (__23__, __24__) with
         | (nil, s) -> nil
@@ -157,7 +157,7 @@ module RelFun(RelFun:sig
             (::) (Weaken.strengthenExp (__U, s)) strengthenArgs (__L, s) in
       let rec occursInArgs __25__ __26__ =
         match (__25__, __26__) with
-        | (n, nil) -> false__
+        | (n, nil) -> false
         | (n, (__U)::__L) ->
             (occursInExp (n, __U)) || (occursInArgs (n, __L)) in
       let rec occursInPsi __27__ __28__ =
@@ -176,7 +176,7 @@ module RelFun(RelFun:sig
       let rec occursBlock (__G) (Psi2, __L) =
         let rec occursBlock __32__ __33__ =
           match (__32__, __33__) with
-          | (I.Null, n) -> false__
+          | (I.Null, n) -> false
           | (Decl (__G, __D), n) ->
               (occursInPsi (n, (Psi2, __L))) || (occursBlock (__G, (n + 1))) in
         occursBlock (__G, 1) in
@@ -185,7 +185,7 @@ module RelFun(RelFun:sig
         | (I.Null, (bw, w1)) -> (bw, w1)
         | (Decl (__G, __D), (bw, w1)) ->
             if eqIdx ((I.bvarSub (1, w1)), (I.Idx 1))
-            then inBlock (__G, (true__, (dot1inv w1)))
+            then inBlock (__G, (true, (dot1inv w1)))
             else inBlock (__G, (bw, (Weaken.strengthenSub (w1, I.shift)))) in
       let rec blockSub __36__ __37__ =
         match (__36__, __37__) with
@@ -200,8 +200,8 @@ module RelFun(RelFun:sig
         | (Decl (Psi1, (Prim (Dec (name, __V)) as LD)), Psi2, __L, w1) ->
             let (bw, w1') =
               if eqIdx ((I.bvarSub (1, w1)), (I.Idx 1))
-              then (true__, (dot1inv w1))
-              else (false__, (Weaken.strengthenSub (w1, I.shift))) in
+              then (true, (dot1inv w1))
+              else (false, (Weaken.strengthenSub (w1, I.shift))) in
             if bw || (occursInPsi (1, (Psi2, __L)))
             then
               let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), __L, w1') in
@@ -215,7 +215,7 @@ module RelFun(RelFun:sig
                (Psi1'', (I.comp (w', I.shift))))
         | (Decl (Psi1, (Block (CtxBlock (name, __G)) as LD)), Psi2, __L, w1)
             ->
-            let (bw, w1') = inBlock (__G, (false__, w1)) in
+            let (bw, w1') = inBlock (__G, (false, w1)) in
             if bw || (occursBlock (__G, (Psi2, __L)))
             then
               let (Psi1', w') = strengthen' (Psi1, (LD :: Psi2), __L, w1') in
@@ -264,7 +264,7 @@ module RelFun(RelFun:sig
     let rec abstract a =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let __V =
         match I.sgnLookup a with
@@ -292,7 +292,7 @@ module RelFun(RelFun:sig
     let rec transformInit (Psi) (a, __S) w1 =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let __V =
         match I.sgnLookup a with
@@ -328,7 +328,7 @@ module RelFun(RelFun:sig
     let rec transformDec (__Ts) (Psi, __G0) d (a, __S) w1 w2 t0 =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let __V =
         match I.sgnLookup a with
@@ -458,7 +458,7 @@ module RelFun(RelFun:sig
         let name = I.conDecName (I.sgnLookup a) in
         let l =
           match FunNames.nameLookup name with
-          | NONE -> raise (Error (("Lemma " ^ name) ^ " not defined"))
+          | None -> raise (Error (("Lemma " ^ name) ^ " not defined"))
           | Some lemma -> lemma in
         ((d' + 1), w'', t'', (F.Lemma (l, (Dplus (1, Dminus))))) in
       ((if List.exists (fun x -> x = a) __Ts
@@ -517,7 +517,7 @@ module RelFun(RelFun:sig
     let rec transformConc (a, __S) w =
       let mS =
         match ModeTable.modeLookup a with
-        | NONE -> raise (Error "Mode declaration expected")
+        | None -> raise (Error "Mode declaration expected")
         | Some mS -> mS in
       let rec transformConc' __59__ __60__ =
         match (__59__, __60__) with
@@ -542,7 +542,7 @@ module RelFun(RelFun:sig
              with
              | (Some (w', d', PQ'), __L') ->
                  ((Some ((peel w'), d', PQ')), __L')
-             | (NONE, __L') -> (NONE, __L'))
+             | (None, __L') -> (None, __L'))
         | (c'', Psi, (Pi (((Dec (_, __V1) as D), I.No), __V2), v), __L) ->
             (match traverseNeg (c'', Psi, (__V2, (I.comp (v, I.shift))), __L)
              with
@@ -551,10 +551,10 @@ module RelFun(RelFun:sig
                    (c'', Psi, I.Null,
                      ((Weaken.strengthenExp (__V1, v)), I.id),
                      (Some (w', d', PQ')), __L')
-             | (NONE, __L') ->
+             | (None, __L') ->
                  traversePos
                    (c'', Psi, I.Null,
-                     ((Weaken.strengthenExp (__V1, v)), I.id), NONE, __L'))
+                     ((Weaken.strengthenExp (__V1, v)), I.id), None, __L'))
         | (c'', Psi, ((Root (Const c', __S) as V), v), __L) ->
             if c = c'
             then
@@ -568,7 +568,7 @@ module RelFun(RelFun:sig
                       ((fun p -> (Psi', s'', p)),
                         (fun wf -> transformConc ((c', __S'), wf))))), __L))
                 (* Clause head found *))
-            else (NONE, __L)
+            else (None, __L)
       and traversePos __65__ __66__ __67__ __68__ __69__ __70__ =
         match (__65__, __66__, __67__, __68__, __69__, __70__) with
         | (c'', Psi, __G, (Pi (((Dec (_, __V1) as D), I.Maybe), __V2), v),
@@ -588,12 +588,12 @@ module RelFun(RelFun:sig
              | (Some (w', d', PQ'), __L') ->
                  (match traverseNeg
                           (c'',
-                            (I.Decl (Psi, (F.Block (F.CtxBlock (NONE, __G))))),
+                            (I.Decl (Psi, (F.Block (F.CtxBlock (None, __G))))),
                             (__V1, v), __L')
                   with
                   | (Some (w'', d'', (P'', Q'')), L'') ->
                       ((Some (w', d', PQ')), ((P'' (Q'' w'')) :: L''))
-                  | (NONE, L'') -> ((Some (w', d', PQ')), L'')))
+                  | (None, L'') -> ((Some (w', d', PQ')), L'')))
         | (c'', Psi, I.Null, (__V, v), Some (w1, d, (__P, __Q)), __L) ->
             let Root (Const a', __S) =
               Whnf.normalize ((Weaken.strengthenExp (__V, v)), I.id) in
@@ -617,7 +617,7 @@ module RelFun(RelFun:sig
             let Root (Const a', __S) = Weaken.strengthenExp (__V, v) in
             let ((Decl (Psi', Block (CtxBlock (name, __G2))) as dummy), w2) =
               strengthen
-                ((I.Decl (Psi, (F.Block (F.CtxBlock (NONE, __G))))),
+                ((I.Decl (Psi, (F.Block (F.CtxBlock (None, __G))))),
                   (a', __S), w1, M.Minus) in
             let _ =
               if !Global.doubleCheck
@@ -637,33 +637,33 @@ module RelFun(RelFun:sig
                     ((fun p ->
                         __P
                           (F.Let
-                             ((F.New ((F.CtxBlock (NONE, __G1)), __Ds)),
+                             ((F.New ((F.CtxBlock (None, __G1)), __Ds)),
                                (F.Case (F.Opts [(Psi', t4, p)]))))), __Q))),
                 __L))
               (* Lemma calls (under a context block) *)
               (* provide typeCheckCtx from typecheck *)
               (* change w1 to w1' and w2 to w2' below *))
         | (c'', Psi, __G, (Pi (((Dec (_, __V1) as D), I.Maybe), __V2), v),
-           NONE, __L) ->
+           None, __L) ->
             traversePos
               (c'', Psi, (I.Decl (__G, (Weaken.strengthenDec (__D, v)))),
-                (__V2, (I.dot1 v)), NONE, __L)
-        | (c'', Psi, __G, (Pi (((Dec (_, __V1) as D), I.No), __V2), v), NONE,
+                (__V2, (I.dot1 v)), None, __L)
+        | (c'', Psi, __G, (Pi (((Dec (_, __V1) as D), I.No), __V2), v), None,
            __L) ->
             (match traversePos
-                     (c'', Psi, __G, (__V2, (I.comp (v, I.shift))), NONE,
+                     (c'', Psi, __G, (__V2, (I.comp (v, I.shift))), None,
                        __L)
              with
-             | (NONE, __L') ->
+             | (None, __L') ->
                  (match traverseNeg
                           (c'',
-                            (I.Decl (Psi, (F.Block (F.CtxBlock (NONE, __G))))),
+                            (I.Decl (Psi, (F.Block (F.CtxBlock (None, __G))))),
                             (__V1, v), __L')
                   with
                   | (Some (w'', d'', (P'', Q'')), L'') ->
-                      (NONE, ((P'' (Q'' w'')) :: L''))
-                  | (NONE, L'') -> (NONE, L'')))
-        | (c'', Psi, __G, (__V, v), NONE, __L) -> (NONE, __L) in
+                      (None, ((P'' (Q'' w'')) :: L''))
+                  | (None, L'') -> (None, L'')))
+        | (c'', Psi, __G, (__V, v), None, __L) -> (None, __L) in
       let rec traverseSig' c'' (__L) =
         if (=) c'' (fun r -> r.1) (I.sgnSize ())
         then __L
@@ -673,7 +673,7 @@ module RelFun(RelFun:sig
                (match traverseNeg (c'', I.Null, (__V, I.id), __L) with
                 | (Some (wf, d', (__P', __Q')), __L') ->
                     traverseSig' ((c'' + 1), ((__P' (__Q' wf)) :: __L'))
-                | (NONE, __L') -> traverseSig' ((c'' + 1), __L'))
+                | (None, __L') -> traverseSig' ((c'' + 1), __L'))
            | _ -> traverseSig' ((c'' + 1), __L)) in
       ((traverseSig' (0, nil))
         (* traverseNeg (c'', Psi, (V, v), L) = ([w', d', PQ'], L')    [] means optional
@@ -714,7 +714,7 @@ module RelFun(RelFun:sig
           | _ -> raise (Error "Type Constant declaration expected") in
         let mS =
           match ModeTable.modeLookup a with
-          | NONE -> raise (Error "Mode declaration expected")
+          | None -> raise (Error "Mode declaration expected")
           | Some mS -> mS in
         let __P = abstract a in __P (F.Case (F.Opts (traverse (__Ts, a)))) in
       let rec convertPro' =

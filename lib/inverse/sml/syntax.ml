@@ -146,9 +146,9 @@ module Syntax : SYNTAX =
       | Abbrev abb -> ((fun r -> r.exp)) abb
     let rec is_def c =
       match Signat.lookup c with
-      | Def _ -> true__
-      | Abbrev _ -> true__
-      | Decl _ -> false__
+      | Def _ -> true
+      | Abbrev _ -> true
+      | Decl _ -> false
     let rec def c =
       match Signat.lookup c with
       | Def def -> ((fun r -> r.def)) def
@@ -196,7 +196,7 @@ module Syntax : SYNTAX =
           let tau2 = skeleton (ctx, body) in Arrow (tau1, tau2)
       | (_, exp) -> raise (Fail_exp ("skeleton: bad case", exp))
     exception Fail_exp_skel of (string * exp * skel) 
-    let changed = ref false__
+    let changed = ref false
     let rec shift_head __4__ __5__ =
       match (__4__, __5__) with
       | (lev, (Const _ as con)) -> con
@@ -253,15 +253,15 @@ module Syntax : SYNTAX =
             (* indices start at 1 *))
       | (ctx, Root ((Const c as con), __S), (Arrow (tau1, tau2) as tau)) ->
           let __S' = concat ((shift_spine' __S), one) in
-          (changed := true__;
+          (changed := true;
            long_exp
-             (ctx, (Lam { var = NONE; body = (Root (con, __S')) }), tau))
+             (ctx, (Lam { var = None; body = (Root (con, __S')) }), tau))
       | (ctx, Root (BVar i, __S), (Arrow (tau1, tau2) as tau)) ->
           let __S' = concat ((shift_spine' __S), one) in
-          (changed := true__;
+          (changed := true;
            long_exp
              (ctx,
-               (Lam { var = NONE; body = (Root ((BVar (i + 1)), __S')) }),
+               (Lam { var = None; body = (Root ((BVar (i + 1)), __S')) }),
                tau))
       | (_, exp, skel) ->
           raise (Fail_exp_skel ("long_exp: bad case", exp, skel))
@@ -276,7 +276,7 @@ module Syntax : SYNTAX =
       match (__16__, __17__) with
       | (e1, Uni (Kind)) -> e1
       | (e1, e2) ->
-          let () = changed := false__ in
+          let () = changed := false in
           let skel = skeleton ([], e2) in
           let e2' = long_exp ([], e1, skel) in ((e2')
             (*           if !changed then L.warning "expression is not eta long" else (); *))

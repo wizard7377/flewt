@@ -29,7 +29,7 @@ module FunNames(FunNames:sig module Global : GLOBAL module HashTable : TABLE
       Array.update (nameArray, cid, (NameInfo (("%" ^ name) ^ "%")))(* should shadowed identifiers keep their fixity? *)
     let rec shadow =
       function
-      | NONE -> ()
+      | None -> ()
       | Some (_, cid) -> override (cid, (Array.sub (nameArray, cid)))
     let rec installName name lemma =
       let shadowed = hashInsert (name, lemma) in

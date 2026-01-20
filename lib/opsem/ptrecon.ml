@@ -30,7 +30,7 @@ module PtRecon(PtRecon:sig
       match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec compose' __2__ __3__ =
       match (__2__, __3__) with
       | (IntSyn.Null, __G) -> __G
@@ -44,7 +44,7 @@ module PtRecon(PtRecon:sig
       | (__O, (Atom p, s), (DProg (__G, dPool) as dp), sc) ->
           matchAtom (__O, (p, s), dp, sc)
       | (__O, (Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           ((if !TableParam.strengthen
             then
               (match MT.memberCtx ((__G, (I.EClo (__A, s))), __G) with
@@ -56,7 +56,7 @@ module PtRecon(PtRecon:sig
                          (fun (__O) ->
                             fun (__M) -> sc (__O, (I.Lam (__D', __M))))))
                      (* need to reuse label for this assumption .... *))
-               | NONE ->
+               | None ->
                    solve'
                      (__O, (g, (I.dot1 s)),
                        (C.DProg
@@ -101,7 +101,7 @@ module PtRecon(PtRecon:sig
                then sc (__O, I.Nil)
                else
                  print "aSolve cnstr not solvable -- SHOULD NEVER HAPPEN\n"
-           | NONE ->
+           | None ->
                print "Clause Head not assignable -- SHOULD NEVER HAPPEN\n")
       | (__O, ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), sc) ->
           let __X = I.newEVar (__G, (I.EClo (__A, s))) in

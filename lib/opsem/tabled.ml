@@ -49,7 +49,7 @@ module Tabled(Tabled:sig
       match (__0__, __1__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec append __2__ __3__ =
       match (__2__, __3__) with
       | (IntSyn.Null, __G) -> __G
@@ -85,7 +85,7 @@ module Tabled(Tabled:sig
               (ctxToAVarSub (__G, s)))
     let rec solveEqn __14__ __15__ =
       match (__14__, __15__) with
-      | ((T.Trivial, s), __G) -> true__
+      | ((T.Trivial, s), __G) -> true
       | ((Unify (__G', e1, __N, eqns), s), __G) ->
           let G'' = append (__G', __G) in
           let s' = shift (G'', s) in
@@ -94,14 +94,14 @@ module Tabled(Tabled:sig
             (* G, G' |- s' : D, G, G' *))(* . |- s : D *)
       (* D, G, G' |- e1 and D, G, G' |- N and D, G |- eqns *)
     let rec unifySub' (__G) s1 s2 =
-      try Unify.unifySub (__G, s1, s2); true__ with | Unify msg -> false__
+      try Unify.unifySub (__G, s1, s2); true with | Unify msg -> false
     let rec unify (__G) (__Us) (__Us') =
-      try Unify.unify (__G, __Us, __Us'); true__ with | Unify msg -> false__
+      try Unify.unify (__G, __Us, __Us'); true with | Unify msg -> false
     let rec getHypGoal __16__ __17__ =
       match (__16__, __17__) with
       | (DProg, (Atom p, s)) -> (DProg, (p, s))
       | (DProg (__G, dPool), (Impl (r, __A, Ha, g), s)) ->
-          let __D' = IntSyn.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = IntSyn.Dec (None, (I.EClo (__A, s))) in
           if !TableParam.strengthen
           then
             (match MT.memberCtx ((__G, (I.EClo (__A, s))), __G) with
@@ -111,7 +111,7 @@ module Tabled(Tabled:sig
                  ((getHypGoal
                      ((C.DProg (__G, dPool)), (g, (I.Dot ((I.Exp __X), s)))))
                    (* is g always atomic? *))
-             | NONE ->
+             | None ->
                  getHypGoal
                    ((C.DProg
                        ((I.Decl (__G, __D')),
@@ -281,7 +281,7 @@ module Tabled(Tabled:sig
                . |- [s'](Pi G'. U')     and  G |- [s'^k]U' = [s]p *))
           else matchAtom ((p, s), dp, sc)
       | ((Impl (r, __A, Ha, g), s), DProg (__G, dPool), sc) ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           if !TableParam.strengthen
           then
             (match MT.memberCtx ((__G, (I.EClo (__A, s))), __G) with
@@ -290,7 +290,7 @@ module Tabled(Tabled:sig
                  solve
                    ((g, (I.Dot ((I.Exp __X), s))), (C.DProg (__G, dPool)),
                      (fun (__O) -> sc __O))
-             | NONE ->
+             | None ->
                  solve
                    ((g, (I.dot1 s)),
                      (C.DProg
@@ -319,7 +319,7 @@ module Tabled(Tabled:sig
           (match Assign.assignable (__G, ps', (__Q, s)) with
            | Some cnstr ->
                aSolve ((eqns, s), dp, cnstr, (fun (__S) -> sc __S))
-           | NONE -> ())
+           | None -> ())
       | (ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), sc) ->
           let __X = I.newEVar (__G, (I.EClo (__A, s))) in
           ((rSolve
@@ -388,8 +388,8 @@ module Tabled(Tabled:sig
           CSManager.trail
             (fun () ->
                match solve (__G, (I.SClo (__S, s)), try__) with
-               | Some (__U) -> (sc [C.Csolver __U]; true__)
-               | NONE -> false__) in
+               | Some (__U) -> (sc [C.Csolver __U]; true)
+               | None -> false) in
         if succeeded then matchConstraint (solve, (try__ + 1)) else () in
       ((match I.constStatus (cidFromHead Ha) with
         | Constraint (cs, solve) -> matchConstraint (solve, 0)
@@ -440,8 +440,8 @@ module Tabled(Tabled:sig
         then
           ((TableParam.stageCtr := (!TableParam.stageCtr)) + 1;
            resume SG;
-           true__)
-        else false__)
+           true)
+        else false)
         (* table changed during previous stage *)(* table did not change during previous stage *))
     let rec reset () = SuspGoals := []; MT.reset (); TableParam.stageCtr := 0
     let rec solveQuery (g, s) (DProg (__G, dPool) as dp) sc =

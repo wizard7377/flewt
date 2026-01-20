@@ -75,7 +75,7 @@ module ParseThm(ParseThm:sig
           Parsing.error (r, ("Expected upper case identifier, found " ^ id))
       | Cons ((L.UNDERSCORE, r), s') ->
           let (idOpts, f') = parseArgPat (LS.expose s') in
-          ((NONE :: idOpts), f')
+          ((None :: idOpts), f')
       | f -> (nil, f)
     let rec parseCallPat =
       function
@@ -107,18 +107,18 @@ module ParseThm(ParseThm:sig
           decideRBracket (r, (parseOrders (LS.expose s')))
       | Cons ((ID (L.Upper, id), r), s') ->
           ((Some (E.varg (r, [id]))), (LS.expose s'))
-      | Cons (_, s') as f -> (NONE, f)
+      | Cons (_, s') as f -> (None, f)
     let rec parseOrders f = parseOrders' (parseOrderOpt f)
     let rec parseOrders' __6__ __7__ =
       match (__6__, __7__) with
       | (Some order, f') ->
           let (orders, f'') = parseOrders f' in ((order :: orders), f'')
-      | (NONE, f') -> (nil, f')
+      | (None, f') -> (nil, f')
     let rec parseOrder f = parseOrder' (parseOrderOpt f)
     let rec parseOrder' __8__ __9__ =
       match (__8__, __9__) with
       | (Some order, f') -> (order, f')
-      | (NONE, Cons ((t, r), s')) ->
+      | (None, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected order, found " L.toString t))
     let rec parseTDecl f =
       let (order, f') = parseOrder f in
@@ -161,7 +161,7 @@ module ParseThm(ParseThm:sig
       let (f'', r2) = stripRBrace f' in
       let dec =
         match yOpt with
-        | NONE -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
+        | None -> E.ExtSyn.dec0 (x, (P.join (r, r2)))
         | Some y -> E.ExtSyn.dec (x, y, (P.join (r, r2))) in
       (dec, f'')
     let rec parseDecs' __10__ __11__ =

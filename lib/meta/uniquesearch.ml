@@ -34,14 +34,14 @@ module UniqueSearch(UniqueSearch:sig
     module C = CompSyn
     let rec isInstantiated =
       function
-      | Root (Const cid, _) -> true__
+      | Root (Const cid, _) -> true
       | Pi (_, __V) -> isInstantiated __V
-      | Root (Def cid, _) -> true__
+      | Root (Def cid, _) -> true
       | Redex (__V, __S) -> isInstantiated __V
       | Lam (_, __V) -> isInstantiated __V
       | EVar ({ contents = Some (__V) }, _, _, _) -> isInstantiated __V
       | EClo (__V, s) -> isInstantiated __V
-      | _ -> false__
+      | _ -> false
     let rec compose' __0__ __1__ =
       match (__0__, __1__) with
       | (IntSyn.Null, __G) -> __G
@@ -53,13 +53,13 @@ module UniqueSearch(UniqueSearch:sig
     let rec exists (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> false__
+        | I.Null -> false
         | Decl (__K', __Y) -> (__P __Y) || (exists' __K') in
       exists' __K
     let rec occursInExp r (__Vs) = occursInExpW (r, (Whnf.whnf __Vs))
     let rec occursInExpW __4__ __5__ =
       match (__4__, __5__) with
-      | (r, (Uni _, _)) -> false__
+      | (r, (Uni _, _)) -> false
       | (r, (Pi ((__D, _), __V), s)) ->
           (occursInDec (r, (__D, s))) || (occursInExp (r, (__V, (I.dot1 s))))
       | (r, (Root (_, __S), s)) -> occursInSpine (r, (__S, s))
@@ -70,10 +70,10 @@ module UniqueSearch(UniqueSearch:sig
       | (r, (FgnExp csfe, s)) ->
           I.FgnExpStd.fold csfe
             (fun (__U) -> fun (__B) -> __B || (occursInExp (r, (__U, s))))
-            false__
+            false
     let rec occursInSpine __6__ __7__ =
       match (__6__, __7__) with
-      | (_, (I.Nil, _)) -> false__
+      | (_, (I.Nil, _)) -> false
       | (r, (SClo (__S, s'), s)) ->
           occursInSpine (r, (__S, (I.comp (s', s))))
       | (r, (App (__U, __S), s)) ->
@@ -81,7 +81,7 @@ module UniqueSearch(UniqueSearch:sig
     let rec occursInDec r (Dec (_, __V), s) = occursInExp (r, (__V, s))
     let rec nonIndex __8__ __9__ =
       match (__8__, __9__) with
-      | (_, nil) -> true__
+      | (_, nil) -> true
       | (r, (EVar (_, _, __V, _))::GE) ->
           (not (occursInExp (r, (__V, I.id)))) && (nonIndex (r, GE))
     let rec selectEVar =
@@ -103,14 +103,14 @@ module UniqueSearch(UniqueSearch:sig
       match (__12__, __13__) with
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false__
+      | _ -> false
     let rec solve __14__ __15__ __16__ __17__ __18__ __19__ =
       match (__14__, __15__, __16__, __17__, __18__, __19__) with
       | (max, depth, (Atom p, s), dp, sc, acc) ->
           matchAtom (max, depth, (p, s), dp, sc, acc)
       | (max, depth, (Impl (r, __A, __H, g), s), DProg (__G, dPool), sc, acc)
           ->
-          let __D' = I.Dec (NONE, (I.EClo (__A, s))) in
+          let __D' = I.Dec (None, (I.EClo (__A, s))) in
           solve
             (max, (depth + 1), (g, (I.dot1 s)),
               (C.DProg
@@ -135,7 +135,7 @@ module UniqueSearch(UniqueSearch:sig
            | Some cnstr ->
                aSolve
                  ((eqns, s), dp, cnstr, (fun () -> sc (I.Nil, acc)), acc)
-           | NONE -> acc)
+           | None -> acc)
       | (max, depth, ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp),
          sc, acc) ->
           let __X = I.newEVar (__G, (I.EClo (__A, s))) in
@@ -254,7 +254,7 @@ module UniqueSearch(UniqueSearch:sig
       | (max, (EVar (r, __G, __V, _) as X)::GE, sc, acc) ->
           solve
             (max, 0, ((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false__ __G),
+              (Compile.compileCtx false __G),
               (fun (__U') ->
                  fun acc' ->
                    try

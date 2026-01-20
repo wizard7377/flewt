@@ -26,14 +26,14 @@ module ParseConDec(ParseConDec:sig
       | (optName, (tm, Cons ((L.EQUAL, r), s'))) ->
           parseConDec3 (optName, (Some tm), s')
       | (Some name, (tm, f)) -> ((ExtConDec.condec (name, tm)), f)
-      | (NONE, (tm, Cons ((t, r), s'))) ->
+      | (None, (tm, Cons ((t, r), s'))) ->
           Parsing.error (r, "Illegal anonymous declared constant")
     let rec parseConDec1 __2__ __3__ =
       match (__2__, __3__) with
       | (optName, Cons ((L.COLON, r), s')) ->
           parseConDec2 (optName, (ParseTerm.parseTerm' (LS.expose s')))
       | (optName, Cons ((L.EQUAL, r), s')) ->
-          parseConDec3 (optName, NONE, s')
+          parseConDec3 (optName, None, s')
       | (optName, Cons ((t, r), s')) ->
           Parsing.error (r, ((^) "Expected `:' or `=', found " L.toString t))
     let rec parseBlock =
@@ -73,7 +73,7 @@ module ParseConDec(ParseConDec:sig
       function
       | Cons ((ID (idCase, name), r), s') ->
           parseConDec1 ((Some name), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseConDec1 (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseConDec1 (None, (LS.expose s'))
       | Cons ((L.BLOCK, r), s') -> parseBlockDec' (LS.expose s')
       | Cons ((t, r), s') ->
           Parsing.error

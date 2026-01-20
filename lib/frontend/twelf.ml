@@ -271,7 +271,7 @@ module Twelf(Twelf:sig
               * | IO.Io (ioError) => abortIO (fileName, ioError)
               *)
       (* includes filename *)(* includes filename *))
-    let (context : Names.namespace option ref) = ref NONE
+    let (context : Names.namespace option ref) = ref None
     let rec installConst fromCS cid fileNameocOpt =
       let _ = Origins.installOrigin (cid, fileNameocOpt) in
       let _ = Index.install fromCS (IntSyn.Const cid) in
@@ -374,7 +374,7 @@ module Twelf(Twelf:sig
           (try
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
-                 (condec, (Paths.Loc (fileName, r)), false__) in
+                 (condec, (Paths.Loc (fileName, r)), false) in
              let rec icd =
                function
                | Some (BlockDec _ as conDec) ->
@@ -396,7 +396,7 @@ module Twelf(Twelf:sig
                      (* val conDec' = nameConDec (conDec) *)
                      (* should print here, not in ReconConDec *)
                      (* allocate new cid after checking modes! *))
-               | NONE -> ()(* anonymous definition for type-checking *) in
+               | None -> ()(* anonymous definition for type-checking *) in
              icd optConDec
            with
            | Error eqns ->
@@ -406,7 +406,7 @@ module Twelf(Twelf:sig
           (try
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
-                 (condec, (Paths.Loc (fileName, r)), true__) in
+                 (condec, (Paths.Loc (fileName, r)), true) in
              let rec icd =
                function
                | Some conDec ->
@@ -418,7 +418,7 @@ module Twelf(Twelf:sig
                      (* val conDec' = nameConDec (conDec) *)
                      (* should print here, not in ReconConDec *)
                      (* allocate new cid after checking modes! *))
-               | NONE -> ()(* anonymous definition for type-checking *) in
+               | None -> ()(* anonymous definition for type-checking *) in
              icd optConDec
            with
            | Error eqns ->
@@ -428,7 +428,7 @@ module Twelf(Twelf:sig
           (try
              let (optConDec, ocOpt) =
                ReconConDec.condecToConDec
-                 (condec, (Paths.Loc (fileName, r)), false__) in
+                 (condec, (Paths.Loc (fileName, r)), false) in
              let rec icd =
                function
                | Some conDec ->
@@ -436,7 +436,7 @@ module Twelf(Twelf:sig
                      installConDec IntSyn.Clause
                        (conDec, (fileName, ocOpt), r) in
                    ()
-               | NONE -> ()(* anonymous definition for type-checking: ignore %clause *) in
+               | None -> ()(* anonymous definition for type-checking: ignore %clause *) in
              ((icd optConDec)
                (* val _ = print "%clause " *))
            with
@@ -495,7 +495,7 @@ module Twelf(Twelf:sig
       | (fileName, (SubordDec qidpairs, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -527,7 +527,7 @@ module Twelf(Twelf:sig
       | (fileName, (FreezeDec qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -567,7 +567,7 @@ module Twelf(Twelf:sig
             else () in
           let rec toCid qid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -606,14 +606,14 @@ module Twelf(Twelf:sig
       | (fileName, (DeterministicDec qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
                          (valOf (Names.constUndef qid)))
                         ^ " in deterministic declaration"))
             | Some cid -> cid in
-          let rec insertCid cid = CompSyn.detTableInsert (cid, true__) in
+          let rec insertCid cid = CompSyn.detTableInsert (cid, true) in
           let cids =
             try List.map toCid qids
             with | Error msg -> raise (Names.Error (Paths.wrap (r, msg))) in
@@ -632,7 +632,7 @@ module Twelf(Twelf:sig
       | (fileName, (Compile qids, r)) ->
           let rec toCid qid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared identifier " Names.qidToString
@@ -679,7 +679,7 @@ module Twelf(Twelf:sig
             (* ******************************************* *))
       | (fileName, (FixDec ((qid, r), fixity), _)) ->
           (match Names.constLookup qid with
-           | NONE ->
+           | None ->
                raise
                  (Names.Error
                     (((^) "Undeclared identifier " Names.qidToString
@@ -700,7 +700,7 @@ module Twelf(Twelf:sig
                 with | Error msg -> raise (Names.Error (Paths.wrap (r, msg)))))
       | (fileName, (NamePref ((qid, r), namePref), _)) ->
           (match Names.constLookup qid with
-           | NONE ->
+           | None ->
                raise
                  (Names.Error
                     (((^) "Undeclared identifier " Names.qidToString
@@ -717,7 +717,7 @@ module Twelf(Twelf:sig
               (fun ((a, _) as mdec) ->
                  fun r ->
                    match ModeTable.modeLookup a with
-                   | NONE -> ()
+                   | None -> ()
                    | Some _ ->
                        if Subordinate.frozen [a]
                        then
@@ -854,9 +854,9 @@ module Twelf(Twelf:sig
 
 
            ABP 2/28/03 -- factoring *)
-            (*      val result1 = NONE *)(* pre-install for recursive checking *)
+            (*      val result1 = None *)(* pre-install for recursive checking *)
             (*        val _ = case (result1)
-                    of NONE => ()
+                    of None => ()
                      | Some msg => raise Cover.Error (Paths.wrap (r, "Relational coverage succeeds, funcational fails:\n This indicates a bug in the functional checker.\n[Functional] " ^ msg))
 *)
             (* %total does not auto-freeze, since the predicate must already be frozen *))
@@ -943,7 +943,7 @@ module Twelf(Twelf:sig
                      (FunSyn.LabelDec
                         ((Int.toString k), (FunSyn.ctxToList __G1),
                           (FunSyn.ctxToList __G2)))) 0 GBs in
-          let cid = installConDec IntSyn.Ordinary (__E, (fileName, NONE), r) in
+          let cid = installConDec IntSyn.Ordinary (__E, (fileName, None), r) in
           let MS = ThmSyn.theoremDecToModeSpine (Tdec, r) in
           let _ = ModeTable.installMode (cid, MS) in
           let _ =
@@ -983,7 +983,7 @@ module Twelf(Twelf:sig
           let _ = if (!Global.chatter) >= 3 then msg "%QED\n" else () in
           (((Prover.install
                (fun (__E) ->
-                  installConDec IntSyn.Ordinary (__E, (fileName, NONE), r));
+                  installConDec IntSyn.Ordinary (__E, (fileName, None), r));
              Skolem.install La))
             (* La is the list of type constants *)(* times itself *))
       | (fileName, (EstablishDec lterm, r)) ->
@@ -1017,7 +1017,7 @@ module Twelf(Twelf:sig
                 raise (Prover.Error (Paths.wrap ((joinregion rrs), msg))) in
           ((Prover.install
               (fun (__E) ->
-                 installConDec IntSyn.Ordinary (__E, (fileName, NONE), r)))
+                 installConDec IntSyn.Ordinary (__E, (fileName, None), r)))
             (* La is the list of type constants *)(* times itself *))
       | (fileName, (AssertDec aterm, _)) ->
           let _ =
@@ -1074,7 +1074,7 @@ module Twelf(Twelf:sig
                  (List.map
                     (fun qid ->
                        match Names.constLookup qid with
-                       | NONE ->
+                       | None ->
                            raise
                              (Names.Error
                                 (((^) "Undeclared label " Names.qidToString
@@ -1110,16 +1110,16 @@ module Twelf(Twelf:sig
              then (map (fn (a,_) => Worldify.worldify a) cpa; ())
            else  ()  --cs Sat Aug 27 22:04:29 2005 *))
       | (fileName, ((SigDef _, _) as declr)) ->
-          install1WithSig (fileName, NONE, declr)
+          install1WithSig (fileName, None, declr)
       | (fileName, ((StructDec _, _) as declr)) ->
-          install1WithSig (fileName, NONE, declr)
+          install1WithSig (fileName, None, declr)
       | (fileName, ((Include _, _) as declr)) ->
-          install1WithSig (fileName, NONE, declr)
+          install1WithSig (fileName, None, declr)
       | (fileName, ((Open _, _) as declr)) ->
-          install1WithSig (fileName, NONE, declr)
+          install1WithSig (fileName, None, declr)
       | (fileName, (Use name, r)) ->
           (match !context with
-           | NONE -> CSManager.useSolver name
+           | None -> CSManager.useSolver name
            | _ ->
                raise
                  (ModSyn.Error
@@ -1160,7 +1160,7 @@ module Twelf(Twelf:sig
             try
               ((match idOpt with
                 | Some id -> (ModSyn.installSigDef (id, module'); id)
-                | NONE -> "_")
+                | None -> "_")
               (* anonymous *))
             with | Error msg -> raise (ModSyn.Error (Paths.wrap (r, msg))) in
           let _ =
@@ -1181,9 +1181,9 @@ module Twelf(Twelf:sig
                  ((match idOpt with
                    | Some id ->
                        (installStrDec
-                          ((IntSyn.StrDec (id, NONE)), module', r, false__);
+                          ((IntSyn.StrDec (id, None)), module', r, false);
                         id)
-                   | NONE -> "_")
+                   | None -> "_")
                  (* anonymous *)) in
                let _ =
                  if (!Global.chatter) = 3
@@ -1197,9 +1197,9 @@ module Twelf(Twelf:sig
                  ((match idOpt with
                    | Some id ->
                        (installStrDec
-                          ((IntSyn.StrDec (id, NONE)), module__, r, true__);
+                          ((IntSyn.StrDec (id, None)), module__, r, true);
                         id)
-                   | NONE -> "_")
+                   | None -> "_")
                  (* anonymous *)) in
                let _ =
                  if (!Global.chatter) = 3
@@ -1218,15 +1218,15 @@ module Twelf(Twelf:sig
               (fun inst ->
                  fun module__ -> ReconModule.moduleWhere (module__, inst))
               module__ wherecls in
-          let _ = includeSig (module', r, false__) in
+          let _ = includeSig (module', r, false) in
           let _ =
             if (!Global.chatter) = 3 then msg "%include { ... }.\n" else () in
           ()
-      | (fileName, NONE, (Open strexp, r)) ->
+      | (fileName, None, (Open strexp, r)) ->
           let mid = ReconModule.strexpToStrexp strexp in
           let ns = Names.getComponents mid in
           let module__ = ModSyn.abstractModule (ns, (Some mid)) in
-          let _ = includeSig (module__, r, true__) in
+          let _ = includeSig (module__, r, true) in
           let _ =
             if (!Global.chatter) = 3
             then
@@ -1254,7 +1254,7 @@ module Twelf(Twelf:sig
       let result =
         try
           let s' = install s in
-          let module__ = ModSyn.abstractModule (namespace, NONE) in
+          let module__ = ModSyn.abstractModule (namespace, None) in
           let _ =
             if (!Global.chatter) >= 4
             then msg "% end subsignature\n\n"
@@ -1311,9 +1311,9 @@ module Twelf(Twelf:sig
       (* "stdIn" as fake fileName *))
     let rec top () = topLoop ()
     let rec installCSMDec conDec optFixity mdecL =
-      let _ = ModeCheck.checkD (conDec, "%use", NONE) in
+      let _ = ModeCheck.checkD (conDec, "%use", None) in
       let cid =
-        installConDec IntSyn.FromCS (conDec, ("", NONE), (Paths.Reg (0, 0))) in
+        installConDec IntSyn.FromCS (conDec, ("", None), (Paths.Reg (0, 0))) in
       let _ =
         if (!Global.chatter) >= 3
         then msg ((Print.conDecToString conDec) ^ "\n")
@@ -1331,7 +1331,7 @@ module Twelf(Twelf:sig
                      Names.qidToString (Names.constQid cid))
                     ^ ".\n")
              else ())
-        | NONE -> () in
+        | None -> () in
       let _ = List.app (fun mdec -> ModeTable.installMmode (cid, mdec)) mdecL in
       ((cid)(* put a more reasonable region here? -kw *))
     let _ = CSManager.setInstallFN installCSMDec
@@ -1354,7 +1354,7 @@ module Twelf(Twelf:sig
         Compile.sProgReset ();
         ModSyn.reset ();
         CSManager.resetSolvers ();
-        context := NONE)
+        context := None)
       (* -fp Wed Mar  9 20:24:45 2005 *)(* -fp *)
       (* -fp *)(* -bp *)(* -bp *)
       (* necessary? -fp; yes - bp*)(*  -bp *)(* resetting substitution trees *))
@@ -1373,11 +1373,11 @@ module Twelf(Twelf:sig
            install (Parser.parseStream TextIO.stdIn)) ()
     let rec decl id =
       match Names.stringToQid id with
-      | NONE ->
+      | None ->
           (msg (id ^ " is not a well-formed qualified identifier\n"); ABORT)
       | Some qid ->
           (match Names.constLookup qid with
-           | NONE ->
+           | None ->
                (msg
                   ((Names.qidToString (valOf (Names.constUndef qid))) ^
                      " has not been declared\n");
@@ -1400,17 +1400,17 @@ module Twelf(Twelf:sig
       end =
       struct
         type nonrec mfile = (string * Time.time option ref)
-        let rec create file = (file, (ref NONE))
+        let rec create file = (file, (ref None))
         let rec fileName file _ = file
         let rec editName edit file mtime = ((edit file), mtime)
         let rec modified __11__ __12__ =
           match (__11__, __12__) with
-          | (_, { contents = NONE }) -> true__
+          | (_, { contents = None }) -> true
           | (file, { contents = Some time }) ->
               (match Time.compare (time, (OS.FileSys.modTime file)) with
-               | EQUAL -> false__
-               | _ -> true__)
-        let rec makeModified _ mtime = mtime := NONE
+               | EQUAL -> false
+               | _ -> true)
+        let rec makeModified _ mtime = mtime := None
         let rec makeUnmodified file mtime =
           (:=) mtime Some (OS.FileSys.modTime file)
       end 

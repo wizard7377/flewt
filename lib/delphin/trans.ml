@@ -42,7 +42,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       let r2 = checkEOF f' in
       let dec =
         ((match yOpt with
-          | NONE -> ReconTerm.dec0 (x, r2)
+          | None -> ReconTerm.dec0 (x, r2)
           | Some y -> ReconTerm.dec (x, y, r2))
         (* below use region arithmetic --cs !!!  *)) in
       dec
@@ -62,10 +62,10 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | (n, __G, Vb, __S, (Dec (Some name, __V))::__L2, s) ->
           let name' = "o_" ^ name in
           let __V1 = I.EClo (__V, s) in
-          let __V2 = I.Pi (((I.Dec (NONE, Vb)), I.Maybe), __V1) in
+          let __V2 = I.Pi (((I.Dec (None, Vb)), I.Maybe), __V1) in
           let __V3 = closure (__G, __V2) in
           let m = I.ctxLength __G in
-          let condec = I.ConDec (name', NONE, m, I.Normal, __V3, I.Type) in
+          let condec = I.ConDec (name', None, m, I.Normal, __V3, I.Type) in
           let _ = TypeCheck.check (__V3, (I.Uni I.Type)) in
           let _ =
             if (!Global.chatter) >= 4
@@ -90,14 +90,14 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | (cid, AbbrevDef _) -> ()
       | (cid, BlockDec (name, _, Gsome, Lpi)) ->
           let __V' = closure (Gsome, (I.Uni I.Type)) in
-          let __C = I.ConDec ((name ^ "'"), NONE, 0, I.Normal, __V', I.Kind) in
+          let __C = I.ConDec ((name ^ "'"), None, 0, I.Normal, __V', I.Kind) in
           let a = I.sgnAdd __C in
           let _ = Array.update (internal, a, (Type cid)) in
           let _ = Names.installConstName a in
           let __S = makeSpine (0, Gsome, I.Nil) in
           let Vb = I.Root ((I.Const a), __S) in
           let __S' =
-            makeSpine (0, (I.Decl (Gsome, (I.Dec (NONE, Vb)))), I.Nil) in
+            makeSpine (0, (I.Decl (Gsome, (I.Dec (None, Vb)))), I.Nil) in
           internalizeBlock (1, Gsome, Vb, __S') (Lpi, I.shift)
       | (cid, SkoDec _) -> ()
     let rec internalizeSig () =
@@ -257,7 +257,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | Id s ->
           let qid = Names.Qid (nil, s) in
           (match Names.constLookup qid with
-           | NONE -> (s, nil)
+           | None -> (s, nil)
            | Some cid ->
                (match I.sgnLookup cid with
                 | BlockDec _ -> ((s ^ "'"), nil)
@@ -288,7 +288,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
           let qid = Names.Qid (nil, s) in
           let cid =
             match Names.constLookup qid with
-            | NONE ->
+            | None ->
                 raise
                   (Names.Error
                      (((^) "Undeclared label " Names.qidToString
@@ -394,11 +394,11 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
       | (Psi, NewDecl (__D, __Ds), sc, __W) ->
           let __D' = T.UDec (parseDec (Psi, __D)) in
           ((T.Let
-              ((T.PDec (NONE, T.True)),
+              ((T.PDec (None, T.True)),
                 (T.Lam
                    (__D', (transDecs ((I.Decl (Psi, __D')), __Ds, sc, __W)))),
                 (T.Var 1)))
-            (*          T.Let (T.PDec (NONE, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
+            (*          T.Let (T.PDec (None, T.True), T.Lam (D', transDecs (I.Decl (Psi, D'), Ds, sc, W)), T.Unit) *)
             (* T.True is not right! -- cs Sat Jun 28 11:43:30 2003  *))
       | _ ->
           raise
@@ -407,7 +407,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec lookup __45__ __46__ __47__ =
       match (__45__, __46__, __47__) with
       | (I.Null, n, s) -> raise (Error ("Undeclared constant " ^ s))
-      | (Decl (__G, PDec (NONE, _)), n, s) -> lookup (__G, (n + 1), s)
+      | (Decl (__G, PDec (None, _)), n, s) -> lookup (__G, (n + 1), s)
       | (Decl (__G, UDec _), n, s) -> lookup (__G, (n + 1), s)
       | (Decl (__G, PDec (Some s', __F)), n, s) ->
           if s = s'
@@ -452,7 +452,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
                 (T.Dot
                    ((T.Exp
                        (I.EVar
-                          ((ref NONE), I.Null,
+                          ((ref None), I.Null,
                             (I.EClo (__V, (T.coerceSub s))), (ref nil)))), s))))
       | (PatInx (t, p), (Ex ((Dec (_, __V), T.Explicit), __F'), s)) ->
           let (term', c) = transTerm t in
@@ -527,14 +527,14 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
     let rec transValDec (Psi) (Val (EPat, eP, eFopt)) (__Ds) sc (__W) =
       let (__P, (__F', t')) =
         match eFopt with
-        | NONE -> transProgS (Psi, eP, __W, nil)
+        | None -> transProgS (Psi, eP, __W, nil)
         | Some eF ->
             let __F' = transFor ((T.coerceCtx Psi), eF) in
             let __P' = transProgIN (Psi, eP, __F', __W) in
             (__P', (__F', T.id)) in
       let F'' = T.forSub (__F', t') in
       let Pat = transPattern (EPat, (__F', t')) in
-      let __D = T.PDec (NONE, F'') in
+      let __D = T.PDec (None, F'') in
       let (Psi', Pat') = Abstract.abstractTomegaPrg Pat in
       let m = I.ctxLength Psi' in
       let t = T.Dot ((T.Prg Pat'), (T.Shift m)) in
@@ -621,7 +621,7 @@ module Trans(Trans:sig module DextSyn' : DEXTSYN end) =
           let (__S, __Fs') =
             transProgS' (Psi, (__F', (T.Dot ((T.Exp __X), s))), __W, args) in
           ((((T.AppExp ((Whnf.normalize (__X, I.id)), __S)), __Fs'))
-            (*        val X = I.EVar (ref NONE, I.Null, I.EClo (V, T.coerceSub s), ref nil) *))
+            (*        val X = I.EVar (ref None, I.Null, I.EClo (V, T.coerceSub s), ref nil) *))
       | (Psi, (All ((UDec (Dec (_, __V)), T.Explicit), __F'), s), __W,
          t::args) ->
           let __U = parseTerm (Psi, (t, (I.EClo (__V, (T.coerceSub s))))) in

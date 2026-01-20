@@ -3,9 +3,9 @@ let rec dumpText tcb semant checker outputSemant outputChecker =
   let _ = Twelf.reset () in
   let _ = Flit.initForText () in
   let _ = (:=) Twelf.Print.width Option.valOf Int.maxInt in
-  let _ = Twelf.Print.implicit := true__ in
-  let _ = Twelf.Print.printInfix := true__ in
-  let _ = Twelf.Print.noShadow := true__ in
+  let _ = Twelf.Print.implicit := true in
+  let _ = Twelf.Print.printInfix := true in
+  let _ = Twelf.Print.noShadow := true in
   let _ = Twelf.chatter := 1 in
   let _ = Twelf.reset () in
   let tcbConfig = Twelf.Config.read tcb in

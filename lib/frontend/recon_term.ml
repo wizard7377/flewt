@@ -86,7 +86,7 @@ module ReconTerm(ReconTerm:sig
     let errorFileName = ref "no file"
     let errorThreshold = ref (Some 20)
     let rec exceeds __0__ __1__ =
-      match (__0__, __1__) with | (i, NONE) -> false__ | (i, Some j) -> i > j
+      match (__0__, __1__) with | (i, None) -> false | (i, Some j) -> i > j
     let rec resetErrors fileName = errorCount := 0; errorFileName := fileName
     let rec die r =
       raise
@@ -114,7 +114,7 @@ module ReconTerm(ReconTerm:sig
     let rec formatExp (__G) (__U) =
       try Print.formatExp (__G, __U)
       with | Names.Unprintable -> F.String "%_unprintable_%"
-    let queryMode = ref false__
+    let queryMode = ref false
     open IntSyn
     let rec headConDec =
       function
@@ -145,25 +145,25 @@ module ReconTerm(ReconTerm:sig
     let rec getEVarTypeApx name =
       match StringTree.lookup evarApxTable name with
       | Some (__V) -> __V
-      | NONE ->
+      | None ->
           (match Names.getEVarOpt name with
            | Some (EVar (_, _, __V, _)) ->
                let (((__V', _))(* Type *)) =
                  Apx.classToApx __V in
                (StringTree.insert evarApxTable (name, __V'); __V')
-           | NONE ->
+           | None ->
                let __V = Apx.newCVar () in
                (StringTree.insert evarApxTable (name, __V); __V))
     let rec getFVarTypeApx name =
       match StringTree.lookup fvarApxTable name with
       | Some (__V) -> __V
-      | NONE ->
+      | None ->
           let __V = Apx.newCVar () in
           (StringTree.insert fvarApxTable (name, __V); __V)
     let rec getEVar name allowed =
       match Names.getEVarOpt name with
       | Some (EVar (_, __G, __V, _) as X) -> (__X, (raiseType (__G, __V)))
-      | NONE ->
+      | None ->
           let __V = Option.valOf (StringTree.lookup evarApxTable name) in
           let __V' = Apx.apxToClass (IntSyn.Null, __V, Apx.Type, allowed) in
           let (G'', V'') = lowerType (IntSyn.Null, (__V', IntSyn.id)) in
@@ -172,7 +172,7 @@ module ReconTerm(ReconTerm:sig
     let rec getFVarType name allowed =
       match StringTree.lookup fvarTable name with
       | Some (__V) -> __V
-      | NONE ->
+      | None ->
           let __V = Option.valOf (StringTree.lookup fvarApxTable name) in
           let __V' = Apx.apxToClass (IntSyn.Null, __V, Apx.Type, allowed) in
           (StringTree.insert fvarTable (name, __V'); __V')
@@ -249,7 +249,7 @@ module ReconTerm(ReconTerm:sig
     let rec decRegion (dec (name, tm, r)) = r
     let rec ctxRegion =
       function
-      | IntSyn.Null -> NONE
+      | IntSyn.Null -> None
       | Decl (g, tm) -> ctxRegion' (g, (decRegion tm))
     let rec ctxRegion' __6__ __7__ =
       match (__6__, __7__) with
@@ -288,22 +288,22 @@ module ReconTerm(ReconTerm:sig
       omitted r
     let rec findBVar' __8__ __9__ __10__ =
       match (__8__, __9__, __10__) with
-      | (Null, name, k) -> NONE
-      | (Decl (__G, Dec (NONE, _)), name, k) ->
+      | (Null, name, k) -> None
+      | (Decl (__G, Dec (None, _)), name, k) ->
           findBVar' (__G, name, (k + 1))
       | (Decl (__G, NDec _), name, k) -> findBVar' (__G, name, (k + 1))
       | (Decl (__G, Dec (Some name', _)), name, k) ->
           if name = name' then Some k else findBVar' (__G, name, (k + 1))
     let rec findBVar fc (__G) qid r =
       match Names.unqualified qid with
-      | NONE -> fc (__G, qid, r)
+      | None -> fc (__G, qid, r)
       | Some name ->
           (match findBVar' (__G, name, 1) with
-           | NONE -> fc (__G, qid, r)
+           | None -> fc (__G, qid, r)
            | Some k -> bvar (k, r))
     let rec findConst fc (__G) qid r =
       match Names.constLookup qid with
-      | NONE -> fc (__G, qid, r)
+      | None -> fc (__G, qid, r)
       | Some cid ->
           (match IntSyn.sgnLookup cid with
            | ConDec _ -> constant ((IntSyn.Const cid), r)
@@ -318,15 +318,15 @@ module ReconTerm(ReconTerm:sig
                 omitted r))
     let rec findCSConst fc (__G) qid r =
       match Names.unqualified qid with
-      | NONE -> fc (__G, qid, r)
+      | None -> fc (__G, qid, r)
       | Some name ->
           (match CSManager.parse name with
-           | NONE -> fc (__G, qid, r)
+           | None -> fc (__G, qid, r)
            | Some (cs, conDec) ->
                constant ((IntSyn.FgnConst (cs, conDec)), r))
     let rec findEFVar fc (__G) qid r =
       match Names.unqualified qid with
-      | NONE -> fc (__G, qid, r)
+      | None -> fc (__G, qid, r)
       | Some name -> (if !queryMode then evar else fvar) (name, r)
     let rec findLCID x = findBVar (findConst (findCSConst findOmitted)) x
     let rec findUCID x =
@@ -348,7 +348,7 @@ module ReconTerm(ReconTerm:sig
           inferApx (__G, (findQUID (__G, qid, r)))
       | (__G, (scon (name, r) as tm)) ->
           (match CSManager.parse name with
-           | NONE ->
+           | None ->
                (error (r, "Strings unsupported in current signature");
                 inferApx (__G, (omitted r)))
            | Some (cs, conDec) ->
@@ -583,7 +583,7 @@ module ReconTerm(ReconTerm:sig
     let rec reportConstraints (Xnames) =
       try
         match Print.evarCnstrsToStringOpt Xnames with
-        | NONE -> ()
+        | None -> ()
         | Some constr -> print (("Constraints:\n" ^ constr) ^ "\n")
       with | Names.Unprintable -> print "%_constraints unprintable_%\n"
     let rec reportInst (Xnames) =
@@ -612,7 +612,7 @@ module ReconTerm(ReconTerm:sig
                V1fmt] in
            let diff =
              match Print.evarCnstrsToStringOpt Xnames with
-             | NONE -> F.makestring_fmt diff
+             | None -> F.makestring_fmt diff
              | Some cnstrs ->
                  ((F.makestring_fmt diff) ^ "\nConstraints:\n") ^ cnstrs in
            error
@@ -644,7 +644,7 @@ module ReconTerm(ReconTerm:sig
     type __TraceMode =
       | Progressive 
       | Omniscient 
-    let trace = ref false__
+    let trace = ref false
     let traceMode = ref Omniscient
     let rec report f =
       match !traceMode with
@@ -769,10 +769,10 @@ module ReconTerm(ReconTerm:sig
           (tm, (Elim (bvarElim k)), __V)
       | (__G, (evar (name, r) as tm)) ->
           let (__X, __V) =
-            try getEVar (name, false__)
+            try getEVar (name, false)
             with
             | Apx.Ambiguous ->
-                let (__X, __V) = getEVar (name, true__) in
+                let (__X, __V) = getEVar (name, true) in
                 (delayAmbiguous
                    (__G, __V, r, "Free variable has ambiguous type");
                  (__X, __V)) in
@@ -782,10 +782,10 @@ module ReconTerm(ReconTerm:sig
             (* necessary? -kw *))
       | (__G, (fvar (name, r) as tm)) ->
           let __V =
-            try getFVarType (name, false__)
+            try getFVarType (name, false)
             with
             | Apx.Ambiguous ->
-                let __V = getFVarType (name, true__) in
+                let __V = getFVarType (name, true) in
                 (delayAmbiguous
                    (__G, __V, r, "Free variable has ambiguous type");
                  __V) in
@@ -796,7 +796,7 @@ module ReconTerm(ReconTerm:sig
       | (__G, arrow (tm1, tm2)) ->
           let (((tm1', __B1, _))(* Uni Type *)) =
             inferExact (__G, tm1) in
-          let __D = Dec (NONE, (toIntro (__B1, ((Uni Type), id)))) in
+          let __D = Dec (None, (toIntro (__B1, ((Uni Type), id)))) in
           let (tm2', __B2, __L) = inferExact (__G, tm2) in
           let __V2 = toIntro (__B2, (__L, id)) in
           ((arrow (tm1', tm2')),
@@ -844,10 +844,10 @@ module ReconTerm(ReconTerm:sig
           ((mismatch (tm1', tm2', location_msg, problem_msg)), __B, __V)
       | (__G, omitapx (__U, __V, __L, r)) ->
           let __V' =
-            try Apx.apxToClass (__G, __V, __L, false__)
+            try Apx.apxToClass (__G, __V, __L, false)
             with
             | Apx.Ambiguous ->
-                let __V' = Apx.apxToClass (__G, __V, __L, true__) in
+                let __V' = Apx.apxToClass (__G, __V, __L, true) in
                 (delayAmbiguous
                    (__G, __V', r,
                      ("Omitted term has ambiguous " ^
@@ -860,10 +860,10 @@ module ReconTerm(ReconTerm:sig
                         (* FIX: this violates an invariant in printing *))));
                  __V') in
           let __U' =
-            try Apx.apxToExact (__G, __U, (__V', id), false__)
+            try Apx.apxToExact (__G, __U, (__V', id), false)
             with
             | Apx.Ambiguous ->
-                let __U' = Apx.apxToExact (__G, __U, (__V', id), true__) in
+                let __U' = Apx.apxToExact (__G, __U, (__V', id), true) in
                 (delayAmbiguous
                    (__G, __U', r,
                      (("Omitted " ^
@@ -896,7 +896,7 @@ module ReconTerm(ReconTerm:sig
           let ((tm2', __B2, __V2), ok2) =
             if ok1
             then checkExact1 ((Decl (__G, __D)), tm2, (Vr, (dot1 s)))
-            else ((inferExact ((Decl (__G, __D)), tm2)), false__) in
+            else ((inferExact ((Decl (__G, __D)), tm2)), false) in
           let __U2 = toIntro (__B2, (__V2, id)) in
           (((lam ((dec (name, tm1', r)), tm2')), (Intro (Lam (__D, __U2))),
              (Pi ((__D, Maybe), __V2))), ok2)
@@ -920,10 +920,10 @@ module ReconTerm(ReconTerm:sig
          Vhs) ->
           let __V' = EClo Vhs in
           let __U' =
-            try Apx.apxToExact (__G, __U, Vhs, false__)
+            try Apx.apxToExact (__G, __U, Vhs, false)
             with
             | Apx.Ambiguous ->
-                let __U' = Apx.apxToExact (__G, __U, Vhs, true__) in
+                let __U' = Apx.apxToExact (__G, __U, Vhs, true) in
                 (delayAmbiguous
                    (__G, __U', r,
                      (("Omitted " ^
@@ -932,7 +932,7 @@ module ReconTerm(ReconTerm:sig
                           | Level 3 -> "kind"))
                         ^ " is ambiguous"));
                  __U') in
-          (((omitexact (__U', __V', r)), (Intro __U'), __V'), true__)
+          (((omitexact (__U', __V', r)), (Intro __U'), __V'), true)
       | (__G, tm, Vhs) ->
           let (tm', __B', __V') = inferExact (__G, tm) in
           ((tm', __B', __V'), (unifiableIdem (__G, Vhs, (__V', id))))
@@ -980,7 +980,7 @@ module ReconTerm(ReconTerm:sig
           let ((((tm1', __B1, _))(* Uni Type *)), ok1) =
             unifyExact (__G, tm1, (Va, s)) in
           let __V1 = toIntro (__B1, ((Uni Type), id)) in
-          let __D = Dec (NONE, __V1) in
+          let __D = Dec (None, __V1) in
           let (tm2', __B2, __L) = inferExact (__G, tm2) in
           let __V2 = toIntro (__B2, (__L, id)) in
           (((arrow (tm1', tm2')),
@@ -997,7 +997,7 @@ module ReconTerm(ReconTerm:sig
           let ((tm2', __B2, __L), ok2) =
             if ok1
             then unifyExact ((Decl (__G, __D)), tm2, (Vr, (dot1 s)))
-            else ((inferExact ((Decl (__G, __D)), tm2)), false__) in
+            else ((inferExact ((Decl (__G, __D)), tm2)), false) in
           let __V2 = toIntro (__B2, (__L, id)) in
           (((pi ((dec (name, tm1', r)), tm2')),
              (Intro (Pi ((__D, Maybe), __V2))), __L), ok2)
@@ -1018,9 +1018,9 @@ module ReconTerm(ReconTerm:sig
       | (__G, omitapx
          (((__V, __L, nL, r))(* = Vhs *)(* Next L *)),
          Vhs) ->
-          let __L' = Apx.apxToClass (__G, __L, nL, false__) in
+          let __L' = Apx.apxToClass (__G, __L, nL, false) in
           let __V' = EClo Vhs in
-          (((((omitexact (__V', __L', r)), (Intro __V'), __L'), true__))
+          (((((omitexact (__V', __L', r)), (Intro __V'), __L'), true))
             (* cannot raise Ambiguous *))
       | (__G, tm, Vhs) ->
           let (tm', __B', __L') = inferExact (__G, tm) in
@@ -1148,8 +1148,8 @@ module ReconTerm(ReconTerm:sig
              reason: the caller may want to do further processing on
              the "best effort" result returned, even if there were
              errors *))
-    let rec recon j = queryMode := false__; recon' j
-    let rec reconQuery j = queryMode := true__; recon' j
+    let rec recon j = queryMode := false; recon' j
+    let rec reconQuery j = queryMode := true; recon' j
     let rec reconWithCtx' (__G) j =
       let _ = Apx.varReset () in
       let _ = varReset () in
@@ -1166,9 +1166,9 @@ module ReconTerm(ReconTerm:sig
              the "best effort" result returned, even if there were
              errors *))
     let rec reconWithCtx (__G) j =
-      queryMode := false__; reconWithCtx' (__G, j)
+      queryMode := false; reconWithCtx' (__G, j)
     let rec reconQueryWithCtx (__G) j =
-      queryMode := true__; reconWithCtx' (__G, j)
+      queryMode := true; reconWithCtx' (__G, j)
     let rec internalInst x = raise Match
     let rec externalInst x = raise Match
   end ;;

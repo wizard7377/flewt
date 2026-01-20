@@ -14,7 +14,7 @@ module RedBlackTree(RedBlackTree:sig
     let rec lookup dict key =
       let rec lk =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' (key1, datum1) left right =
@@ -71,7 +71,7 @@ module RedBlackTree(RedBlackTree:sig
         (* ins (Red _) may violate color invariant at root *)(* ins (Black _) or ins (Empty) will be red/black tree *)
         (* ins preserves black height *))
     let rec insertShadow dict ((key, datum) as entry) =
-      let oldEntry = ref NONE in
+      let oldEntry = ref None in
       let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
@@ -86,7 +86,7 @@ module RedBlackTree(RedBlackTree:sig
                  ((:=) oldEntry Some entry1; Black (entry, left, right))
              | LESS -> restore_left (Black (entry1, (ins left), right))
              | GREATER -> restore_right (Black (entry1, left, (ins right)))) in
-      ((oldEntry := NONE;
+      ((oldEntry := None;
         ((((match ins dict with
             | Red ((_, Red _, _) as t) -> Black t
             | Red ((_, _, Red _) as t) -> Black t

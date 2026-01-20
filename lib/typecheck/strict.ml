@@ -16,19 +16,19 @@ module Strict(Strict:sig module Whnf : WHNF end) : STRICT =
     module I = IntSyn
     let rec patSpine __0__ __1__ =
       match (__0__, __1__) with
-      | (_, I.Nil) -> true__
+      | (_, I.Nil) -> true
       | (k, App (Root (BVar k', I.Nil), __S)) ->
           let rec indexDistinct =
             function
-            | I.Nil -> true__
+            | I.Nil -> true
             | App (Root (BVar k'', I.Nil), __S) ->
                 (k' <> k'') && (indexDistinct __S)
-            | _ -> false__ in
+            | _ -> false in
           (k' <= k) && ((patSpine (k, __S)) && (indexDistinct __S))
-      | _ -> false__(* possibly eta-contract? -fp *)
+      | _ -> false(* possibly eta-contract? -fp *)
     let rec strictExp __2__ __3__ __4__ =
       match (__2__, __3__, __4__) with
-      | (_, _, Uni _) -> false__
+      | (_, _, Uni _) -> false
       | (k, p, Lam (__D, __U)) ->
           (strictDec (k, p, __D)) || (strictExp ((k + 1), (p + 1), __U))
       | (k, p, Pi ((__D, _), __U)) ->
@@ -38,15 +38,15 @@ module Strict(Strict:sig module Whnf : WHNF end) : STRICT =
            | BVar k' ->
                if k' = p
                then patSpine (k, __S)
-               else if k' <= k then strictSpine (k, p, __S) else false__
+               else if k' <= k then strictSpine (k, p, __S) else false
            | Const c -> strictSpine (k, p, __S)
            | Def d -> strictSpine (k, p, __S)
            | FgnConst (cs, conDec) -> strictSpine (k, p, __S))
-      | (k, p, FgnExp (cs, ops)) -> false__(* no other cases possible *)
+      | (k, p, FgnExp (cs, ops)) -> false(* no other cases possible *)
       (* checking D in this case might be redundant -fp *)
     let rec strictSpine __5__ __6__ __7__ =
       match (__5__, __6__, __7__) with
-      | (_, _, I.Nil) -> false__
+      | (_, _, I.Nil) -> false
       | (k, p, App (__U, __S)) ->
           (strictExp (k, p, __U)) || (strictSpine (k, p, __S))
     let rec strictDec k p (Dec (_, __V)) = strictExp (k, p, __V)
@@ -59,10 +59,10 @@ module Strict(Strict:sig module Whnf : WHNF end) : STRICT =
     let rec occToString __10__ __11__ =
       match (__10__, __11__) with
       | (Some ocd, occ) -> Paths.wrap ((Paths.occToRegionDef1 ocd occ), "")
-      | (NONE, occ) -> "Error: "
+      | (None, occ) -> "Error: "
     let rec decToVarName =
       function
-      | Dec (NONE, _) -> "implicit variable"
+      | Dec (None, _) -> "implicit variable"
       | Dec (Some x, _) -> "variable " ^ x
     let rec strictTop (__U, __V) ocdOpt =
       let rec strictArgParms __12__ __13__ __14__ =

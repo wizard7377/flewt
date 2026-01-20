@@ -49,14 +49,14 @@ module RBSet : RBSET =
     exception Error of string 
     type nonrec 'a ordSet = 'a set ref
     let rec isEmpty =
-      function | Set (_, Empty) -> true__ | Set (_, __T) -> false__
+      function | Set (_, Empty) -> true | Set (_, __T) -> false
     let empty = Set (0, Empty)
     let rec singleton x = Set (1, (Red (x, Empty, Empty)))
     let compare = Int.compare
     let rec lookup (Set (n, dict)) key =
       let rec lk =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' (key1, datum1) left right =
@@ -126,7 +126,7 @@ module RBSet : RBSET =
       let Set (n', dic') = insert ((Set (n, dict)), ((n + 1), datum)) in
       Set (n', dic')
     let rec insertShadow (Set (n, dict)) ((key, datum) as entry) =
-      let oldEntry = ref NONE in
+      let oldEntry = ref None in
       let rec ins =
         function
         | Empty -> Red (entry, Empty, Empty)
@@ -142,7 +142,7 @@ module RBSet : RBSET =
              | LESS -> restore_left (Black (entry1, (ins left), right))
              | GREATER -> restore_right (Black (entry1, left, (ins right)))) in
       let (dict', oldEntry') =
-        oldEntry := NONE;
+        oldEntry := None;
         ((((match ins dict with
             | Red ((_, Red _, _) as t) -> Black t
             | Red ((_, _, Red _) as t) -> Black t
@@ -169,7 +169,7 @@ module RBSet : RBSET =
         | (RightBlack (a, x, z), b) -> zip (z, (Black (x, a, b))) in
       let rec bbZip __4__ __5__ =
         match (__4__, __5__) with
-        | (Top, t) -> (true__, t)
+        | (Top, t) -> (true, t)
         | (LeftBlack (x, Red (y, c, d), z), a) ->
             bbZip ((LeftRed (x, c, (LeftBlack (y, d, z)))), a)
         | (LeftRed (x, Red (y, c, d), z), a) ->
@@ -179,13 +179,13 @@ module RBSet : RBSET =
         | (LeftRed (x, Black (w, Red (y, c, d), e), z), a) ->
             bbZip ((LeftRed (x, (Black (y, c, (Red (w, d, e)))), z)), a)
         | (LeftBlack (x, Black (y, c, Red (w, d, e)), z), a) ->
-            (false__,
+            (false,
               (zip (z, (Black (y, (Black (x, a, c)), (Black (w, d, e)))))))
         | (LeftRed (x, Black (y, c, Red (w, d, e)), z), a) ->
-            (false__,
+            (false,
               (zip (z, (Red (y, (Black (x, a, c)), (Black (w, d, e)))))))
         | (LeftRed (x, Black (y, c, d), z), a) ->
-            (false__, (zip (z, (Black (x, a, (Red (y, c, d)))))))
+            (false, (zip (z, (Black (x, a, (Red (y, c, d)))))))
         | (LeftBlack (x, Black (y, c, d), z), a) ->
             bbZip (z, (Black (x, a, (Red (y, c, d)))))
         | (RightBlack (Red (y, c, d), x, z), b) ->
@@ -197,16 +197,16 @@ module RBSet : RBSET =
         | (RightRed (Black (y, Red (w, c, d), e), x, z), b) ->
             bbZip ((RightRed ((Black (w, c, (Red (y, d, e)))), x, z)), b)
         | (RightBlack (Black (y, c, Red (w, d, e)), x, z), b) ->
-            (false__,
+            (false,
               (zip (z, (Black (y, c, (Black (x, (Red (w, d, e)), b)))))))
         | (RightRed (Black (y, c, Red (w, d, e)), x, z), b) ->
-            (false__,
+            (false,
               (zip (z, (Red (y, c, (Black (x, (Red (w, d, e)), b)))))))
         | (RightRed (Black (y, c, d), x, z), b) ->
-            (false__, (zip (z, (Black (x, (Red (y, c, d)), b)))))
+            (false, (zip (z, (Black (x, (Red (y, c, d)), b)))))
         | (RightBlack (Black (y, c, d), x, z), b) ->
             bbZip (z, (Black (x, (Red (y, c, d)), b)))
-        | (z, t) -> (false__, (zip (z, t)))(* case 2R *)
+        | (z, t) -> (false, (zip (z, t)))(* case 2R *)
         (* case 2R *)(* case 4R *)
         (* case 4R *)(* case 3R *)
         (* case 3R *)(* case 1R *)
@@ -217,7 +217,7 @@ module RBSet : RBSET =
         (* case 1L *) in
       let rec delMin __6__ __7__ =
         match (__6__, __7__) with
-        | (Red (y, Empty, b), z) -> (y, (false__, (zip (z, b))))
+        | (Red (y, Empty, b), z) -> (y, (false, (zip (z, b))))
         | (Black (y, Empty, b), z) -> (y, (bbZip (z, b)))
         | (Red (y, a, b), z) -> delMin (a, (LeftRed (y, b, z)))
         | (Black (y, a, b), z) -> delMin (a, (LeftBlack (y, b, z))) in
@@ -287,7 +287,7 @@ module RBSet : RBSET =
     let rec existsOpt (Set (n, dict)) f =
       let rec ap =
         function
-        | Empty -> NONE
+        | Empty -> None
         | Red tree -> ap' tree
         | Black tree -> ap' tree
       and ap' ((k, d) as entry) left right =
@@ -295,16 +295,16 @@ module RBSet : RBSET =
         then (print "SUCCESS\n"; Some k)
         else
           (print "FAILED\n";
-           (match ap left with | NONE -> ap right | Some res -> Some res)) in
+           (match ap left with | None -> ap right | Some res -> Some res)) in
       ap dict
     let rec exists (Set (n, dict)) f =
       let rec ap =
         function
-        | Empty -> false__
+        | Empty -> false
         | Red tree -> ap' tree
         | Black tree -> ap' tree
       and ap' entry left right =
-        if f entry then true__ else if ap left then true__ else ap right in
+        if f entry then true else if ap left then true else ap right in
       ap dict
     let rec setsize (Set (n, _)) = n
     let rec next =
@@ -480,7 +480,7 @@ module RBSet : RBSET =
                  split (r1, t2, nr, ((n1 + 1), (addItem (e1, result1))), nr2)
              | EQUAL ->
                  (match __F d1 d2 with
-                  | NONE ->
+                  | None ->
                       split
                         (r1, r2, nr, ((n1 + 1), (addItem (e1, result1))),
                           ((n2 + 1), (addItem (e2, result2))))

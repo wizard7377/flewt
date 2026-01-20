@@ -130,14 +130,14 @@ module TomegaPrint(TomegaPrint:sig
     let rec decName __4__ __5__ =
       match (__4__, __5__) with
       | (__G, UDec (__D)) -> T.UDec (Names.decName (__G, __D))
-      | (__G, PDec (NONE, __F, TC1, TC2)) ->
+      | (__G, PDec (None, __F, TC1, TC2)) ->
           T.PDec ((Some "xx"), __F, TC1, TC2)
       | (__G, __D) -> __D(* needs to be integrated with Names *)
     let rec psiName (Psi1) s (Psi2) l =
       let rec nameDec __6__ __7__ =
         match (__6__, __7__) with
         | ((Dec (Some _, _) as D), name) -> __D
-        | (Dec (NONE, __V), name) -> I.Dec ((Some name), __V) in
+        | (Dec (None, __V), name) -> I.Dec ((Some name), __V) in
       let rec namePsi __8__ __9__ __10__ =
         match (__8__, __9__, __10__) with
         | (Decl (Psi, UDec (__D)), 1, name) ->
@@ -164,11 +164,11 @@ module TomegaPrint(TomegaPrint:sig
             copyNames ((T.Dot ((T.Idx (n + 1)), (T.Shift (n + 1)))), __G)
               Psi1
         | (Dot (Exp _, s), Decl (__G, _), Psi1) -> copyNames (s, __G) Psi1
-        | (Dot (Idx k, s), Decl (__G, UDec (Dec (NONE, _))), Psi1) ->
+        | (Dot (Idx k, s), Decl (__G, UDec (Dec (None, _))), Psi1) ->
             copyNames (s, __G) Psi1
         | (Dot (Idx k, s), Decl (__G, UDec (Dec (Some name, _))), Psi1) ->
             let Psi1' = namePsi (Psi1, k, name) in copyNames (s, __G) Psi1'
-        | (Dot (Prg k, s), Decl (__G, PDec (NONE, _, _, _)), Psi1) ->
+        | (Dot (Prg k, s), Decl (__G, PDec (None, _, _, _)), Psi1) ->
             copyNames (s, __G) Psi1
         | (Dot (Prg k, s), Decl (__G, PDec (Some name, _, _, _)), Psi1) ->
             copyNames (s, __G) Psi1
@@ -304,7 +304,7 @@ module TomegaPrint(TomegaPrint:sig
             Fmt.String ")";
             Fmt.Space;
             formatPrg3 callname ((I.Decl (Psi, __D)), __P)]
-      | (callname, Psi, Rec ((PDec (Some name, __F, NONE, NONE) as D), __P))
+      | (callname, Psi, Rec ((PDec (Some name, __F, None, None) as D), __P))
           ->
           Fmt.HVbox
             [Fmt.String "fix*";
@@ -333,7 +333,7 @@ module TomegaPrint(TomegaPrint:sig
       | (callname, Psi,
          (EVar (_, { contents = Some (__P) }, _, _, _, _) as X)) ->
           formatPrg3 callname (Psi, __P)
-      | (callname, Psi, (EVar (_, { contents = NONE }, _, _, _, _) as X)) ->
+      | (callname, Psi, (EVar (_, { contents = None }, _, _, _, _) as X)) ->
           Fmt.String (nameEVar __X)
       | (callname, Psi, Case (Cases (__Cs))) ->
           Fmt.HVbox
@@ -609,13 +609,13 @@ module TomegaPrint(TomegaPrint:sig
           I.Decl
             ((nameCtx Psi),
               (T.UDec (Names.decName ((T.coerceCtx Psi), __D))))
-      | Decl (Psi, PDec (NONE, __F, TC1, TC2)) ->
+      | Decl (Psi, PDec (None, __F, TC1, TC2)) ->
           let Psi' = nameCtx Psi in
-          let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec NONE)) in
+          let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec None)) in
           I.Decl (Psi', (T.PDec (x, __F, TC1, TC2)))
       | Decl (Psi, (PDec (Some n, __F, _, _) as D)) ->
           I.Decl ((nameCtx Psi), __D)
-    let rec flag = function | NONE -> "" | Some _ -> "*"
+    let rec flag = function | None -> "" | Some _ -> "*"
     let rec formatCtx =
       function
       | I.Null -> []

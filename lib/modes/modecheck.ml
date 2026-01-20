@@ -31,10 +31,10 @@ module ModeCheck(ModeCheck:sig
     type __Status =
       | Existential of (__Info * string option) 
       | Universal 
-    let checkFree = ref false__
+    let checkFree = ref false
     let rec wrapMsg c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
+      | (fileName, None) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (P.occToRegionClause occDec occ))),
@@ -54,16 +54,16 @@ module ModeCheck(ModeCheck:sig
       | sMs -> sMs
     let rec nameOf =
       function
-      | Existential (_, NONE) -> "?"
+      | Existential (_, None) -> "?"
       | Existential (_, Some name) -> name
       | _ -> "?"
     let rec unique __0__ __1__ =
       match (__0__, __1__) with
-      | (k, nil) -> true__
+      | (k, nil) -> true
       | (k, k'::ks) -> (k <> k') && (unique (k, ks))
-    let rec isUniversal = function | Universal -> true__ | _ -> false__
+    let rec isUniversal = function | Universal -> true | _ -> false
     let rec isGround =
-      function | Existential (Ground _, _) -> true__ | _ -> false__
+      function | Existential (Ground _, _) -> true | _ -> false
     let rec uniqueness =
       function | Existential (Ground u, _) -> u | Universal -> Unique
     let rec ambiguate =
@@ -71,7 +71,7 @@ module ModeCheck(ModeCheck:sig
     let rec andUnique __2__ __3__ =
       match (__2__, __3__) with | (Unique, Unique) -> Unique | _ -> Ambig
     let rec isFree =
-      function | Existential (Free, _) -> true__ | _ -> false__
+      function | Existential (Free, _) -> true | _ -> false
     exception Eta 
     let rec etaContract __4__ __5__ =
       match (__4__, __5__) with
@@ -97,10 +97,10 @@ module ModeCheck(ModeCheck:sig
           then checkPattern (__D, k, (k' :: args), __S)
           else raise Eta
     let rec isPattern (__D) k (__S) =
-      try checkPattern (__D, k, nil, __S); true__ with | Eta -> false__
+      try checkPattern (__D, k, nil, __S); true with | Eta -> false
     let rec strictExpN __12__ __13__ __14__ =
       match (__12__, __13__, __14__) with
-      | (__D, _, Uni _) -> false__
+      | (__D, _, Uni _) -> false
       | (__D, p, Lam (_, __U)) ->
           strictExpN ((I.Decl (__D, Universal)), (p + 1), __U)
       | (__D, p, Pi ((__D', _), __U)) ->
@@ -114,16 +114,16 @@ module ModeCheck(ModeCheck:sig
                  else
                    if isUniversal (I.ctxLookup (__D, k'))
                    then strictSpineN (__D, p, __S)
-                   else false__
+                   else false
              | Const c -> strictSpineN (__D, p, __S)
              | Def d -> strictSpineN (__D, p, __S)
              | FgnConst (cs, conDec) -> strictSpineN (__D, p, __S)))
           (* equivalently: isUniversal .. andalso strictSpineN .. *))
-      | (__D, p, FgnExp (cs, ops)) -> false__(* no other cases possible *)
+      | (__D, p, FgnExp (cs, ops)) -> false(* no other cases possible *)
       (* strictDecN (D, p, D) orelse *)(* checking D in this case should be redundant -fp *)
     let rec strictSpineN __15__ __16__ __17__ =
       match (__15__, __16__, __17__) with
-      | (_, _, I.Nil) -> false__
+      | (_, _, I.Nil) -> false
       | (__D, p, App (__U, __S)) ->
           (strictExpN (__D, p, __U)) || (strictSpineN (__D, p, __S))
     let rec strictDecN (__D) p (Dec (_, __V)) = strictExpN (__D, p, __V)
@@ -433,7 +433,7 @@ module ModeCheck(ModeCheck:sig
           let rec checkList __77__ __78__ =
             match (__77__, __78__) with
             | (found, nil) -> nil
-            | (false__, mS::[]) ->
+            | (false, mS::[]) ->
                 (match groundAtom (__D, M.Plus, __S, mS, (1, occ)) with
                  | Unique ->
                      k (updateAtom (__D, M.Minus1, __S, a, mS, (1, occ)))
@@ -441,8 +441,8 @@ module ModeCheck(ModeCheck:sig
                      k (updateAtom (__D, M.Minus, __S, a, mS, (1, occ))))
             | (found, mS::mSs) ->
                 let found' =
-                  ((try groundAtom (__D, M.Plus, __S, mS, (1, occ)); true__
-                    with | ModeError _ -> false__)
+                  ((try groundAtom (__D, M.Plus, __S, mS, (1, occ)); true
+                    with | ModeError _ -> false)
                   (* handler scope??? -fp *)) in
                 let __Ds' = checkList (found || found') mSs in
                 ((if found'
@@ -456,13 +456,13 @@ module ModeCheck(ModeCheck:sig
             (* mS is the last possible mode to check;
                     if the check fails, we don't catch ModeError *)
             (* found = true *) in
-          ((checkList false__ (lookup (a, occ)))
+          ((checkList false (lookup (a, occ)))
             (* for a goal, at least one mode must be satisfied *))
       | (__D, Root (Def d, __S), occ, k) ->
           let rec checkList __79__ __80__ =
             match (__79__, __80__) with
             | (found, nil) -> nil
-            | (false__, mS::[]) ->
+            | (false, mS::[]) ->
                 (match groundAtom (__D, M.Plus, __S, mS, (1, occ)) with
                  | Unique ->
                      k (updateAtom (__D, M.Minus1, __S, d, mS, (1, occ)))
@@ -470,8 +470,8 @@ module ModeCheck(ModeCheck:sig
                      k (updateAtom (__D, M.Minus, __S, d, mS, (1, occ))))
             | (found, mS::mSs) ->
                 let found' =
-                  try groundAtom (__D, M.Plus, __S, mS, (1, occ)); true__
-                  with | ModeError _ -> false__ in
+                  try groundAtom (__D, M.Plus, __S, mS, (1, occ)); true
+                  with | ModeError _ -> false in
                 let __Ds' = checkList (found || found') mSs in
                 ((if found'
                   then
@@ -484,21 +484,21 @@ module ModeCheck(ModeCheck:sig
             (* mS is the last possible mode to check;
                     if the check fails, we don't catch ModeError *)
             (* found = true *) in
-          ((checkList false__ (lookup (d, occ)))
+          ((checkList false (lookup (d, occ)))
             (* for a goal, at least one mode must be satisfied *))
     let rec checkDlocal (__D) (__V) occ =
       try checkD1 (__D, __V, occ, (fun (__D') -> [__D']))
       with | ModeError (occ, msg) -> raise (Error' (occ, msg))
     let rec cidFromHead = function | Const a -> a | Def a -> a
     let rec checkD conDec fileName occOpt =
-      let _ = checkFree := false__ in
+      let _ = checkFree := false in
       let rec checkable =
         function
         | Root (Ha, _) ->
             (match ModeTable.mmodeLookup (cidFromHead Ha) with
-             | nil -> false__
-             | _ -> true__)
-        | Uni _ -> false__
+             | nil -> false
+             | _ -> true)
+        | Uni _ -> false
         | Pi (_, __V) -> checkable __V in
       let __V = I.conDecType conDec in
       if checkable __V
@@ -507,7 +507,7 @@ module ModeCheck(ModeCheck:sig
         with
         | Error' (occ, msg) ->
             (match occOpt with
-             | NONE -> raise (Error msg)
+             | None -> raise (Error msg)
              | Some occTree ->
                  raise
                    (Error
@@ -541,7 +541,7 @@ module ModeCheck(ModeCheck:sig
                ^ ":\n")
         else () in
       let clist = Index.lookup a in
-      let _ = checkFree := false__ in
+      let _ = checkFree := false in
       let _ = checkAll clist in
       let _ = if (!Global.chatter) > 3 then print "\n" else () in ()
     let rec checkFreeOut a ms =
@@ -554,7 +554,7 @@ module ModeCheck(ModeCheck:sig
                ^ ":\n")
         else () in
       let clist = Index.lookup a in
-      let _ = checkFree := true__ in
+      let _ = checkFree := true in
       let _ = checkAll clist in
       let _ = if (!Global.chatter) > 3 then print "\n" else () in ()
     let checkD = checkD

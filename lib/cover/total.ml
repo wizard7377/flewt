@@ -41,14 +41,14 @@ module Total(Total:sig
     let install = install
     let uninstall cid =
       match lookup cid with
-      | NONE -> false__
-      | Some _ -> (uninstall cid; true__)
+      | None -> false
+      | Some _ -> (uninstall cid; true)
     let rec total cid =
-      match lookup cid with | NONE -> false__ | Some _ -> true__(* call only on constants *)
+      match lookup cid with | None -> false | Some _ -> true(* call only on constants *)
     exception Error' of (P.occ * string) 
     let rec error c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> raise (Error ((fileName ^ ":") ^ msg))
+      | (fileName, None) -> raise (Error ((fileName ^ ":") ^ msg))
       | (fileName, Some occDec) ->
           raise
             (Error
@@ -129,7 +129,7 @@ module Total(Total:sig
                   ^ "All argument modes must be input (+) or output (-)")
                  ^
                  (match xOpt with
-                  | NONE -> ""
+                  | None -> ""
                   | Some x -> (" but argument " ^ x) ^ " is indefinite (*)")))
       (* Fri Apr  5 19:25:54 2002 -fp *)(* Note: filename and location are missing in this error message *)
     let rec checkOutCover =

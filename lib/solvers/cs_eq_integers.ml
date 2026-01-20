@@ -60,17 +60,17 @@ module CSEqIntegers(CSEqIntegers:sig
     let rec timesExp (__U) (__V) =
       Root ((Const (!timesID)), (App (__U, (App (__V, Nil)))))
     let rec numberConDec d =
-      ConDec ((toString d), NONE, 0, Normal, (number ()), Type)
+      ConDec ((toString d), None, 0, Normal, (number ()), Type)
     let rec numberExp d = Root ((FgnConst ((!myID), (numberConDec d))), Nil)
     let rec parseNumber string =
       match fromString string with
       | Some d -> Some (numberConDec d)
-      | NONE -> NONE
+      | None -> None
     let rec solveNumber (__G) (__S) k = Some (numberExp (fromInt k))
     let rec findMSet eq x (__L) =
       let rec findMSet' __0__ __1__ =
         match (__0__, __1__) with
-        | (tried, nil) -> NONE
+        | (tried, nil) -> None
         | (tried, y::__L) ->
             if eq (x, y)
             then Some (y, (tried @ __L))
@@ -79,12 +79,12 @@ module CSEqIntegers(CSEqIntegers:sig
     let rec equalMSet eq =
       let rec equalMSet' __2__ __3__ =
         match (__2__, __3__) with
-        | (nil, nil) -> true__
+        | (nil, nil) -> true
         | (x::L1', __L2) ->
             (match findMSet eq (x, __L2) with
              | Some (y, L2') -> equalMSet' (L1', L2')
-             | NONE -> false__)
-        | _ -> false__ in
+             | None -> false)
+        | _ -> false in
       equalMSet'
     let rec toExp =
       function
@@ -118,16 +118,16 @@ module CSEqIntegers(CSEqIntegers:sig
                (k1 = k2) && (sameSpine ((__S1, s1), (__S2, s2)))
            | (FVar (n1, _, _), FVar (n2, _, _)) ->
                (n1 = n2) && (sameSpine ((__S1, s1), (__S2, s2)))
-           | _ -> false__)
+           | _ -> false)
       | ((((EVar (r1, __G1, __V1, cnstrs1) as U1), s1) as Us1),
          (((EVar (r2, __G2, __V2, cnstrs2) as U2), s2) as Us2)) ->
           (r1 = r2) && (sameSub (s1, s2))
-      | _ -> false__
+      | _ -> false
     let rec sameExp (__Us1) (__Us2) =
       sameExpW ((Whnf.whnf __Us1), (Whnf.whnf __Us2))
     let rec sameSpine __8__ __9__ =
       match (__8__, __9__) with
-      | ((Nil, s1), (Nil, s2)) -> true__
+      | ((Nil, s1), (Nil, s2)) -> true
       | ((SClo (__S1, s1'), s1), __Ss2) ->
           sameSpine ((__S1, (comp (s1', s1))), __Ss2)
       | (__Ss1, (SClo (__S2, s2'), s2)) ->
@@ -135,10 +135,10 @@ module CSEqIntegers(CSEqIntegers:sig
       | ((App (__U1, __S1), s1), (App (__U2, __S2), s2)) ->
           (sameExp ((__U1, s1), (__U2, s2))) &&
             (sameSpine ((__S1, s1), (__S2, s2)))
-      | _ -> false__
+      | _ -> false
     let rec sameSub __10__ __11__ =
       match (__10__, __11__) with
-      | (Shift _, Shift _) -> true__
+      | (Shift _, Shift _) -> true
       | (Dot (Idx k1, s1), Dot (Idx k2, s2)) ->
           (k1 = k2) && (sameSub (s1, s2))
       | ((Dot (Idx _, _) as s1), Shift k2) ->
@@ -147,7 +147,7 @@ module CSEqIntegers(CSEqIntegers:sig
       | (Shift k1, (Dot (Idx _, _) as s2)) ->
           sameSub
             ((Dot ((Idx (Int.(+) (k1, 1))), (Shift (Int.(+) (k1, 1))))), s2)
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec plusSum __12__ __13__ =
       match (__12__, __13__) with
       | (Sum (m1, nil), Sum (m2, monL2)) -> Sum ((m1 + m2), monL2)
@@ -164,7 +164,7 @@ module CSEqIntegers(CSEqIntegers:sig
                if n'' = zero
                then Sum (m, monL')
                else Sum (m, ((Mon (n'', UsL)) :: monL'))
-           | NONE -> Sum (m, (mon :: monL)))
+           | None -> Sum (m, (mon :: monL)))
     let rec timesSum __16__ __17__ =
       match (__16__, __17__) with
       | (Sum (m1, nil), Sum (m2, nil)) -> Sum ((m1 * m2), nil)
@@ -233,11 +233,11 @@ module CSEqIntegers(CSEqIntegers:sig
     let rec findMon f (__G) (Sum (m, monL)) =
       let rec findMon' __20__ __21__ =
         match (__20__, __21__) with
-        | (nil, monL2) -> NONE
+        | (nil, monL2) -> None
         | (mon::monL1, monL2) ->
             (match f (__G, mon, (Sum (m, (monL1 @ monL2)))) with
              | Some _ as result -> result
-             | NONE -> findMon' (monL1, (mon :: monL2))) in
+             | None -> findMon' (monL1, (mon :: monL2))) in
       findMon' (monL, nil)
     let rec divideSum (Sum (m, monL)) k =
       let exception Err  in
@@ -245,7 +245,7 @@ module CSEqIntegers(CSEqIntegers:sig
           if (rem (n, k)) = zero then quot (n, k) else raise Err in
         let rec divideMon (Mon (n, UsL)) = Mon ((divide n), UsL) in
         try Some (Sum ((divide m), (List.map divideMon monL)))
-        with | Err -> NONE
+        with | Err -> None
     let rec delaySum (__G) sum =
       let __U = toFgn sum in
       let cnstr = ref (Eqn (__G, __U, (numberExp zero))) in
@@ -270,9 +270,9 @@ module CSEqIntegers(CSEqIntegers:sig
                   let RHS = toFgn sum in
                   (if Unify.invertible (__G, (RHS, id), ss, r)
                    then Some (mon, ss, sum)
-                   else NONE)
-                else NONE
-            | (__G, mon, sum) -> NONE in
+                   else None)
+                else None
+            | (__G, mon, sum) -> None in
           (match findMon invertMon (__G, sum) with
            | Some (Mon (n1, (__X1, s1)::[]), ss1, sum1) ->
                (match findMon invertMon (__G, sum1) with
@@ -317,13 +317,13 @@ module CSEqIntegers(CSEqIntegers:sig
                       solveSum
                       (__G,
                         (plusSum ((Sum (zero, [Mon (g, [(__Z, ss)])])), sum2)))
-                | NONE ->
+                | None ->
                     (match divideSum (sum1, n1) with
                      | Some sum1' ->
                          [Assign
                             (__G, __X1, (toFgn (unaryMinusSum sum1')), ss1)]
-                     | NONE -> [delaySum (__G, sum)]))
-           | NONE -> [delaySum (__G, sum)])
+                     | None -> [delaySum (__G, sum)]))
+           | None -> [delaySum (__G, sum)])
     let rec unifySum (__G) sum1 sum2 =
       let rec invertMon (__G) (Mon (n, ((EVar (r, _, _, _) as LHS), s)::[]))
         sum =
@@ -333,8 +333,8 @@ module CSEqIntegers(CSEqIntegers:sig
           let RHS = toFgn (timesSum ((Sum ((~ n), nil)), sum)) in
           (if Unify.invertible (__G, (RHS, id), ss, r)
            then Some (__G, LHS, RHS, ss)
-           else NONE)
-        else NONE in
+           else None)
+        else None in
       match minusSum (sum2, sum1) with
       | Sum (m, nil) -> if m = zero then Succeed nil else Fail
       | sum ->
@@ -360,7 +360,7 @@ module CSEqIntegers(CSEqIntegers:sig
       | (MyIntsynRep sum, __U2) ->
           (match minusSum ((normalizeSum sum), (fromExp (__U2, id))) with
            | Sum (m, nil) -> m = zero
-           | _ -> false__)
+           | _ -> false)
       | (fe, _) -> raise (UnexpectedFgnExp fe)
     let rec unifyWith __35__ __36__ __37__ =
       match (__35__, __36__, __37__) with
@@ -383,7 +383,7 @@ module CSEqIntegers(CSEqIntegers:sig
         match (__38__, __39__) with
         | (__E, 0) -> __E
         | (__E, n) ->
-            Lam ((Dec (NONE, (number ()))), (makeLam __E (Int.(-) (n, 1)))) in
+            Lam ((Dec (None, (number ()))), (makeLam __E (Int.(-) (n, 1)))) in
       let rec expand __40__ __41__ =
         match (__40__, __41__) with
         | ((Nil, s), arity) -> ((makeParams arity), arity)
@@ -401,33 +401,33 @@ module CSEqIntegers(CSEqIntegers:sig
         (2,
           (fun (App (__U1, App (__U2, Nil))) ->
              opSum ((fromExp (__U1, id)), (fromExp (__U2, id)))))
-    let rec arrow (__U) (__V) = Pi (((Dec (NONE, __U)), No), __V)
+    let rec arrow (__U) (__V) = Pi (((Dec (None, __U)), No), __V)
     let rec init cs installF =
       myID := cs;
       (:=) numberID installF
         ((ConDec
-            ("integer", NONE, 0, (Constraint ((!myID), solveNumber)),
-              (Uni Type), Kind)), NONE, [MS.Mnil]);
+            ("integer", None, 0, (Constraint ((!myID), solveNumber)),
+              (Uni Type), Kind)), None, [MS.Mnil]);
       (:=) unaryMinusID installF
         ((ConDec
-            ("~", NONE, 0, (Foreign ((!myID), (makeFgnUnary unaryMinusSum))),
+            ("~", None, 0, (Foreign ((!myID), (makeFgnUnary unaryMinusSum))),
               (arrow ((number ()), (number ()))), Type)),
           (Some (FX.Prefix FX.maxPrec)), nil);
       (:=) plusID installF
         ((ConDec
-            ("+", NONE, 0, (Foreign ((!myID), (makeFgnBinary plusSum))),
+            ("+", None, 0, (Foreign ((!myID), (makeFgnBinary plusSum))),
               (arrow ((number ()), (arrow ((number ()), (number ()))))),
               Type)),
           (Some (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
       (:=) minusID installF
         ((ConDec
-            ("-", NONE, 0, (Foreign ((!myID), (makeFgnBinary minusSum))),
+            ("-", None, 0, (Foreign ((!myID), (makeFgnBinary minusSum))),
               (arrow ((number ()), (arrow ((number ()), (number ()))))),
               Type)),
           (Some (FX.Infix ((FX.dec (FX.dec FX.maxPrec)), FX.Left))), nil);
       (:=) timesID installF
         ((ConDec
-            ("*", NONE, 0, (Foreign ((!myID), (makeFgnBinary timesSum))),
+            ("*", None, 0, (Foreign ((!myID), (makeFgnBinary timesSum))),
               (arrow ((number ()), (arrow ((number ()), (number ()))))),
               Type)), (Some (FX.Infix ((FX.dec FX.maxPrec), FX.Left))), nil);
       installFgnExpOps ();

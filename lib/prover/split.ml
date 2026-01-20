@@ -62,7 +62,7 @@ module Split(Split:sig
       | ((Pi ((BDec (_, (l, t)), _), __V2), s), p, XsRev) ->
           let __L1 = I.newLVar ((I.Shift 0), (l, (I.comp (t, s)))) in
           ((instEVars
-              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (NONE :: XsRev)))
+              ((__V2, (I.Dot ((I.Block __L1), s))), (p - 1), (None :: XsRev)))
             (* p > 0 *)(* --cs Sun Dec  1 06:33:27 2002 *))
       (* . |- s : G0 *)(* G0 |- t : Gsome *)
     let (caseList : (T.__Dec I.__Ctx * T.__Sub) list ref) = ref nil
@@ -187,7 +187,7 @@ module Split(Split:sig
       | ((Psi, t)::cs, __F) ->
           let __X = T.newEVar (Psi, (T.FClo (__F, t))) in
           (::) (Psi, t, __X) mkCases (cs, __F)
-    let rec split (Focus (EVar (Psi, r, __F, NONE, NONE, _), __W)) =
+    let rec split (Focus (EVar (Psi, r, __F, None, None, _), __W)) =
       let rec splitXs __26__ __27__ __28__ __29__ __30__ __31__ =
         match (__26__, __27__, __28__, __29__, __30__, __31__) with
         | (__G, i, nil, _, _, _) -> nil
@@ -233,7 +233,7 @@ module Split(Split:sig
            then Os is a list of splitting operators
         *)
         (* . |- t :: Psi *))
-    let rec expand (Focus (EVar (Psi, r, __F, NONE, NONE, _), __W) as S) =
+    let rec expand (Focus (EVar (Psi, r, __F, None, None, _), __W) as S) =
       if Abstract.closedCTX Psi then split __S else []
     let rec apply (Split (r, __P, s)) = (:=) r Some __P
     let rec menu (Split (_, _, s)) = "Split " ^ s

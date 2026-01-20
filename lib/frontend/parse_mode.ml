@@ -20,8 +20,8 @@ module ParseMode(ParseMode:sig
     module P = Paths
     let rec extract s i =
       if (=) i String.size s
-      then NONE
-      else Some (String.extract (s, i, NONE))
+      then None
+      else Some (String.extract (s, i, None))
     let rec splitModeId r id =
       match String.sub (id, 0) with
       | '*' -> ((E.star r), (extract (id, 1)))
@@ -41,11 +41,11 @@ module ParseMode(ParseMode:sig
           else
             Parsing.error
               (r, ("Expected free uppercase variable, found " ^ id))
-      | (r, (_, NONE)) ->
+      | (r, (_, None)) ->
           Parsing.error (r, "Missing variable following mode")
     let rec validateMode __2__ __3__ =
       match (__2__, __3__) with
-      | (r, (mode, NONE)) -> mode
+      | (r, (mode, None)) -> mode
       | (r, (_, Some id)) ->
           Parsing.error
             (r,
@@ -84,7 +84,7 @@ module ParseMode(ParseMode:sig
                  let (f'', r') = stripRBrace f' in
                  let dec =
                    match yOpt with
-                   | NONE -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
+                   | None -> ParseTerm.ExtSyn.dec0 (x, (P.join (r, r')))
                    | Some y -> ParseTerm.ExtSyn.dec (x, y, (P.join (r, r'))) in
                  let (t', f''') = parseFull (f'', r1) in
                  ((E.Full.mpi (m, dec, t')), f''')

@@ -192,7 +192,7 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
       | (Decl (__G, _), s) -> I.dot1 (dot1n (__G, s))
     let rec convFor __10__ __11__ =
       match (__10__, __11__) with
-      | ((True, _), (True, _)) -> true__
+      | ((True, _), (True, _)) -> true
       | ((All (Prim (__D1), __F1), s1), (All (Prim (__D2), __F2), s2)) ->
           (Conv.convDec ((__D1, s1), (__D2, s2))) &&
             (convFor ((__F1, (I.dot1 s1)), (__F2, (I.dot1 s2))))
@@ -212,7 +212,7 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
       | ((And (__F1, F1'), s1), (And (__F2, F2'), s2)) ->
           (convFor ((__F1, s1), (__F2, s2))) &&
             (convFor ((F1', s1), (F2', s2)))
-      | _ -> false__(* omission! check that the block numbers are the same!!!! *)
+      | _ -> false(* omission! check that the block numbers are the same!!!! *)
       (* l1 = l2 andalso *)
     let rec convForBlock __12__ __13__ =
       match (__12__, __13__) with
@@ -222,7 +222,7 @@ module FunSyn(FunSyn:sig module Whnf : WHNF module Conv : CONV end) : FUNSYN
           (Conv.convDec ((__D1, s1), (__D2, s2))) &&
             (convForBlock
                ((__G1, __F1, (I.dot1 s1)), (__G2, __F2, (I.dot1 s2))))
-      | _ -> false__
+      | _ -> false
     let rec ctxSub __14__ __15__ =
       match (__14__, __15__) with
       | (I.Null, s) -> (I.Null, s)

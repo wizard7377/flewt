@@ -45,7 +45,7 @@ module Thm(Thm:sig
       let rec unique' __0__ __1__ __2__ =
         match (__0__, __1__, __2__) with
         | (Uni _, nil, __A) -> __A
-        | (Pi (_, __V), (NONE)::__P, __A) -> unique' (__V, __P, __A)
+        | (Pi (_, __V), (None)::__P, __A) -> unique' (__V, __P, __A)
         | (Pi (_, __V), (Some x)::__P, __A) ->
             (List.app
                (fun x' ->
@@ -89,13 +89,13 @@ module Thm(Thm:sig
         | s::__L -> (s ^ " ") ^ (makestring __L) in
       let rec exists' __9__ __10__ __11__ =
         match (__9__, __10__, __11__) with
-        | (x, nil, _) -> false__
-        | (x, (NONE)::__L, Mapp (_, mS)) -> exists' (x, __L, mS)
+        | (x, nil, _) -> false
+        | (x, (None)::__L, Mapp (_, mS)) -> exists' (x, __L, mS)
         | (x, (Some y)::__L, Mapp (Marg (mode, _), mS)) ->
             if x = y
             then
               (match mode with
-               | M.Plus -> true__
+               | M.Plus -> true
                | _ ->
                    error
                      (r,
@@ -145,7 +145,7 @@ module Thm(Thm:sig
         | nil -> ()
         | (a, __P)::__Cs ->
             ((match ModeTable.modeLookup a with
-              | NONE ->
+              | None ->
                   error
                     (r,
                       (((^) "Expected " Names.qidToString (Names.constQid a))
@@ -155,13 +155,13 @@ module Thm(Thm:sig
       allModed __C; uniqueCallpats (__C, rs); wfOrder __O
     let rec argPos __20__ __21__ __22__ =
       match (__20__, __21__, __22__) with
-      | (x, nil, n) -> NONE
-      | (x, (NONE)::__L, n) -> argPos (x, __L, (n + 1))
+      | (x, nil, n) -> None
+      | (x, (None)::__L, n) -> argPos (x, __L, (n + 1))
       | (x, (Some x')::__L, n) ->
           if x = x' then Some n else argPos (x, __L, (n + 1))
     let rec locate (x::vars) params imp =
       match argPos (x, params, (imp + 1)) with
-      | NONE -> locate (vars, params, imp)
+      | None -> locate (vars, params, imp)
       | Some n -> n
     let rec argOrder __23__ __24__ __25__ =
       match (__23__, __24__, __25__) with
@@ -242,9 +242,9 @@ module Thm(Thm:sig
         | s::__L -> (s ^ " ") ^ (makestring __L) in
       let rec exists' __47__ __48__ =
         match (__47__, __48__) with
-        | (x, nil) -> false__
-        | (x, (NONE)::__L) -> exists' (x, __L)
-        | (x, (Some y)::__L) -> if x = y then true__ else exists' (x, __L) in
+        | (x, nil) -> false
+        | (x, (None)::__L) -> exists' (x, __L)
+        | (x, (Some y)::__L) -> if x = y then true else exists' (x, __L) in
       let rec delete __49__ __50__ =
         match (__49__, __50__) with
         | (x, ((a, __P) as aP)::__C) ->

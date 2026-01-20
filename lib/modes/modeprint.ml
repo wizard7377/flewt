@@ -28,7 +28,7 @@ module ModePrint(ModePrint:sig
     let rec nameDec __0__ __1__ =
       match (__0__, __1__) with
       | (Dec (_, __V), Marg (_, (Some _ as name))) -> I.Dec (name, __V)
-      | (__D, Marg (_, NONE)) -> __D
+      | (__D, Marg (_, None)) -> __D
     let rec makeSpine (__G) =
       let rec makeSpine' __2__ __3__ __4__ =
         match (__2__, __3__, __4__) with

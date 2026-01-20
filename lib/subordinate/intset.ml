@@ -16,12 +16,12 @@ module IntSet : INTSET =
     let rec lookup dict x =
       let rec lk =
         function
-        | Empty -> false__
+        | Empty -> false
         | Red tree -> lk' tree
         | Black tree -> lk' tree
       and lk' x1 left right =
         match Int.compare (x, x1) with
-        | EQUAL -> true__
+        | EQUAL -> true
         | LESS -> lk left
         | GREATER -> lk right in
       lk dict

@@ -124,17 +124,17 @@ module Traverse(Traverse:sig
       function
       | ConDec (c, parent, i, _, __V, I.Type) ->
           Some (T.objdec (c, (fromTp (I.Null, (__V, I.id)))))
-      | _ -> NONE
+      | _ -> None
     let fromConDec = fromConDec
     let rec const name =
       let qid =
         match Names.stringToQid name with
-        | NONE -> raise (Error ("Malformed qualified identifier " ^ name))
+        | None -> raise (Error ("Malformed qualified identifier " ^ name))
         | Some qid -> qid in
       let cidOpt = Names.constLookup qid in
       let rec getConDec =
         function
-        | NONE ->
+        | None ->
             raise
               (Error ((^) "Undeclared identifier " Names.qidToString qid))
         | Some cid -> IntSyn.sgnLookup cid in
@@ -142,7 +142,7 @@ module Traverse(Traverse:sig
       let _ = Names.varReset IntSyn.Null in
       let rec result =
         function
-        | NONE -> raise (Error "Wrong kind of declaration")
+        | None -> raise (Error "Wrong kind of declaration")
         | Some r -> r in
       result (fromConDec conDec)
   end ;;

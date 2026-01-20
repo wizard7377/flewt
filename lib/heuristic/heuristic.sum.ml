@@ -19,7 +19,7 @@ module Heuristic : HEURISTIC =
     let rec sqr x = x * x
     let rec sum =
       function
-      | { sd = k1; ind = NONE; c = c1; m = m1; r = r1; p = p1; ind = NONE;
+      | { sd = k1; ind = None; c = c1; m = m1; r = r1; p = p1; ind = None;
           c = c1; m = m1; r = r1; p = p1; c = c1; m = m1; r = r1; p = p1;
           m = m1; r = r1; p = p1; r = r1; p = p1; p = p1 } ->
           if c1 = 0
@@ -91,7 +91,7 @@ module Heuristic : HEURISTIC =
           (conv { sd = k2; ind = i2; c = c2; m = m2; r = r2; p = p2 }))
     let rec indexToString =
       function
-      | { sd = s1; ind = NONE; c = c1; m = m1; r = 0; p = p1; ind = NONE;
+      | { sd = s1; ind = None; c = c1; m = m1; r = 0; p = p1; ind = None;
           c = c1; m = m1; r = 0; p = p1; c = c1; m = m1; r = 0; p = p1;
           m = m1; r = 0; p = p1; r = 0; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 3))) ^
@@ -111,9 +111,9 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 2; p = p1 }))
+             (sum { sd = s1; ind = None; c = c1; m = m1; r = 2; p = p1 }))
             ^ " )"
-      | { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1; ind = NONE;
+      | { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1; ind = None;
           c = c1; m = m1; r = 1; p = p1; c = c1; m = m1; r = 1; p = p1;
           m = m1; r = 1; p = p1; r = 1; p = p1; p = p1 } ->
           ((^) (((((((((((((((("(sd * r =" ^ (Int.toString (s1 * 1))) ^
@@ -133,7 +133,7 @@ module Heuristic : HEURISTIC =
                    ^ (Int.toString p1))
                   ^ " sum = ")
              realFmt
-             (sum { sd = s1; ind = NONE; c = c1; m = m1; r = 1; p = p1 }))
+             (sum { sd = s1; ind = None; c = c1; m = m1; r = 1; p = p1 }))
             ^ " )"
       | { sd = s1; ind = Some idx; c = c1; m = m1; r = 0; p = p1;
           ind = Some idx; c = c1; m = m1; r = 0; p = p1; c = c1; m = m1;

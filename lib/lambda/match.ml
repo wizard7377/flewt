@@ -222,7 +222,7 @@ module Match(Match:sig
                  (* because of strict *)(*  matchExpW (G, Whnf.expandDef (Us1), Whnf.expandDef (Us2)) *))
              | (Def d1, Const c2) ->
                  (((match defAncestor d1 with
-                    | Anc (_, _, NONE) ->
+                    | Anc (_, _, None) ->
                         matchExpW (__G, (Whnf.expandDef __Us1), __Us2)
                     | Anc (_, _, Some c1) ->
                         if c1 = c2
@@ -231,7 +231,7 @@ module Match(Match:sig
                  (* conservative *))
              | (Const c1, Def d2) ->
                  (((match defAncestor d2 with
-                    | Anc (_, _, NONE) ->
+                    | Anc (_, _, None) ->
                         matchExpW (__G, __Us1, (Whnf.expandDef __Us2))
                     | Anc (_, _, Some c2) ->
                         if c1 = c2
@@ -305,9 +305,9 @@ module Match(Match:sig
             val U1' = pruneExp (G, Us1, ss, r)
           in
              instantiateEVar (r, EClo (U1, comp(s1, ss)), !cnstrs) *)
-      (* invertExpW (Us1, s2, ref NONE) *)(* instantiateEVar (r2, EClo (U1, comp(s1, ss2)), !cnstr2) *)
-      (* invertExpW (Us2, s1, ref NONE) *)(* Unify.instantiateEVar (r1, EClo (U2, comp(s2, ss1)), !cnstrs1) *)
-      (* invertExp ((V1, id), s', ref NONE) *)(* X[s] = X[s] *)
+      (* invertExpW (Us1, s2, ref None) *)(* instantiateEVar (r2, EClo (U1, comp(s1, ss2)), !cnstr2) *)
+      (* invertExpW (Us2, s1, ref None) *)(* Unify.instantiateEVar (r1, EClo (U2, comp(s2, ss1)), !cnstrs1) *)
+      (* invertExp ((V1, id), s', ref None) *)(* X[s] = X[s] *)
       (* added for definitions Mon Sep  1 19:53:13 2003 -fp *)(* without the next optimization, bugs/hangs/sources.cfg
                      would gets into an apparent infinite loop
                      Fri Sep  5 20:23:27 2003 -fp
@@ -397,7 +397,7 @@ module Match(Match:sig
               (((matchSub (__G, t1, t2);
                  if k1 <> k2 then raise Bind else ();
                  (let ss = Whnf.invert (Shift k1) in
-                  let t2' = pruneSub (__G, t2, ss, (ref NONE)) in
+                  let t2' = pruneSub (__G, t2, ss, (ref None)) in
                   ((Unify.instantiateLVar
                       (r1, (LVar (r2, (Shift 0), (l2, t2')))))
                     (* hack! *)(* 0 = k2-k1 *)))))
@@ -423,7 +423,7 @@ module Match(Match:sig
       matchExp (__G, __Us1, __Us2); awakeCnstr (Unify.nextCnstr ())
     let rec awakeCnstr =
       function
-      | NONE -> ()
+      | None -> ()
       | Some { contents = Solved } -> awakeCnstr (Unify.nextCnstr ())
       | Some ({ contents = Eqn (__G, __U1, __U2) } as cnstr) ->
           (Unify.solveConstraint cnstr; match1 (__G, (__U1, id), (__U2, id)))
@@ -440,7 +440,7 @@ module Match(Match:sig
     let matchSub = matchSub
     let matchBlock = matchBlock
     let rec instance (__G) (__Us1) (__Us2) =
-      try match__ (__G, __Us1, __Us2); true__ with | Match msg -> false__
+      try match__ (__G, __Us1, __Us2); true with | Match msg -> false
     let rec instance' (__G) (__Us1) (__Us2) =
-      try match__ (__G, __Us1, __Us2); NONE with | Match msg -> Some msg
+      try match__ (__G, __Us1, __Us2); None with | Match msg -> Some msg
   end ;;

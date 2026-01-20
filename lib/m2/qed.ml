@@ -19,9 +19,9 @@ module Qed(Qed:sig module Global : GLOBAL module MetaSyn' : METASYN end) :
     let rec subgoal (State (name, Prefix (__G, __M, __B), __V)) =
       let rec check =
         function
-        | I.Null -> true__
+        | I.Null -> true
         | Decl (__M, M.Top) -> check __M
-        | Decl (__M, M.Bot) -> false__ in
+        | Decl (__M, M.Bot) -> false in
       check __M
     let subgoal = subgoal
   end ;;

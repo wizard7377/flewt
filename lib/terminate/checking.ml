@@ -147,14 +147,14 @@ module Checking(Checking:sig
           (^) ((F.makestring_fmt (fmtPredicate' (__G, __P))) ^ " ,")
             fmtRGCtx' (__G, Rl)
     let rec fmtRGCtx (__G) (Rl) = fmtRGCtx' ((Names.ctxName __G), Rl)
-    let rec init () = true__
+    let rec init () = true
     let rec eqCid c c' = c = c'
     let rec conv (__Us, __Vs) (__Us', __Vs') =
       (Conv.conv (__Vs, __Vs')) && (Conv.conv (__Us, __Us'))
     let rec isUniversal =
-      function | All -> true__ | Exist -> false__ | Exist' -> false__
+      function | All -> true | Exist -> false | Exist' -> false
     let rec isExistential =
-      function | All -> false__ | Exist -> true__ | Exist' -> true__
+      function | All -> false | Exist -> true | Exist' -> true
     let rec isParameter (__Q) (__X) =
       isParameterW (__Q, (Whnf.whnf (__X, I.id)))
     let rec isParameterW (__Q) (__Us) =
@@ -162,9 +162,9 @@ module Checking(Checking:sig
       with | Whnf.Eta -> isFreeEVar __Us
     let rec isFreeEVar __14__ __15__ =
       match (__14__, __15__) with
-      | (EVar (_, _, _, { contents = [] }), _) -> true__
+      | (EVar (_, _, _, { contents = [] }), _) -> true
       | (Lam (__D, __U), s) -> isFreeEVar (Whnf.whnf (__U, (I.dot1 s)))
-      | _ -> false__(* constraints must be empty *)
+      | _ -> false(* constraints must be empty *)
     let rec isAtomic (GQ) (__Us) = isAtomicW (GQ, (Whnf.whnf __Us))
     let rec isAtomicW __16__ __17__ =
       match (__16__, __17__) with
@@ -173,20 +173,20 @@ module Checking(Checking:sig
       | (((__G, __Q) as GQ), ((Root (BVar n, __S) as X), s)) ->
           (isExistential (I.ctxLookup (__Q, n))) ||
             (isAtomicS (GQ, (__S, s)))
-      | (GQ, _) -> false__(*      | isAtomicW (GQ, (X as (I.EClo _))) = true    existential var *)
+      | (GQ, _) -> false(*      | isAtomicW (GQ, (X as (I.EClo _))) = true    existential var *)
       (* should disallow orelse ? *)
     let rec isAtomicS __18__ __19__ =
       match (__18__, __19__) with
-      | (GQ, (I.Nil, _)) -> true__
+      | (GQ, (I.Nil, _)) -> true
       | (GQ, (SClo (__S, s'), s'')) ->
           isAtomicS (GQ, (__S, (I.comp (s', s''))))
-      | (GQ, (App (__U', __S'), s1')) -> false__
+      | (GQ, (App (__U', __S'), s1')) -> false
     let rec eq (__G) (__Us, __Vs) (__Us', __Vs') =
       (Unify.unifiable (__G, __Vs, __Vs')) &&
         (Unify.unifiable (__G, __Us, __Us'))
     let rec lookupEq __20__ __21__ __22__ __23__ __24__ =
       match (__20__, __21__, __22__, __23__, __24__) with
-      | (GQ, nil, UsVs, UsVs', sc) -> false__
+      | (GQ, nil, UsVs, UsVs', sc) -> false
       | (GQ, (Less (_, _))::__D, UsVs, UsVs', sc) ->
           lookupEq (GQ, __D, UsVs, UsVs', sc)
       | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, UsVs, UsVs', sc) ->
@@ -202,7 +202,7 @@ module Checking(Checking:sig
                || (lookupEq (GQ, __D, UsVs, UsVs', sc)))
     let rec lookupLt __25__ __26__ __27__ __28__ __29__ =
       match (__25__, __26__, __27__, __28__, __29__) with
-      | (GQ, nil, UsVs, UsVs', sc) -> false__
+      | (GQ, nil, UsVs, UsVs', sc) -> false
       | (GQ, (Eq (_, _))::__D, UsVs, UsVs', sc) ->
           lookupLt (GQ, __D, UsVs, UsVs', sc)
       | (((__G, __Q) as GQ), (Less (UsVs1, UsVs1'))::__D, UsVs, UsVs', sc) ->
@@ -223,7 +223,7 @@ module Checking(Checking:sig
                   (transEq (GQ, __D, __D', UsVs, UsVs', sc))))
     let rec transEq __36__ __37__ __38__ __39__ __40__ __41__ =
       match (__36__, __37__, __38__, __39__, __40__, __41__) with
-      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false__
+      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false
       | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
          sc) ->
           (CSManager.trail
@@ -253,7 +253,7 @@ module Checking(Checking:sig
                (transLt (GQ, __D, __D', UsVs, UsVs', sc)))
     let rec transLt __48__ __49__ __50__ __51__ __52__ __53__ =
       match (__48__, __49__, __50__, __51__, __52__, __53__) with
-      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false__
+      | (((__G, __Q) as GQ), nil, __D, UsVs, UsVs', sc) -> false
       | (((__G, __Q) as GQ), (Eq (UsVs1, UsVs1'))::__D, __D', UsVs, UsVs',
          sc) ->
           (CSManager.trail
@@ -308,8 +308,8 @@ module Checking(Checking:sig
                        atomicPredToString (__G, __P))
                       ^ "\n")
                else ();
-               true__)
-            else false__)
+               true)
+            else false)
           (* should never happen by invariant *))
       | (GQ, (Less (UsVs, UsVs'))::__D, __D', __P, sc) ->
           ltInstL (GQ, __D, __D', UsVs, UsVs', __P, sc)
@@ -346,7 +346,7 @@ module Checking(Checking:sig
                          (__V, (I.Dot ((I.Exp __X), s2)))),
                        ((__U', s1'), (__V', s2')), __P', sc))
                    (* = I.newEVar (I.EClo (V2', s2')) *)))
-              else false__)
+              else false)
           (* == I.targetFam V2' *))
       | (GQ, __D, __D', UsVs, UsVs', __P', sc) ->
           leftInstantiate (GQ, __D, ((Less (UsVs, UsVs')) :: __D'), __P', sc)
@@ -379,7 +379,7 @@ module Checking(Checking:sig
                          (__V, (I.Dot ((I.Exp __X), s2)))),
                        ((__U', s1'), (__V', s2')), __P', sc))
                    (* = I.newEVar (I.EClo (V2', s2')) *)))
-              else false__)
+              else false)
           (* == I.targetFam V2' *))
       | (GQ, __D, __D', UsVs, UsVs', __P, sc) ->
           leftInstantiate (GQ, __D, ((Less (UsVs, UsVs')) :: __D'), __P, sc)
@@ -427,7 +427,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (Def c, __S), s), __Vs) as UsVs),
          (((Root (Def c', __S'), s'), __Vs') as UsVs'), __P', sc) ->
@@ -447,7 +447,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (Const c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), __P', sc) ->
@@ -468,7 +468,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (Def c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), __P', sc) ->
@@ -489,7 +489,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Def c, __S'), s') as Us'), __Vs'), __P', sc) ->
@@ -511,7 +511,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Const c, __S'), s') as Us'), __Vs'), __P', sc) ->
@@ -533,7 +533,7 @@ module Checking(Checking:sig
                      atomicPredToString (__G, __P'))
                     ^ "\n")
              else ();
-             true__)
+             true)
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (BVar n', __S'), s') as Us'), __Vs'), __P', sc) ->
@@ -558,7 +558,7 @@ module Checking(Checking:sig
                    atomicPredToString (__G, __P'))
                   ^ "\n")
            else ();
-           true__)(* (Us, Vs as (I.Pi _ , _)) and (Us', Vs' as (I.Root _, _))
+           true)(* (Us, Vs as (I.Pi _ , _)) and (Us', Vs' as (I.Root _, _))
            or the other way
          *)
     let rec eqSpineIL (GQ) (__D) (__D') (__Ss, __Vs) (__Ss', __Vs') (__P') sc
@@ -620,12 +620,12 @@ module Checking(Checking:sig
           ordEqsR (GQ, __D', __O, __O')
     let rec ordEqsR __114__ __115__ __116__ __117__ =
       match (__114__, __115__, __116__, __117__) with
-      | (GQ, __D', nil, nil) -> true__
+      | (GQ, __D', nil, nil) -> true
       | (GQ, __D', (__O)::__L, (__O')::__L') ->
           (ordEqR (GQ, __D', __O, __O')) && (ordEqsR (GQ, __D', __L, __L'))
     let rec ltLexR __118__ __119__ __120__ __121__ =
       match (__118__, __119__, __120__, __121__) with
-      | (GQ, __D', nil, nil) -> false__
+      | (GQ, __D', nil, nil) -> false
       | (GQ, __D', (__O)::__L, (__O')::__L') ->
           (ordLtR (GQ, __D', __O, __O')) ||
             ((ordEqR (GQ, __D', __O, __O')) && (ltLexR (GQ, __D', __L, __L')))
@@ -633,14 +633,14 @@ module Checking(Checking:sig
       (ltLexR (GQ, __D', __L, __L')) || (ordEqsR (GQ, __D', __L, __L'))
     let rec ltSimulR __122__ __123__ __124__ __125__ =
       match (__122__, __123__, __124__, __125__) with
-      | (GQ, __D, nil, nil) -> false__
+      | (GQ, __D, nil, nil) -> false
       | (GQ, __D, (__O)::__L, (__O')::__L') ->
           ((ordLtR (GQ, __D, __O, __O')) && (leSimulR (GQ, __D, __L, __L')))
             ||
             ((ordEqR (GQ, __D, __O, __O')) && (ltSimulR (GQ, __D, __L, __L')))
     let rec leSimulR __126__ __127__ __128__ __129__ =
       match (__126__, __127__, __128__, __129__) with
-      | (GQ, __D, nil, nil) -> true__
+      | (GQ, __D, nil, nil) -> true
       | (GQ, __D, (__O)::__L, (__O')::__L') ->
           (ordLeR (GQ, __D, __O, __O')) && (leSimulR (GQ, __D, __L, __L'))
     let rec ltAtomicR (GQ) (__D) (UsVs) (UsVs') sc k =
@@ -693,7 +693,7 @@ module Checking(Checking:sig
       | (GQ, __D, (__Us, ((Root _, s2) as Vs)),
          (__Us', ((Root _, s2') as Vs')), sc, k) ->
           eqR (GQ, __D, (__Us, __Vs), (__Us', __Vs'), sc, k)
-      | (GQ, __D, (__Us, __Vs), (__Us', __Vs'), sc, k) -> false__(* Fri Feb 25 21:26:39 2005 -fp !!! *)
+      | (GQ, __D, (__Us, __Vs), (__Us', __Vs'), sc, k) -> false(* Fri Feb 25 21:26:39 2005 -fp !!! *)
       (* mismatch: not equal *)(* Dec = Dec' *)
     let rec ltR ((__G, __Q) as GQ) (__D) (UsVs) (UsVs') sc k =
       ltRW (GQ, __D, UsVs, (Whnf.whnfEta UsVs'), sc, k)
@@ -726,7 +726,7 @@ module Checking(Checking:sig
                ltSpineR
                  (GQ, __D, (__Us, __Vs), ((__S', s'), (__V', I.id)), sc, k)))
           (* either leftInstantiate D or  atomic reasoning *))
-      | (GQ, __D, _, ((EVar _, _), _), _, _) -> false__
+      | (GQ, __D, _, ((EVar _, _), _), _, _) -> false
       | (((__G, __Q) as GQ), __D, ((__U, s1), (__V, s2)),
          ((Lam (Dec (_, V1'), __U'), s1'),
           (Pi ((Dec (_, V2'), _), __V'), s2')),
@@ -750,13 +750,13 @@ module Checking(Checking:sig
                        ((__U', (I.Dot ((I.Exp __X), s1'))),
                          (__V', (I.Dot ((I.Exp __X), s2')))), sc, k))
                    (* = I.newEVar (I.EClo (V2', s2')) *)))
-              else false__)
+              else false)
           (* == I.targetFam V2' *))
     let rec ltSpineR (GQ) (__D) (__Us, __Vs) (__Ss', __Vs') sc k =
       ltSpineRW (GQ, __D, (__Us, __Vs), (__Ss', (Whnf.whnf __Vs')), sc, k)
     let rec ltSpineRW __154__ __155__ __156__ __157__ __158__ __159__ =
       match (__154__, __155__, __156__, __157__, __158__, __159__) with
-      | (GQ, __D, (__Us, __Vs), ((I.Nil, _), _), _, _) -> false__
+      | (GQ, __D, (__Us, __Vs), ((I.Nil, _), _), _, _) -> false
       | (GQ, __D, (__Us, __Vs), ((SClo (__S, s'), s''), __Vs'), sc, k) ->
           ltSpineR
             (GQ, __D, (__Us, __Vs), ((__S, (I.comp (s', s''))), __Vs'), sc,
@@ -799,7 +799,7 @@ module Checking(Checking:sig
                        ((__U', (I.Dot ((I.Exp __X), s1'))),
                          (__V', (I.Dot ((I.Exp __X), s2')))), sc, k))
                    (* = I.newEVar (I.EClo (V2', s2')) *)))
-              else false__)
+              else false)
           (* == I.targetFam V2' *))
       | (GQ, __D, UsVs, UsVs', sc, k) ->
           (ltR (GQ, __D, UsVs, UsVs', sc, k)) ||
@@ -810,10 +810,10 @@ module Checking(Checking:sig
     let rec eqR' __166__ __167__ __168__ __169__ __170__ __171__ =
       match (__166__, __167__, __168__, __169__, __170__, __171__) with
       | (GQ, __D, (__Us, ((Pi ((Dec (_, V2'), _), __V'), s2') as Vs)),
-         (__Us', ((Root _, s2'') as Vs')), sc, k) -> false__
+         (__Us', ((Root _, s2'') as Vs')), sc, k) -> false
       | (GQ, __D, (__Us, ((Root _, s2') as Vs)),
          (__Us', ((Pi ((Dec (_, V2''), _), V''), s2'') as Vs')), sc, k) ->
-          false__
+          false
       | (GQ, __D, (((Root (Const c, __S), s), __Vs) as UsVs),
          (((Root (Const c', __S'), s'), __Vs') as UsVs'), sc, k) ->
           if eqCid (c, c')
@@ -821,18 +821,18 @@ module Checking(Checking:sig
             eqSpineR
               (GQ, __D, ((__S, s), ((I.constType c), I.id)),
                 ((__S', s'), ((I.constType c'), I.id)), sc, k)
-          else false__
+          else false
       | (GQ, __D, (((Root (Const c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), sc, k) ->
           ((if isAtomic (GQ, __Us')
             then k (GQ, __D, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
-            else false__)
+            else false)
           (* either leftInstantiate D or atomic reasoning *))
       | (GQ, __D, (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Const c, __S'), s') as Us'), __Vs'), sc, k) ->
           ((if isAtomic (GQ, __Us)
             then k (GQ, __D, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
-            else false__)
+            else false)
           (* either leftInstantiate D or atomic reasoning *))
       | (GQ, __D, (((Root (Def c, __S), s), __Vs) as UsVs),
          (((Root (Def c', __S'), s'), __Vs') as UsVs'), sc, k) ->
@@ -841,18 +841,18 @@ module Checking(Checking:sig
             eqSpineR
               (GQ, __D, ((__S, s), ((I.constType c), I.id)),
                 ((__S', s'), ((I.constType c'), I.id)), sc, k)
-          else false__
+          else false
       | (GQ, __D, (((Root (Def c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), sc, k) ->
           ((if isAtomic (GQ, __Us')
             then k (GQ, __D, nil, (Eq ((__Us', __Vs'), (__Us, __Vs))), sc)
-            else false__)
+            else false)
           (* either leftInstantiate D or atomic reasoning *))
       | (GQ, __D, (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Def c, __S'), s') as Us'), __Vs'), sc, k) ->
           ((if isAtomic (GQ, __Us)
             then k (GQ, __D, nil, (Eq ((__Us, __Vs), (__Us', __Vs'))), sc)
-            else false__)
+            else false)
           (* either leftInstantiate D or atomic reasoning *))
       | (((__G, __Q) as GQ), __D, (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (BVar n', __S'), s') as Us'), __Vs'), sc, k) ->
@@ -872,7 +872,7 @@ module Checking(Checking:sig
           k)
     let rec eqSpineRW __172__ __173__ __174__ __175__ __176__ __177__ =
       match (__172__, __173__, __174__, __175__, __176__, __177__) with
-      | (GQ, __D, ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), sc, k) -> true__
+      | (GQ, __D, ((I.Nil, s), __Vs), ((I.Nil, s'), __Vs'), sc, k) -> true
       | (GQ, __D, ((SClo (__S, s'), s''), __Vs), SsVs', sc, k) ->
           eqSpineR (GQ, __D, ((__S, (I.comp (s', s''))), __Vs), SsVs', sc, k)
       | (GQ, __D, SsVs, ((SClo (__S', s'), s''), __Vs'), sc, k) ->
@@ -893,7 +893,7 @@ module Checking(Checking:sig
                  ((__S', s1'),
                    (V2', (I.Dot ((I.Exp (I.EClo (__U', s1'))), s2')))), sc,
                  k))
-      | (GQ, __D, SsVs, SsVs', sc, k) -> false__
+      | (GQ, __D, SsVs, SsVs', sc, k) -> false
     let rec leftDecompose __178__ __179__ __180__ __181__ =
       match (__178__, __179__, __180__, __181__) with
       | (((__G, __Q) as GQ), nil, __D', __P) ->
@@ -930,13 +930,13 @@ module Checking(Checking:sig
       (* eq *)(* le *)(* less *)
     let rec ltLexL __182__ __183__ __184__ __185__ __186__ __187__ =
       match (__182__, __183__, __184__, __185__, __186__, __187__) with
-      | (GQ, __D, __D', nil, nil, __P) -> true__
+      | (GQ, __D, __D', nil, nil, __P) -> true
       | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
           (leftDecompose (GQ, ((Less (__O, __O')) :: __D), __D', __P)) &&
             (ltLexL (GQ, ((Eq (__O, __O')) :: __D), __D', __L, __L', __P))
     let rec eqsL __188__ __189__ __190__ __191__ __192__ __193__ =
       match (__188__, __189__, __190__, __191__, __192__, __193__) with
-      | (GQ, __D, __D', nil, nil, __P) -> true__
+      | (GQ, __D, __D', nil, nil, __P) -> true
       | (GQ, __D, __D', (__O)::__L, (__O')::__L', __P) ->
           (leftDecompose (GQ, ((Eq (__O, __O')) :: __D), __D', __P)) &&
             (eqsL (GQ, __D, __D', __L, __L', __P))
@@ -995,9 +995,9 @@ module Checking(Checking:sig
          (__Us', ((Root _, s') as Vs')), __P) ->
           eqL (GQ, __D, __D', (__Us, __Vs), (__Us', __Vs'), __P)
       | (GQ, __D, __D', (__Us, ((Root _, s) as Vs)),
-         (__Us', ((Pi _, s') as Vs')), __P) -> true__
+         (__Us', ((Pi _, s') as Vs')), __P) -> true
       | (GQ, __D, __D', (__Us, ((Pi _, s) as Vs)),
-         (__Us', ((Root _, s') as Vs')), __P) -> true__
+         (__Us', ((Root _, s') as Vs')), __P) -> true
       | (GQ, __D, __D', (__Us, ((Pi _, s) as Vs)),
          (__Us', ((Pi _, s') as Vs')), __P) ->
           leftDecompose
@@ -1028,7 +1028,7 @@ module Checking(Checking:sig
       ltSpineLW (GQ, __D, __D', UsVs, (__Ss', (Whnf.whnf __Vs')), __P)
     let rec ltSpineLW __230__ __231__ __232__ __233__ __234__ __235__ =
       match (__230__, __231__, __232__, __233__, __234__, __235__) with
-      | (GQ, __D, __D', UsVs, ((I.Nil, _), _), _) -> true__
+      | (GQ, __D, __D', UsVs, ((I.Nil, _), _), _) -> true
       | (GQ, __D, __D', UsVs, ((SClo (__S, s'), s''), __Vs'), __P) ->
           ltSpineL
             (GQ, __D, __D', UsVs, ((__S, (I.comp (s', s''))), __Vs'), __P)
@@ -1050,10 +1050,10 @@ module Checking(Checking:sig
           leftDecompose
             (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
       | (GQ, __D, __D', (__Us, ((Pi ((Dec (_, V2'), _), __V'), s2') as Vs)),
-         (__Us', ((Root _, s2'') as Vs')), __P) -> true__
+         (__Us', ((Root _, s2'') as Vs')), __P) -> true
       | (GQ, __D, __D', (__Us, ((Root _, s2') as Vs)),
          (__Us', ((Pi ((Dec (_, V2''), _), V''), s2'') as Vs')), __P) ->
-          true__
+          true
       | (GQ, __D, __D', (((Root (Const c, __S), s), __Vs) as UsVs),
          (((Root (Const c', __S'), s'), __Vs') as UsVs'), __P) ->
           if eqCid (c, c')
@@ -1061,21 +1061,21 @@ module Checking(Checking:sig
             eqSpineL
               (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
                 ((__S', s'), ((I.constType c'), I.id)), __P)
-          else true__
+          else true
       | (GQ, __D, __D', (((Root (Const c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us')
           then
             leftDecompose
               (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P)
-          else true__
+          else true
       | (GQ, __D, __D', (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Const c, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us)
           then
             leftDecompose
               (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
-          else true__
+          else true
       | (GQ, __D, __D', (((Root (Def c, __S), s), __Vs) as UsVs),
          (((Root (Def c', __S'), s'), __Vs') as UsVs'), __P) ->
           if eqCid (c, c')
@@ -1083,21 +1083,21 @@ module Checking(Checking:sig
             eqSpineL
               (GQ, __D, __D', ((__S, s), ((I.constType c), I.id)),
                 ((__S', s'), ((I.constType c'), I.id)), __P)
-          else true__
+          else true
       | (GQ, __D, __D', (((Root (Def c, __S), s) as Us), __Vs),
          (((Root (BVar n, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us')
           then
             leftDecompose
               (GQ, __D, ((Eq ((__Us', __Vs'), (__Us, __Vs))) :: __D'), __P)
-          else true__
+          else true
       | (GQ, __D, __D', (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (Def c, __S'), s') as Us'), __Vs'), __P) ->
           if isAtomic (GQ, __Us)
           then
             leftDecompose
               (GQ, __D, ((Eq ((__Us, __Vs), (__Us', __Vs'))) :: __D'), __P)
-          else true__
+          else true
       | (((__G, __Q) as GQ), __D, __D',
          (((Root (BVar n, __S), s) as Us), __Vs),
          (((Root (BVar n', __S'), s') as Us'), __Vs'), __P) ->

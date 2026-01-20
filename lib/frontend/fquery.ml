@@ -54,6 +54,6 @@ module Fquery(Fquery:sig
       let __V = Timers.time Timers.delphin Opsem.evalPrg __P in
       ((print
           (((^) "Delphin: " TomegaPrint.prgToString (I.Null, __V)) ^ "\n"))
-        (* optName = Some(X) or NONE, Xs = free variables in query excluding X *)
+        (* optName = Some(X) or None, Xs = free variables in query excluding X *)
         (* times itself *)(* G |- V'' : type *))
   end ;;

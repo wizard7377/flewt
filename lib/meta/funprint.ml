@@ -120,7 +120,7 @@ module FunPrint(FunPrint:sig
         let rec nameDec __13__ __14__ =
           match (__13__, __14__) with
           | ((Dec (Some _, _) as D), name) -> __D
-          | (Dec (NONE, __V), name) -> I.Dec ((Some name), __V) in
+          | (Dec (None, __V), name) -> I.Dec ((Some name), __V) in
         let rec namePsi __15__ __16__ __17__ =
           match (__15__, __16__, __17__) with
           | (Decl (Psi, Prim (__D)), 1, name) ->
@@ -152,7 +152,7 @@ module FunPrint(FunPrint:sig
               copyNames ((I.Dot ((I.Idx (n + 1)), (I.Shift (n + 1)))), __G)
                 Psi1
           | (Dot (Exp _, s), Decl (__G, _), Psi1) -> copyNames (s, __G) Psi1
-          | (Dot (Idx k, s), Decl (__G, Dec (NONE, _)), Psi1) ->
+          | (Dot (Idx k, s), Decl (__G, Dec (None, _)), Psi1) ->
               copyNames (s, __G) Psi1
           | (Dot (Idx k, s), Decl (__G, Dec (Some name, _)), Psi1) ->
               let Psi1' = namePsi (Psi1, k, name) in copyNames (s, __G) Psi1'

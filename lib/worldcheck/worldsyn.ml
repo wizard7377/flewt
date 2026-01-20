@@ -38,7 +38,7 @@ module WorldSyn(WorldSyn:sig
     exception Error' of (P.occ * string) 
     let rec wrapMsg c occ msg =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
+      | (fileName, None) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (P.occToRegionDec occDec occ))),
@@ -53,7 +53,7 @@ module WorldSyn(WorldSyn:sig
     let rec insert cid (__W) = Table.insert worldsTable (cid, __W)
     let rec getWorlds b =
       match Table.lookup worldsTable b with
-      | NONE ->
+      | None ->
           raise
             (Error
                (((^) "Family " Names.qidToString (Names.constQid b)) ^
@@ -64,8 +64,8 @@ module WorldSyn(WorldSyn:sig
     let rec subsumedInsert cid = Table.insert subsumedTable (cid, ())
     let rec subsumedLookup cid =
       match Table.lookup subsumedTable cid with
-      | NONE -> false__
-      | Some _ -> true__
+      | None -> false
+      | Some _ -> true
     type __Reg =
       | Block of (I.dctx * dlist) 
       | Seq of (dlist * I.__Sub) 
@@ -130,8 +130,8 @@ module WorldSyn(WorldSyn:sig
       | (__G, Shift _, __Xs) -> __Xs
     let rec noConstraints (__G) s =
       match collectConstraints (collectEVars (__G, s, nil)) with
-      | nil -> true__
-      | _ -> false__
+      | nil -> true
+      | _ -> false
     let rec formatD (__G) (__D) =
       F.Hbox
         (((::) ((::) (F.String "{") Print.formatDec (__G, __D)) F.String "}")
@@ -389,8 +389,8 @@ module WorldSyn(WorldSyn:sig
       insert (a, __W)
     let rec uninstall a =
       match Table.lookup worldsTable a with
-      | NONE -> false__
-      | Some _ -> (Table.delete worldsTable a; true__)
+      | None -> false
+      | Some _ -> (Table.delete worldsTable a; true)
     let rec lookup a = getWorlds a
     let rec ctxToList (Gin) =
       let rec ctxToList' __30__ __31__ =

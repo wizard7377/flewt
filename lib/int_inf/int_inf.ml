@@ -55,11 +55,11 @@ module IntInf : INT_INF =
             | None -> None
             | Some (c, cs') ->
                 if c = plusCode
-                then getNext (false__, cs')
+                then getNext (false, cs')
                 else
                   if c = minusCode
-                  then getNext (true__, cs')
-                  else Some { neg = false__; next = c; rest = cs' })
+                  then getNext (true, cs')
+                  else Some { neg = false; next = c; rest = cs' })
             (* end case *))
         let rec chkOverflow mask w =
           if (W.andb (mask, w)) = 0w0 then () else raise Overflow
@@ -146,8 +146,8 @@ module IntInf : INT_INF =
         let rec finalWord scanFn getc cs =
           ((match scanFn getc cs with
             | None -> None
-            | Some { neg = true__ } -> None
-            | Some { neg = false__; word; rest; word; rest; rest } ->
+            | Some { neg = true } -> None
+            | Some { neg = false; word; rest; word; rest; rest } ->
                 Some (word, rest))
           (* end case *))
         let rec scanWord =
@@ -159,7 +159,7 @@ module IntInf : INT_INF =
         let rec finalInt scanFn getc cs =
           ((match scanFn getc cs with
             | None -> None
-            | Some { neg = true__; word; rest; word; rest; rest } ->
+            | Some { neg = true; word; rest; word; rest; rest } ->
                 if largestNegInt < word
                 then raise Overflow
                 else Some ((I.(~) (W.toInt word)), rest)
@@ -738,12 +738,12 @@ module IntInf : INT_INF =
          { sign = POS; digits = d'; digits = d' }) -> BN.cmp (d, d')
       | (BI { sign = NEG; digits = d; digits = d }, BI
          { sign = NEG; digits = d'; digits = d' }) -> BN.cmp (d', d)
-    let rec (<) arg = match compare arg with | LESS -> true__ | _ -> false__
+    let rec (<) arg = match compare arg with | LESS -> true | _ -> false
     let rec (>) arg =
-      match compare arg with | GREATER -> true__ | _ -> false__
+      match compare arg with | GREATER -> true | _ -> false
     let rec (<=) arg =
-      match compare arg with | GREATER -> false__ | _ -> true__
-    let rec (>=) arg = match compare arg with | LESS -> false__ | _ -> true__
+      match compare arg with | GREATER -> false | _ -> true
+    let rec (>=) arg = match compare arg with | LESS -> false | _ -> true
     let rec abs =
       function
       | BI { sign = NEG; digits; digits } -> BI { sign = POS; digits }

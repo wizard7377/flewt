@@ -35,7 +35,7 @@ module ListSignat : SIGNAT =
     let rec lookup sgn x =
       match L.assoc x sgn with
       | Some y -> y
-      | NONE -> raise (Signat "lookup: no such key")
+      | None -> raise (Signat "lookup: no such key")
     let rec size l = length l
   end 
 module GrowarraySignat : SIGNAT =

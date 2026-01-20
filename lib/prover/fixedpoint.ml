@@ -21,8 +21,8 @@ module FixedPoint(FixedPoint:sig module State' : STATE end) : FIXEDPOINT =
     exception Error = S.Error
     type nonrec operator = (T.__Prg option ref * T.__Prg)
     let rec expand (Focus (EVar (Psi, r, __F, _, TCs, _), __W)) (__O) =
-      let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec NONE)) in
-      let __D = T.PDec (x, __F, NONE, NONE) in
+      let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
+      let __D = T.PDec (x, __F, None, None) in
       let __X =
         T.newEVar ((I.Decl (Psi, __D)), (T.forSub (__F, (T.Shift 1)))) in
       (((r, (T.Rec (__D, __X))))

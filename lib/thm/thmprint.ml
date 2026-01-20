@@ -31,9 +31,9 @@ module ThmPrint(ThmPrint:sig
       function
       | nil -> []
       | (Some n)::nil -> [F.String n]
-      | (NONE)::nil -> [F.String "_"]
+      | (None)::nil -> [F.String "_"]
       | (Some n)::__L -> [F.String n; F.String " "] @ (fmtParams __L)
-      | (NONE)::__L -> [F.String "_"; F.String " "] @ (fmtParams __L)
+      | (None)::__L -> [F.String "_"; F.String " "] @ (fmtParams __L)
     let rec fmtType c (__L) =
       F.HVbox
         ([F.String (I.conDecName (I.sgnLookup c)); F.String " "] @

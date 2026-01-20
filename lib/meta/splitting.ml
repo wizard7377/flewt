@@ -48,7 +48,7 @@ module MTPSplitting(MTPSplitting:sig
     module H = Heuristic
     let rec makeOperator __0__ __1__ __2__ __3__ __4__ __5__ __6__ =
       match (__0__, __1__, __2__, __3__, __4__, __5__, __6__) with
-      | ((__S, k), __L, Splits n, g, __I, m, true__) ->
+      | ((__S, k), __L, Splits n, g, __I, m, true) ->
           Operator
             ((__S, k), __L,
               {
@@ -59,7 +59,7 @@ module MTPSplitting(MTPSplitting:sig
                 r = 1;
                 p = (g + 1)
               })
-      | ((__S, k), __L, Splits n, g, __I, m, false__) ->
+      | ((__S, k), __L, Splits n, g, __I, m, false) ->
           Operator
             ((__S, k), __L,
               {
@@ -96,7 +96,7 @@ module MTPSplitting(MTPSplitting:sig
               let (s2, s2') as ps = ((I.dot1 s1), (I.dot1 s1')) in
               if Conv.conv ((__V, s1), (__V', s1')) then ps else raise Conv
           | _ -> raise Conv in
-        try conv (__Gs, __Gs'); true__ with | Conv -> false__
+        try conv (__Gs, __Gs'); true with | Conv -> false
     let rec createEVarSpine (__G) (__Vs) =
       createEVarSpineW (__G, (Whnf.whnf __Vs))
     let rec createEVarSpineW __14__ __15__ =
@@ -302,7 +302,7 @@ module MTPSplitting(MTPSplitting:sig
       split' (((F.labelSize ()) - 1), nil)
     let rec occursInExp __42__ __43__ =
       match (__42__, __43__) with
-      | (k, Uni _) -> false__
+      | (k, Uni _) -> false
       | (k, Pi (DP, __V)) ->
           (occursInDecP (k, DP)) || (occursInExp ((k + 1), __V))
       | (k, Root (__C, __S)) ->
@@ -314,21 +314,21 @@ module MTPSplitting(MTPSplitting:sig
             (fun (__U) ->
                fun (__B) ->
                  __B || (occursInExp (k, (Whnf.normalize (__U, I.id)))))
-            false__
+            false
     let rec occursInCon __44__ __45__ =
       match (__44__, __45__) with
       | (k, BVar k') -> k = k'
-      | (k, Const _) -> false__
-      | (k, Def _) -> false__
-      | (k, Skonst _) -> false__
+      | (k, Const _) -> false
+      | (k, Def _) -> false
+      | (k, Skonst _) -> false
     let rec occursInSpine __46__ __47__ =
       match (__46__, __47__) with
-      | (_, I.Nil) -> false__
+      | (_, I.Nil) -> false
       | (k, App (__U, __S)) ->
           (occursInExp (k, __U)) || (occursInSpine (k, __S))
     let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
     let rec occursInDecP k (__D, _) = occursInDec (k, __D)
-    let rec isIndexInit k = false__
+    let rec isIndexInit k = false
     let rec isIndexSucc (__D) isIndex k =
       (occursInDec (k, __D)) || (isIndex (k + 1))
     let rec isIndexFail (__D) isIndex k = isIndex (k + 1)
@@ -363,7 +363,7 @@ module MTPSplitting(MTPSplitting:sig
           occursInOrder
             (n, __O, k, (fun n' -> occursInOrders (n', __Os, k, sc)))
     let rec inductionInit (__O) k =
-      occursInOrder (0, __O, k, (fun n -> NONE))
+      occursInOrder (0, __O, k, (fun n -> None))
     let rec inductionCont induction k = induction (k + 1)
     let rec expand' __56__ __57__ __58__ __59__ __60__ =
       match (__56__, __57__, __58__, __59__, __60__) with
@@ -371,7 +371,7 @@ module MTPSplitting(MTPSplitting:sig
           ->
           (((fun (Gp) ->
                fun (Bp) ->
-                 ((Gp, Bp), (I.Shift (I.ctxLength Gp)), GB, false__))), nil)
+                 ((Gp, Bp), (I.Shift (I.ctxLength Gp)), GB, false))), nil)
       | (((Decl (__G, __D), Decl (__B, (Lemma (Splits _ as K) as T))) as GB),
          isIndex, abstract, makeAddress, induction) ->
           let (sc, ops) =
@@ -436,7 +436,7 @@ module MTPSplitting(MTPSplitting:sig
             let ((__G', __B'), s', (__G0, __B0), _) = sc (Gp, Bp) in
             (((I.Decl (__G', (Names.decName (__G', (I.decSub (__D, s')))))),
                (I.Decl (__B', __T))), (I.dot1 s'),
-              ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), true__) in
+              ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), true) in
           (sc', ops)
     let rec expand (State (n, (__G0, __B0), _, _, __O, _, _) as S0) =
       let _ = if !Global.doubleCheck then FunTypeCheck.isState __S0 else () in
@@ -448,7 +448,7 @@ module MTPSplitting(MTPSplitting:sig
     let rec index (Operator ((__S, index), Sl, { c = k })) = k
     let rec compare (Operator (_, _, __I1)) (Operator (_, _, __I2)) =
       H.compare (__I1, __I2)
-    let rec isInActive = function | Active _ -> false__ | InActive -> true__
+    let rec isInActive = function | Active _ -> false | InActive -> true
     let rec applicable (Operator (_, Sl, __I)) =
       not (List.exists isInActive Sl)
     let rec apply (Operator (_, Sl, __I)) =

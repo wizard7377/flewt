@@ -130,7 +130,7 @@ module ParseModule(ParseModule:sig
       function
       | Cons ((ID (_, id), r), s') ->
           parseSgEqual' ((Some id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseSgEqual' (None, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,
@@ -152,7 +152,7 @@ module ParseModule(ParseModule:sig
       function
       | Cons ((ID (_, id), r), s') ->
           parseStrDec2' ((Some id), (LS.expose s'))
-      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (NONE, (LS.expose s'))
+      | Cons ((L.UNDERSCORE, r), s') -> parseStrDec2' (None, (LS.expose s'))
       | Cons ((t, r), s') ->
           Parsing.error
             (r,

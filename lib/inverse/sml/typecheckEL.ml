@@ -31,7 +31,7 @@ module TypecheckEL =
                  if equiv_exp sgn __U __V
                  then ()
                  else raise (Fail_exp2 ("check_exp: Root,BVar", __U, __V))
-             | NONE -> raise (Check "focus: var out of bounds")))
+             | None -> raise (Check "focus: var out of bounds")))
           (* DeBruijn indices start at 1 *))
       | (sgn, ctx, Pi
          { var; arg = __A1; body = __A2; arg = __A1; body = __A2; body = __A2
@@ -121,11 +121,11 @@ module TypecheckEL =
             (match ((Sig.lookup sgn c), (Sig.lookup sgn c')) with
              | (Decl decl, Def def) ->
                  if (<>) (((fun r -> r.root)) def) ((fun r -> r.id)) decl
-                 then false__
+                 then false
                  else equiv_exp sgn exp (reduce ((fun r -> r.def) def) __S')
              | (Def def, Decl decl) ->
                  if (<>) (((fun r -> r.root)) def) ((fun r -> r.id)) decl
-                 then false__
+                 then false
                  else equiv_exp sgn (reduce ((fun r -> r.def) def) __S) exp'
              | (Abbrev { def }, _) -> equiv_exp sgn (reduce def __S) exp'
              | (_, Abbrev { def }) -> equiv_exp sgn exp (reduce def __S')
@@ -137,7 +137,7 @@ module TypecheckEL =
                   root = rc'; root = rc' })
                  ->
                  if rc <> rc'
-                 then false__
+                 then false
                  else
                    if h = h'
                    then equiv_exp sgn (reduce def __S) (reduce def' __S')
@@ -146,13 +146,13 @@ module TypecheckEL =
                      then equiv_exp sgn (reduce def __S) exp'
                      else equiv_exp sgn exp (reduce def' __S')
              | (_, _) -> raise (Check "equiv_exp: bad case"))
-      | (_, _, _) -> false__
+      | (_, _, _) -> false
     let rec equiv_spine __19__ __20__ __21__ =
       match (__19__, __20__, __21__) with
-      | (sgn, Nil, Nil) -> true__
+      | (sgn, Nil, Nil) -> true
       | (sgn, App (__E, __S), App (__E', __S')) ->
           (equiv_exp sgn __E __E') && (equiv_spine sgn __S __S')
-      | (_, _, _) -> false__
+      | (_, _, _) -> false
     let rec check_dec __22__ __23__ =
       match (__22__, __23__) with
       | (c, Decl { id; name; exp; uni; name; exp; uni; exp; uni; uni }) ->

@@ -69,19 +69,19 @@ module Abstract(Abstract:sig
     let rec eqEVar __0__ __1__ =
       match (__0__, __1__) with
       | (EVar (r1, _, _, _), EV (EVar (r2, _, _, _))) -> r1 = r2
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec eqFVar __2__ __3__ =
       match (__2__, __3__) with
       | (FVar (n1, _, _), FV (n2, _)) -> n1 = n2
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec eqLVar __4__ __5__ =
       match (__4__, __5__) with
       | (LVar (r1, _, _), LV (LVar (r2, _, _))) -> r1 = r2
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec exists (__P) (__K) =
       let rec exists' =
         function
-        | I.Null -> false__
+        | I.Null -> false
         | Decl (__K', __Y) -> (__P __Y) || (exists' __K') in
       exists' __K
     let rec or__ __6__ __7__ =
@@ -156,7 +156,7 @@ module Abstract(Abstract:sig
           (* s' = ^|G| *))
       | (__G,
          (Root
-          (Proj ((LVar ({ contents = NONE }, sk, (l, t)) as L), i), __S), s),
+          (Proj ((LVar ({ contents = None }, sk, (l, t)) as L), i), __S), s),
          __K) ->
           collectSpine
             (__G, (__S, s), (collectBlock (__G, (I.blockSub (__L, s)), __K)))
@@ -352,7 +352,7 @@ module Abstract(Abstract:sig
       | (Decl (__K', EV (EVar (_, GX, VX, _))), __V) ->
           let __V' = raiseType (GX, VX) in
           let V'' = abstractExp (__K', 0, (__V', I.id)) in
-          ((abstractKPi (__K', (I.Pi (((I.Dec (NONE, V'')), I.Maybe), __V))))
+          ((abstractKPi (__K', (I.Pi (((I.Dec (None, V'')), I.Maybe), __V))))
             (* enforced by reconstruction -kw
           val _ = checkType V'' *))
       | (Decl (__K', FV (name, __V')), __V) ->
@@ -364,7 +364,7 @@ module Abstract(Abstract:sig
       | (Decl (__K', LV (LVar (r, _, (l, t)))), __V) ->
           let t' = abstractSOME (__K', t) in
           abstractKPi
-            (__K', (I.Pi (((I.BDec (NONE, (l, t'))), I.Maybe), __V)))
+            (__K', (I.Pi (((I.BDec (None, (l, t'))), I.Maybe), __V)))
     let rec abstractKLam __70__ __71__ =
       match (__70__, __71__) with
       | (I.Null, __U) -> __U
@@ -373,7 +373,7 @@ module Abstract(Abstract:sig
           abstractKLam
             (__K',
               (I.Lam
-                 ((I.Dec (NONE, (abstractExp (__K', 0, (__V', I.id))))), __U)))
+                 ((I.Dec (None, (abstractExp (__K', 0, (__V', I.id))))), __U)))
       | (Decl (__K', FV (name, __V')), __U) ->
           abstractKLam
             (__K',
@@ -386,7 +386,7 @@ module Abstract(Abstract:sig
       | Decl (__K', EV (EVar (_, GX, VX, _))) ->
           let __V' = raiseType (GX, VX) in
           let V'' = abstractExp (__K', 0, (__V', I.id)) in
-          ((I.Decl ((abstractKCtx __K'), (I.Dec (NONE, V''))))
+          ((I.Decl ((abstractKCtx __K'), (I.Dec (None, V''))))
             (* enforced by reconstruction -kw
           val _ = checkType V'' *))
       | Decl (__K', FV (name, __V')) ->
@@ -396,7 +396,7 @@ module Abstract(Abstract:sig
           val _ = checkType V'' *))
       | Decl (__K', LV (LVar (r, _, (l, t)))) ->
           let t' = abstractSOME (__K', t) in
-          I.Decl ((abstractKCtx __K'), (I.BDec (NONE, (l, t'))))
+          I.Decl ((abstractKCtx __K'), (I.BDec (None, (l, t'))))
     let rec abstractDecImp (__V) =
       let __K = collectExp (I.Null, (__V, I.id), I.Null) in
       let _ = checkConstraints __K in
@@ -421,27 +421,27 @@ module Abstract(Abstract:sig
       ((abstractKCtx __K), (abstractCtxlist (__K, 0, __Gs)))
     let rec closedDec (__G) (Dec (_, __V), s) =
       match collectExp (__G, (__V, s), I.Null) with
-      | I.Null -> true__
-      | _ -> false__
+      | I.Null -> true
+      | _ -> false
     let rec closedSub __72__ __73__ =
       match (__72__, __73__) with
-      | (__G, Shift _) -> true__
+      | (__G, Shift _) -> true
       | (__G, Dot (Idx _, s)) -> closedSub (__G, s)
       | (__G, Dot (Exp (__U), s)) ->
           (match collectExp (__G, (__U, I.id), I.Null) with
            | I.Null -> closedSub (__G, s)
-           | _ -> false__)
+           | _ -> false)
     let rec closedExp (__G) (__U, s) =
       match collectExp (__G, (__U, I.id), I.Null) with
-      | I.Null -> true__
-      | _ -> false__
+      | I.Null -> true
+      | _ -> false
     let rec closedCtx =
       function
-      | I.Null -> true__
+      | I.Null -> true
       | Decl (__G, __D) -> (closedCtx __G) && (closedDec (__G, (__D, I.id)))
     let rec closedFor __74__ __75__ =
       match (__74__, __75__) with
-      | (Psi, T.True) -> true__
+      | (Psi, T.True) -> true
       | (Psi, All ((__D, _), __F)) ->
           (closedDEC (Psi, __D)) && (closedFor ((I.Decl (Psi, __D)), __F))
       | (Psi, Ex ((__D, _), __F)) ->
@@ -453,7 +453,7 @@ module Abstract(Abstract:sig
       | (Psi, PDec (_, __F, _, _)) -> closedFor (Psi, __F)
     let rec closedCTX =
       function
-      | I.Null -> true__
+      | I.Null -> true
       | Decl (Psi, __D) -> (closedCTX Psi) && (closedDEC (Psi, __D))
     let rec evarsToK =
       function
@@ -522,7 +522,7 @@ module Abstract(Abstract:sig
       | (__K, depth, Base (__O)) -> T.Base (abstractOrder (__K, depth, __O))
     let rec abstractTCOpt __93__ __94__ __95__ =
       match (__93__, __94__, __95__) with
-      | (__K, depth, NONE) -> NONE
+      | (__K, depth, None) -> None
       | (__K, depth, Some (TC)) -> Some (abstractTC (__K, depth, TC))
     let rec abstractMetaDec __96__ __97__ __98__ =
       match (__96__, __97__, __98__) with
@@ -553,7 +553,7 @@ module Abstract(Abstract:sig
       | Decl (__K', EV (EVar (_, GX, VX, _))) ->
           let __V' = raiseType (GX, VX) in
           let V'' = abstractExp (__K', 0, (__V', I.id)) in
-          ((I.Decl ((abstractPsi __K'), (T.UDec (I.Dec (NONE, V'')))))
+          ((I.Decl ((abstractPsi __K'), (T.UDec (I.Dec (None, V'')))))
             (* enforced by reconstruction -kw
           val _ = checkType V'' *))
       | Decl (__K', FV (name, __V')) ->
@@ -563,12 +563,12 @@ module Abstract(Abstract:sig
           val _ = checkType V'' *))
       | Decl (__K', LV (LVar (r, _, (l, t)))) ->
           let t' = abstractSOME (__K', t) in
-          I.Decl ((abstractPsi __K'), (T.UDec (I.BDec (NONE, (l, t')))))
+          I.Decl ((abstractPsi __K'), (T.UDec (I.BDec (None, (l, t')))))
       | Decl (__K', PV (EVar (GX, _, FX, TC1, TC2, _))) ->
           let __F' = abstractFor (__K', 0, (T.forSub (FX, T.id))) in
           let TC1' = abstractTCOpt (__K', 0, TC1) in
           let TC2' = abstractTCOpt (__K', 0, TC2) in
-          I.Decl ((abstractPsi __K'), (T.PDec (NONE, __F', TC1, TC2)))
+          I.Decl ((abstractPsi __K'), (T.PDec (None, __F', TC1, TC2)))
       (* What's happening with TCs? *)(* What's happening with GX? *)
     let rec abstractTomegaSub t =
       let __K = collectTomegaSub t in

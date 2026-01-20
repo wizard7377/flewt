@@ -22,7 +22,7 @@ module Ring : RING =
     exception Empty 
     type nonrec 'a ring = ('a list * 'a list)
     let rec empty __0__ __1__ =
-      match (__0__, __1__) with | (nil, nil) -> true__ | _ -> false__
+      match (__0__, __1__) with | (nil, nil) -> true | _ -> false
     let rec init l = (nil, l)
     let rec insert (r, l) y = (r, (y :: l))
     let rec current __2__ __3__ =

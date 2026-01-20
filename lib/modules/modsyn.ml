@@ -118,7 +118,7 @@ module ModSyn(ModSyn:sig
       function
       | AbbrevDef (name, parent, i, __U, __V, IntSyn.Type) as condec ->
           (try
-             Strict.check ((__U, __V), NONE);
+             Strict.check ((__U, __V), None);
              IntSyn.ConDef
                (name, parent, i, __U, __V, IntSyn.Type,
                  (IntSyn.ancestor __U))
@@ -141,10 +141,10 @@ module ModSyn(ModSyn:sig
       let (constMap : IntSyn.cid IntTree.__Table) = IntTree.new__ 0 in
       let rec mapStruct mid = valOf (IntTree.lookup structMap mid) in
       let rec mapParent =
-        function | NONE -> topOpt | Some parent -> Some (mapStruct parent) in
+        function | None -> topOpt | Some parent -> Some (mapStruct parent) in
       let rec mapConst cid =
         match IntTree.lookup constMap cid with
-        | NONE -> cid
+        | None -> cid
         | Some cid' -> cid' in
       let rec doStruct mid (StructInfo strdec) =
         let strdec' = mapStrDecParent mapParent strdec in
@@ -152,14 +152,14 @@ module ModSyn(ModSyn:sig
         let parent = IntSyn.strDecParent strdec' in
         let nsOpt =
           match parent with
-          | NONE -> nsOpt
+          | None -> nsOpt
           | Some mid -> Some (Names.getComponents mid) in
         let _ =
           match nsOpt with
           | Some ns -> Names.insertStruct (ns, mid')
           | _ -> () in
         let _ =
-          match parent with | NONE -> Names.installStructName mid' | _ -> () in
+          match parent with | None -> Names.installStructName mid' | _ -> () in
         let ns = Names.newNamespace () in
         let _ = Names.installComponents (mid', ns) in
         IntTree.insert structMap (mid, mid') in
@@ -171,14 +171,14 @@ module ModSyn(ModSyn:sig
         let parent = IntSyn.conDecParent condec3 in
         let nsOpt =
           match parent with
-          | NONE -> nsOpt
+          | None -> nsOpt
           | Some mid -> Some (Names.getComponents mid) in
         let _ =
           match nsOpt with
           | Some ns -> Names.insertConst (ns, cid')
           | _ -> () in
         let _ =
-          match parent with | NONE -> Names.installConstName cid' | _ -> () in
+          match parent with | None -> Names.installConstName cid' | _ -> () in
         let _ = installAction (cid', origin) in
         let _ =
           match fixity with
@@ -186,7 +186,7 @@ module ModSyn(ModSyn:sig
           | _ -> Names.installFixity (cid', fixity) in
         let _ =
           match namePrefOpt with
-          | NONE -> ()
+          | None -> ()
           | Some (n1, n2) -> Names.installNamePref (cid', (n1, n2)) in
         IntTree.insert constMap (cid, cid') in
       IntTree.app doStruct structTable; IntTree.app doConst constTable
@@ -203,19 +203,19 @@ module ModSyn(ModSyn:sig
       let ns = Names.newNamespace () in
       let _ = Names.installComponents (mid, ns) in
       installModule
-        (module__, (Some mid), NONE, installAction, transformConDec)
+        (module__, (Some mid), None, installAction, transformConDec)
     let rec installSig module__ nsOpt installAction isDef =
       let transformConDec =
         if isDef then decToDef else (fun _ -> fun condec -> condec) in
-      installModule (module__, NONE, nsOpt, installAction, transformConDec)
+      installModule (module__, None, nsOpt, installAction, transformConDec)
     let rec abstractModule namespace topOpt =
       let (structTable : __StructInfo IntTree.__Table) = IntTree.new__ 0 in
       let (constTable : __ConstInfo IntTree.__Table) = IntTree.new__ 0 in
       let mapParent =
         match topOpt with
-        | NONE -> (fun parent -> parent)
+        | None -> (fun parent -> parent)
         | Some mid ->
-            (fun (Some mid') -> if mid = mid' then NONE else Some mid') in
+            (fun (Some mid') -> if mid = mid' then None else Some mid') in
       let rec doStruct _ mid =
         let strdec = IntSyn.sgnStructLookup mid in
         let strdec' = mapStrDecParent mapParent strdec in
@@ -233,12 +233,12 @@ module ModSyn(ModSyn:sig
       doNS namespace; (structTable, constTable, namespace)
     let rec instantiateModule ((_, _, namespace) as module__) transform =
       let transformConDec = transform namespace in
-      let mid = IntSyn.sgnStructAdd (IntSyn.StrDec ("wheresubj", NONE)) in
+      let mid = IntSyn.sgnStructAdd (IntSyn.StrDec ("wheresubj", None)) in
       let ns = Names.newNamespace () in
       let _ = Names.installComponents (mid, ns) in
       let _ =
         installModule
-          (module__, (Some mid), NONE, (fun _ -> ()), transformConDec) in
+          (module__, (Some mid), None, (fun _ -> ()), transformConDec) in
       abstractModule (ns, (Some mid))
     let (defList : string list ref) = ref nil
     let (defCount : int ref) = ref 0
@@ -257,7 +257,7 @@ module ModSyn(ModSyn:sig
     let rec sigDefSize () = !defCount
     let rec installSigDef id module__ =
       match defsInsert (id, module__) with
-      | NONE ->
+      | None ->
           ((defList := id) :: (!defList); ((!) ((:=) defCount) defCount) + 1)
       | Some entry ->
           (raise

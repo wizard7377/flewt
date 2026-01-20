@@ -128,7 +128,7 @@ module Assign(Assign:sig
       assignExpW (__G, (Whnf.whnf __Us1), (Whnf.whnf __Us2), cnstr)
     let rec solveCnstr =
       function
-      | nil -> true__
+      | nil -> true
       | (Eqn (__G, __U1, __U2))::Cnstr ->
           (Unify.unifiable (__G, (__U1, id), (__U2, id))) &&
             (solveCnstr Cnstr)
@@ -147,7 +147,7 @@ module Assign(Assign:sig
       | Dot (Undef, s) -> (print "Undef . "; printSub s)
     let rec unifyW __12__ __13__ __14__ =
       match (__12__, __13__, __14__) with
-      | (__G, ((AVar ({ contents = NONE } as r) as Xs1), s), __Us2) ->
+      | (__G, ((AVar ({ contents = None } as r) as Xs1), s), __Us2) ->
           (:=) r Some (EClo __Us2)
       | (__G, __Xs1, __Us2) -> Unify.unifyW (__G, __Xs1, __Us2)(* Xs1 should not contain any uninstantiated AVar anymore *)
       (* s = id *)
@@ -155,7 +155,7 @@ module Assign(Assign:sig
       unifyW (__G, (Whnf.whnf __Xs1), (Whnf.whnf __Us2))
     let rec matchW __15__ __16__ __17__ =
       match (__15__, __16__, __17__) with
-      | (__G, ((AVar ({ contents = NONE } as r) as Xs1), s), __Us2) ->
+      | (__G, ((AVar ({ contents = None } as r) as Xs1), s), __Us2) ->
           (:=) r Some (EClo __Us2)
       | (__G, __Xs1, __Us2) -> Match.matchW (__G, __Xs1, __Us2)(* Xs1 should not contain any uninstantiated AVar anymore *)
       (* s = id *)
@@ -163,12 +163,12 @@ module Assign(Assign:sig
       matchW (__G, (Whnf.whnf __Xs1), (Whnf.whnf __Us2))
     let solveCnstr = solveCnstr
     let rec unifiable (__G) (__Us1) (__Us2) =
-      try unify (__G, __Us1, __Us2); true__ with | Unify msg -> false__
+      try unify (__G, __Us1, __Us2); true with | Unify msg -> false
     let rec instance (__G) (__Us1) (__Us2) =
-      try match__ (__G, __Us1, __Us2); true__ with | Match msg -> false__
+      try match__ (__G, __Us1, __Us2); true with | Match msg -> false
     let rec assignable (__G) (__Us1) (Uts2) =
       try Some (assignExp (__G, __Us1, Uts2, []))
-      with | Assignment msg -> NONE
+      with | Assignment msg -> None
     let rec firstConstArg (Root ((Const c as h), __S) as A) s =
       let i = IntSyn.conDecImp (IntSyn.sgnLookup c) in
       let rec constExp (__U) s = constExpW (Whnf.whnf (__U, s))
@@ -176,12 +176,12 @@ module Assign(Assign:sig
         match (__0__, __1__) with
         | (Lam (__D, __U), s) -> constExp (__U, s)
         | (Root ((Const cid as H), __S), s) -> Some cid
-        | (_, _) -> NONE in
+        | (_, _) -> None in
       let rec ithElem __2__ __3__ =
         match (__2__, __3__) with
         | (k, (App (__U, __S), s)) ->
             if k = i then constExp (__U, s) else ithElem ((k + 1), (__S, s))
-        | (k, (IntSyn.Nil, s)) -> NONE in
+        | (k, (IntSyn.Nil, s)) -> None in
       ((ithElem (0, (__S, s)))
         (* #implicit arguments to predicate *)(* other cases cannot occur during compilation *))
   end ;;

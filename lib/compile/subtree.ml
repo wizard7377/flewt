@@ -125,7 +125,7 @@ module SubTree(SubTree:sig
       | (Const k, Const k') -> k = k'
       | (BVar k, BVar k') -> k = k'
       | (Def k, Def k') -> k = k'
-      | (_, _) -> false__
+      | (_, _) -> false
     let rec compatible label (__T) (__U) rho_t rho_u =
       let rec genExp __10__ __11__ __12__ __13__ =
         match (__10__, __11__, __12__, __13__) with
@@ -191,7 +191,7 @@ module SubTree(SubTree:sig
         | (_, _, _) ->
             raise (Generalization "Top-level function symbol not shared")
         (* by invariant A1 =/= A2 *) in
-      try Some (genTop (label, __T, __U)) with | Generalization msg -> NONE
+      try Some (genTop (label, __T, __U)) with | Generalization msg -> None
     let rec compatibleSub nsub_t nsub_e =
       let (sg, rho_t, rho_e) = ((nid ()), (nid ()), (nid ())) in
       let _ =
@@ -203,15 +203,15 @@ module SubTree(SubTree:sig
                      if l = l'
                      then
                        (match compatible (l, __T, __E, rho_t, rho_e) with
-                        | NONE ->
+                        | None ->
                             (S.insert rho_t (nv, (l, __T));
                              S.insert rho_e (nv, (l, __E)))
                         | Some (__T') -> S.insert sg (nv, (l, __T')))
                      else raise (Generalization "Labels don't agree\n")
-                 | NONE -> S.insert rho_e (nv, (l', __E)))
+                 | None -> S.insert rho_e (nv, (l', __E)))
                (* by invariant d = d'
                                      therefore T and E have the same approximate type A *))) in
-      ((if isId sg then NONE else Some (sg, rho_t, rho_e))
+      ((if isId sg then None else Some (sg, rho_t, rho_e))
         (* by invariant rho_t = empty, since nsub_t <= nsub_e *))
     let rec mkNode __21__ __22__ __23__ __24__ __25__ =
       match (__21__, __22__, __23__, __24__, __25__) with
@@ -228,7 +228,7 @@ module SubTree(SubTree:sig
     let rec compareChild children (n, child) nsub_t nsub_e
       ((G_clause2, Res_clause2) as GR) =
       match compatibleSub (nsub_t, nsub_e) with
-      | NONE ->
+      | None ->
           S.insert children
             ((n + 1), (Leaf (nsub_e, G_clause2, Res_clause2)))
       | Some (sg, rho1, rho2) ->
@@ -247,7 +247,7 @@ module SubTree(SubTree:sig
       | ((Leaf (nsub_t, G_clause1, __R1) as N), nsub_e,
          ((G_clause2, __R2) as GR)) ->
           (match compatibleSub (nsub_t, nsub_e) with
-           | NONE -> raise (Error "Leaf is not compatible substitution r")
+           | None -> raise (Error "Leaf is not compatible substitution r")
            | Some (sg, rho1, rho2) -> mkNode (__N, sg, rho1, GR, rho2))
       | ((Node (_, children) as N), nsub_e, ((G_clause2, RC) as GR)) ->
           ((if noChildren children
@@ -490,7 +490,7 @@ module SubTree(SubTree:sig
         Some
           ((S.union nsub_query_left nsub_query'),
             ((S.union nsub_left nsub_left'), cnstrSub), (!cref)) in
-      try assign' (nsub_query, nsub) with | Assignment msg -> NONE
+      try assign' (nsub_query, nsub) with | Assignment msg -> None
     let rec assignableEager nsub nsub_query assignSub cnstrSub cnstr =
       let nsub_query' = querySubId () in
       let cref = ref cnstr in
@@ -510,7 +510,7 @@ module SubTree(SubTree:sig
             (fun nv ->
                fun (nvaronly, __U) ->
                  match S.lookup cnstrSub nv with
-                 | NONE -> raise (Error "Left-over nsubstitution")
+                 | None -> raise (Error "Left-over nsubstitution")
                  | Some (AVar (__A)) ->
                      (:=) __A Some (normalizeNExp (__U, cnstrSub))) in
         ((Some ((S.union nsub_query_left nsub_query'), cnstrSub, (!cref)))
@@ -518,12 +518,12 @@ module SubTree(SubTree:sig
              collect all left-over nsubs and later combine it with cnstrsub
            *)
           (* cnstr[rsub] *)(* nsub_goal1 = rgoal u nsub_goal'  remaining substitutions to be checked *)) in
-      try assign' (nsub_query, nsub) with | Assignment msg -> NONE
+      try assign' (nsub_query, nsub) with | Assignment msg -> None
     let rec unifyW __45__ __46__ __47__ =
       match (__45__, __46__, __47__) with
-      | (__G, ((AVar ({ contents = NONE } as r) as X), Shift 0), __Us2) ->
+      | (__G, ((AVar ({ contents = None } as r) as X), Shift 0), __Us2) ->
           (:=) r Some (I.EClo __Us2)
-      | (__G, ((AVar ({ contents = NONE } as r) as X), s),
+      | (__G, ((AVar ({ contents = None } as r) as X), s),
          ((__U, s2) as Us2)) ->
           (print "unifyW -- not s = Id\n";
            print
@@ -533,7 +533,7 @@ module SubTree(SubTree:sig
     let rec unify (__G) (__Xs1) (__Us2) =
       unifyW (__G, (Whnf.whnf __Xs1), (Whnf.whnf __Us2))
     let rec unifiable (__G) (__Us1) (__Us2) =
-      try unify (__G, __Us1, __Us2); true__ with | Unify msg -> false__
+      try unify (__G, __Us1, __Us2); true with | Unify msg -> false
     let rec ctxToExplicitSub __48__ __49__ __50__ __51__ =
       match (__48__, __49__, __50__, __51__) with
       | (i, Gquery, I.Null, asub) -> I.id
@@ -542,14 +542,14 @@ module SubTree(SubTree:sig
           let EVar (__X', _, _, _) as U' =
             I.newEVar (Gquery, (I.EClo (__A, s))) in
           ((match S.lookup asub i with
-            | NONE -> ()
+            | None -> ()
             | Some (Assign (Glocal_u, __U)) ->
                 (:=) __X' Some (raiseType (Glocal_u, __U)));
            I.Dot ((I.Exp __U'), s))
       | (i, Gquery, Decl (Gclause, ADec (_, d)), asub) ->
           let AVar (__X') as U' = I.newAVar () in
           ((((match S.lookup asub i with
-              | NONE -> ()
+              | None -> ()
               | Some (Assign (Glocal_u, __U)) -> (:=) __X' Some __U);
              I.Dot
                ((I.Exp (I.EClo (__U', (I.Shift (~ d))))),
@@ -557,16 +557,16 @@ module SubTree(SubTree:sig
             (* d = I.ctxLength Glocal_u *))
     let rec solveAuxG __52__ __53__ __54__ =
       match (__52__, __53__, __54__) with
-      | (C.Trivial, s, Gquery) -> true__
+      | (C.Trivial, s, Gquery) -> true
       | (UnifyEq (Glocal, e1, __N, eqns), s, Gquery) ->
           let __G = compose' (Glocal, Gquery) in
           let s' = shift (Glocal, s) in
           if unifiable (__G, (__N, s'), (e1, s'))
           then solveAuxG (eqns, s, Gquery)
-          else false__(* succeed *)
+          else false(* succeed *)
     let rec solveCnstr __55__ __56__ __57__ __58__ =
       match (__55__, __56__, __57__, __58__) with
-      | (Gquery, Gclause, nil, s) -> true__
+      | (Gquery, Gclause, nil, s) -> true
       | (Gquery, Gclause, (Eqn (Glocal, __U1, __U2))::Cnstr, s) ->
           (Unify.unifiable
              ((compose' (Gquery, Glocal)), (__U1, I.id),
@@ -591,7 +591,7 @@ module SubTree(SubTree:sig
             (((match assignableEager
                        (nsub, nsub_query, assignSub, cnstrSub, cnstr)
                with
-               | NONE -> ()
+               | None -> ()
                | Some (nsub_query', cnstrSub', cnstr') ->
                    ((if isId nsub_query'
                      then
@@ -614,7 +614,7 @@ module SubTree(SubTree:sig
             (((match assignableEager
                        (nsub, nsub_query, assignSub, cnstrSub, cnstr)
                with
-               | NONE -> ()
+               | None -> ()
                | Some (nsub_query', cnstrSub', cnstr') ->
                    S.forall Children
                      (fun n ->
@@ -644,7 +644,7 @@ module SubTree(SubTree:sig
                        (nsub, nsub_query, assignSub, (nsub_left, cnstrSub),
                          cnstr)
                with
-               | NONE -> ()
+               | None -> ()
                | Some (nsub_query', (nsub_left', cnstrSub'), cnstr') ->
                    ((if isId nsub_query'
                      then
@@ -663,7 +663,7 @@ module SubTree(SubTree:sig
                        (nsub, nsub_query, assignSub, (nsub_left, cnstrSub),
                          cnstr)
                with
-               | NONE -> ()
+               | None -> ()
                | Some (nsub_query', (nsub_left', cnstrSub'), cnstr') ->
                    S.forall Children
                      (fun n ->
@@ -683,7 +683,7 @@ module SubTree(SubTree:sig
       let candSet = S.new__ () in
       let rec solveCandidate i candSet =
         match S.lookup candSet i with
-        | NONE -> ((())
+        | None -> ((())
             (* print "No candidate left anymore\n" ;*))
         | Some
             (((assignSub, nsub_left, cnstrSub, cnstr, Gclause, Residuals))
@@ -694,7 +694,7 @@ module SubTree(SubTree:sig
                     (fun nv ->
                        fun (l, __U) ->
                          match S.lookup cnstrSub nv with
-                         | NONE -> raise (Error "Left-over nsubstitution")
+                         | None -> raise (Error "Left-over nsubstitution")
                          | Some (AVar (__A)) -> (:=) __A Some __U);
                   solveResiduals
                     (Gquery, Gclause, Residuals, assignSub, cnstr, sc));

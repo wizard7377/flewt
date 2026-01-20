@@ -38,7 +38,7 @@ module PrintOMDoc(PrintOMDoc:sig
         | '>'::rest -> (String.explode "&gt;") @ (escapelist rest)
         | c::rest -> c :: (escapelist rest) in
       String.implode (escapelist (String.explode s))
-    let namesafe = ref true__
+    let namesafe = ref true
     let rec replace c =
       if (Char.isAlphaNum c) || (Char.contains ":_-." c)
       then String.str c
@@ -129,19 +129,19 @@ module PrintOMDoc(PrintOMDoc:sig
                 (let _ = (^) (((!) ((:=) out) out) ^ "<om:OMA>") nl_ind () in
                  let (test, cid) =
                    match __H with
-                   | Const c -> (true__, c)
-                   | Skonst c -> (true__, c)
-                   | Def c -> (true__, c)
-                   | NSDef c -> (true__, c)
-                   | _ -> (false__, 0) in
+                   | Const c -> (true, c)
+                   | Skonst c -> (true, c)
+                   | Def c -> (true, c)
+                   | NSDef c -> (true, c)
+                   | _ -> (false, 0) in
                  let imp = IntSyn.conDecImp (IntSyn.sgnLookup cid) in
                  let (test, args) =
                    if test
                    then
                      match Names.getFixity cid with
-                     | Infix (_, _) -> (true__, (imp + 2))
-                     | _ -> (false__, 0)
-                   else (false__, 0) in
+                     | Infix (_, _) -> (true, (imp + 2))
+                     | _ -> (false, 0)
+                   else (false, 0) in
                  let _ =
                    if test && (l > args)
                    then (^) (((!) ((:=) out) out) ^ "<om:OMA>") nl_ind ()
@@ -344,7 +344,7 @@ module PrintOMDoc(PrintOMDoc:sig
       (^) ((^) ((formatConDec (cid, (IntSyn.sgnLookup cid))) ^ "\n")
              fmtPresentation cid)
         fmtFixity cid
-    let rec printConst cid = namesafe := false__; fmtConst cid
+    let rec printConst cid = namesafe := false; fmtConst cid
     let rec printSgn filename ns =
       let _ = namesafe := ns in
       let _ = ind_reset () in

@@ -146,13 +146,13 @@ module Compress(Compress:sig module Global : GLOBAL end) =
                           then *)
     let rec compress_type' __22__ __23__ __24__ =
       match (__22__, __23__, __24__) with
-      | (__G, NONE, TPi (_, a, b)) ->
+      | (__G, None, TPi (_, a, b)) ->
           S.TPi
-            (S.MINUS, (compress_type __G (NONE, a)),
-              (compress_type (a :: __G) (NONE, b)))
+            (S.MINUS, (compress_type __G (None, a)),
+              (compress_type (a :: __G) (None, b)))
       | (__G, Some (m::ms), TPi (_, a, b)) ->
           S.TPi
-            (m, (compress_type __G (NONE, a)),
+            (m, (compress_type __G (None, a)),
               (compress_type (a :: __G) ((Some ms), b)))
       | (__G, Some [], TRoot (cid, sp)) ->
           S.TRoot
@@ -160,8 +160,8 @@ module Compress(Compress:sig module Global : GLOBAL end) =
               (compress_type_spine __G
                  (sp, (kindOf (Sgn.o_classifier cid)),
                    (kindOf (Sgn.classifier cid)))))
-      | (__G, NONE, (TRoot _ as a)) -> compress_type __G ((Some []), a)
-      | (__G, Some [], (TPi _ as a)) -> compress_type __G (NONE, a)
+      | (__G, None, (TRoot _ as a)) -> compress_type __G ((Some []), a)
+      | (__G, Some [], (TPi _ as a)) -> compress_type __G (None, a)
     let rec compress_type_spine __25__ __26__ __27__ __28__ =
       match (__25__, __26__, __27__, __28__) with
       | (__G, [], w, wstar) -> []
@@ -176,7 +176,7 @@ module Compress(Compress:sig module Global : GLOBAL end) =
            | (S.MINUS, _) -> (S.Elt mstar) :: sstar
            | (S.PLUS, ATerm t) -> (S.AElt t) :: sstar
            | (S.PLUS, NTerm t) ->
-               (S.Ascribe (t, (compress_type __G (NONE, a)))) :: sstar)
+               (S.Ascribe (t, (compress_type __G (None, a)))) :: sstar)
     let rec compress_spine __29__ __30__ __31__ __32__ =
       match (__29__, __30__, __31__, __32__) with
       | (__G, [], w, wstar) -> []
@@ -191,75 +191,75 @@ module Compress(Compress:sig module Global : GLOBAL end) =
            | (S.MINUS, _) -> (S.Elt mstar) :: sstar
            | (S.PLUS, ATerm t) -> (S.AElt t) :: sstar
            | (S.PLUS, NTerm t) ->
-               (S.Ascribe (t, (compress_type __G (NONE, a)))) :: sstar)
+               (S.Ascribe (t, (compress_type __G (None, a)))) :: sstar)
     let rec compress_term __33__ __34__ __35__ =
       match (__33__, __34__, __35__) with
       | (__G, ATerm (ARoot (Var n, sp)), _) ->
           let a = S.ctxLookup (__G, n) in
-          let astar = compress_type __G (NONE, a) in
+          let astar = compress_type __G (None, a) in
           S.ATerm (S.ARoot ((S.Var n), (compress_spine __G (sp, a, astar))))
       | (__G, ATerm (ARoot (Const n, sp)), _) ->
           let a = typeOf (Sgn.o_classifier n) in
           let astar = typeOf (Sgn.classifier n) in
           let term_former =
             match Sgn.get_p n with
-            | Some false__ -> S.NTerm o S.NRoot
+            | Some false -> S.NTerm o S.NRoot
             | _ -> S.ATerm o S.ARoot in
           term_former ((S.Const n), (compress_spine __G (sp, a, astar)))
       | (__G, NTerm (Lam t), TPi (_, a, b)) ->
           S.NTerm (S.Lam (compress_term (a :: __G) (t, b)))
     let rec compress_kind __36__ __37__ __38__ =
       match (__36__, __37__, __38__) with
-      | (__G, NONE, KPi (_, a, k)) ->
+      | (__G, None, KPi (_, a, k)) ->
           S.KPi
-            (S.MINUS, (compress_type __G (NONE, a)),
-              (compress_kind (a :: __G) (NONE, k)))
+            (S.MINUS, (compress_type __G (None, a)),
+              (compress_kind (a :: __G) (None, k)))
       | (__G, Some (m::ms), KPi (_, a, k)) ->
           S.KPi
-            (m, (compress_type __G (NONE, a)),
+            (m, (compress_type __G (None, a)),
               (compress_kind (a :: __G) ((Some ms), k)))
       | (__G, Some [], S.Type) -> S.Type
-      | (__G, NONE, S.Type) -> S.Type
+      | (__G, None, S.Type) -> S.Type
     let rec compress __39__ __40__ =
       match (__39__, __40__) with
-      | (cid, ConDec (name, NONE, _, IntSyn.Normal, a, IntSyn.Type)) ->
+      | (cid, ConDec (name, None, _, IntSyn.Normal, a, IntSyn.Type)) ->
           let x = xlate_type a in
           let x = eta_expand_tp [] x in
           let modes = Sgn.get_modes cid in
           Sgn.condec (name, (compress_type [] (modes, x)), x)
-      | (cid, ConDec (name, NONE, _, IntSyn.Normal, k, IntSyn.Kind)) ->
+      | (cid, ConDec (name, None, _, IntSyn.Normal, k, IntSyn.Kind)) ->
           let x = xlate_kind k in
           let modes = Sgn.get_modes cid in
           Sgn.tycondec (name, (compress_kind [] (modes, x)), x)
-      | (cid, ConDef (name, NONE, _, m, a, IntSyn.Type, _)) ->
+      | (cid, ConDef (name, None, _, m, a, IntSyn.Type, _)) ->
           let m = xlate_term m in
           let a = xlate_type a in
-          let astar = compress_type [] (NONE, a) in
+          let astar = compress_type [] (None, a) in
           let mstar = compress_term [] (m, a) in
           Sgn.defn (name, astar, a, mstar, m)
-      | (cid, ConDef (name, NONE, _, a, k, IntSyn.Kind, _)) ->
+      | (cid, ConDef (name, None, _, a, k, IntSyn.Kind, _)) ->
           let a = xlate_type a in
           let k = xlate_kind k in
-          let kstar = compress_kind [] (NONE, k) in
-          let astar = compress_type (Syntax.explodeKind kstar) (NONE, a) in
+          let kstar = compress_kind [] (None, k) in
+          let astar = compress_type (Syntax.explodeKind kstar) (None, a) in
           Sgn.tydefn (name, kstar, k, astar, a)
-      | (cid, AbbrevDef (name, NONE, _, m, a, IntSyn.Type)) ->
+      | (cid, AbbrevDef (name, None, _, m, a, IntSyn.Type)) ->
           let m = xlate_term m in
           let a = xlate_type a in
-          let astar = compress_type [] (NONE, a) in
+          let astar = compress_type [] (None, a) in
           let mstar = compress_term [] (m, a) in
           Sgn.abbrev (name, astar, a, mstar, m)
-      | (cid, AbbrevDef (name, NONE, _, a, k, IntSyn.Kind)) ->
+      | (cid, AbbrevDef (name, None, _, a, k, IntSyn.Kind)) ->
           let a = xlate_type a in
           let k = xlate_kind k in
-          let kstar = compress_kind [] (NONE, k) in
-          let astar = compress_type (Syntax.explodeKind kstar) (NONE, a) in
+          let kstar = compress_kind [] (None, k) in
+          let astar = compress_type (Syntax.explodeKind kstar) (None, a) in
           Sgn.tyabbrev (name, kstar, k, astar, a)
       | _ -> raise Unimp
     let rec sgnLookup cid =
       let c = Sgn.sub cid in
       match c with
-      | NONE ->
+      | None ->
           let c' = compress (cid, (I.sgnLookup cid)) in
           let _ = Sgn.update (cid, c') in
           let _ = print ((Int.toString cid) ^ "\n") in c'
@@ -334,7 +334,7 @@ module Compress(Compress:sig module Global : GLOBAL end) =
         (let _ =
            ((match Sgn.sub n0 with
              | Some _ -> ()
-             | NONE ->
+             | None ->
                  (try
                     let modes = f n0 in
                     Sgn.set_modes (n0, modes);

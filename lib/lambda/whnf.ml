@@ -87,7 +87,7 @@ module Whnf() : WHNF =
           (lowerEVar __X; whnfRedex ((whnf __Us), __Ss2))
       | (((AVar { contents = Some (__U) }, s1) as Us), __Ss2) ->
           whnfRedex ((__U, s1), __Ss2)
-      | (((AVar { contents = NONE }, s1) as Us), __Ss2) -> __Us
+      | (((AVar { contents = None }, s1) as Us), __Ss2) -> __Us
       | (((FgnExp _, _) as Us), _) -> __Us
       | (((Uni _, s1) as Us), _) -> __Us
       | (((Pi _, s1) as Us), _) -> __Us(* S2[s2] = Nil *)
@@ -153,7 +153,7 @@ module Whnf() : WHNF =
          Jul 22, 2010 -fp -cs
          *)
       (* scary: why is comp(sk, s) = ^n ?? -fp July 22, 2010, -fp -cs *)
-      (* r = ref NONE *)(* was: (Root (Proj (blockSub (B, s), i), SClo (S, s)), id) *)
+      (* r = ref None *)(* was: (Root (Proj (blockSub (B, s), i), SClo (S, s)), id) *)
       (* yes Thu Dec 13 21:48:10 2001 -fp !!! *)(* Sat Dec  8 13:43:17 2001 -fp !!! *)
       (* could blockSub (B, s) return instantiated LVar ? *)(* Undef should be impossible *)
     let rec whnf __18__ __19__ =
@@ -290,7 +290,7 @@ module Whnf() : WHNF =
     let rec invert s =
       let rec lookup __37__ __38__ __39__ =
         match (__37__, __38__, __39__) with
-        | (n, Shift _, p) -> NONE
+        | (n, Shift _, p) -> None
         | (n, Dot (Undef, s'), p) -> lookup ((n + 1), s', p)
         | (n, Dot (Idx k, s'), p) ->
             if k = p then Some n else lookup ((n + 1), s', p) in
@@ -300,7 +300,7 @@ module Whnf() : WHNF =
         | (p, si) ->
             (match lookup (1, s, p) with
              | Some k -> invert'' ((p - 1), (Dot ((Idx k), si)))
-             | NONE -> invert'' ((p - 1), (Dot (Undef, si)))) in
+             | None -> invert'' ((p - 1), (Dot (Undef, si)))) in
       let rec invert' __42__ __43__ =
         match (__42__, __43__) with
         | (n, Shift p) -> invert'' (p, (Shift n))
@@ -320,23 +320,23 @@ module Whnf() : WHNF =
       match (__46__, __47__) with
       | (Shift k, k') -> k = k'
       | (Dot (Idx n, s'), k') -> (n = k') && (isId' (s', (k' + 1)))
-      | _ -> false__
+      | _ -> false
     let rec isId s = isId' (s, 0)
     let rec cloInv (__U) w = EClo (__U, (invert w))
     let rec compInv s w = comp (s, (invert w))
     let rec isPatSub =
       function
-      | Shift k -> true__
+      | Shift k -> true
       | Dot (Idx n, s) ->
           let rec checkBVar =
             function
             | Shift k -> n <= k
             | Dot (Idx n', s) -> (n <> n') && (checkBVar s)
             | Dot (Undef, s) -> checkBVar s
-            | _ -> false__ in
+            | _ -> false in
           (checkBVar s) && (isPatSub s)
       | Dot (Undef, s) -> isPatSub s
-      | _ -> false__
+      | _ -> false
     let rec mkPatSub =
       function
       | Shift k as s -> s
@@ -354,7 +354,7 @@ module Whnf() : WHNF =
           let k = etaContract (__U', t', 0) in ((Dot ((Idx k), (mkPatSub s)))
             (* may raise Eta *))
       | _ -> raise Eta
-    let rec makePatSub s = try Some (mkPatSub s) with | Eta -> NONE
+    let rec makePatSub s = try Some (mkPatSub s) with | Eta -> None
     let isPatSub = isPatSub
     let makePatSub = makePatSub
     let dotEta = dotEta

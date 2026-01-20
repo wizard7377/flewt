@@ -85,7 +85,7 @@ module StateSyn(StateSyn:sig module Whnf : WHNF module Conv : CONV end) :
       | (Simul (__Os1), Simul (__Os2)) -> convOrders (__Os1, __Os2)
     let rec convOrders __4__ __5__ =
       match (__4__, __5__) with
-      | (nil, nil) -> true__
+      | (nil, nil) -> true
       | ((__O1)::__L1, (__O2)::__L2) ->
           (convOrder (__O1, __O2)) && (convOrders (__L1, __L2))
     let rec decreaseInfo =

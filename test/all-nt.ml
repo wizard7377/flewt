@@ -2,7 +2,7 @@
 (* Twelf.chatter := 0; *)
 (* Twelf.chatter := 1; *)
 (* Twelf.chatter := 2; *) ;;Twelf.chatter := 5
-;;Twelf.doubleCheck := true__
+;;Twelf.doubleCheck := true
 let rec test file =
   match Twelf.Config.load (Twelf.Config.read file) with
   | Twelf.OK -> Twelf.OK

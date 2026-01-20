@@ -19,7 +19,12 @@
  (name flewt)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml)
+ (depends 
+  ocaml
+  ptime 
+  menhir 
+  ppx_deriving
+  bos)
  (tags
   ("add topics" "to describe" your project)))
 

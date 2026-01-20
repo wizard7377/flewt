@@ -77,7 +77,7 @@ module TomegaTypeCheck(TomegaTypeCheck:sig
       | (Psi, PairExp (__U, __P)) ->
           let __V = TypeCheck.infer' ((T.coerceCtx Psi), __U) in
           let __F = inferPrg (Psi, __P) in
-          T.Ex (((I.Dec (NONE, __V)), T.Explicit), __F)
+          T.Ex (((I.Dec (None, __V)), T.Explicit), __F)
       | (Psi, PairBlock (Bidx k, __P)) ->
           let __D = I.ctxLookup ((T.coerceCtx Psi), k) in
           let __F = inferPrg (Psi, __P) in T.Ex ((__D, T.Explicit), __F)

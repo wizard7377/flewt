@@ -27,7 +27,7 @@ module StyleCheck(StyleCheck:sig
     let rec toggle = function | Plus -> Minus | Minus -> Plus
     let rec wrapMsg c occ msg err =
       match Origins.originLookup c with
-      | (fileName, NONE) -> (fileName ^ ":") ^ msg
+      | (fileName, None) -> (fileName ^ ":") ^ msg
       | (fileName, Some occDec) ->
           P.wrapLoc'
             ((P.Loc (fileName, (err occDec occ))),
@@ -61,12 +61,12 @@ module StyleCheck(StyleCheck:sig
       match (__0__, __1__) with
       | (Dec (Some n, __V), pol) ->
           (match Names.getNamePref (I.targetFam __V) with
-           | NONE -> Correct
+           | None -> Correct
            | Some (prefENames, prefUNames) ->
                (match pol with
                 | Plus -> checkVariablename (n, prefENames)
                 | Minus -> checkVariablename (n, prefUNames)))
-      | (Dec (NONE, __V), pol) -> Correct
+      | (Dec (None, __V), pol) -> Correct
     let rec implicitHead =
       function
       | BVar k -> 0

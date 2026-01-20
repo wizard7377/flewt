@@ -93,7 +93,7 @@ module MTPRecursion(MTPRecursion:sig
           I.Dot ((I.Exp (I.newEVar (__G, (I.EClo (__V, s))))), s)
     let rec checkCtx __13__ __14__ __15__ =
       match (__13__, __14__, __15__) with
-      | (__G, nil, (__V2, s)) -> false__
+      | (__G, nil, (__V2, s)) -> false
       | (__G, (Dec (_, __V1) as D)::__G2, (__V2, s)) ->
           (CSManager.trail
              (fun () -> Unify.unifiable (__G, (__V1, I.id), (__V2, s))))
@@ -102,7 +102,7 @@ module MTPRecursion(MTPRecursion:sig
                ((I.Decl (__G, __D)), __G2, (__V2, (I.comp (s, I.shift)))))
     let rec checkLabels (__G', __B') (__V, s) ll l =
       if l < 0
-      then NONE
+      then None
       else
         (let LabelDec (name, __G1, __G2) = F.labelLookup l in
          let s = someEVars (__G', __G1, I.id) in
@@ -147,7 +147,7 @@ module MTPRecursion(MTPRecursion:sig
       let rec ac (__G', __B') (__Vs) (__Ds) =
         match checkLabels ((__G', __B'), __Vs, ll, ((F.labelSize ()) - 1))
         with
-        | NONE -> __Ds
+        | None -> __Ds
         | Some l' ->
             let __Ds' =
               recursion
@@ -195,7 +195,7 @@ module MTPRecursion(MTPRecursion:sig
           ltinit
             (((I.Decl (((__G, (I.decSub (__D1, s1))))
                  (* = I.decSub (D2, s2) *))),
-               (I.Decl (__B, (S.Parameter NONE)))), (k + 1),
+               (I.Decl (__B, (S.Parameter None)))), (k + 1),
               ((__U, (I.dot1 s1)), (__V, (I.dot1 s2))),
               ((__U', (I.comp (s1', I.shift))),
                 (__V', (I.comp (s2', I.shift)))), sc, ac, __Ds)
@@ -410,7 +410,7 @@ module MTPRecursion(MTPRecursion:sig
             if !Global.doubleCheck
             then FunTypeCheck.isFor (__G, __F2)
             else () in
-          let __D2 = I.Dec (NONE, __V2) in
+          let __D2 = I.Dec (None, __V2) in
           let __T2 =
             match __F2 with
             | All _ -> S.Lemma S.RL

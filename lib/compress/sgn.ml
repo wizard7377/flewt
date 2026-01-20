@@ -45,21 +45,21 @@ module Sgn =
         name: string  ;classifier: class__  ;o_classifier: class__  ;
         def: def  ;o_def: def  ;abbreviation: bool   > 
     let sgn_size = 14000
-    let (sigma : sigent option Array.array) = Array.array (sgn_size, NONE)
+    let (sigma : sigent option Array.array) = Array.array (sgn_size, None)
     let (all_modes : mode list option Array.array) =
-      Array.array (sgn_size, NONE)
-    let (all_ps : bool option Array.array) = Array.array (sgn_size, NONE)
+      Array.array (sgn_size, None)
+    let (all_ps : bool option Array.array) = Array.array (sgn_size, None)
     let rec split __0__ __1__ =
       match (__0__, __1__) with
       | (h::tl, 0) -> ([], h, tl)
       | (h::tl, n) ->
           let (pre, thing, post) = split tl (n - 1) in
           ((h :: pre), thing, post)
-      | ([], n) -> split [NONE] n
+      | ([], n) -> split [None] n
     let rec clear () =
-      Array.modify (fun _ -> NONE) sigma;
-      Array.modify (fun _ -> NONE) all_modes;
-      Array.modify (fun _ -> NONE) all_ps
+      Array.modify (fun _ -> None) sigma;
+      Array.modify (fun _ -> None) all_modes;
+      Array.modify (fun _ -> None) all_ps
     let rec condec s a oa =
       {
         name = s;
@@ -67,7 +67,7 @@ module Sgn =
         o_classifier = (tclass oa);
         def = DEF_NONE;
         o_def = DEF_NONE;
-        abbreviation = false__
+        abbreviation = false
       }
     let rec tycondec s k ok =
       {
@@ -76,7 +76,7 @@ module Sgn =
         o_classifier = (kclass ok);
         def = DEF_NONE;
         o_def = DEF_NONE;
-        abbreviation = false__
+        abbreviation = false
       }
     let rec defn s a oa m om =
       {
@@ -85,7 +85,7 @@ module Sgn =
         o_classifier = (tclass oa);
         def = (DEF_TERM m);
         o_def = (DEF_TERM om);
-        abbreviation = false__
+        abbreviation = false
       }
     let rec tydefn s k ok a oa =
       {
@@ -94,7 +94,7 @@ module Sgn =
         o_classifier = (kclass ok);
         def = (DEF_TYPE a);
         o_def = (DEF_TYPE oa);
-        abbreviation = false__
+        abbreviation = false
       }
     let rec abbrev s a oa m om =
       {
@@ -103,7 +103,7 @@ module Sgn =
         o_classifier = (tclass oa);
         def = (DEF_TERM m);
         o_def = (DEF_TERM om);
-        abbreviation = true__
+        abbreviation = true
       }
     let rec tyabbrev s k ok a oa =
       {
@@ -112,7 +112,7 @@ module Sgn =
         o_classifier = (kclass ok);
         def = (DEF_TYPE a);
         o_def = (DEF_TYPE oa);
-        abbreviation = true__
+        abbreviation = true
       }
     let rec typeOfSigent e = Syntax.typeOf ((fun r -> r.classifier) e)
     let rec setter table n x = Array.update (table, n, (Some x))
