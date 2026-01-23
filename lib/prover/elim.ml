@@ -1,15 +1,12 @@
-
 module type ELIM  =
   sig
     module State : STATE
     exception Error of string 
     type nonrec operator
-    val expand : State.__Focus -> operator list
+    val expand : State.focus_ -> operator list
     val apply : operator -> unit
     val menu : operator -> string
-  end;;
-
-
+  end
 
 
 module Elim(Elim:sig
@@ -23,72 +20,66 @@ module Elim(Elim:sig
   struct
     module State = State'
     exception Error of string 
-    type __Operator =
-      | Local of (Tomega.__Prg * int) 
-    type nonrec operator = __Operator
+    type operator_ =
+      | Local of (Tomega.prg_ * int) 
+    type nonrec operator = operator_
     module S = State
     module T = Tomega
     module I = IntSyn
     exception Success of int 
     let rec stripTC (TC) = TC
     let rec stripTCOpt =
-      function | None -> None | Some (TC) -> Some (stripTC TC)
+      begin function | None -> None | Some (TC) -> Some (stripTC TC) end
     let rec stripDec =
-      function
-      | UDec (__D) -> T.UDec __D
-      | PDec (name, __F, TC1, TC2) ->
-          T.PDec (name, __F, TC1, (stripTCOpt TC2))
-    let rec strip =
-      function
-      | I.Null -> I.Null
-      | Decl (Psi, __D) -> I.Decl ((strip Psi), (stripDec __D))
-    let rec expand (Focus ((EVar (Psi, r, __G, __V, _, _) as Y), __W)) =
-      let rec matchCtx __0__ __1__ __2__ =
-        match (__0__, __1__, __2__) with
-        | (I.Null, _, __Fs) -> __Fs
-        | (Decl (__G, PDec (x, __F, _, _)), n, __Fs) ->
-            matchCtx (__G, (n + 1), ((Local (__Y, n)) :: __Fs))
-        | (Decl (__G, UDec _), n, __Fs) -> matchCtx (__G, (n + 1), __Fs) in
-      matchCtx (Psi, 1, nil)(* Y is lowered *)
-    let rec apply =
-      function
-      | Local ((EVar (Psi, r, __G, None, None, _) as R), n) ->
-          let PDec (_, __F0, _, _) = T.ctxDec (Psi, n) in
-          (match __F0 with
-           | All ((UDec (Dec (_, __V)), _), __F) ->
-               let __X = I.newEVar ((T.coerceCtx (strip Psi)), __V) in
-               let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
-               let __D =
-                 T.PDec
-                   (x, (T.forSub (__F, (T.Dot ((T.Exp __X), T.id)))), None,
-                     None) in
-               let Psi' = I.Decl (Psi, __D) in
-               let __Y = T.newEVar ((strip Psi'), (T.forSub (__G, T.shift))) in
-               (((:=) r Some
-                   (T.Let
-                      (__D, (T.Redex ((T.Var n), (T.AppExp (__X, T.Nil)))),
-                        __Y)))
-                 (* the None, None may breach an invariant *)(* revisit when we add subterm orderings *))
-           | Ex ((__D1, _), __F) ->
-               let D1' = Names.decName ((T.coerceCtx Psi), __D1) in
-               let Psi' = I.Decl (Psi, (T.UDec D1')) in
-               let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec None)) in
-               let __D2 = T.PDec (x, __F, None, None) in
-               let Psi'' = I.Decl (Psi', __D2) in
-               let __Y =
-                 T.newEVar ((strip Psi''), (T.forSub (__G, (T.Shift 2)))) in
-               (:=) r Some (T.LetPairExp (D1', __D2, (T.Var n), __Y))
-           | T.True ->
-               let __Y = T.newEVar ((strip Psi), __G) in
-               (:=) r Some (T.LetUnit ((T.Var n), __Y)))
-      | Local (EVar (Psi, r, FClo (__F, s), TC1, TC2, __X), n) ->
-          apply
-            (Local ((T.EVar (Psi, r, (T.forSub (__F, s)), TC1, TC2, __X)), n))
-    let rec menu (Local ((EVar (Psi, _, _, _, _, _) as X), n)) =
-      match I.ctxLookup (Psi, n) with
-      | PDec (Some x, _, _, _) ->
-          (((^) "Elim " TomegaPrint.nameEVar __X) ^ " with variable ") ^ x
-    let expand = expand
-    let apply = apply
-    let menu = menu
-  end ;;
+      begin function
+      | UDec (d_) -> T.UDec d_
+      | PDec (name, f_, TC1, TC2) -> T.PDec (name, f_, TC1, (stripTCOpt TC2)) end
+  let rec strip =
+    begin function
+    | I.Null -> I.Null
+    | Decl (Psi, d_) -> I.Decl ((strip Psi), (stripDec d_)) end
+let rec expand (Focus ((EVar (Psi, r, g_, v_, _, _) as y_), w_)) =
+  let rec matchCtx =
+    begin function
+    | (I.Null, _, fs_) -> fs_
+    | (Decl (g_, PDec (x, f_, _, _)), n, fs_) ->
+        matchCtx (g_, (n + 1), ((Local (y_, n)) :: fs_))
+    | (Decl (g_, UDec _), n, fs_) -> matchCtx (g_, (n + 1), fs_) end in
+matchCtx (Psi, 1, [])(* Y is lowered *)
+let rec apply =
+  begin function
+  | Local ((EVar (Psi, r, g_, None, None, _) as r_), n) ->
+      let PDec (_, f0_, _, _) = T.ctxDec (Psi, n) in
+      (begin match f0_ with
+       | All ((UDec (Dec (_, v_)), _), f_) ->
+           let x_ = I.newEVar ((T.coerceCtx (strip Psi)), v_) in
+           let NDec x = Names.decName ((T.coerceCtx Psi), (I.NDec None)) in
+           let d_ =
+             T.PDec
+               (x, (T.forSub (f_, (T.Dot ((T.Exp x_), T.id)))), None, None) in
+           let Psi' = I.Decl (Psi, d_) in
+           let y_ = T.newEVar ((strip Psi'), (T.forSub (g_, T.shift))) in
+           (((:=) r Some
+               (T.Let (d_, (T.Redex ((T.Var n), (T.AppExp (x_, T.Nil)))), y_)))
+             (* the NONE, NONE may breach an invariant *)
+             (* revisit when we add subterm orderings *))
+       | Ex ((d1_, _), f_) ->
+           let D1' = Names.decName ((T.coerceCtx Psi), d1_) in
+           let Psi' = I.Decl (Psi, (T.UDec D1')) in
+           let NDec x = Names.decName ((T.coerceCtx Psi'), (I.NDec None)) in
+           let d2_ = T.PDec (x, f_, None, None) in
+           let Psi'' = I.Decl (Psi', d2_) in
+           let y_ = T.newEVar ((strip Psi''), (T.forSub (g_, (T.Shift 2)))) in
+           (:=) r Some (T.LetPairExp (D1', d2_, (T.Var n), y_))
+       | T.True ->
+           let y_ = T.newEVar ((strip Psi), g_) in
+           (:=) r Some (T.LetUnit ((T.Var n), y_)) end)
+  | Local (EVar (Psi, r, FClo (f_, s), TC1, TC2, x_), n) ->
+      apply (Local ((T.EVar (Psi, r, (T.forSub (f_, s)), TC1, TC2, x_)), n)) end
+let rec menu (Local ((EVar (Psi, _, _, _, _, _) as x_), n)) =
+  begin match I.ctxLookup (Psi, n) with
+  | PDec (Some x, _, _, _) ->
+      (((^) "Elim " TomegaPrint.nameEVar x_) ^ " with variable ") ^ x end
+let expand = expand
+let apply = apply
+let menu = menu end

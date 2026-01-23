@@ -1,11 +1,8 @@
-
 module type MODEPRINT  =
   sig
-    val modeToString : IntSyn.cid -> ModeSyn.__ModeSpine -> string
-    val modesToString : (IntSyn.cid * ModeSyn.__ModeSpine) list -> string
-  end;;
-
-
+    val modeToString : (IntSyn.cid * ModeSyn.modeSpine_) -> string
+    val modesToString : (IntSyn.cid * ModeSyn.modeSpine_) list -> string
+  end
 
 
 module ModePrint(ModePrint:sig
@@ -19,49 +16,48 @@ module ModePrint(ModePrint:sig
     module F = Formatter
     module P = Print
     let rec modeToString =
-      function
+      begin function
       | M.Plus -> "+"
       | M.Star -> "*"
       | M.Minus -> "-"
-      | M.Minus1 -> "-1"
+      | M.Minus1 -> "-1" end
     let rec argToString (Marg (m, _)) = modeToString m
-    let rec nameDec __0__ __1__ =
-      match (__0__, __1__) with
-      | (Dec (_, __V), Marg (_, (Some _ as name))) -> I.Dec (name, __V)
-      | (__D, Marg (_, None)) -> __D
-    let rec makeSpine (__G) =
-      let rec makeSpine' __2__ __3__ __4__ =
-        match (__2__, __3__, __4__) with
-        | (I.Null, _, __S) -> __S
-        | (Decl (__G, _), k, __S) ->
-            makeSpine'
-              (__G, (k + 1), (I.App ((I.Root ((I.BVar k), I.Nil)), __S))) in
-      makeSpine' (__G, 1, I.Nil)
-    let rec fmtModeDec cid mS =
-      let __V = I.constType cid in
-      let rec fmtModeDec' __5__ __6__ __7__ =
-        match (__5__, __6__, __7__) with
-        | (__G, _, M.Mnil) ->
-            [F.String "(";
-            P.formatExp (__G, (I.Root ((I.Const cid), (makeSpine __G))));
-            F.String ")"]
-        | (__G, Pi ((__D, _), __V'), Mapp (marg, __S)) ->
-            let __D' = nameDec (__D, marg) in
-            let D'' = Names.decEName (__G, __D') in
-            [F.String (argToString marg);
-            F.String "{";
-            P.formatDec (__G, D'');
-            F.String "}";
-            F.Break] @ (fmtModeDec' ((I.Decl (__G, D'')), __V', __S)) in
-      F.HVbox (fmtModeDec' (I.Null, __V, mS))
-    let rec fmtModeDecs =
-      function
-      | (cid, mS)::nil -> (fmtModeDec (cid, mS)) :: nil
-      | (cid, mS)::mdecs ->
-          (::) ((fmtModeDec (cid, mS)) :: F.Break) fmtModeDecs mdecs
-    let rec modeToString cM = F.makestring_fmt (fmtModeDec cM)
-    let rec modesToString mdecs =
-      F.makestring_fmt (F.Vbox0 0 1 (fmtModeDecs mdecs))
-    let modeToString = modeToString
-    let modesToString = modesToString
-  end ;;
+    let rec nameDec =
+      begin function
+      | (Dec (_, v_), Marg (_, (Some _ as name))) -> I.Dec (name, v_)
+      | (d_, Marg (_, None)) -> d_ end
+  let rec makeSpine (g_) =
+    let rec makeSpine' =
+      begin function
+      | (I.Null, _, s_) -> s_
+      | (Decl (g_, _), k, s_) ->
+          makeSpine'
+            (g_, (k + 1), (I.App ((I.Root ((I.BVar k), I.Nil)), s_))) end in
+  makeSpine' (g_, 1, I.Nil)
+let rec fmtModeDec (cid, mS) =
+  let v_ = I.constType cid in
+  let rec fmtModeDec' =
+    begin function
+    | (g_, _, M.Mnil) ->
+        [F.String "(";
+        P.formatExp (g_, (I.Root ((I.Const cid), (makeSpine g_))));
+        F.String ")"]
+    | (g_, Pi ((d_, _), v'_), Mapp (marg, s_)) ->
+        let d'_ = nameDec (d_, marg) in
+        let D'' = Names.decEName (g_, d'_) in
+        [F.String (argToString marg);
+        F.String "{";
+        P.formatDec (g_, D'');
+        F.String "}";
+        F.Break] @ (fmtModeDec' ((I.Decl (g_, D'')), v'_, s_)) end in
+  F.HVbox (fmtModeDec' (I.Null, v_, mS))
+let rec fmtModeDecs =
+  begin function
+  | (cid, mS)::[] -> (fmtModeDec (cid, mS)) :: []
+  | (cid, mS)::mdecs ->
+      (::) ((fmtModeDec (cid, mS)) :: F.Break) fmtModeDecs mdecs end
+let rec modeToString cM = F.makestring_fmt (fmtModeDec cM)
+let rec modesToString mdecs =
+  F.makestring_fmt (F.Vbox0 0 1 (fmtModeDecs mdecs))
+let modeToString = modeToString
+let modesToString = modesToString end

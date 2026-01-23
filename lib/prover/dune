@@ -1,6 +1,5 @@
 (library
- (wrapped
-  (transition "Convert SML convention to OCaml convention"))
+ (wrapped false)
  (public_name flewt.prover)
  (name prover)
  (libraries

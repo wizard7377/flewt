@@ -1,6 +1,5 @@
-
 module Compat : COMPAT =
-  (Make_Compat)(struct
+  (Compat)(struct
                   module Array = CompatArray97
                   module Vector = CompatVector97
                   module Path = CompatPath97
@@ -8,4 +7,4 @@ module Compat : COMPAT =
                   module TextIO = CompatTextIO97
                   module Timer = CompatTimer97
                   module SocketIO = CompatSocketIO97
-                end) ;;
+                end) 

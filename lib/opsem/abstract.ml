@@ -1,18 +1,13 @@
-
 module type ABSTRACTTABLED  =
   sig
     exception Error of string 
     val abstractEVarCtx :
-      CompSyn.__DProg ->
-        IntSyn.__Exp ->
-          IntSyn.__Sub ->
-            (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.__Exp *
-              TableParam.__ResEqn * IntSyn.__Sub)
-    val abstractAnswSub : IntSyn.__Sub -> (IntSyn.dctx * IntSyn.__Sub)
-    val raiseType : IntSyn.dctx -> IntSyn.__Exp -> IntSyn.__Exp
-  end;;
-
-
+      (CompSyn.dProg_ * IntSyn.exp_ * IntSyn.sub_) ->
+        (IntSyn.dctx * IntSyn.dctx * IntSyn.dctx * IntSyn.exp_ *
+          TableParam.resEqn_ * IntSyn.sub_)
+    val abstractAnswSub : IntSyn.sub_ -> (IntSyn.dctx * IntSyn.sub_)
+    val raiseType : (IntSyn.dctx * IntSyn.exp_) -> IntSyn.exp_
+  end
 
 
 module AbstractTabled(AbstractTabled:sig
@@ -27,187 +22,179 @@ module AbstractTabled(AbstractTabled:sig
     exception Error of string 
     module I = IntSyn
     module C = CompSyn
-    type __Duplicates =
-      | AV of (I.__Exp * int) 
+    type duplicates_ =
+      | AV of (I.exp_ * int) 
       | FGN of int 
     type seenIn =
       | TypeLabel 
       | Body 
-    type __ExistVars =
-      | EV of I.__Exp 
+    type existVars_ =
+      | EV of I.exp_ 
     let rec lengthSub =
-      function | Shift n -> 0 | Dot (__E, s) -> (+) 1 lengthSub s
-    let rec compose' __0__ __1__ =
-      match (__0__, __1__) with
-      | (IntSyn.Null, __G) -> __G
-      | (Decl (__G', __D), __G) -> IntSyn.Decl ((compose' (__G', __G)), __D)
-    let rec isId =
-      function
-      | Shift n -> n = 0
-      | Dot (Idx n, s') as s -> isId' (s, 0)
-      | Dot (I.Undef, s') as s -> isId' (s, 0)
-      | Dot (Exp _, s) -> false
-    let rec isId' __2__ __3__ =
-      match (__2__, __3__) with
-      | (Shift n, k) -> n = k
-      | (Dot (Idx i, s), k) -> let k' = k + 1 in (i = k') && (isId' (s, k'))
-      | (Dot (I.Undef, s), k) -> isId' (s, (k + 1))
-    let rec equalCtx __4__ __5__ __6__ __7__ =
-      match (__4__, __5__, __6__, __7__) with
-      | (I.Null, s, I.Null, s') -> true
-      | (Decl (__G, __D), s, Decl (__G', __D'), s') ->
-          (Conv.convDec ((__D, s), (__D', s'))) &&
-            (equalCtx (__G, (I.dot1 s), __G', (I.dot1 s')))
-      | (Decl (__G, __D), s, I.Null, s') -> false
-      | (I.Null, s, Decl (__G', __D'), s') -> false
-    let rec eqEVarW __8__ __9__ =
-      match (__8__, __9__) with
-      | (EVar (r1, _, _, _), EV (EVar (r2, _, _, _))) -> r1 = r2
-      | (_, _) -> false
-    let rec eqEVar (__X1) (EV (__X2)) =
-      let (X1', s) = Whnf.whnf (__X1, I.id) in
-      let (X2', s) = Whnf.whnf (__X2, I.id) in eqEVarW X1' (EV X2')(* Sun Dec  1 14:04:17 2002 -bp  may raise exception
+      begin function | Shift n -> 0 | Dot (e_, s) -> (+) 1 lengthSub s end
+    let rec compose' =
+      begin function
+      | (IntSyn.Null, g_) -> g_
+      | (Decl (g'_, d_), g_) -> IntSyn.Decl ((compose' (g'_, g_)), d_) end
+  let rec isId =
+    begin function
+    | Shift n -> n = 0
+    | Dot (Idx n, s') as s -> isId' (s, 0)
+    | Dot (I.Undef, s') as s -> isId' (s, 0)
+    | Dot (Exp _, s) -> false end
+let rec isId' =
+  begin function
+  | (Shift n, k) -> n = k
+  | (Dot (Idx i, s), k) -> let k' = k + 1 in (i = k') && (isId' (s, k'))
+  | (Dot (I.Undef, s), k) -> isId' (s, (k + 1)) end
+let rec equalCtx =
+  begin function
+  | (I.Null, s, I.Null, s') -> true
+  | (Decl (g_, d_), s, Decl (g'_, d'_), s') ->
+      (Conv.convDec ((d_, s), (d'_, s'))) &&
+        (equalCtx (g_, (I.dot1 s), g'_, (I.dot1 s')))
+  | (Decl (g_, d_), s, I.Null, s') -> false
+  | (I.Null, s, Decl (g'_, d'_), s') -> false end
+let rec eqEVarW arg__0 arg__1 =
+  begin match (arg__0, arg__1) with
+  | (EVar (r1, _, _, _), EV (EVar (r2, _, _, _))) -> r1 = r2
+  | (_, _) -> false end
+let rec eqEVar (x1_) (EV (x2_)) =
+  let (X1', s) = Whnf.whnf (x1_, I.id) in
+  let (X2', s) = Whnf.whnf (x2_, I.id) in eqEVarW X1' (EV X2')(* Sun Dec  1 14:04:17 2002 -bp  may raise exception
        if strengthening is applied,i.e. the substitution is not always id! *)
-    let rec member' (__P) (__K) =
-      let rec exists' =
-        function
-        | I.Null -> None
-        | Decl (__K', (l, EV (__Y))) ->
-            if __P (EV __Y) then Some l else exists' __K' in
-      exists' __K
-    let rec member (__P) (__K) =
-      let rec exists' =
-        function
-        | I.Null -> None
-        | Decl (__K', (i, __Y)) -> if __P __Y then Some i else exists' __K' in
-      exists' __K
-    let rec update' (__P) (__K) =
-      let rec update' =
-        function
-        | I.Null -> I.Null
-        | Decl (__K', (label, __Y)) ->
-            if __P __Y
-            then I.Decl (__K', (Body, __Y))
-            else I.Decl ((update' __K'), (label, __Y)) in
-      update' __K
-    let rec update (__P) (__K) =
-      let rec update' =
-        function
-        | I.Null -> I.Null
-        | Decl (__K', ((label, i), __Y)) ->
-            if __P __Y
-            then I.Decl (__K', ((Body, i), __Y))
-            else I.Decl ((update' __K'), ((label, i), __Y)) in
-      update' __K
-    let rec or__ __10__ __11__ =
-      match (__10__, __11__) with
-      | (I.Maybe, _) -> I.Maybe
-      | (_, I.Maybe) -> I.Maybe
-      | (I.Meta, _) -> I.Meta
-      | (_, I.Meta) -> I.Meta
-      | (I.No, I.No) -> I.No
-    let rec occursInExp __12__ __13__ =
-      match (__12__, __13__) with
-      | (k, Uni _) -> I.No
-      | (k, Pi (DP, __V)) ->
-          or__ ((occursInDecP (k, DP)), (occursInExp ((k + 1), __V)))
-      | (k, Root (__H, __S)) ->
-          occursInHead (k, __H, (occursInSpine (k, __S)))
-      | (k, Lam (__D, __V)) ->
-          or__ ((occursInDec (k, __D)), (occursInExp ((k + 1), __V)))
-      | (k, FgnExp csfe) ->
-          I.FgnExpStd.fold csfe
-            (fun (__U) ->
-               fun (DP) ->
-                 or__ (DP, (occursInExp (k, (Whnf.normalize (__U, I.id))))))
-            I.No
-    let rec occursInHead __14__ __15__ __16__ =
-      match (__14__, __15__, __16__) with
-      | (k, BVar k', DP) -> if k = k' then I.Maybe else DP
-      | (k, Const _, DP) -> DP
-      | (k, Def _, DP) -> DP
-      | (k, FgnConst _, DP) -> DP
-      | (k, Skonst _, I.No) -> I.No
-      | (k, Skonst _, I.Meta) -> I.Meta
-      | (k, Skonst _, I.Maybe) -> I.Meta
-    let rec occursInSpine __17__ __18__ =
-      match (__17__, __18__) with
-      | (_, I.Nil) -> I.No
-      | (k, App (__U, __S)) ->
-          or__ ((occursInExp (k, __U)), (occursInSpine (k, __S)))
-    let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
-    let rec occursInDecP k (__D, _) = occursInDec (k, __D)
-    let rec piDepend __19__ =
-      match __19__ with
-      | ((__D, I.No), __V) as DPV -> I.Pi DPV
-      | ((__D, I.Meta), __V) as DPV -> I.Pi DPV
-      | ((__D, I.Maybe), __V) -> I.Pi ((__D, (occursInExp (1, __V))), __V)
-    let rec raiseType __20__ __21__ =
-      match (__20__, __21__) with
-      | (I.Null, __V) -> __V
-      | (Decl (__G, __D), __V) ->
-          raiseType (__G, (I.Pi ((__D, I.Maybe), __V)))
-    let rec reverseCtx __22__ __23__ =
-      match (__22__, __23__) with
-      | (I.Null, __G) -> __G
-      | (Decl (__G, __D), __G') -> reverseCtx (__G, (I.Decl (__G', __D)))
-    let rec ctxToEVarSub __24__ __25__ =
-      match (__24__, __25__) with
-      | (IntSyn.Null, s) -> s
-      | (Decl (__G, Dec (_, __A)), s) ->
-          let s' = ctxToEVarSub (__G, s) in
-          let __X = IntSyn.newEVar (IntSyn.Null, (I.EClo (__A, s'))) in
-          IntSyn.Dot ((IntSyn.Exp __X), s')
-    let rec collectExpW __26__ __27__ __28__ __29__ __30__ __31__ __32__ =
-      match (__26__, __27__, __28__, __29__, __30__, __31__, __32__) with
-      | (Gss, Gl, (Uni (__L), s), __K, DupVars, flag, d) -> (__K, DupVars)
-      | (Gss, Gl, (Pi ((__D, _), __V), s), __K, DupVars, flag, d) ->
-          let (__K', _) =
-            collectDec (Gss, (__D, s), (__K, DupVars), d, false) in
-          ((collectExp
-              (Gss, (I.Decl (Gl, (I.decSub (__D, s)))), (__V, (I.dot1 s)),
-                __K', DupVars, flag, d))
-            (* should we apply I.dot1(ss) ? Tue Oct 15 21:55:16 2002 -bp *))
-      | (Gss, Gl, (Root (_, __S), s), __K, DupVars, flag, d) ->
-          collectSpine (Gss, Gl, (__S, s), __K, DupVars, flag, d)
-      | (Gss, Gl, (Lam (__D, __U), s), __K, DupVars, flag, d) ->
-          let (__K', _) =
-            collectDec (Gss, (__D, s), (__K, DupVars), d, false) in
-          collectExp
-            (Gss, (I.Decl (Gl, (I.decSub (__D, s)))), (__U, (I.dot1 s)),
-              __K', DupVars, flag, (d + 1))
-      | (Gss, Gl, ((EVar (r, GX, __V, cnstrs) as X), s), __K, DupVars, flag,
-         d) -> collectEVar (Gss, Gl, (__X, s), __K, DupVars, flag, d)
-      | (Gss, Gl, (FgnExp csfe, s), __K, DupVars, flag, d) ->
-          I.FgnExpStd.fold csfe
-            (fun (__U) ->
-               fun (KD') ->
-                 let (__K', Dup) = KD' in
-                 collectExp (Gss, Gl, (__U, s), __K', Dup, false, d))
-            (__K, (I.Decl (DupVars, (FGN d))))
-    let rec collectExp (Gss) (Gl) (__Us) (__K) (DupVars) flag d =
-      collectExpW (Gss, Gl, (Whnf.whnf __Us), __K, DupVars, flag, d)
-    let rec collectSpine __33__ __34__ __35__ __36__ __37__ __38__ __39__ =
-      match (__33__, __34__, __35__, __36__, __37__, __38__, __39__) with
-      | (Gss, Gl, (I.Nil, _), __K, DupVars, flag, d) -> (__K, DupVars)
-      | (Gss, Gl, (SClo (__S, s'), s), __K, DupVars, flag, d) ->
-          collectSpine
-            (Gss, Gl, (__S, (I.comp (s', s))), __K, DupVars, flag, d)
-      | (Gss, Gl, (App (__U, __S), s), __K, DupVars, flag, d) ->
-          let (__K', DupVars') =
-            collectExp (Gss, Gl, (__U, s), __K, DupVars, flag, d) in
-          collectSpine (Gss, Gl, (__S, s), __K', DupVars', flag, d)
-    let rec collectEVarFapStr (Gss) (Gl) ((__X', __V'), w)
-      ((EVar (r, GX, __V, cnstrs) as X), s) (__K) (DupVars) flag d =
-      ((match member' (eqEVar __X) __K with
-        | Some label ->
-            ((if flag
-              then
-                collectSub
-                  (Gss, Gl, s, __K, (I.Decl (DupVars, (AV (__X, d)))), flag,
-                    d)
-              else collectSub (Gss, Gl, s, __K, DupVars, flag, d))
-            (* case label of
+let rec member' (p_) (k_) =
+  let rec exists' =
+    begin function
+    | I.Null -> None
+    | Decl (k'_, (l, EV (y_))) -> if p_ (EV y_) then begin Some l end
+        else begin exists' k'_ end end in
+exists' k_
+let rec member (p_) (k_) =
+  let rec exists' =
+    begin function
+    | I.Null -> None
+    | Decl (k'_, (i, y_)) -> if p_ y_ then begin Some i end
+        else begin exists' k'_ end end in
+exists' k_
+let rec update' (p_) (k_) =
+  let rec update' =
+    begin function
+    | I.Null -> I.Null
+    | Decl (k'_, (label, y_)) ->
+        if p_ y_ then begin I.Decl (k'_, (Body, y_)) end
+        else begin I.Decl ((update' k'_), (label, y_)) end end in
+update' k_
+let rec update (p_) (k_) =
+  let rec update' =
+    begin function
+    | I.Null -> I.Null
+    | Decl (k'_, ((label, i), y_)) ->
+        if p_ y_ then begin I.Decl (k'_, ((Body, i), y_)) end
+        else begin I.Decl ((update' k'_), ((label, i), y_)) end end in
+update' k_
+let rec or_ =
+  begin function
+  | (I.Maybe, _) -> I.Maybe
+  | (_, I.Maybe) -> I.Maybe
+  | (I.Meta, _) -> I.Meta
+  | (_, I.Meta) -> I.Meta
+  | (I.No, I.No) -> I.No end
+let rec occursInExp =
+  begin function
+  | (k, Uni _) -> I.No
+  | (k, Pi (DP, v_)) ->
+      or_ ((occursInDecP (k, DP)), (occursInExp ((k + 1), v_)))
+  | (k, Root (h_, s_)) -> occursInHead (k, h_, (occursInSpine (k, s_)))
+  | (k, Lam (d_, v_)) ->
+      or_ ((occursInDec (k, d_)), (occursInExp ((k + 1), v_)))
+  | (k, FgnExp csfe) ->
+      I.FgnExpStd.fold csfe
+        (begin function
+         | (u_, DP) ->
+             or_ (DP, (occursInExp (k, (Whnf.normalize (u_, I.id))))) end)
+      I.No end
+let rec occursInHead =
+  begin function
+  | (k, BVar k', DP) -> if k = k' then begin I.Maybe end else begin DP end
+  | (k, Const _, DP) -> DP | (k, Def _, DP) -> DP | (k, FgnConst _, DP) -> DP
+  | (k, Skonst _, I.No) -> I.No | (k, Skonst _, I.Meta) -> I.Meta
+  | (k, Skonst _, I.Maybe) -> I.Meta end
+let rec occursInSpine =
+  begin function
+  | (_, I.Nil) -> I.No
+  | (k, App (u_, s_)) -> or_ ((occursInExp (k, u_)), (occursInSpine (k, s_))) end
+let rec occursInDec (k, Dec (_, v_)) = occursInExp (k, v_)
+let rec occursInDecP (k, (d_, _)) = occursInDec (k, d_)
+let rec piDepend =
+  begin function
+  | ((d_, I.No), v_) as DPV -> I.Pi DPV
+  | ((d_, I.Meta), v_) as DPV -> I.Pi DPV
+  | ((d_, I.Maybe), v_) -> I.Pi ((d_, (occursInExp (1, v_))), v_) end
+let rec raiseType =
+  begin function
+  | (I.Null, v_) -> v_
+  | (Decl (g_, d_), v_) -> raiseType (g_, (I.Pi ((d_, I.Maybe), v_))) end
+let rec reverseCtx =
+  begin function
+  | (I.Null, g_) -> g_
+  | (Decl (g_, d_), g'_) -> reverseCtx (g_, (I.Decl (g'_, d_))) end
+let rec ctxToEVarSub =
+  begin function
+  | (IntSyn.Null, s) -> s
+  | (Decl (g_, Dec (_, a_)), s) ->
+      let s' = ctxToEVarSub (g_, s) in
+      let x_ = IntSyn.newEVar (IntSyn.Null, (I.EClo (a_, s'))) in
+      IntSyn.Dot ((IntSyn.Exp x_), s') end
+let rec collectExpW =
+  begin function
+  | (Gss, Gl, (Uni (l_), s), k_, DupVars, flag, d) -> (k_, DupVars)
+  | (Gss, Gl, (Pi ((d_, _), v_), s), k_, DupVars, flag, d) ->
+      let (k'_, _) = collectDec (Gss, (d_, s), (k_, DupVars), d, false) in
+      ((collectExp
+          (Gss, (I.Decl (Gl, (I.decSub (d_, s)))), (v_, (I.dot1 s)), k'_,
+            DupVars, flag, d))
+        (* should we apply I.dot1(ss) ? Tue Oct 15 21:55:16 2002 -bp *))
+  | (Gss, Gl, (Root (_, s_), s), k_, DupVars, flag, d) ->
+      collectSpine (Gss, Gl, (s_, s), k_, DupVars, flag, d)
+  | (Gss, Gl, (Lam (d_, u_), s), k_, DupVars, flag, d) ->
+      let (k'_, _) = collectDec (Gss, (d_, s), (k_, DupVars), d, false) in
+      collectExp
+        (Gss, (I.Decl (Gl, (I.decSub (d_, s)))), (u_, (I.dot1 s)), k'_,
+          DupVars, flag, (d + 1))
+  | (Gss, Gl, ((EVar (r, GX, v_, cnstrs) as x_), s), k_, DupVars, flag, d) ->
+      collectEVar (Gss, Gl, (x_, s), k_, DupVars, flag, d)
+  | (Gss, Gl, (FgnExp csfe, s), k_, DupVars, flag, d) ->
+      I.FgnExpStd.fold csfe
+        (begin function
+         | (u_, KD') ->
+             let (k'_, Dup) = KD' in
+             collectExp (Gss, Gl, (u_, s), k'_, Dup, false, d) end)
+      (k_, (I.Decl (DupVars, (FGN d)))) end
+let rec collectExp (Gss, Gl, us_, k_, DupVars, flag, d) =
+  collectExpW (Gss, Gl, (Whnf.whnf us_), k_, DupVars, flag, d)
+let rec collectSpine =
+  begin function
+  | (Gss, Gl, (I.Nil, _), k_, DupVars, flag, d) -> (k_, DupVars)
+  | (Gss, Gl, (SClo (s_, s'), s), k_, DupVars, flag, d) ->
+      collectSpine (Gss, Gl, (s_, (I.comp (s', s))), k_, DupVars, flag, d)
+  | (Gss, Gl, (App (u_, s_), s), k_, DupVars, flag, d) ->
+      let (k'_, DupVars') =
+        collectExp (Gss, Gl, (u_, s), k_, DupVars, flag, d) in
+      collectSpine (Gss, Gl, (s_, s), k'_, DupVars', flag, d) end
+let rec collectEVarFapStr
+  (Gss, Gl, ((x'_, v'_), w), ((EVar (r, GX, v_, cnstrs) as x_), s), k_,
+   DupVars, flag, d)
+  =
+  ((begin match member' (eqEVar x_) k_ with
+    | Some label ->
+        ((if flag
+          then
+            begin collectSub
+                    (Gss, Gl, s, k_, (I.Decl (DupVars, (AV (x_, d)))), flag,
+                      d) end
+        else begin collectSub (Gss, Gl, s, k_, DupVars, flag, d) end)
+  (* case label of
                      Body => collectSub(Gss, Gl, s, K, I.Decl(DupVars, AV(X,d)), flag, d)
                    | TypeLabel =>
                        let
@@ -215,29 +202,28 @@ module AbstractTabled(AbstractTabled:sig
                        in
                          collectSub(Gss, Gl, s, K', DupVars, flag, d)
                        end *)
-            (* since X has occurred before, we do not traverse its type V' *))
-        | None ->
-            let label = if flag then Body else TypeLabel in
-            let (__K', DupVars') =
-              collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
-                  d) in
-            ((collectSub
-                (Gss, Gl, (I.comp (w, s)),
-                  (I.Decl (__K', (label, (EV __X')))), DupVars', flag, d))
-              (*          val V' = raiseType (GX, V)  inefficient! *)))
-      (* we have seen X before *))
-    let rec collectEVarNFapStr (Gss) (Gl) ((__X', __V'), w)
-      ((EVar (r, GX, __V, cnstrs) as X), s) (__K) (DupVars) flag d =
-      ((match member' (eqEVar __X) __K with
-        | Some label ->
-            ((if flag
-              then
-                collectSub
-                  (Gss, Gl, s, __K, (I.Decl (DupVars, (AV (__X, d)))), flag,
-                    d)
-              else collectSub (Gss, Gl, s, __K, DupVars, flag, d))
-            (* -bp this is a possible optimization for the variant case
+  (* since X has occurred before, we do not traverse its type V' *))
+  | None -> let label = if flag then begin Body end else begin TypeLabel end in
+let (k'_, DupVars') =
+  collectExp ((I.Null, I.id), I.Null, (v'_, I.id), k_, DupVars, false, d) in
+((collectSub
+    (Gss, Gl, (I.comp (w, s)), (I.Decl (k'_, (label, (EV x'_)))), DupVars',
+      flag, d))
+  (*          val V' = raiseType (GX, V)  inefficient! *)) end)
+(* we have seen X before *))
+let rec collectEVarNFapStr
+  (Gss, Gl, ((x'_, v'_), w), ((EVar (r, GX, v_, cnstrs) as x_), s), k_,
+   DupVars, flag, d)
+  =
+  ((begin match member' (eqEVar x_) k_ with
+    | Some label ->
+        ((if flag
+          then
+            begin collectSub
+                    (Gss, Gl, s, k_, (I.Decl (DupVars, (AV (x_, d)))), flag,
+                      d) end
+        else begin collectSub (Gss, Gl, s, k_, DupVars, flag, d) end)
+  (* -bp this is a possible optimization for the variant case
                    case label of
                    Body => (print "Collect DupVar\n"; collectSub(Gss, Gl, s, K, I.Decl(DupVars, AV(X, d)), flag, d) )
                  | TypeLabel =>
@@ -247,52 +233,50 @@ module AbstractTabled(AbstractTabled:sig
                     in
                       collectSub(Gss, Gl, s, K', DupVars, flag, d)
                     end*))
-        | None ->
-            let label = if flag then Body else TypeLabel in
-            let (__K', DupVars') =
-              collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
-                  d) in
-            ((if flag
-              then
-                collectSub
-                  (Gss, Gl, (I.comp (w, s)),
-                    (I.Decl (__K', (label, (EV __X')))),
-                    (I.Decl (DupVars', (AV (__X', d)))), flag, d)
-              else
-                collectSub
-                  (Gss, Gl, (I.comp (w, s)),
-                    (I.Decl (__K', (label, (EV __X')))), DupVars', flag, d))
-              (* val V' = raiseType (GX, V)  inefficient! *)))
-      (* we have seen X before, i.e. it was already strengthened *))
-    let rec collectEVarStr ((__Gs, ss) as Gss) (Gl)
-      ((EVar (r, GX, __V, cnstrs) as X), s) (__K) (DupVars) flag d =
-      let w = Subordinate.weaken (GX, (I.targetFam __V)) in
-      let iw = Whnf.invert w in
-      let GX' = Whnf.strengthen (iw, GX) in
-      let EVar (r', _, _, _) as X' = I.newEVar (GX', (I.EClo (__V, iw))) in
-      let _ = Unify.instantiateEVar (r, (I.EClo (__X', w)), nil) in
-      let __V' = raiseType (GX', (I.EClo (__V, iw))) in
-      ((if isId (I.comp (w, (I.comp (ss, s))))
-        then
-          collectEVarFapStr
-            (Gss, Gl, ((__X', __V'), w), (__X, s), __K, DupVars, flag, d)
-        else
-          collectEVarNFapStr
-            (Gss, Gl, ((__X', __V'), w), (__X, s), __K, DupVars, flag, d))
-        (* equalCtx (Gs, I.id, GX', s) *)(* fully applied *)
-        (* not fully applied *)(* ? *))
-    let rec collectEVarFap (Gss) (Gl) ((EVar (r, GX, __V, cnstrs) as X), s)
-      (__K) (DupVars) flag d =
-      ((match member (eqEVar __X) __K with
-        | Some label ->
-            ((if flag
-              then
-                collectSub
-                  (Gss, Gl, s, __K, (I.Decl (DupVars, (AV (__X, d)))), flag,
-                    d)
-              else collectSub (Gss, Gl, s, __K, DupVars, flag, d))
-            (*
+  | None -> let label = if flag then begin Body end else begin TypeLabel end in
+let (k'_, DupVars') =
+  collectExp ((I.Null, I.id), I.Null, (v'_, I.id), k_, DupVars, false, d) in
+((if flag
+  then
+    begin collectSub
+            (Gss, Gl, (I.comp (w, s)), (I.Decl (k'_, (label, (EV x'_)))),
+              (I.Decl (DupVars', (AV (x'_, d)))), flag, d) end
+  else begin
+    collectSub
+      (Gss, Gl, (I.comp (w, s)), (I.Decl (k'_, (label, (EV x'_)))), DupVars',
+        flag, d) end)
+(* val V' = raiseType (GX, V)  inefficient! *)) end)
+(* we have seen X before, i.e. it was already strengthened *))
+let rec collectEVarStr
+  (((gs_, ss) as Gss), Gl, ((EVar (r, GX, v_, cnstrs) as x_), s), k_,
+   DupVars, flag, d)
+  =
+  let w = Subordinate.weaken (GX, (I.targetFam v_)) in
+  let iw = Whnf.invert w in
+  let GX' = Whnf.strengthen (iw, GX) in
+  let EVar (r', _, _, _) as x'_ = I.newEVar (GX', (I.EClo (v_, iw))) in
+  let _ = Unify.instantiateEVar (r, (I.EClo (x'_, w)), []) in
+  let v'_ = raiseType (GX', (I.EClo (v_, iw))) in
+  ((if isId (I.comp (w, (I.comp (ss, s))))
+    then
+      begin collectEVarFapStr
+              (Gss, Gl, ((x'_, v'_), w), (x_, s), k_, DupVars, flag, d) end
+    else begin
+      collectEVarNFapStr
+        (Gss, Gl, ((x'_, v'_), w), (x_, s), k_, DupVars, flag, d) end)
+    (* equalCtx (Gs, I.id, GX', s) *)(* fully applied *)
+    (* not fully applied *)(* ? *))
+let rec collectEVarFap
+  (Gss, Gl, ((EVar (r, GX, v_, cnstrs) as x_), s), k_, DupVars, flag, d) =
+  ((begin match member (eqEVar x_) k_ with
+    | Some label ->
+        ((if flag
+          then
+            begin collectSub
+                    (Gss, Gl, s, k_, (I.Decl (DupVars, (AV (x_, d)))), flag,
+                      d) end
+        else begin collectSub (Gss, Gl, s, k_, DupVars, flag, d) end)
+  (*
                  case label of
                    Body => collectSub(Gss, Gl, s, K, I.Decl(DupVars, AV(X, d)), flag, d)
                  | TypeLabel =>
@@ -301,29 +285,25 @@ module AbstractTabled(AbstractTabled:sig
                      in
                        collectSub(Gss, Gl, s, K', DupVars, flag, d)
                      end *)
-            (* since X has occurred before, we do not traverse its type V' *))
-        | None ->
-            let label = if flag then Body else TypeLabel in
-            let __V' = raiseType (GX, __V) in
-            let (__K', DupVars') =
-              collectExp
-                ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
-                  d) in
-            ((collectSub
-                (Gss, Gl, s, (I.Decl (__K', (label, (EV __X)))), DupVars',
-                  flag, d))
-              (* val _ = checkEmpty !cnstrs *)(* inefficient! *)))
-      (* we have seen X before *))
-    let rec collectEVarNFap (Gss) (Gl) ((EVar (r, GX, __V, cnstrs) as X), s)
-      (__K) (DupVars) flag d =
-      match member' (eqEVar __X) __K with
-      | Some label ->
-          ((if flag
-            then
-              collectSub
-                (Gss, Gl, s, __K, (I.Decl (DupVars, (AV (__X, d)))), flag, d)
-            else collectSub (Gss, Gl, s, __K, DupVars, flag, d))
-          (* case label of
+  (* since X has occurred before, we do not traverse its type V' *))
+  | None -> let label = if flag then begin Body end else begin TypeLabel end in
+let v'_ = raiseType (GX, v_) in
+let (k'_, DupVars') =
+  collectExp ((I.Null, I.id), I.Null, (v'_, I.id), k_, DupVars, false, d) in
+((collectSub
+    (Gss, Gl, s, (I.Decl (k'_, (label, (EV x_)))), DupVars', flag, d))
+  (* val _ = checkEmpty !cnstrs *)(* inefficient! *)) end)
+(* we have seen X before *))
+let rec collectEVarNFap
+  (Gss, Gl, ((EVar (r, GX, v_, cnstrs) as x_), s), k_, DupVars, flag, d) =
+  begin match member' (eqEVar x_) k_ with
+  | Some label ->
+      ((if flag
+        then
+          begin collectSub
+                  (Gss, Gl, s, k_, (I.Decl (DupVars, (AV (x_, d)))), flag, d) end
+      else begin collectSub (Gss, Gl, s, k_, DupVars, flag, d) end)
+  (* case label of
                    Body => collectSub(Gss, Gl, s, K, I.Decl(DupVars, AV(X, d)), flag, d)
                    | TypeLabel =>
                      let
@@ -331,194 +311,183 @@ module AbstractTabled(AbstractTabled:sig
                      in
                        collectSub(Gss, Gl, s, K', DupVars, flag, d)
                      end             *))
-      | None ->
-          let label = if flag then Body else TypeLabel in
-          let __V' = raiseType (GX, __V) in
-          let (__K', DupVars') =
-            collectExp
-              ((I.Null, I.id), I.Null, (__V', I.id), __K, DupVars, false,
-                d) in
-          ((if flag
-            then
-              collectSub
-                (Gss, Gl, s, (I.Decl (__K', (label, (EV __X)))),
-                  (I.Decl (DupVars, (AV (__X, d)))), flag, d)
-            else
-              collectSub
-                (Gss, Gl, s, (I.Decl (__K', (label, (EV __X)))), DupVars,
-                  flag, d))
-            (* inefficient! *))
-    let rec collectEVar (Gss) (Gl) ((EVar (r, GX, __V, cnstrs) as X), s)
-      (__K) (DupVars) flag d =
-      if !TableParam.strengthen
-      then collectEVarStr (Gss, Gl, (__X, s), __K, DupVars, flag, d)
-      else
-        ((if isId s
-          then collectEVarFap (Gss, Gl, (__X, s), __K, DupVars, flag, d)
-          else collectEVarNFap (Gss, Gl, (__X, s), __K, DupVars, flag, d))
-        (* equalCtx (compose'(Gl, G), s, GX, s)  *)(* X is fully applied *)
-        (* X is not fully applied *))
-    let rec collectDec (Gss) (Dec (_, __V), s) (__K, DupVars) d flag =
-      let (__K', DupVars') =
-        collectExp (Gss, I.Null, (__V, s), __K, DupVars, flag, d) in
-      (((__K', DupVars'))
-        (*      val (K',DupVars') =  collectExp (Gss, I.Null, (V, s), K, I.Null, false, d)*))
-    let rec collectSub __40__ __41__ __42__ __43__ __44__ __45__ __46__ =
-      match (__40__, __41__, __42__, __43__, __44__, __45__, __46__) with
-      | (Gss, Gl, Shift _, __K, DupVars, flag, d) -> (__K, DupVars)
-      | (Gss, Gl, Dot (Idx _, s), __K, DupVars, flag, d) ->
-          collectSub (Gss, Gl, s, __K, DupVars, flag, d)
-      | (Gss, Gl, Dot
-         (Exp (EVar ({ contents = Some (__U) }, _, _, _) as X), s), __K,
-         DupVars, flag, d) ->
-          let __U' = Whnf.normalize (__U, I.id) in
-          let (__K', DupVars') =
-            collectExp (Gss, Gl, (__U', I.id), __K, DupVars, flag, d) in
-          ((collectSub (Gss, Gl, s, __K', DupVars', flag, d))
-            (* inefficient? *))
-      | (Gss, Gl, Dot (Exp (AVar { contents = Some (__U') } as U), s), __K,
-         DupVars, flag, d) ->
-          let (__K', DupVars') =
-            collectExp (Gss, Gl, (__U', I.id), __K, DupVars, flag, d) in
-          collectSub (Gss, Gl, s, __K', DupVars', flag, d)
-      | (Gss, Gl, Dot (Exp (EClo (__U', s')), s), __K, DupVars, flag, d) ->
-          let __U = Whnf.normalize (__U', s') in
-          let (__K', DupVars') =
-            collectExp (Gss, Gl, (__U, I.id), __K, DupVars, flag, d) in
-          ((collectSub (Gss, Gl, s, __K', DupVars', flag, d))
-            (* inefficient? *))
-      | (Gss, Gl, Dot (Exp (__U), s), __K, DupVars, flag, d) ->
-          let (__K', DupVars') =
-            collectExp (Gss, Gl, (__U, I.id), __K, DupVars, flag, d) in
-          collectSub (Gss, Gl, s, __K', DupVars', flag, d)
-      | (Gss, Gl, Dot (I.Undef, s), __K, DupVars, flag, d) ->
-          collectSub (Gss, Gl, s, __K, DupVars, flag, d)
-    let rec collectCtx __47__ __48__ __49__ __50__ =
-      match (__47__, __48__, __49__, __50__) with
-      | (Gss, DProg (I.Null, I.Null), (__K, DupVars), d) -> (__K, DupVars)
-      | (Gss, DProg (Decl (__G, __D), Decl (dPool, C.Parameter)),
-         (__K, DupVars), d) ->
-          let (__K', DupVars') =
-            collectCtx (Gss, (C.DProg (__G, dPool)), (__K, DupVars), (d - 1)) in
-          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false)
-      | (Gss, DProg (Decl (__G, __D), Decl (dPool, Dec (r, s, Ha))),
-         (__K, DupVars), d) ->
-          let (__K', DupVars') =
-            collectCtx (Gss, (C.DProg (__G, dPool)), (__K, DupVars), (d - 1)) in
-          collectDec (Gss, (__D, I.id), (__K', DupVars'), (d - 1), false)
-    let rec abstractExpW __51__ __52__ __53__ __54__ __55__ __56__ __57__
-      __58__ __59__ =
-      match (__51__, __52__, __53__, __54__, __55__, __56__, __57__, __58__,
-              __59__)
-      with
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, ((Uni (__L) as U), s),
-         eqn) -> (posEA, Vars, __U, eqn)
-      | (flag, __Gs, posEA, Vars, Gl, total, depth,
-         (Pi ((__D, __P), __V), s), eqn) ->
-          let (posEA', Vars', __D, _) =
-            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), None) in
-          let (posEA'', Vars'', __V', eqn2) =
-            abstractExp
-              (flag, __Gs, posEA', Vars', Gl, total, (depth + 1),
-                (__V, (I.dot1 s)), eqn) in
-          (posEA'', Vars'', (piDepend ((__D, __P), __V')), eqn2)
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, (Root (__H, __S), s),
-         eqn) ->
-          let (posEA', Vars', __S, eqn') =
-            abstractSpine
-              (flag, __Gs, posEA, Vars, Gl, total, depth, (__S, s), eqn) in
-          (posEA', Vars', (I.Root (__H, __S)), eqn')
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, (Lam (__D, __U), s), eqn)
-          ->
-          let (posEA', Vars', __D', _) =
-            abstractDec (__Gs, posEA, Vars, Gl, total, depth, (__D, s), None) in
-          let (posEA'', Vars'', __U', eqn2) =
-            abstractExp
-              (flag, __Gs, posEA', Vars', (I.Decl (Gl, __D')), total,
-                (depth + 1), (__U, (I.dot1 s)), eqn) in
-          (posEA'', Vars'', (I.Lam (__D', __U')), eqn2)
-      | (flag, ((Gss, ss) as Gs), ((epos, apos) as posEA), Vars, Gl, total,
-         depth, ((EVar (_, GX, VX, _) as X), s), eqn) ->
-          ((if isId (I.comp (ss, s))
-            then
-              abstractEVarFap
-                (flag, __Gs, posEA, Vars, Gl, total, depth, (__X, s), eqn)
-            else
-              abstractEVarNFap
-                (flag, __Gs, posEA, Vars, Gl, total, depth, (__X, s), eqn))
-          (* X is fully applied *)(* s =/= id, i.e. X is not fully applied *))
-      (* X is possibly strengthened ! *)
-    let rec abstractExp flag (__Gs) posEA (Vars) (Gl) total depth (__Us) eqn
-      =
-      abstractExpW
-        (flag, __Gs, posEA, Vars, Gl, total, depth, (Whnf.whnf __Us), eqn)
-    let rec abstractEVarFap flag (__Gs) ((epos, apos) as posEA) (Vars) (Gl)
-      total depth (__X, s) eqn =
-      ((match member (eqEVar __X) Vars with
-        | Some (label, i) ->
-            ((if flag
-              then
-                (match label with
-                 | Body ->
-                     let BV = I.BVar (apos + depth) in
-                     let BV' = I.BVar (i + depth) in
-                     let BV1 = I.BVar (apos + depth) in
-                     let (posEA', Vars', __S, eqn1) =
-                       abstractSub
-                         (flag, __Gs, (epos, (apos - 1)), Vars, Gl, total,
-                           depth, s, I.Nil, eqn) in
-                     (posEA', Vars', (I.Root (BV, I.Nil)),
-                       (TableParam.Unify
-                          (Gl, (I.Root (BV', __S)), (I.Root (BV1, I.Nil)),
-                            eqn1)))
-                 | TypeLabel ->
-                     let Vars' = update (eqEVar __X) Vars in
-                     let (posEA', Vars'', __S, eqn1) =
-                       abstractSub
-                         (flag, __Gs, (epos, apos), Vars', Gl, total, depth,
-                           s, I.Nil, eqn) in
-                     (posEA', Vars'', (I.Root ((I.BVar (i + depth)), __S)),
-                       eqn1))
-              else
-                (let (posEA', Vars', __S, eqn1) =
-                   abstractSub
-                     (flag, __Gs, (epos, apos), Vars, Gl, total, depth, s,
-                       I.Nil, eqn) in
-                 (posEA', Vars', (I.Root ((I.BVar (i + depth)), __S)), eqn1)))
-            (* enforce linearization *)(* do not enforce linearization -- used for type labels *))
-        | None ->
-            let label = if flag then Body else TypeLabel in
-            let BV = I.BVar (epos + depth) in
-            let pos = ((epos - 1), apos) in
-            let (posEA', Vars', __S, eqn1) =
-              abstractSub
-                (flag, __Gs, pos, (I.Decl (Vars, ((label, epos), (EV __X)))),
-                  Gl, total, depth, s, I.Nil, eqn) in
-            (posEA', Vars', (I.Root (BV, __S)), eqn1))
-      (* we have seen X before *)(* we see X for the first time *))
-    let rec abstractEVarNFap flag (__Gs) ((epos, apos) as posEA) (Vars) (Gl)
-      total depth (__X, s) eqn =
-      ((match member (eqEVar __X) Vars with
-        | Some (label, i) ->
-            ((if flag
-              then
-                let BV = I.BVar (apos + depth) in
-                let BV' = I.BVar (i + depth) in
-                let BV1 = I.BVar (apos + depth) in
-                let (posEA', Vars', __S, eqn1) =
-                  abstractSub
-                    (flag, __Gs, (epos, (apos - 1)), Vars, Gl, total, depth,
-                      s, I.Nil, eqn) in
-                (posEA', Vars', (I.Root (BV, I.Nil)),
-                  (TableParam.Unify
-                     (Gl, (I.Root (BV', __S)), (I.Root (BV1, I.Nil)), eqn1)))
-              else
-                (let (posEA', Vars', __S, eqn1) =
-                   abstractSub
-                     (flag, __Gs, (epos, apos), Vars, Gl, total, depth, s,
-                       I.Nil, eqn) in
-                 (posEA', Vars', (I.Root ((I.BVar (i + depth)), __S)), eqn1)))
-            (* enforce linearization *)(* (case label of
+  | None -> let label = if flag then begin Body end else begin TypeLabel end in
+let v'_ = raiseType (GX, v_) in
+let (k'_, DupVars') =
+  collectExp ((I.Null, I.id), I.Null, (v'_, I.id), k_, DupVars, false, d) in
+((if flag
+  then
+    begin collectSub
+            (Gss, Gl, s, (I.Decl (k'_, (label, (EV x_)))),
+              (I.Decl (DupVars, (AV (x_, d)))), flag, d) end
+  else begin
+    collectSub
+      (Gss, Gl, s, (I.Decl (k'_, (label, (EV x_)))), DupVars, flag, d) end)
+  (* inefficient! *)) end
+let rec collectEVar
+  (Gss, Gl, ((EVar (r, GX, v_, cnstrs) as x_), s), k_, DupVars, flag, d) =
+  if !TableParam.strengthen
+  then begin collectEVarStr (Gss, Gl, (x_, s), k_, DupVars, flag, d) end
+  else begin
+    ((if isId s
+      then begin collectEVarFap (Gss, Gl, (x_, s), k_, DupVars, flag, d) end
+    else begin collectEVarNFap (Gss, Gl, (x_, s), k_, DupVars, flag, d) end)
+  (* equalCtx (compose'(Gl, G), s, GX, s)  *)(* X is fully applied *)
+  (* X is not fully applied *)) end
+let rec collectDec (Gss, (Dec (_, v_), s), (k_, DupVars), d, flag) =
+  let (k'_, DupVars') =
+    collectExp (Gss, I.Null, (v_, s), k_, DupVars, flag, d) in
+  (((k'_, DupVars'))
+    (*      val (K',DupVars') =  collectExp (Gss, I.Null, (V, s), K, I.Null, false, d)*))
+let rec collectSub =
+  begin function
+  | (Gss, Gl, Shift _, k_, DupVars, flag, d) -> (k_, DupVars)
+  | (Gss, Gl, Dot (Idx _, s), k_, DupVars, flag, d) ->
+      collectSub (Gss, Gl, s, k_, DupVars, flag, d)
+  | (Gss, Gl, Dot (Exp (EVar ({ contents = Some (u_) }, _, _, _) as x_), s),
+     k_, DupVars, flag, d) ->
+      let u'_ = Whnf.normalize (u_, I.id) in
+      let (k'_, DupVars') =
+        collectExp (Gss, Gl, (u'_, I.id), k_, DupVars, flag, d) in
+      ((collectSub (Gss, Gl, s, k'_, DupVars', flag, d))
+        (* inefficient? *))
+  | (Gss, Gl, Dot (Exp (AVar { contents = Some (u'_) } as u_), s), k_,
+     DupVars, flag, d) ->
+      let (k'_, DupVars') =
+        collectExp (Gss, Gl, (u'_, I.id), k_, DupVars, flag, d) in
+      collectSub (Gss, Gl, s, k'_, DupVars', flag, d)
+  | (Gss, Gl, Dot (Exp (EClo (u'_, s')), s), k_, DupVars, flag, d) ->
+      let u_ = Whnf.normalize (u'_, s') in
+      let (k'_, DupVars') =
+        collectExp (Gss, Gl, (u_, I.id), k_, DupVars, flag, d) in
+      ((collectSub (Gss, Gl, s, k'_, DupVars', flag, d))
+        (* inefficient? *))
+  | (Gss, Gl, Dot (Exp (u_), s), k_, DupVars, flag, d) ->
+      let (k'_, DupVars') =
+        collectExp (Gss, Gl, (u_, I.id), k_, DupVars, flag, d) in
+      collectSub (Gss, Gl, s, k'_, DupVars', flag, d)
+  | (Gss, Gl, Dot (I.Undef, s), k_, DupVars, flag, d) ->
+      collectSub (Gss, Gl, s, k_, DupVars, flag, d) end
+let rec collectCtx =
+  begin function
+  | (Gss, DProg (I.Null, I.Null), (k_, DupVars), d) -> (k_, DupVars)
+  | (Gss, DProg (Decl (g_, d_), Decl (dPool, C.Parameter)), (k_, DupVars), d)
+      ->
+      let (k'_, DupVars') =
+        collectCtx (Gss, (C.DProg (g_, dPool)), (k_, DupVars), (d - 1)) in
+      collectDec (Gss, (d_, I.id), (k'_, DupVars'), (d - 1), false)
+  | (Gss, DProg (Decl (g_, d_), Decl (dPool, Dec (r, s, Ha))), (k_, DupVars),
+     d) ->
+      let (k'_, DupVars') =
+        collectCtx (Gss, (C.DProg (g_, dPool)), (k_, DupVars), (d - 1)) in
+      collectDec (Gss, (d_, I.id), (k'_, DupVars'), (d - 1), false) end
+let rec abstractExpW =
+  begin function
+  | (flag, gs_, posEA, Vars, Gl, total, depth, ((Uni (l_) as u_), s), eqn) ->
+      (posEA, Vars, u_, eqn)
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (Pi ((d_, p_), v_), s), eqn)
+      ->
+      let (posEA', Vars', d_, _) =
+        abstractDec (gs_, posEA, Vars, Gl, total, depth, (d_, s), None) in
+      let (posEA'', Vars'', v'_, eqn2) =
+        abstractExp
+          (flag, gs_, posEA', Vars', Gl, total, (depth + 1),
+            (v_, (I.dot1 s)), eqn) in
+      (posEA'', Vars'', (piDepend ((d_, p_), v'_)), eqn2)
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (Root (h_, s_), s), eqn) ->
+      let (posEA', Vars', s_, eqn') =
+        abstractSpine
+          (flag, gs_, posEA, Vars, Gl, total, depth, (s_, s), eqn) in
+      (posEA', Vars', (I.Root (h_, s_)), eqn')
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (Lam (d_, u_), s), eqn) ->
+      let (posEA', Vars', d'_, _) =
+        abstractDec (gs_, posEA, Vars, Gl, total, depth, (d_, s), None) in
+      let (posEA'', Vars'', u'_, eqn2) =
+        abstractExp
+          (flag, gs_, posEA', Vars', (I.Decl (Gl, d'_)), total, (depth + 1),
+            (u_, (I.dot1 s)), eqn) in
+      (posEA'', Vars'', (I.Lam (d'_, u'_)), eqn2)
+  | (flag, ((Gss, ss) as gs_), ((epos, apos) as posEA), Vars, Gl, total,
+     depth, ((EVar (_, GX, VX, _) as x_), s), eqn) ->
+      ((if isId (I.comp (ss, s))
+        then
+          begin abstractEVarFap
+                  (flag, gs_, posEA, Vars, Gl, total, depth, (x_, s), eqn) end
+      else begin
+        abstractEVarNFap
+          (flag, gs_, posEA, Vars, Gl, total, depth, (x_, s), eqn) end)
+  (* X is fully applied *)(* s =/= id, i.e. X is not fully applied *)) end
+(* X is possibly strengthened ! *)
+let rec abstractExp (flag, gs_, posEA, Vars, Gl, total, depth, us_, eqn) =
+  abstractExpW
+    (flag, gs_, posEA, Vars, Gl, total, depth, (Whnf.whnf us_), eqn)
+let rec abstractEVarFap
+  (flag, gs_, ((epos, apos) as posEA), Vars, Gl, total, depth, (x_, s), eqn)
+  =
+  ((begin match member (eqEVar x_) Vars with
+    | Some (label, i) ->
+        ((if flag
+          then
+            begin (begin match label with
+                   | Body ->
+                       let BV = I.BVar (apos + depth) in
+                       let BV' = I.BVar (i + depth) in
+                       let BV1 = I.BVar (apos + depth) in
+                       let (posEA', Vars', s_, eqn1) =
+                         abstractSub
+                           (flag, gs_, (epos, (apos - 1)), Vars, Gl, total,
+                             depth, s, I.Nil, eqn) in
+                       (posEA', Vars', (I.Root (BV, I.Nil)),
+                         (TableParam.Unify
+                            (Gl, (I.Root (BV', s_)), (I.Root (BV1, I.Nil)),
+                              eqn1)))
+                   | TypeLabel ->
+                       let Vars' = update (eqEVar x_) Vars in
+                       let (posEA', Vars'', s_, eqn1) =
+                         abstractSub
+                           (flag, gs_, (epos, apos), Vars', Gl, total, depth,
+                             s, I.Nil, eqn) in
+                       (posEA', Vars'', (I.Root ((I.BVar (i + depth)), s_)),
+                         eqn1) end) end
+    else begin
+      (let (posEA', Vars', s_, eqn1) =
+         abstractSub
+           (flag, gs_, (epos, apos), Vars, Gl, total, depth, s, I.Nil, eqn) in
+       (posEA', Vars', (I.Root ((I.BVar (i + depth)), s_)), eqn1)) end)
+  (* enforce linearization *)(* do not enforce linearization -- used for type labels *))
+| None -> let label = if flag then begin Body end else begin TypeLabel end in
+let BV = I.BVar (epos + depth) in
+let pos = ((epos - 1), apos) in
+let (posEA', Vars', s_, eqn1) =
+abstractSub
+  (flag, gs_, pos, (I.Decl (Vars, ((label, epos), (EV x_)))), Gl, total,
+    depth, s, I.Nil, eqn) in
+(posEA', Vars', (I.Root (BV, s_)), eqn1) end)
+(* we have seen X before *)(* we see X for the first time *))
+let rec abstractEVarNFap
+  (flag, gs_, ((epos, apos) as posEA), Vars, Gl, total, depth, (x_, s), eqn)
+  =
+  ((begin match member (eqEVar x_) Vars with
+    | Some (label, i) ->
+        ((if flag
+          then
+            begin let BV = I.BVar (apos + depth) in
+                  let BV' = I.BVar (i + depth) in
+                  let BV1 = I.BVar (apos + depth) in
+                  let (posEA', Vars', s_, eqn1) =
+                    abstractSub
+                      (flag, gs_, (epos, (apos - 1)), Vars, Gl, total, depth,
+                        s, I.Nil, eqn) in
+                  (posEA', Vars', (I.Root (BV, I.Nil)),
+                    (TableParam.Unify
+                       (Gl, (I.Root (BV', s_)), (I.Root (BV1, I.Nil)), eqn1))) end
+        else begin
+          (let (posEA', Vars', s_, eqn1) =
+             abstractSub
+               (flag, gs_, (epos, apos), Vars, Gl, total, depth, s, I.Nil,
+                 eqn) in
+           (posEA', Vars', (I.Root ((I.BVar (i + depth)), s_)), eqn1)) end)
+  (* enforce linearization *)(* (case label of
                Body =>
                  let
                   val _ = print "abstractEVarNFap -- flag true; we have seen X before\n"
@@ -536,273 +505,251 @@ module AbstractTabled(AbstractTabled:sig
                  in
                    (posEA', Vars'', I.Root(I.BVar(i + depth), S), eqn1)
                  end) *)
-            (* do not enforce linearization -- used for type labels *))
-        | None ->
-            ((if flag
-              then
-                let label = if flag then Body else TypeLabel in
-                let BV = I.BVar (apos + depth) in
-                let BV' = I.BVar (epos + depth) in
-                let BV1 = I.BVar (apos + depth) in
-                let (posEA', Vars', __S, eqn1) =
-                  abstractSub
-                    (flag, __Gs, ((epos - 1), (apos - 1)),
-                      (I.Decl (Vars, ((label, epos), (EV __X)))), Gl, total,
-                      depth, s, I.Nil, eqn) in
-                (posEA', Vars', (I.Root (BV, I.Nil)),
-                  (TableParam.Unify
-                     (Gl, (I.Root (BV', __S)), (I.Root (BV1, I.Nil)), eqn1)))
-              else
-                (let (posEA', Vars', __S, eqn1) =
-                   abstractSub
-                     (flag, __Gs, ((epos - 1), apos),
-                       (I.Decl (Vars, ((TypeLabel, epos), (EV __X)))), Gl,
-                       total, depth, s, I.Nil, eqn) in
-                 (posEA', Vars', (I.Root ((I.BVar (epos + depth)), __S)),
-                   eqn1)))
-            (* enforce linearization since X is not fully applied *)
-            (* do not enforce linearization -- used for type labels *)))
-      (* we have seen X before *)(* we have not seen X before *))
-    let rec abstractSub __60__ __61__ __62__ __63__ __64__ __65__ __66__
-      __67__ __68__ __69__ =
-      match (__60__, __61__, __62__, __63__, __64__, __65__, __66__, __67__,
-              __68__, __69__)
-      with
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, Shift k, __S, eqn) ->
-          ((if k < depth
-            then
-              abstractSub
-                (flag, __Gs, posEA, Vars, Gl, total, depth,
-                  (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), __S, eqn)
-            else (posEA, Vars, __S, eqn))
-          (* k = depth *))
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, Dot (Idx k, s), __S, eqn)
-          ->
-          abstractSub
-            (flag, __Gs, posEA, Vars, Gl, total, depth, s,
-              (I.App ((I.Root ((I.BVar k), I.Nil)), __S)), eqn)
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, Dot (Exp (__U), s), __S,
-         eqn) ->
-          let (posEA', Vars', __U', eqn') =
-            abstractExp
-              (flag, __Gs, posEA, Vars, Gl, total, depth, (__U, I.id), eqn) in
-          abstractSub
-            (flag, __Gs, posEA', Vars', Gl, total, depth, s,
-              (I.App (__U', __S)), eqn')
-    let rec abstractSpine __70__ __71__ __72__ __73__ __74__ __75__ __76__
-      __77__ __78__ =
-      match (__70__, __71__, __72__, __73__, __74__, __75__, __76__, __77__,
-              __78__)
-      with
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, (I.Nil, _), eqn) ->
-          (posEA, Vars, I.Nil, eqn)
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, (SClo (__S, s'), s), eqn)
-          ->
-          abstractSpine
-            (flag, __Gs, posEA, Vars, Gl, total, depth,
-              (__S, (I.comp (s', s))), eqn)
-      | (flag, __Gs, posEA, Vars, Gl, total, depth, (App (__U, __S), s), eqn)
-          ->
-          let (posEA', Vars', __U', eqn') =
-            abstractExp
-              (flag, __Gs, posEA, Vars, Gl, total, depth, (__U, s), eqn) in
-          let (posEA'', Vars'', __S', eqn'') =
-            abstractSpine
-              (flag, __Gs, posEA', Vars', Gl, total, depth, (__S, s), eqn') in
-          (posEA'', Vars'', (I.App (__U', __S')), eqn'')
-    let rec abstractSub' __79__ __80__ __81__ __82__ __83__ __84__ =
-      match (__79__, __80__, __81__, __82__, __83__, __84__) with
-      | (flag, __Gs, epos, Vars, total, Shift k) ->
-          if k < 0
-          then raise (Error "Substitution out of range\n")
-          else (epos, Vars, (I.Shift (k + total)))
-      | (flag, __Gs, epos, Vars, total, Dot (Idx k, s)) ->
-          let (epos', Vars', s') =
-            abstractSub' (flag, __Gs, epos, Vars, total, s) in
-          (epos', Vars', (I.Dot ((I.Idx k), s')))
-      | (flag, __Gs, epos, Vars, total, Dot (Exp (__U), s)) ->
-          let ((ep, _), Vars', __U', _) =
-            abstractExp
-              (false, __Gs, (epos, 0), Vars, I.Null, total, 0, (__U, I.id),
-                TableParam.Trivial) in
-          let (epos'', Vars'', s') =
-            abstractSub' (flag, __Gs, ep, Vars', total, s) in
-          (epos'', Vars'', (I.Dot ((I.Exp __U'), s')))
-    let rec abstractDec __85__ __86__ __87__ __88__ __89__ __90__ __91__
-      __92__ =
-      match (__85__, __86__, __87__, __88__, __89__, __90__, __91__, __92__)
-      with
-      | (__Gs, posEA, Vars, Gl, total, depth, (Dec (x, __V), s), None) ->
-          let (posEA', Vars', __V', eqn) =
-            abstractExp
-              (false, __Gs, posEA, Vars, Gl, total, depth, (__V, s),
-                TableParam.Trivial) in
-          (((posEA', Vars', (I.Dec (x, __V')), eqn))
-            (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*))
-      | (__Gs, posEA, Vars, Gl, total, depth, (Dec (x, __V), s), Some eqn) ->
-          let (posEA', Vars', __V', eqn') =
-            abstractExp
-              (true, __Gs, posEA, Vars, Gl, total, depth, (__V, s), eqn) in
-          (((posEA', Vars', (I.Dec (x, __V')), eqn'))
-            (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*))
-    let rec abstractCtx' __93__ __94__ __95__ __96__ __97__ __98__ __99__
-      __100__ =
-      match (__93__, __94__, __95__, __96__, __97__, __98__, __99__, __100__)
-      with
-      | (__Gs, epos, Vars, total, depth, DProg (I.Null, I.Null), __G', eqn)
-          -> (epos, Vars, __G', eqn)
-      | (__Gs, epos, Vars, total, depth, DProg
-         (Decl (__G, __D), Decl (dPool, C.Parameter)), __G', eqn) ->
-          let d = IntSyn.ctxLength __G in
-          let ((epos', _), Vars', __D', _) =
-            abstractDec
-              (__Gs, (epos, total), Vars, I.Null, total, (depth - 1),
-                (__D, I.id), None) in
-          abstractCtx'
-            (__Gs, epos', Vars', total, (depth - 1), (C.DProg (__G, dPool)),
-              (I.Decl (__G', __D')), eqn)
-      | (__Gs, epos, Vars, total, depth, DProg
-         (Decl (__G, __D), Decl (dPool, _)), __G', eqn) ->
-          let d = IntSyn.ctxLength __G in
-          let ((epos', _), Vars', __D', _) =
-            abstractDec
-              (__Gs, (epos, total), Vars, I.Null, total, (depth - 1),
-                (__D, I.id), None) in
-          abstractCtx'
-            (__Gs, epos', Vars', total, (depth - 1), (C.DProg (__G, dPool)),
-              (I.Decl (__G', __D')), eqn)
-    let rec abstractCtx (__Gs) epos (Vars) total depth dProg =
-      abstractCtx'
-        (__Gs, epos, Vars, total, depth, dProg, I.Null, TableParam.Trivial)
-    let rec makeEVarCtx __101__ __102__ __103__ __104__ __105__ =
-      match (__101__, __102__, __103__, __104__, __105__) with
-      | (__Gs, Vars, DEVars, I.Null, total) -> DEVars
-      | (__Gs, Vars, DEVars, Decl (__K', (_, EV (EVar (_, GX, VX, _) as E))),
-         total) ->
-          let __V' = raiseType (GX, VX) in
-          let (_, Vars', V'', _) =
-            abstractExp
-              (false, __Gs, (0, 0), Vars, I.Null, 0, (total - 1),
-                (__V', I.id), TableParam.Trivial) in
-          let DEVars' = makeEVarCtx (__Gs, Vars', DEVars, __K', (total - 1)) in
-          let DEVars'' = I.Decl (DEVars', (I.Dec (None, V''))) in DEVars''
-    let rec makeAVarCtx (Vars) (DupVars) =
-      let rec avarCtx __106__ __107__ __108__ =
-        match (__106__, __107__, __108__) with
-        | (Vars, I.Null, k) -> I.Null
-        | (Vars, Decl
-           (__K', AV ((EVar ({ contents = None }, GX, VX, _) as E), d)), k)
-            ->
-            I.Decl
-              ((avarCtx (Vars, __K', (k + 1))),
-                (I.ADec
-                   ((Some
-                       ((^) (((^) "AVar " Int.toString k) ^ "--")
-                          Int.toString d)), d)))
-        | (Vars, Decl (__K', AV ((EVar (_, GX, VX, _) as E), d)), k) ->
-            I.Decl
-              ((avarCtx (Vars, __K', (k + 1))),
-                (I.ADec
-                   ((Some
-                       ((^) (((^) "AVar " Int.toString k) ^ "--")
-                          Int.toString d)), d))) in
-      avarCtx (Vars, DupVars, 0)
-    let rec lowerEVar' __109__ __110__ __111__ =
-      match (__109__, __110__, __111__) with
-      | (__X, __G, (Pi ((__D', _), __V'), s')) ->
-          let D'' = I.decSub (__D', s') in
-          let (__X', __U) =
-            lowerEVar'
-              (__X, (I.Decl (__G, D'')), (Whnf.whnf (__V', (I.dot1 s')))) in
-          (__X', (I.Lam (D'', __U)))
-      | (__X, __G, __Vs') -> let __X' = __X in (__X', __X')
-    let rec lowerEVar1 __112__ __113__ __114__ =
-      match (__112__, __113__, __114__) with
-      | (__X, EVar (r, __G, _, _), ((Pi _ as V), s)) ->
-          let (__X', __U) = lowerEVar' (__X, __G, (__V, s)) in
-          I.EVar ((ref (Some __U)), I.Null, __V, (ref nil))
-      | (_, __X, _) -> __X
-    let rec lowerEVar __115__ __116__ =
-      match (__115__, __116__) with
-      | (__E, (EVar (r, __G, __V, { contents = nil }) as X)) ->
-          lowerEVar1 (__E, __X, (Whnf.whnf (__V, I.id)))
-      | (__E, EVar _) ->
-          raise
-            (Error
-               "abstraction : LowerEVars: Typing ambiguous -- constraint of functional type cannot be simplified")
-      (* pre-Twelf 1.2 code walk, Fri May  8 11:05:08 1998 *)(* It is not clear if this case can happen *)
-    let rec evarsToSub __117__ __118__ =
-      match (__117__, __118__) with
-      | (I.Null, s) -> s
-      | (Decl
-         (__K',
-          (_, EV (EVar (({ contents = None } as I), GX, VX, cnstr) as E))),
-         s) ->
-          let __V' = raiseType (GX, VX) in
-          let __X =
-            lowerEVar1
-              (__E, (I.EVar (__I, I.Null, __V', cnstr)),
-                (Whnf.whnf (__V', I.id))) in
-          let s' = evarsToSub (__K', s) in ((I.Dot ((I.Exp __X), s'))
-            (* redundant ? *))
-    let rec avarsToSub __119__ __120__ =
-      match (__119__, __120__) with
-      | (I.Null, s) -> s
-      | (Decl (Vars', AV ((EVar (__I, GX, VX, cnstr) as E), d)), s) ->
-          let s' = avarsToSub (Vars', s) in
-          let AVar r as X' = I.newAVar () in
-          I.Dot ((I.Exp (I.EClo (__X', (I.Shift (~ d))))), s')
-    let rec abstractEVarCtx (DProg (__G, dPool) as dp) p s =
-      let (__Gs, ss, d) =
-        if !TableParam.strengthen
+  (* do not enforce linearization -- used for type labels *))
+  | None ->
+      ((if flag
         then
-          let w' = Subordinate.weaken (__G, (I.targetFam p)) in
-          let iw = Whnf.invert w' in
-          let __G' = Whnf.strengthen (iw, __G) in
-          let d' = I.ctxLength __G' in (__G', iw, d')
-        else (__G, I.id, (I.ctxLength __G)) in
-      let (__K, DupVars) = collectCtx ((__Gs, ss), dp, (I.Null, I.Null), d) in
-      let (__K', DupVars') =
-        collectExp ((__Gs, ss), I.Null, (p, s), __K, DupVars, true, d) in
-      let epos = I.ctxLength __K' in
-      let apos = I.ctxLength DupVars' in
-      let total = epos + apos in
-      let (epos', Vars', __G', eqn) =
-        abstractCtx ((__Gs, ss), epos, I.Null, total, d, dp) in
-      let (((posEA'', Vars'', __U', eqn'))(* = 0 *)) =
+          begin let label = if flag then begin Body end
+                  else begin TypeLabel end in
+      let BV = I.BVar (apos + depth) in
+      let BV' = I.BVar (epos + depth) in
+      let BV1 = I.BVar (apos + depth) in
+      let (posEA', Vars', s_, eqn1) =
+        abstractSub
+          (flag, gs_, ((epos - 1), (apos - 1)),
+            (I.Decl (Vars, ((label, epos), (EV x_)))), Gl, total, depth, s,
+            I.Nil, eqn) in
+      (posEA', Vars', (I.Root (BV, I.Nil)),
+        (TableParam.Unify
+           (Gl, (I.Root (BV', s_)), (I.Root (BV1, I.Nil)), eqn1))) end
+else begin
+  (let (posEA', Vars', s_, eqn1) =
+     abstractSub
+       (flag, gs_, ((epos - 1), apos),
+         (I.Decl (Vars, ((TypeLabel, epos), (EV x_)))), Gl, total, depth, s,
+         I.Nil, eqn) in
+   (posEA', Vars', (I.Root ((I.BVar (epos + depth)), s_)), eqn1)) end)
+(* enforce linearization since X is not fully applied *)
+(* do not enforce linearization -- used for type labels *)) end)
+(* we have seen X before *)(* we have not seen X before *))
+let rec abstractSub =
+  begin function
+  | (flag, gs_, posEA, Vars, Gl, total, depth, Shift k, s_, eqn) ->
+      ((if k < depth
+        then
+          begin abstractSub
+                  (flag, gs_, posEA, Vars, Gl, total, depth,
+                    (I.Dot ((I.Idx (k + 1)), (I.Shift (k + 1)))), s_, eqn) end
+      else begin (posEA, Vars, s_, eqn) end)
+  (* k = depth *))
+  | (flag, gs_, posEA, Vars, Gl, total, depth, Dot (Idx k, s), s_, eqn) ->
+      abstractSub
+        (flag, gs_, posEA, Vars, Gl, total, depth, s,
+          (I.App ((I.Root ((I.BVar k), I.Nil)), s_)), eqn)
+  | (flag, gs_, posEA, Vars, Gl, total, depth, Dot (Exp (u_), s), s_, eqn) ->
+      let (posEA', Vars', u'_, eqn') =
         abstractExp
-          (true, (__Gs, ss), (epos', total), Vars', I.Null, total, d,
-            (p, s), eqn) in
-      let DAVars = makeAVarCtx (Vars'', DupVars') in
-      let DEVars =
-        makeEVarCtx ((((__Gs, ss), Vars'', I.Null, Vars'', 0))
-          (* depth *)) in
-      let s' = avarsToSub (DupVars', I.id) in
-      let s'' = evarsToSub (Vars'', s') in
-      let G'' = reverseCtx (__G', I.Null) in
-      ((if !TableParam.strengthen
-        then
-          let w' = Subordinate.weaken (G'', (I.targetFam __U')) in
+          (flag, gs_, posEA, Vars, Gl, total, depth, (u_, I.id), eqn) in
+      abstractSub
+        (flag, gs_, posEA', Vars', Gl, total, depth, s, (I.App (u'_, s_)),
+          eqn') end
+let rec abstractSpine =
+  begin function
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (I.Nil, _), eqn) ->
+      (posEA, Vars, I.Nil, eqn)
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (SClo (s_, s'), s), eqn) ->
+      abstractSpine
+        (flag, gs_, posEA, Vars, Gl, total, depth, (s_, (I.comp (s', s))),
+          eqn)
+  | (flag, gs_, posEA, Vars, Gl, total, depth, (App (u_, s_), s), eqn) ->
+      let (posEA', Vars', u'_, eqn') =
+        abstractExp (flag, gs_, posEA, Vars, Gl, total, depth, (u_, s), eqn) in
+      let (posEA'', Vars'', s'_, eqn'') =
+        abstractSpine
+          (flag, gs_, posEA', Vars', Gl, total, depth, (s_, s), eqn') in
+      (posEA'', Vars'', (I.App (u'_, s'_)), eqn'') end
+let rec abstractSub' =
+  begin function
+  | (flag, gs_, epos, Vars, total, Shift k) ->
+      if k < 0 then begin raise (Error "Substitution out of range\n") end
+      else begin (epos, Vars, (I.Shift (k + total))) end
+  | (flag, gs_, epos, Vars, total, Dot (Idx k, s)) ->
+      let (epos', Vars', s') = abstractSub' (flag, gs_, epos, Vars, total, s) in
+      (epos', Vars', (I.Dot ((I.Idx k), s')))
+  | (flag, gs_, epos, Vars, total, Dot (Exp (u_), s)) ->
+      let ((ep, _), Vars', u'_, _) =
+        abstractExp
+          (false, gs_, (epos, 0), Vars, I.Null, total, 0, (u_, I.id),
+            TableParam.Trivial) in
+      let (epos'', Vars'', s') =
+        abstractSub' (flag, gs_, ep, Vars', total, s) in
+      (epos'', Vars'', (I.Dot ((I.Exp u'_), s'))) end
+let rec abstractDec =
+  begin function
+  | (gs_, posEA, Vars, Gl, total, depth, (Dec (x, v_), s), None) ->
+      let (posEA', Vars', v'_, eqn) =
+        abstractExp
+          (false, gs_, posEA, Vars, Gl, total, depth, (v_, s),
+            TableParam.Trivial) in
+      (((posEA', Vars', (I.Dec (x, v'_)), eqn))
+        (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*))
+  | (gs_, posEA, Vars, Gl, total, depth, (Dec (x, v_), s), Some eqn) ->
+      let (posEA', Vars', v'_, eqn') =
+        abstractExp (true, gs_, posEA, Vars, Gl, total, depth, (v_, s), eqn) in
+      (((posEA', Vars', (I.Dec (x, v'_)), eqn'))
+        (*      val (posEA', Vars', V', _) = abstractExp (false, Gs, posEA, Vars, Gl, total, depth, (V, s), TableParam.Trivial)*)) end
+let rec abstractCtx' =
+  begin function
+  | (gs_, epos, Vars, total, depth, DProg (I.Null, I.Null), g'_, eqn) ->
+      (epos, Vars, g'_, eqn)
+  | (gs_, epos, Vars, total, depth, DProg
+     (Decl (g_, d_), Decl (dPool, C.Parameter)), g'_, eqn) ->
+      let d = IntSyn.ctxLength g_ in
+      let ((epos', _), Vars', d'_, _) =
+        abstractDec
+          (gs_, (epos, total), Vars, I.Null, total, (depth - 1), (d_, I.id),
+            None) in
+      abstractCtx'
+        (gs_, epos', Vars', total, (depth - 1), (C.DProg (g_, dPool)),
+          (I.Decl (g'_, d'_)), eqn)
+  | (gs_, epos, Vars, total, depth, DProg (Decl (g_, d_), Decl (dPool, _)),
+     g'_, eqn) ->
+      let d = IntSyn.ctxLength g_ in
+      let ((epos', _), Vars', d'_, _) =
+        abstractDec
+          (gs_, (epos, total), Vars, I.Null, total, (depth - 1), (d_, I.id),
+            None) in
+      abstractCtx'
+        (gs_, epos', Vars', total, (depth - 1), (C.DProg (g_, dPool)),
+          (I.Decl (g'_, d'_)), eqn) end
+let rec abstractCtx (gs_, epos, Vars, total, depth, dProg) =
+  abstractCtx'
+    (gs_, epos, Vars, total, depth, dProg, I.Null, TableParam.Trivial)
+let rec makeEVarCtx =
+  begin function
+  | (gs_, Vars, DEVars, I.Null, total) -> DEVars
+  | (gs_, Vars, DEVars, Decl (k'_, (_, EV (EVar (_, GX, VX, _) as e_))),
+     total) ->
+      let v'_ = raiseType (GX, VX) in
+      let (_, Vars', V'', _) =
+        abstractExp
+          (false, gs_, (0, 0), Vars, I.Null, 0, (total - 1), (v'_, I.id),
+            TableParam.Trivial) in
+      let DEVars' = makeEVarCtx (gs_, Vars', DEVars, k'_, (total - 1)) in
+      let DEVars'' = I.Decl (DEVars', (I.Dec (None, V''))) in DEVars'' end
+let rec makeAVarCtx (Vars, DupVars) =
+  let rec avarCtx =
+    begin function
+    | (Vars, I.Null, k) -> I.Null
+    | (Vars, Decl
+       (k'_, AV ((EVar ({ contents = None }, GX, VX, _) as e_), d)), k) ->
+        I.Decl
+          ((avarCtx (Vars, k'_, (k + 1))),
+            (I.ADec
+               ((Some
+                   ((^) (((^) "AVar " Int.toString k) ^ "--") Int.toString d)),
+                 d)))
+    | (Vars, Decl (k'_, AV ((EVar (_, GX, VX, _) as e_), d)), k) ->
+        I.Decl
+          ((avarCtx (Vars, k'_, (k + 1))),
+            (I.ADec
+               ((Some
+                   ((^) (((^) "AVar " Int.toString k) ^ "--") Int.toString d)),
+                 d))) end in
+avarCtx (Vars, DupVars, 0)
+let rec lowerEVar' =
+  begin function
+  | (x_, g_, (Pi ((d'_, _), v'_), s')) ->
+      let D'' = I.decSub (d'_, s') in
+      let (x'_, u_) =
+        lowerEVar' (x_, (I.Decl (g_, D'')), (Whnf.whnf (v'_, (I.dot1 s')))) in
+      (x'_, (I.Lam (D'', u_)))
+  | (x_, g_, vs'_) -> let x'_ = x_ in (x'_, x'_) end
+let rec lowerEVar1 =
+  begin function
+  | (x_, EVar (r, g_, _, _), ((Pi _ as v_), s)) ->
+      let (x'_, u_) = lowerEVar' (x_, g_, (v_, s)) in
+      I.EVar ((ref (Some u_)), I.Null, v_, (ref []))
+  | (_, x_, _) -> x_ end
+let rec lowerEVar =
+  begin function
+  | (e_, (EVar (r, g_, v_, { contents = [] }) as x_)) ->
+      lowerEVar1 (e_, x_, (Whnf.whnf (v_, I.id)))
+  | (e_, EVar _) ->
+      raise
+        (Error
+           "abstraction : LowerEVars: Typing ambiguous -- constraint of functional type cannot be simplified") end
+(* pre-Twelf 1.2 code walk, Fri May  8 11:05:08 1998 *)
+(* It is not clear if this case can happen *)
+let rec evarsToSub =
+  begin function
+  | (I.Null, s) -> s
+  | (Decl
+     (k'_, (_, EV (EVar (({ contents = None } as i_), GX, VX, cnstr) as e_))),
+     s) ->
+      let v'_ = raiseType (GX, VX) in
+      let x_ =
+        lowerEVar1
+          (e_, (I.EVar (i_, I.Null, v'_, cnstr)), (Whnf.whnf (v'_, I.id))) in
+      let s' = evarsToSub (k'_, s) in ((I.Dot ((I.Exp x_), s'))
+        (* redundant ? *)) end
+let rec avarsToSub =
+  begin function
+  | (I.Null, s) -> s
+  | (Decl (Vars', AV ((EVar (i_, GX, VX, cnstr) as e_), d)), s) ->
+      let s' = avarsToSub (Vars', s) in
+      let AVar r as x'_ = I.newAVar () in
+      I.Dot ((I.Exp (I.EClo (x'_, (I.Shift (- d))))), s') end
+let rec abstractEVarCtx ((DProg (g_, dPool) as dp), p, s) =
+  let (gs_, ss, d) =
+    if !TableParam.strengthen
+    then
+      begin let w' = Subordinate.weaken (g_, (I.targetFam p)) in
+            let iw = Whnf.invert w' in
+            let g'_ = Whnf.strengthen (iw, g_) in
+            let d' = I.ctxLength g'_ in (g'_, iw, d') end
+    else begin (g_, I.id, (I.ctxLength g_)) end in
+let (k_, DupVars) = collectCtx ((gs_, ss), dp, (I.Null, I.Null), d) in
+let (k'_, DupVars') =
+  collectExp ((gs_, ss), I.Null, (p, s), k_, DupVars, true, d) in
+let epos = I.ctxLength k'_ in
+let apos = I.ctxLength DupVars' in
+let total = epos + apos in
+let (epos', Vars', g'_, eqn) =
+  abstractCtx ((gs_, ss), epos, I.Null, total, d, dp) in
+let (((posEA'', Vars'', u'_, eqn'))(* = 0 *)) =
+  abstractExp
+    (true, (gs_, ss), (epos', total), Vars', I.Null, total, d, (p, s), eqn) in
+let DAVars = makeAVarCtx (Vars'', DupVars') in
+let DEVars =
+  makeEVarCtx ((((gs_, ss), Vars'', I.Null, Vars'', 0))
+    (* depth *)) in
+let s' = avarsToSub (DupVars', I.id) in
+let s'' = evarsToSub (Vars'', s') in
+let G'' = reverseCtx (g'_, I.Null) in
+((if !TableParam.strengthen
+  then
+    begin let w' = Subordinate.weaken (G'', (I.targetFam u'_)) in
           let iw = Whnf.invert w' in
-          let __Gs' = Whnf.strengthen (iw, G'') in
-          (__Gs', DAVars, DEVars, __U', eqn', s'')
-        else (G'', DAVars, DEVars, __U', eqn', s''))
-        (* K ||- G i.e. K contains all EVars in G *)
-        (* DupVars' , K' ||- p[s]  i.e. K' contains all EVars in (p,s) and G and
+          let gs'_ = Whnf.strengthen (iw, G'') in
+          (gs'_, DAVars, DEVars, u'_, eqn', s'') end
+  else begin (G'', DAVars, DEVars, u'_, eqn', s'') end)
+  (* K ||- G i.e. K contains all EVars in G *)(* DupVars' , K' ||- p[s]  i.e. K' contains all EVars in (p,s) and G and
                                          DupVars' contains all duplicate EVars p[s] *)
-        (* {{G}}_Vars' , i.e. abstract over the existential variables in G*)
-        (* abstract over existential variables in p[s] and linearize the expression *)
-        (* note: depth will become negative during makeEVarCtx *))
-    let abstractEVarCtx = abstractEVarCtx
-    let abstractAnswSub s =
-      let (__K, _) =
+  (* {{G}}_Vars' , i.e. abstract over the existential variables in G*)
+  (* abstract over existential variables in p[s] and linearize the expression *)
+  (* note: depth will become negative during makeEVarCtx *))
+let abstractEVarCtx = abstractEVarCtx
+let abstractAnswSub =
+  begin function
+  | s ->
+      let (k_, _) =
         collectSub ((I.Null, I.id), I.Null, s, I.Null, I.Null, false, 0) in
-      let epos = I.ctxLength __K in
+      let epos = I.ctxLength k_ in
       let (((_, Vars, s'))(*0 *)) =
         abstractSub' (((false, (I.Null, I.id), epos, I.Null, epos, s))
           (* total *)) in
       let DEVars = makeEVarCtx ((I.Null, I.id), Vars, I.Null, Vars, 0) in
       let s1' = ctxToEVarSub (DEVars, I.id) in (((DEVars, s'))
-        (* no linearization for answer substitution *))
-    let raiseType (__G) (__U) = raiseType (__G, __U)
-  end ;;
+        (* no linearization for answer substitution *)) end
+let raiseType = begin function | (g_, u_) -> raiseType (g_, u_) end end

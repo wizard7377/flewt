@@ -1,4 +1,3 @@
-
 module CSIntWord(CSIntWord:sig
                              module Whnf : WHNF
                              module Unify : UNIFY
@@ -9,628 +8,594 @@ module CSIntWord(CSIntWord:sig
     module W = LargeWord
     module FX = CSManager.Fixity
     module MS = ModeSyn
-    exception MyFgnCnstrRepPlus of (dctx * __Exp * __Exp * __Exp * __Exp) 
-    exception MyFgnCnstrRepTimes of (dctx * __Exp * __Exp * __Exp * __Exp) 
-    exception MyFgnCnstrRepQuot of (dctx * __Exp * __Exp * __Exp * __Exp) 
+    exception MyFgnCnstrRepPlus of (dctx * exp_ * exp_ * exp_ * exp_) 
+    exception MyFgnCnstrRepTimes of (dctx * exp_ * exp_ * exp_ * exp_) 
+    exception MyFgnCnstrRepQuot of (dctx * exp_ * exp_ * exp_ * exp_) 
     let wordSize' = Int.min (wordSize, W.wordSize)
     let zero = W.fromInt 0
     let max = W.(>>) ((W.notb zero), (Word.fromInt (W.wordSize - wordSize')))
     let rec numCheck d = W.(<=) (d, max)
-    let rec plusCheck d1 d2 =
+    let rec plusCheck (d1, d2) =
       let d3 = W.(+) (d1, d2) in
       (W.(>=) (d3, d1)) && ((W.(>=) (d3, d2)) && (W.(<=) (d3, max)))
-    let rec timesCheck d1 d2 =
-      if (d1 = zero) || (d2 = zero)
-      then true
-      else (let d3 = W.div ((W.div (max, d1)), d2) in W.(>) (d3, zero))
-    let rec quotCheck d1 d2 = W.(>) (d2, zero)
-    let myID = (ref (-1) : csid ref)
-    let wordID = (ref (-1) : cid ref)
-    let rec word () = Root ((Const (!wordID)), Nil)
-    let plusID = (ref (-1) : cid ref)
-    let timesID = (ref (-1) : cid ref)
-    let quotID = (ref (-1) : cid ref)
-    let rec plusExp (__U) (__V) (__W) =
-      Root ((Const (!plusID)), (App (__U, (App (__V, (App (__W, Nil)))))))
-    let rec timesExp (__U) (__V) (__W) =
-      Root ((Const (!timesID)), (App (__U, (App (__V, (App (__W, Nil)))))))
-    let rec quotExp (__U) (__V) (__W) =
-      Root ((Const (!quotID)), (App (__U, (App (__V, (App (__W, Nil)))))))
-    let provePlusID = (ref (-1) : cid ref)
-    let proveTimesID = (ref (-1) : cid ref)
-    let proveQuotID = (ref (-1) : cid ref)
-    let proofPlusID = (ref (-1) : cid ref)
-    let proofTimesID = (ref (-1) : cid ref)
-    let proofQuotID = (ref (-1) : cid ref)
-    let rec provePlusExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!provePlusID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec proofPlusExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!proofPlusID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec proofTimesExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!proofTimesID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec proveTimesExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!proveTimesID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec proveQuotExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!proveQuotID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec proofQuotExp (__U) (__V) (__W) (__P) =
-      Root
-        ((Const (!proofQuotID)),
-          (App (__U, (App (__V, (App (__W, (App (__P, Nil)))))))))
-    let rec numberConDec d =
-      ConDec ((W.fmt StringCvt.DEC d), None, 0, Normal, (word ()), Type)
-    let rec numberExp d = Root ((FgnConst ((!myID), (numberConDec d))), Nil)
-    let rec scanNumber str =
-      let rec check =
-        function
-        | _::_ as chars -> List.all Char.isDigit chars
-        | nil -> false in
-      if check (String.explode str)
-      then
-        match StringCvt.scanString (W.scan StringCvt.DEC) str with
-        | Some d -> (if numCheck d then Some d else None)
-        | None -> None
-      else None
-    let rec parseNumber string =
-      match scanNumber string with
-      | Some d -> Some (numberConDec d)
-      | None -> None
-    let rec plusPfConDec d1 d2 =
-      let d3 = W.(+) (d1, d2) in
-      ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "+") W.fmt StringCvt.DEC d2), None,
-          0, Normal,
-          (plusExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
-    let rec plusPfExp ds =
-      Root ((FgnConst ((!myID), (plusPfConDec ds))), Nil)
-    let rec timesPfConDec d1 d2 =
-      let d3 = W.( * ) (d1, d2) in
-      ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "*") W.fmt StringCvt.DEC d2), None,
-          0, Normal,
-          (timesExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
-    let rec timesPfExp ds =
-      Root ((FgnConst ((!myID), (timesPfConDec ds))), Nil)
-    let rec quotPfConDec d1 d2 =
-      let d3 = W.div (d1, d2) in
-      ConDec
-        (((^) ((W.fmt StringCvt.DEC d1) ^ "/") W.fmt StringCvt.DEC d2), None,
-          0, Normal,
-          (quotExp ((numberExp d1), (numberExp d2), (numberExp d3))), Type)
-    let rec quotPfExp ds =
-      Root ((FgnConst ((!myID), (quotPfConDec ds))), Nil)
-    let rec scanBinopPf oper string =
-      let args = String.tokens (fun c -> c = oper) string in
-      match args with
-      | arg1::arg2::[] ->
-          (match ((StringCvt.scanString (W.scan StringCvt.DEC) arg1),
+    let rec timesCheck (d1, d2) =
+      if (d1 = zero) || (d2 = zero) then begin true end
+      else begin (let d3 = W.div ((W.div (max, d1)), d2) in W.(>) (d3, zero)) end
+  let rec quotCheck (d1, d2) = W.(>) (d2, zero)
+  let myID = (ref (-1) : csid ref)
+  let wordID = (ref (-1) : cid ref)
+  let rec word () = Root ((Const !wordID), Nil)
+  let plusID = (ref (-1) : cid ref)
+  let timesID = (ref (-1) : cid ref)
+  let quotID = (ref (-1) : cid ref)
+  let rec plusExp (u_, v_, w_) =
+    Root ((Const !plusID), (App (u_, (App (v_, (App (w_, Nil)))))))
+  let rec timesExp (u_, v_, w_) =
+    Root ((Const !timesID), (App (u_, (App (v_, (App (w_, Nil)))))))
+  let rec quotExp (u_, v_, w_) =
+    Root ((Const !quotID), (App (u_, (App (v_, (App (w_, Nil)))))))
+  let provePlusID = (ref (-1) : cid ref)
+  let proveTimesID = (ref (-1) : cid ref)
+  let proveQuotID = (ref (-1) : cid ref)
+  let proofPlusID = (ref (-1) : cid ref)
+  let proofTimesID = (ref (-1) : cid ref)
+  let proofQuotID = (ref (-1) : cid ref)
+  let rec provePlusExp (u_, v_, w_, p_) =
+    Root
+      ((Const !provePlusID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec proofPlusExp (u_, v_, w_, p_) =
+    Root
+      ((Const !proofPlusID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec proofTimesExp (u_, v_, w_, p_) =
+    Root
+      ((Const !proofTimesID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec proveTimesExp (u_, v_, w_, p_) =
+    Root
+      ((Const !proveTimesID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec proveQuotExp (u_, v_, w_, p_) =
+    Root
+      ((Const !proveQuotID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec proofQuotExp (u_, v_, w_, p_) =
+    Root
+      ((Const !proofQuotID),
+        (App (u_, (App (v_, (App (w_, (App (p_, Nil)))))))))
+  let rec numberConDec d =
+    ConDec ((W.fmt StringCvt.DEC d), None, 0, Normal, (word ()), Type)
+  let rec numberExp d = Root ((FgnConst (!myID, (numberConDec d))), Nil)
+  let rec scanNumber str =
+    let rec check =
+      begin function
+      | _::_ as chars -> List.all Char.isDigit chars
+      | [] -> false end in
+  if check (String.explode str)
+  then
+    begin begin match StringCvt.scanString (W.scan StringCvt.DEC) str with
+          | Some d -> (if numCheck d then begin Some d end
+              else begin None end)
+  | None -> None end end else begin None end
+let rec parseNumber string =
+  begin match scanNumber string with
+  | Some d -> Some (numberConDec d)
+  | None -> None end
+let rec plusPfConDec (d1, d2) =
+  let d3 = W.(+) (d1, d2) in
+  ConDec
+    (((^) ((W.fmt StringCvt.DEC d1) ^ "+") W.fmt StringCvt.DEC d2), None, 0,
+      Normal, (plusExp ((numberExp d1), (numberExp d2), (numberExp d3))),
+      Type)
+let rec plusPfExp ds = Root ((FgnConst (!myID, (plusPfConDec ds))), Nil)
+let rec timesPfConDec (d1, d2) =
+  let d3 = W.( * ) (d1, d2) in
+  ConDec
+    (((^) ((W.fmt StringCvt.DEC d1) ^ "*") W.fmt StringCvt.DEC d2), None, 0,
+      Normal, (timesExp ((numberExp d1), (numberExp d2), (numberExp d3))),
+      Type)
+let rec timesPfExp ds = Root ((FgnConst (!myID, (timesPfConDec ds))), Nil)
+let rec quotPfConDec (d1, d2) =
+  let d3 = W.div (d1, d2) in
+  ConDec
+    (((^) ((W.fmt StringCvt.DEC d1) ^ "/") W.fmt StringCvt.DEC d2), None, 0,
+      Normal, (quotExp ((numberExp d1), (numberExp d2), (numberExp d3))),
+      Type)
+let rec quotPfExp ds = Root ((FgnConst (!myID, (quotPfConDec ds))), Nil)
+let rec scanBinopPf oper string =
+  let args = String.tokens (begin function | c -> c = oper end) string in
+begin match args with
+| arg1::arg2::[] ->
+    (begin match ((StringCvt.scanString (W.scan StringCvt.DEC) arg1),
                    (StringCvt.scanString (W.scan StringCvt.DEC) arg2))
            with
-           | (Some d1, Some d2) -> Some (d1, d2)
-           | _ -> None)
-      | _ -> None
-    let rec parseBinopPf oper string =
-      match (oper, (scanBinopPf oper string)) with
-      | ('+', Some ds) -> Some (plusPfConDec ds)
-      | ('*', Some ds) -> Some (timesPfConDec ds)
-      | ('/', Some ds) -> Some (quotPfConDec ds)
-      | _ -> None
-    let parsePlusPf = parseBinopPf '+'
-    let parseTimesPf = parseBinopPf '*'
-    let parseQuotPf = parseBinopPf '/'
-    let rec parseAll string =
-      match parseNumber string with
-      | Some conDec -> Some conDec
-      | None ->
-          (match parsePlusPf string with
-           | Some conDec -> Some conDec
-           | None ->
-               (match parseTimesPf string with
-                | Some conDec -> Some conDec
-                | None -> parseQuotPf string))
-    type __FixTerm =
-      | Num of W.word 
-      | PlusPf of (W.word * W.word) 
-      | TimesPf of (W.word * W.word) 
-      | QuotPf of (W.word * W.word) 
-      | Expr of (__Exp * __Sub) 
-    let rec fromExpW =
-      function
-      | (Root (FgnConst (cs, conDec), _), _) as Us ->
-          if (!) ((=) cs) myID
-          then
-            let string = conDecName conDec in
-            (match scanNumber string with
-             | Some d -> Num d
-             | None ->
-                 (match scanBinopPf '/' string with
-                  | Some ds -> QuotPf ds
-                  | None ->
-                      (match scanBinopPf '+' string with
-                       | Some ds -> PlusPf ds
-                       | None ->
-                           (match scanBinopPf '*' string with
-                            | Some ds -> TimesPf ds
-                            | None -> Expr __Us))))
-          else Expr __Us
-      | (Root (Def d, _), _) as Us -> fromExpW (Whnf.expandDef __Us)
-      | __Us -> Expr __Us
-    let rec fromExp (__Us) = fromExpW (Whnf.whnf __Us)
-    let rec toExp =
-      function
-      | Num d -> numberExp d
-      | PlusPf ds -> plusPfExp ds
-      | TimesPf ds -> timesPfExp ds
-      | QuotPf ds -> quotPfExp ds
-      | Expr (__Us) -> EClo __Us
-    let rec solveNumber (__G) (__S) k = Some (numberExp (W.fromInt k))
-    let rec fst __0__ __1__ =
-      match (__0__, __1__) with
-      | (App (__U1, _), s) -> (__U1, s)
-      | (SClo (__S, s'), s) -> fst (__S, (comp (s', s)))
-    let rec snd __2__ __3__ =
-      match (__2__, __3__) with
-      | (App (_, __S), s) -> fst (__S, s)
-      | (SClo (__S, s'), s) -> snd (__S, (comp (s', s)))
-    let rec trd __4__ __5__ =
-      match (__4__, __5__) with
-      | (App (_, __S), s) -> snd (__S, s)
-      | (SClo (__S, s'), s) -> trd (__S, (comp (s', s)))
-    let rec fth __6__ __7__ =
-      match (__6__, __7__) with
-      | (App (_, __S), s) -> trd (__S, s)
-      | (SClo (__S, s'), s) -> fth (__S, (comp (s', s)))
-    let rec toInternalPlus (__G) (__U1) (__U2) (__U3) () =
-      [(__G, (plusExp (__U1, __U2, __U3)))]
-    let rec awakePlus (__G) proof (__U1) (__U2) (__U3) () =
-      match solvePlus (__G, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0)
-      with
-      | Some proof' -> Unify.unifiable (__G, (proof, id), (proof', id))
-      | None -> false
-    let rec makeCnstrPlus (__G) proof (__U1) (__U2) (__U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepPlus (__G, proof, __U1, __U2, __U3)))
-    let rec solvePlus __8__ __9__ __10__ =
-      match (__8__, __9__, __10__) with
-      | (__G, __S, 0) ->
-          let __Us1 = fst (__S, id) in
-          let __Us2 = snd (__S, id) in
-          let __Us3 = trd (__S, id) in
-          (match ((fromExp __Us1), (fromExp __Us2), (fromExp __Us3)) with
-           | (Num d1, Num d2, Num d3) ->
-               if ((=) d3 W.(+) (d1, d2)) && (plusCheck (d1, d2))
-               then Some (plusPfExp (d1, d2))
-               else None
-           | (Expr (__Us1), Num d2, Num d3) ->
-               if
-                 (W.(>=) (d3, d2)) &&
-                   (Unify.unifiable
-                      (__G, __Us1, ((numberExp (W.(-) (d3, d2))), id)))
-               then Some (plusPfExp ((W.(-) (d3, d2)), d2))
-               else None
-           | (Num d1, Expr (__Us2), Num d3) ->
-               if
-                 (W.(>=) (d3, d1)) &&
-                   (Unify.unifiable
-                      (__G, __Us2, ((numberExp (W.(-) (d3, d1))), id)))
-               then Some (plusPfExp (d1, (W.(-) (d3, d1))))
-               else None
-           | (Num d1, Num d2, Expr (__Us3)) ->
-               if
-                 (plusCheck (d1, d2)) &&
-                   (Unify.unifiable
-                      (__G, __Us3, ((numberExp (W.(+) (d1, d2))), id)))
-               then Some (plusPfExp (d1, d2))
-               else None
-           | _ ->
-               let proof =
-                 newEVar
-                   (__G,
-                     (plusExp ((EClo __Us1), (EClo __Us2), (EClo __Us3)))) in
-               let cnstr =
-                 makeCnstrPlus
-                   (__G, proof, (EClo __Us1), (EClo __Us2), (EClo __Us3)) in
-               let _ =
-                 List.app (fun (__Us) -> Unify.delay (__Us, (ref cnstr)))
-                   [__Us1; __Us2; __Us3] in
-               Some proof)
-      | (__G, __S, n) -> None
-    let rec toInternalTimes (__G) (__U1) (__U2) (__U3) () =
-      [(__G, (timesExp (__U1, __U2, __U3)))]
-    let rec awakeTimes (__G) proof (__U1) (__U2) (__U3) () =
-      match solveTimes
-              (__G, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0)
-      with
-      | Some proof' -> Unify.unifiable (__G, (proof, id), (proof', id))
-      | None -> false
-    let rec makeCnstrTimes (__G) proof (__U1) (__U2) (__U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepTimes (__G, proof, __U1, __U2, __U3)))
-    let rec solveTimes __11__ __12__ __13__ =
-      match (__11__, __12__, __13__) with
-      | (__G, __S, 0) ->
-          let __Us1 = fst (__S, id) in
-          let __Us2 = snd (__S, id) in
-          let __Us3 = trd (__S, id) in
-          (match ((fromExp __Us1), (fromExp __Us2), (fromExp __Us3)) with
-           | (Num d1, Num d2, Num d3) ->
-               if ((=) d3 W.( * ) (d1, d2)) && (timesCheck (d1, d2))
-               then Some (timesPfExp (d1, d2))
-               else None
-           | (Expr (__Us1), Num d2, Num d3) ->
-               if
-                 (d3 = zero) &&
-                   (Unify.unifiable (__G, __Us1, ((numberExp zero), id)))
-               then Some (timesPfExp (zero, d2))
-               else
-                 if
-                   (W.(>) (d2, zero)) &&
-                     ((W.(>) (d3, zero)) &&
-                        (((W.mod__ (d3, d2)) = zero) &&
-                           (Unify.unifiable
-                              (__G, __Us1,
-                                ((numberExp (W.div (d3, d2))), id)))))
-                 then Some (timesPfExp ((W.div (d3, d2)), d2))
-                 else None
-           | (Num d1, Expr (__Us2), Num d3) ->
-               if
-                 (d3 = zero) &&
-                   (Unify.unifiable (__G, __Us2, ((numberExp zero), id)))
-               then Some (timesPfExp (d1, zero))
-               else
-                 if
-                   (W.(>) (d1, zero)) &&
-                     ((W.(>) (d3, zero)) &&
-                        (((W.mod__ (d3, d1)) = zero) &&
-                           (Unify.unifiable
-                              (__G, __Us2,
-                                ((numberExp (W.div (d3, d1))), id)))))
-                 then Some (timesPfExp (d1, (W.div (d3, d1))))
-                 else None
-           | (Num d1, Num d2, Expr (__Us3)) ->
-               if
-                 (timesCheck (d1, d2)) &&
-                   (Unify.unifiable
-                      (__G, __Us3, ((numberExp (W.( * ) (d1, d2))), id)))
-               then Some (timesPfExp (d1, d2))
-               else None
-           | _ ->
-               let proof =
-                 newEVar
-                   (__G,
-                     (timesExp ((EClo __Us1), (EClo __Us2), (EClo __Us3)))) in
-               let cnstr =
-                 makeCnstrTimes
-                   (__G, proof, (EClo __Us1), (EClo __Us2), (EClo __Us3)) in
-               let _ =
-                 List.app (fun (__Us) -> Unify.delay (__Us, (ref cnstr)))
-                   [__Us1; __Us2; __Us3] in
-               Some proof)
-      | (__G, __S, n) -> None
-    let rec toInternalQuot (__G) (__U1) (__U2) (__U3) () =
-      [(__G, (quotExp (__U1, __U2, __U3)))]
-    let rec awakeQuot (__G) proof (__U1) (__U2) (__U3) () =
-      match solveQuot (__G, (App (__U1, (App (__U2, (App (__U3, Nil)))))), 0)
-      with
-      | Some proof' -> Unify.unifiable (__G, (proof, id), (proof', id))
-      | None -> false
-    let rec makeCnstrQuot (__G) proof (__U1) (__U2) (__U3) =
-      FgnCnstr ((!myID), (MyFgnCnstrRepQuot (__G, proof, __U1, __U2, __U3)))
-    let rec solveQuot __14__ __15__ __16__ =
-      match (__14__, __15__, __16__) with
-      | (__G, __S, 0) ->
-          let __Us1 = fst (__S, id) in
-          let __Us2 = snd (__S, id) in
-          let __Us3 = trd (__S, id) in
-          (match ((fromExp __Us1), (fromExp __Us2), (fromExp __Us3)) with
-           | (Num d1, Num d2, Num d3) ->
-               if (quotCheck (d1, d2)) && ((=) d3 W.div (d1, d2))
-               then Some (quotPfExp (d1, d2))
-               else None
-           | (Num d1, Num d2, Expr (__Us3)) ->
-               if
-                 (quotCheck (d1, d2)) &&
-                   (Unify.unifiable
-                      (__G, __Us3, ((numberExp (W.div (d1, d2))), id)))
-               then Some (quotPfExp (d1, d2))
-               else None
-           | _ ->
-               let proof =
-                 newEVar
-                   (__G,
-                     (quotExp ((EClo __Us1), (EClo __Us2), (EClo __Us3)))) in
-               let cnstr =
-                 makeCnstrQuot
-                   (__G, proof, (EClo __Us1), (EClo __Us2), (EClo __Us3)) in
-               let _ =
-                 List.app (fun (__Us) -> Unify.delay (__Us, (ref cnstr)))
-                   [__Us1; __Us2; __Us3] in
-               Some proof)
-      | (__G, __S, n) -> None
-    let rec solveProvePlus (__G) (__S) k =
-      let __Us1 = fst (__S, id) in
-      let __Us2 = snd (__S, id) in
-      let __Us3 = trd (__S, id) in
-      let __Us4 = fth (__S, id) in
-      match solvePlus
-              (__G,
-                (App
-                   ((EClo __Us1),
-                     (App ((EClo __Us2), (App ((EClo __Us3), Nil)))))), k)
-      with
-      | Some (__U) ->
-          if Unify.unifiable (__G, __Us4, (__U, id))
-          then
-            Some
-              (proofPlusExp
-                 ((EClo __Us1), (EClo __Us2), (EClo __Us3), (EClo __Us4)))
-          else None
-      | None -> None
-    let rec solveProveTimes (__G) (__S) k =
-      let __Us1 = fst (__S, id) in
-      let __Us2 = snd (__S, id) in
-      let __Us3 = trd (__S, id) in
-      let __Us4 = fth (__S, id) in
-      match solveTimes
-              (__G,
-                (App
-                   ((EClo __Us1),
-                     (App ((EClo __Us2), (App ((EClo __Us3), Nil)))))), k)
-      with
-      | Some (__U) ->
-          if Unify.unifiable (__G, __Us4, (__U, id))
-          then
-            Some
-              (proofTimesExp
-                 ((EClo __Us1), (EClo __Us2), (EClo __Us3), (EClo __Us4)))
-          else None
-      | None -> None
-    let rec solveProveQuot (__G) (__S) k =
-      let __Us1 = fst (__S, id) in
-      let __Us2 = snd (__S, id) in
-      let __Us3 = trd (__S, id) in
-      let __Us4 = fth (__S, id) in
-      match solveQuot
-              (__G,
-                (App
-                   ((EClo __Us1),
-                     (App ((EClo __Us2), (App ((EClo __Us3), Nil)))))), k)
-      with
-      | Some (__U) ->
-          if Unify.unifiable (__G, __Us4, (__U, id))
-          then
-            Some
-              (proofQuotExp
-                 ((EClo __Us1), (EClo __Us2), (EClo __Us3), (EClo __Us4)))
-          else None
-      | None -> None
-    let rec arrow (__U) (__V) = Pi (((Dec (None, __U)), No), __V)
-    let rec pi name (__U) (__V) = Pi (((Dec ((Some name), __U)), Maybe), __V)
-    let rec bvar n = Root ((BVar n), Nil)
-    let rec installFgnCnstrOps () =
-      let csid = !myID in
-      let _ =
-        FgnCnstrStd.ToInternal.install
-          (csid,
-            (function
-             | MyFgnCnstrRepPlus (__G, _, __U1, __U2, __U3) ->
-                 toInternalPlus (__G, __U1, __U2, __U3)
-             | MyFgnCnstrRepTimes (__G, _, __U1, __U2, __U3) ->
-                 toInternalTimes (__G, __U1, __U2, __U3)
-             | MyFgnCnstrRepQuot (__G, _, __U1, __U2, __U3) ->
-                 toInternalQuot (__G, __U1, __U2, __U3)
-             | fc -> raise (UnexpectedFgnCnstr fc))) in
-      let _ =
-        FgnCnstrStd.Awake.install
-          (csid,
-            (function
-             | MyFgnCnstrRepPlus (__G, proof, __U1, __U2, __U3) ->
-                 awakePlus (__G, proof, __U1, __U2, __U3)
-             | MyFgnCnstrRepTimes (__G, proof, __U1, __U2, __U3) ->
-                 awakeTimes (__G, proof, __U1, __U2, __U3)
-             | MyFgnCnstrRepQuot (__G, proof, __U1, __U2, __U3) ->
-                 awakeQuot (__G, proof, __U1, __U2, __U3)
-             | fc -> raise (UnexpectedFgnCnstr fc))) in
-      let _ =
-        FgnCnstrStd.Simplify.install
-          (csid,
-            (function
-             | MyFgnCnstrRepPlus _ -> (fun () -> false)
-             | MyFgnCnstrRepTimes _ -> (fun () -> false)
-             | MyFgnCnstrRepQuot _ -> (fun () -> false)
-             | fc -> raise (UnexpectedFgnCnstr fc))) in
-      ()
-    let rec init cs installF =
-      myID := cs;
-      (:=) wordID installF
-        ((ConDec
-            (((^) "word" Int.toString wordSize'), None, 0,
-              (Constraint ((!myID), solveNumber)), (Uni Type), Kind)),
-          (None : FX.fixity option), [MS.Mnil]);
-      (:=) plusID installF
-        ((ConDec
-            ("+", None, 0, (Constraint ((!myID), solvePlus)),
-              (arrow
-                 ((word ()),
-                   (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Plus, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Plus, (Some "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
-          MS.Mapp
-            ((MS.Marg (MS.Plus, (Some "X"))),
-              (MS.Mapp
-                 ((MS.Marg (MS.Minus, (Some "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
-          MS.Mapp
-            ((MS.Marg (MS.Minus, (Some "X"))),
-              (MS.Mapp
-                 ((MS.Marg (MS.Plus, (Some "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
-      (:=) timesID installF
-        ((ConDec
-            ("*", None, 0, (Constraint ((!myID), solveTimes)),
-              (arrow
-                 ((word ()),
-                   (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Plus, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Plus, (Some "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
-          MS.Mapp
-            ((MS.Marg (MS.Plus, (Some "X"))),
-              (MS.Mapp
-                 ((MS.Marg (MS.Minus, (Some "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
-          MS.Mapp
-            ((MS.Marg (MS.Minus, (Some "X"))),
-              (MS.Mapp
-                 ((MS.Marg (MS.Plus, (Some "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
-      (:=) quotID installF
-        ((ConDec
-            ("/", None, 0, (Constraint ((!myID), solveQuot)),
-              (arrow
-                 ((word ()),
-                   (arrow ((word ()), (arrow ((word ()), (Uni Type))))))),
-              Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Plus, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Plus, (Some "Y"))),
-                    (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
-          MS.Mapp
-            ((MS.Marg (MS.Plus, (Some "X"))),
-              (MS.Mapp
-                 ((MS.Marg (MS.Minus, (Some "Y"))),
-                   (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
-      (:=) provePlusID installF
-        ((ConDec
-            ("prove+", None, 0, (Constraint ((!myID), solveProvePlus)),
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (plusExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Star, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Star, (Some "Y"))),
-                    (MS.Mapp
-                       ((MS.Marg (MS.Star, (Some "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
-      (:=) proofPlusID installF
-        ((ConDec
-            ("proof+", None, 0, Normal,
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (plusExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (provePlusExp
-                                     ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), None, nil);
-      (:=) proveTimesID installF
-        ((ConDec
-            ("prove*", None, 0, (Constraint ((!myID), solveProveTimes)),
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (timesExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Star, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Star, (Some "Y"))),
-                    (MS.Mapp
-                       ((MS.Marg (MS.Star, (Some "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
-      (:=) proofTimesID installF
-        ((ConDec
-            ("proof*", None, 0, Normal,
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (timesExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (proveTimesExp
-                                     ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), None, nil);
-      (:=) proveQuotID installF
-        ((ConDec
-            ("prove/", None, 0, (Constraint ((!myID), solveProveQuot)),
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (quotExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (Uni Type))))))))), Kind)), None,
-          [MS.Mapp
-             ((MS.Marg (MS.Star, (Some "X"))),
-               (MS.Mapp
-                  ((MS.Marg (MS.Star, (Some "Y"))),
-                    (MS.Mapp
-                       ((MS.Marg (MS.Star, (Some "Z"))),
-                         (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
-      (:=) proofQuotID installF
-        ((ConDec
-            ("proof/", None, 0, Normal,
-              (pi
-                 ("X", (word ()),
-                   (pi
-                      ("Y", (word ()),
-                        (pi
-                           ("Z", (word ()),
-                             (pi
-                                ("P",
-                                  (quotExp ((bvar 3), (bvar 2), (bvar 1))),
-                                  (proveQuotExp
-                                     ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
-              Type)), None, nil);
-      installFgnCnstrOps ();
-      ()
-    let solver =
-      {
-        name = ((^) "word" Int.toString wordSize');
-        keywords = "numbers,equality";
-        needs = ["Unify"];
-        fgnConst = (Some { parse = parseAll });
-        init;
-        reset = (fun () -> ());
-        mark = (fun () -> ());
-        unwind = (fun () -> ())
-      }
-  end ;;
+     | (Some d1, Some d2) -> Some (d1, d2)
+     | _ -> None end)
+  | _ -> None end
+let rec parseBinopPf oper string =
+  begin match (oper, (scanBinopPf oper string)) with
+  | ('+', Some ds) -> Some (plusPfConDec ds)
+  | ('*', Some ds) -> Some (timesPfConDec ds)
+  | ('/', Some ds) -> Some (quotPfConDec ds)
+  | _ -> None end
+let parsePlusPf = parseBinopPf '+'
+let parseTimesPf = parseBinopPf '*'
+let parseQuotPf = parseBinopPf '/'
+let rec parseAll string =
+  begin match parseNumber string with
+  | Some conDec -> Some conDec
+  | None ->
+      (begin match parsePlusPf string with
+       | Some conDec -> Some conDec
+       | None ->
+           (begin match parseTimesPf string with
+            | Some conDec -> Some conDec
+            | None -> parseQuotPf string end) end) end
+type fixTerm_ =
+  | Num of W.word 
+  | PlusPf of (W.word * W.word) 
+  | TimesPf of (W.word * W.word) 
+  | QuotPf of (W.word * W.word) 
+  | Expr of (exp_ * sub_) 
+let rec fromExpW =
+  begin function
+  | (Root (FgnConst (cs, conDec), _), _) as us_ ->
+      if (!) ((=) cs) myID
+      then
+        begin let string = conDecName conDec in
+              (begin match scanNumber string with
+               | Some d -> Num d
+               | None ->
+                   (begin match scanBinopPf '/' string with
+                    | Some ds -> QuotPf ds
+                    | None ->
+                        (begin match scanBinopPf '+' string with
+                         | Some ds -> PlusPf ds
+                         | None ->
+                             (begin match scanBinopPf '*' string with
+                              | Some ds -> TimesPf ds
+                              | None -> Expr us_ end) end) end) end) end
+else begin Expr us_ end
+| (Root (Def d, _), _) as us_ -> fromExpW (Whnf.expandDef us_)
+| us_ -> Expr us_ end
+let rec fromExp (us_) = fromExpW (Whnf.whnf us_)
+let rec toExp =
+  begin function
+  | Num d -> numberExp d
+  | PlusPf ds -> plusPfExp ds
+  | TimesPf ds -> timesPfExp ds
+  | QuotPf ds -> quotPfExp ds
+  | Expr (us_) -> EClo us_ end
+let rec solveNumber (g_, s_, k) = Some (numberExp (W.fromInt k))
+let rec fst =
+  begin function
+  | (App (u1_, _), s) -> (u1_, s)
+  | (SClo (s_, s'), s) -> fst (s_, (comp (s', s))) end
+let rec snd =
+  begin function
+  | (App (_, s_), s) -> fst (s_, s)
+  | (SClo (s_, s'), s) -> snd (s_, (comp (s', s))) end
+let rec trd =
+  begin function
+  | (App (_, s_), s) -> snd (s_, s)
+  | (SClo (s_, s'), s) -> trd (s_, (comp (s', s))) end
+let rec fth =
+  begin function
+  | (App (_, s_), s) -> trd (s_, s)
+  | (SClo (s_, s'), s) -> fth (s_, (comp (s', s))) end
+let rec toInternalPlus (g_, u1_, u2_, u3_) () =
+  [(g_, (plusExp (u1_, u2_, u3_)))]
+let rec awakePlus (g_, proof, u1_, u2_, u3_) () =
+  begin match solvePlus (g_, (App (u1_, (App (u2_, (App (u3_, Nil)))))), 0)
+        with
+  | Some proof' -> Unify.unifiable (g_, (proof, id), (proof', id))
+  | None -> false end
+let rec makeCnstrPlus (g_, proof, u1_, u2_, u3_) =
+  FgnCnstr (!myID, (MyFgnCnstrRepPlus (g_, proof, u1_, u2_, u3_)))
+let rec solvePlus =
+  begin function
+  | (g_, s_, 0) ->
+      let us1_ = fst (s_, id) in
+      let us2_ = snd (s_, id) in
+      let us3_ = trd (s_, id) in
+      (begin match ((fromExp us1_), (fromExp us2_), (fromExp us3_)) with
+       | (Num d1, Num d2, Num d3) ->
+           if ((=) d3 W.(+) (d1, d2)) && (plusCheck (d1, d2))
+           then begin Some (plusPfExp (d1, d2)) end else begin None end
+        | (Expr (us1_), Num d2, Num d3) ->
+            if
+              (W.(>=) (d3, d2)) &&
+                (Unify.unifiable
+                   (g_, us1_, ((numberExp (W.(-) (d3, d2))), id)))
+            then begin Some (plusPfExp ((W.(-) (d3, d2)), d2)) end
+            else begin None end
+      | (Num d1, Expr (us2_), Num d3) ->
+          if
+            (W.(>=) (d3, d1)) &&
+              (Unify.unifiable (g_, us2_, ((numberExp (W.(-) (d3, d1))), id)))
+          then begin Some (plusPfExp (d1, (W.(-) (d3, d1)))) end
+          else begin None end
+  | (Num d1, Num d2, Expr (us3_)) ->
+      if
+        (plusCheck (d1, d2)) &&
+          (Unify.unifiable (g_, us3_, ((numberExp (W.(+) (d1, d2))), id)))
+      then begin Some (plusPfExp (d1, d2)) end else begin None end
+| _ ->
+    let proof =
+      newEVar (g_, (plusExp ((EClo us1_), (EClo us2_), (EClo us3_)))) in
+    let cnstr =
+      makeCnstrPlus (g_, proof, (EClo us1_), (EClo us2_), (EClo us3_)) in
+    let _ =
+      List.app (begin function | us_ -> Unify.delay (us_, (ref cnstr)) end)
+      [us1_; us2_; us3_] in
+    Some proof end)
+| (g_, s_, n) -> None end
+let rec toInternalTimes (g_, u1_, u2_, u3_) () =
+  [(g_, (timesExp (u1_, u2_, u3_)))]
+let rec awakeTimes (g_, proof, u1_, u2_, u3_) () =
+  begin match solveTimes (g_, (App (u1_, (App (u2_, (App (u3_, Nil)))))), 0)
+        with
+  | Some proof' -> Unify.unifiable (g_, (proof, id), (proof', id))
+  | None -> false end
+let rec makeCnstrTimes (g_, proof, u1_, u2_, u3_) =
+  FgnCnstr (!myID, (MyFgnCnstrRepTimes (g_, proof, u1_, u2_, u3_)))
+let rec solveTimes =
+  begin function
+  | (g_, s_, 0) ->
+      let us1_ = fst (s_, id) in
+      let us2_ = snd (s_, id) in
+      let us3_ = trd (s_, id) in
+      (begin match ((fromExp us1_), (fromExp us2_), (fromExp us3_)) with
+       | (Num d1, Num d2, Num d3) ->
+           if ((=) d3 W.( * ) (d1, d2)) && (timesCheck (d1, d2))
+           then begin Some (timesPfExp (d1, d2)) end else begin None end
+        | (Expr (us1_), Num d2, Num d3) ->
+            if
+              (d3 = zero) &&
+                (Unify.unifiable (g_, us1_, ((numberExp zero), id)))
+            then begin Some (timesPfExp (zero, d2)) end
+            else begin
+              if
+                (W.(>) (d2, zero)) &&
+                  ((W.(>) (d3, zero)) &&
+                     (((W.mod_ (d3, d2)) = zero) &&
+                        (Unify.unifiable
+                           (g_, us1_, ((numberExp (W.div (d3, d2))), id)))))
+              then begin Some (timesPfExp ((W.div (d3, d2)), d2)) end
+              else begin None end end
+  | (Num d1, Expr (us2_), Num d3) ->
+      if (d3 = zero) && (Unify.unifiable (g_, us2_, ((numberExp zero), id)))
+      then begin Some (timesPfExp (d1, zero)) end
+      else begin
+        if
+          (W.(>) (d1, zero)) &&
+            ((W.(>) (d3, zero)) &&
+               (((W.mod_ (d3, d1)) = zero) &&
+                  (Unify.unifiable
+                     (g_, us2_, ((numberExp (W.div (d3, d1))), id)))))
+        then begin Some (timesPfExp (d1, (W.div (d3, d1)))) end
+        else begin None end end
+| (Num d1, Num d2, Expr (us3_)) ->
+    if
+      (timesCheck (d1, d2)) &&
+        (Unify.unifiable (g_, us3_, ((numberExp (W.( * ) (d1, d2))), id)))
+    then begin Some (timesPfExp (d1, d2)) end else begin None end
+| _ ->
+    let proof =
+      newEVar (g_, (timesExp ((EClo us1_), (EClo us2_), (EClo us3_)))) in
+    let cnstr =
+      makeCnstrTimes (g_, proof, (EClo us1_), (EClo us2_), (EClo us3_)) in
+    let _ =
+      List.app (begin function | us_ -> Unify.delay (us_, (ref cnstr)) end)
+      [us1_; us2_; us3_] in
+    Some proof end)
+| (g_, s_, n) -> None end
+let rec toInternalQuot (g_, u1_, u2_, u3_) () =
+  [(g_, (quotExp (u1_, u2_, u3_)))]
+let rec awakeQuot (g_, proof, u1_, u2_, u3_) () =
+  begin match solveQuot (g_, (App (u1_, (App (u2_, (App (u3_, Nil)))))), 0)
+        with
+  | Some proof' -> Unify.unifiable (g_, (proof, id), (proof', id))
+  | None -> false end
+let rec makeCnstrQuot (g_, proof, u1_, u2_, u3_) =
+  FgnCnstr (!myID, (MyFgnCnstrRepQuot (g_, proof, u1_, u2_, u3_)))
+let rec solveQuot =
+  begin function
+  | (g_, s_, 0) ->
+      let us1_ = fst (s_, id) in
+      let us2_ = snd (s_, id) in
+      let us3_ = trd (s_, id) in
+      (begin match ((fromExp us1_), (fromExp us2_), (fromExp us3_)) with
+       | (Num d1, Num d2, Num d3) ->
+           if (quotCheck (d1, d2)) && ((=) d3 W.div (d1, d2))
+           then begin Some (quotPfExp (d1, d2)) end else begin None end
+        | (Num d1, Num d2, Expr (us3_)) ->
+            if
+              (quotCheck (d1, d2)) &&
+                (Unify.unifiable
+                   (g_, us3_, ((numberExp (W.div (d1, d2))), id)))
+            then begin Some (quotPfExp (d1, d2)) end else begin None end
+      | _ ->
+          let proof =
+            newEVar (g_, (quotExp ((EClo us1_), (EClo us2_), (EClo us3_)))) in
+          let cnstr =
+            makeCnstrQuot (g_, proof, (EClo us1_), (EClo us2_), (EClo us3_)) in
+          let _ =
+            List.app
+              (begin function | us_ -> Unify.delay (us_, (ref cnstr)) end)
+            [us1_; us2_; us3_] in
+          Some proof end)
+| (g_, s_, n) -> None end
+let rec solveProvePlus (g_, s_, k) =
+  let us1_ = fst (s_, id) in
+  let us2_ = snd (s_, id) in
+  let us3_ = trd (s_, id) in
+  let us4_ = fth (s_, id) in
+  begin match solvePlus
+                (g_,
+                  (App
+                     ((EClo us1_),
+                       (App ((EClo us2_), (App ((EClo us3_), Nil)))))), k)
+        with
+  | Some (u_) ->
+      if Unify.unifiable (g_, us4_, (u_, id))
+      then
+        begin Some
+                (proofPlusExp
+                   ((EClo us1_), (EClo us2_), (EClo us3_), (EClo us4_))) end
+      else begin None end
+    | None -> None end
+let rec solveProveTimes (g_, s_, k) =
+  let us1_ = fst (s_, id) in
+  let us2_ = snd (s_, id) in
+  let us3_ = trd (s_, id) in
+  let us4_ = fth (s_, id) in
+  begin match solveTimes
+                (g_,
+                  (App
+                     ((EClo us1_),
+                       (App ((EClo us2_), (App ((EClo us3_), Nil)))))), k)
+        with
+  | Some (u_) ->
+      if Unify.unifiable (g_, us4_, (u_, id))
+      then
+        begin Some
+                (proofTimesExp
+                   ((EClo us1_), (EClo us2_), (EClo us3_), (EClo us4_))) end
+      else begin None end
+    | None -> None end
+let rec solveProveQuot (g_, s_, k) =
+  let us1_ = fst (s_, id) in
+  let us2_ = snd (s_, id) in
+  let us3_ = trd (s_, id) in
+  let us4_ = fth (s_, id) in
+  begin match solveQuot
+                (g_,
+                  (App
+                     ((EClo us1_),
+                       (App ((EClo us2_), (App ((EClo us3_), Nil)))))), k)
+        with
+  | Some (u_) ->
+      if Unify.unifiable (g_, us4_, (u_, id))
+      then
+        begin Some
+                (proofQuotExp
+                   ((EClo us1_), (EClo us2_), (EClo us3_), (EClo us4_))) end
+      else begin None end
+    | None -> None end
+let rec arrow (u_, v_) = Pi (((Dec (None, u_)), No), v_)
+let rec pi (name, u_, v_) = Pi (((Dec ((Some name), u_)), Maybe), v_)
+let rec bvar n = Root ((BVar n), Nil)
+let rec installFgnCnstrOps () =
+  let csid = !myID in
+  let _ =
+    FgnCnstrStd.ToInternal.install
+      (csid,
+        (begin function
+         | MyFgnCnstrRepPlus (g_, _, u1_, u2_, u3_) ->
+             toInternalPlus (g_, u1_, u2_, u3_)
+         | MyFgnCnstrRepTimes (g_, _, u1_, u2_, u3_) ->
+             toInternalTimes (g_, u1_, u2_, u3_)
+         | MyFgnCnstrRepQuot (g_, _, u1_, u2_, u3_) ->
+             toInternalQuot (g_, u1_, u2_, u3_)
+         | fc -> raise (UnexpectedFgnCnstr fc) end)) in
+  let _ =
+    FgnCnstrStd.Awake.install
+      (csid,
+        (begin function
+         | MyFgnCnstrRepPlus (g_, proof, u1_, u2_, u3_) ->
+             awakePlus (g_, proof, u1_, u2_, u3_)
+         | MyFgnCnstrRepTimes (g_, proof, u1_, u2_, u3_) ->
+             awakeTimes (g_, proof, u1_, u2_, u3_)
+         | MyFgnCnstrRepQuot (g_, proof, u1_, u2_, u3_) ->
+             awakeQuot (g_, proof, u1_, u2_, u3_)
+         | fc -> raise (UnexpectedFgnCnstr fc) end)) in
+  let _ =
+    FgnCnstrStd.Simplify.install
+      (csid,
+        (begin function
+         | MyFgnCnstrRepPlus _ -> (begin function | () -> false end)
+        | MyFgnCnstrRepTimes _ -> (begin function | () -> false end)
+      | MyFgnCnstrRepQuot _ -> (begin function | () -> false end)
+    | fc -> raise (UnexpectedFgnCnstr fc) end)) in
+()
+let rec init (cs, installF) =
+  begin myID := cs;
+  (:=) wordID installF
+    ((ConDec
+        (((^) "word" Int.toString wordSize'), None, 0,
+          (Constraint (!myID, solveNumber)), (Uni Type), Kind)),
+      (None : FX.fixity option), [MS.Mnil]);
+  (:=) plusID installF
+    ((ConDec
+        ("+", None, 0, (Constraint (!myID, solvePlus)),
+          (arrow
+             ((word ()),
+               (arrow ((word ()), (arrow ((word ()), (Uni Type))))))), Kind)),
+      None,
+      [MS.Mapp
+         ((MS.Marg (MS.Plus, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Plus, (Some "Y"))),
+                (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
+      MS.Mapp
+        ((MS.Marg (MS.Plus, (Some "X"))),
+          (MS.Mapp
+             ((MS.Marg (MS.Minus, (Some "Y"))),
+               (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
+      MS.Mapp
+        ((MS.Marg (MS.Minus, (Some "X"))),
+          (MS.Mapp
+             ((MS.Marg (MS.Plus, (Some "Y"))),
+               (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
+  (:=) timesID installF
+    ((ConDec
+        ("*", None, 0, (Constraint (!myID, solveTimes)),
+          (arrow
+             ((word ()),
+               (arrow ((word ()), (arrow ((word ()), (Uni Type))))))), Kind)),
+      None,
+      [MS.Mapp
+         ((MS.Marg (MS.Plus, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Plus, (Some "Y"))),
+                (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
+      MS.Mapp
+        ((MS.Marg (MS.Plus, (Some "X"))),
+          (MS.Mapp
+             ((MS.Marg (MS.Minus, (Some "Y"))),
+               (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))));
+      MS.Mapp
+        ((MS.Marg (MS.Minus, (Some "X"))),
+          (MS.Mapp
+             ((MS.Marg (MS.Plus, (Some "Y"))),
+               (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
+  (:=) quotID installF
+    ((ConDec
+        ("/", None, 0, (Constraint (!myID, solveQuot)),
+          (arrow
+             ((word ()),
+               (arrow ((word ()), (arrow ((word ()), (Uni Type))))))), Kind)),
+      None,
+      [MS.Mapp
+         ((MS.Marg (MS.Plus, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Plus, (Some "Y"))),
+                (MS.Mapp ((MS.Marg (MS.Minus, (Some "Z"))), MS.Mnil)))));
+      MS.Mapp
+        ((MS.Marg (MS.Plus, (Some "X"))),
+          (MS.Mapp
+             ((MS.Marg (MS.Minus, (Some "Y"))),
+               (MS.Mapp ((MS.Marg (MS.Plus, (Some "Z"))), MS.Mnil)))))]);
+  (:=) provePlusID installF
+    ((ConDec
+        ("prove+", None, 0, (Constraint (!myID, solveProvePlus)),
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (plusExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (Uni Type))))))))), Kind)), None,
+      [MS.Mapp
+         ((MS.Marg (MS.Star, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Star, (Some "Y"))),
+                (MS.Mapp
+                   ((MS.Marg (MS.Star, (Some "Z"))),
+                     (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
+  (:=) proofPlusID installF
+    ((ConDec
+        ("proof+", None, 0, Normal,
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (plusExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (provePlusExp
+                                 ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
+          Type)), None, []);
+  (:=) proveTimesID installF
+    ((ConDec
+        ("prove*", None, 0, (Constraint (!myID, solveProveTimes)),
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (timesExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (Uni Type))))))))), Kind)), None,
+      [MS.Mapp
+         ((MS.Marg (MS.Star, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Star, (Some "Y"))),
+                (MS.Mapp
+                   ((MS.Marg (MS.Star, (Some "Z"))),
+                     (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
+  (:=) proofTimesID installF
+    ((ConDec
+        ("proof*", None, 0, Normal,
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (timesExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (proveTimesExp
+                                 ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
+          Type)), None, []);
+  (:=) proveQuotID installF
+    ((ConDec
+        ("prove/", None, 0, (Constraint (!myID, solveProveQuot)),
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (quotExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (Uni Type))))))))), Kind)), None,
+      [MS.Mapp
+         ((MS.Marg (MS.Star, (Some "X"))),
+           (MS.Mapp
+              ((MS.Marg (MS.Star, (Some "Y"))),
+                (MS.Mapp
+                   ((MS.Marg (MS.Star, (Some "Z"))),
+                     (MS.Mapp ((MS.Marg (MS.Star, (Some "P"))), MS.Mnil)))))))]);
+  (:=) proofQuotID installF
+    ((ConDec
+        ("proof/", None, 0, Normal,
+          (pi
+             ("X", (word ()),
+               (pi
+                  ("Y", (word ()),
+                    (pi
+                       ("Z", (word ()),
+                         (pi
+                            ("P", (quotExp ((bvar 3), (bvar 2), (bvar 1))),
+                              (proveQuotExp
+                                 ((bvar 4), (bvar 3), (bvar 2), (bvar 1))))))))))),
+          Type)), None, []);
+  installFgnCnstrOps ();
+  () end
+let solver =
+  {
+    name = ((^) "word" Int.toString wordSize');
+    keywords = "numbers,equality";
+    needs = ["Unify"];
+    fgnConst = (Some { parse = parseAll });
+    init;
+    reset = (begin function | () -> () end);
+  mark = (begin function | () -> () end);
+  unwind = (begin function | () -> () end) } end

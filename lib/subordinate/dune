@@ -1,6 +1,5 @@
 (library
- (wrapped
-  (transition "Convert SML convention to OCaml convention"))
+ (wrapped false)
  (public_name flewt.subordinate)
  (name subordinate)
  (libraries compat global table lambda names)

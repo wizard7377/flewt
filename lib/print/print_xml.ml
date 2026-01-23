@@ -1,11 +1,8 @@
-
 module type PRINT_XML  =
   sig
     val printSgn : unit -> unit
     val printSgnToFile : string -> string -> unit
-  end;;
-
-
+  end
 
 
 module PrintXML(PrintXML:sig
@@ -20,187 +17,189 @@ module PrintXML(PrintXML:sig
     module I = IntSyn
     module F = Formatter
     let Str = F.String
-    let rec Str0 s n = F.String0 n s
+    let rec Str0 (s, n) = F.String0 n s
     let rec Name x = F.String (("\"" ^ x) ^ "\"")
     let rec Integer n = F.String (((^) "\"" Int.toString n) ^ "\"")
     let rec sexp fmts = F.Hbox [F.HVbox fmts]
-    let rec fmtCon __0__ __1__ =
-      match (__0__, __1__) with
-      | (__G, BVar n) ->
-          let Dec (Some n, _) = I.ctxDec (__G, n) in
+    let rec fmtCon =
+      begin function
+      | (g_, BVar n) ->
+          let Dec (Some n, _) = I.ctxDec (g_, n) in
           sexp [Str (("<Var name = \"" ^ n) ^ "\"/>")]
-      | (__G, Const cid) ->
+      | (g_, Const cid) ->
           sexp
             [Str "<Const name=\"";
             Str (I.conDecName (I.sgnLookup cid));
             Str "\"/>"]
-      | (__G, Def cid) ->
+      | (g_, Def cid) ->
           sexp [Str "<Def>"; F.Break; Integer cid; Str "</Def>"]
-      | (__G, FgnConst (csid, condec)) -> sexp [Str "FngConst"]
+      | (g_, FgnConst (csid, condec)) -> sexp [Str "FngConst"] end
     let rec fmtUni =
-      function | I.Type -> Str "<Type/>" | I.Kind -> Str "<Kind/>"
-    let rec fmtExpW __2__ __3__ =
-      match (__2__, __3__) with
-      | (__G, (Uni (__L), s)) ->
-          sexp [Str "<Uni>"; F.Break; fmtUni __L; Str "</Uni>"]
-      | (__G, (Pi (((Dec (_, __V1) as D), __P), __V2), s)) ->
-          (((match __P with
-             | I.Maybe ->
-                 let __D' = Names.decLUName (__G, __D) in
-                 let __G' = I.Decl (__G, __D') in
-                 ((sexp
-                     (([Str "<Pi>";
-                       F.Break;
-                       fmtDec (__G, (__D', s));
-                       F.Break;
-                       fmtExp (__G', (__V2, (I.dot1 s)));
-                       Str "</Pi>"])
-                     (* Str "tw*maybe", F.Break, *)))
-                   (* could sometimes be EName *))
-             | I.No ->
-                 let __G' = I.Decl (__G, __D) in
-                 sexp
-                   (([Str "<Arrow>";
+      begin function | I.Type -> Str "<Type/>" | I.Kind -> Str "<Kind/>" end
+  let rec fmtExpW =
+    begin function
+    | (g_, (Uni (l_), s)) ->
+        sexp [Str "<Uni>"; F.Break; fmtUni l_; Str "</Uni>"]
+    | (g_, (Pi (((Dec (_, v1_) as d_), p_), v2_), s)) ->
+        (((begin match p_ with
+           | I.Maybe ->
+               let d'_ = Names.decLUName (g_, d_) in
+               let g'_ = I.Decl (g_, d'_) in
+               ((sexp
+                   (([Str "<Pi>";
                      F.Break;
-                     fmtDec' (__G, (__D, s));
+                     fmtDec (g_, (d'_, s));
                      F.Break;
-                     fmtExp (__G', (__V2, (I.dot1 s)));
-                     Str "</Arrow>"])
-                   (* Str "tw*no", F.Break,*))))
-          (* if Pi is dependent but anonymous, invent name here *))
-      | (__G, (Root (__H, __S), s)) ->
-          (match fmtSpine (__G, (__S, s)) with
-           | None -> fmtCon (__G, __H)
-           | Some fmts ->
-               F.HVbox
-                 [Str "<App>";
-                 fmtCon (__G, __H);
-                 F.Break;
-                 sexp fmts;
-                 Str "</App>"])
-      | (__G, (Lam (__D, __U), s)) ->
-          let __D' = Names.decLUName (__G, __D) in
-          let __G' = I.Decl (__G, __D') in
-          sexp
-            [Str "<Lam>";
-            F.Break;
-            fmtDec (__G, (__D', s));
-            F.Break;
-            fmtExp (__G', (__U, (I.dot1 s)));
-            Str "</Lam>"]
-      | (__G, (FgnExp (csid, __F), s)) -> sexp [Str "FgnExp"]
-    let rec fmtExp (__G) (__U, s) = fmtExpW (__G, (Whnf.whnf (__U, s)))
-    let rec fmtSpine __4__ __5__ =
-      match (__4__, __5__) with
-      | (__G, (I.Nil, _)) -> None
-      | (__G, (SClo (__S, s'), s)) -> fmtSpine (__G, (__S, (I.comp (s', s))))
-      | (__G, (App (__U, __S), s)) ->
-          (match fmtSpine (__G, (__S, s)) with
-           | None -> Some [fmtExp (__G, (__U, s))]
-           | Some fmts -> Some ([fmtExp (__G, (__U, s)); F.Break] @ fmts))
-    let rec fmtDec __6__ __7__ =
-      match (__6__, __7__) with
-      | (__G, (Dec (None, __V), s)) ->
-          sexp [Str "<Dec>"; F.Break; fmtExp (__G, (__V, s)); Str "</Dec>"]
-      | (__G, (Dec (Some x, __V), s)) ->
-          sexp
-            [Str "<Dec name =";
-            Name x;
-            Str ">";
-            F.Break;
-            fmtExp (__G, (__V, s));
-            Str "</Dec>"]
-    let rec fmtDec' __8__ __9__ =
-      match (__8__, __9__) with
-      | (__G, (Dec (None, __V), s)) -> sexp [fmtExp (__G, (__V, s))]
-      | (__G, (Dec (Some x, __V), s)) -> sexp [fmtExp (__G, (__V, s))]
-    let rec fmtConDec =
-      function
-      | ConDec (name, parent, imp, _, __V, __L) ->
-          let _ = Names.varReset IntSyn.Null in
-          sexp
-            [Str "<Condec name=";
-            Name name;
-            F.Break;
-            Str "implicit=";
-            Integer imp;
-            Str ">";
-            F.Break;
-            fmtExp (I.Null, (__V, I.id));
-            F.Break;
-            fmtUni __L;
-            Str "</Condec>"]
-      | SkoDec (name, parent, imp, __V, __L) ->
-          Str (("<! Skipping Skolem constant " ^ name) ^ ">")
-      | ConDef (name, parent, imp, __U, __V, __L, _) ->
-          let _ = Names.varReset IntSyn.Null in
-          sexp
-            [Str "<Condef name=";
-            Name name;
-            F.Break;
-            Str "implicit=";
-            Integer imp;
-            Str ">";
-            F.Break;
-            fmtExp (I.Null, (__U, I.id));
-            F.Break;
-            fmtExp (I.Null, (__V, I.id));
-            F.Break;
-            fmtUni __L;
-            Str "</Condef>"]
-      | AbbrevDef (name, parent, imp, __U, __V, __L) ->
-          let _ = Names.varReset IntSyn.Null in
-          sexp
-            [Str "<Abbrevdef name=";
-            Name name;
-            Str ">";
-            F.Break;
-            Integer imp;
-            F.Break;
-            fmtExp (I.Null, (__U, I.id));
-            F.Break;
-            fmtExp (I.Null, (__V, I.id));
-            F.Break;
-            fmtUni __L;
-            Str "</Abbrevdef>"]
-      | BlockDec (name, _, _, _) ->
-          Str (("<! Skipping Skolem constant " ^ name) ^ ">")
-    let rec fmtEqn (Eqn (__G, __U1, __U2)) =
+                     fmtExp (g'_, (v2_, (I.dot1 s)));
+                     Str "</Pi>"])
+                   (* Str "tw*maybe", F.Break, *)))
+                 (* could sometimes be EName *))
+           | I.No ->
+               let g'_ = I.Decl (g_, d_) in
+               sexp
+                 (([Str "<Arrow>";
+                   F.Break;
+                   fmtDec' (g_, (d_, s));
+                   F.Break;
+                   fmtExp (g'_, (v2_, (I.dot1 s)));
+                   Str "</Arrow>"])
+                 (* Str "tw*no", F.Break,*)) end))
+    (* if Pi is dependent but anonymous, invent name here *))
+    | (g_, (Root (h_, s_), s)) ->
+        (begin match fmtSpine (g_, (s_, s)) with
+         | None -> fmtCon (g_, h_)
+         | Some fmts ->
+             F.HVbox
+               [Str "<App>";
+               fmtCon (g_, h_);
+               F.Break;
+               sexp fmts;
+               Str "</App>"] end)
+    | (g_, (Lam (d_, u_), s)) ->
+        let d'_ = Names.decLUName (g_, d_) in
+        let g'_ = I.Decl (g_, d'_) in
+        sexp
+          [Str "<Lam>";
+          F.Break;
+          fmtDec (g_, (d'_, s));
+          F.Break;
+          fmtExp (g'_, (u_, (I.dot1 s)));
+          Str "</Lam>"]
+    | (g_, (FgnExp (csid, f_), s)) -> sexp [Str "FgnExp"] end
+let rec fmtExp (g_, (u_, s)) = fmtExpW (g_, (Whnf.whnf (u_, s)))
+let rec fmtSpine =
+  begin function
+  | (g_, (I.Nil, _)) -> None
+  | (g_, (SClo (s_, s'), s)) -> fmtSpine (g_, (s_, (I.comp (s', s))))
+  | (g_, (App (u_, s_), s)) ->
+      (begin match fmtSpine (g_, (s_, s)) with
+       | None -> Some [fmtExp (g_, (u_, s))]
+       | Some fmts -> Some ([fmtExp (g_, (u_, s)); F.Break] @ fmts) end) end
+let rec fmtDec =
+  begin function
+  | (g_, (Dec (None, v_), s)) ->
+      sexp [Str "<Dec>"; F.Break; fmtExp (g_, (v_, s)); Str "</Dec>"]
+  | (g_, (Dec (Some x, v_), s)) ->
       sexp
-        [Str "<Equation>";
+        [Str "<Dec name =";
+        Name x;
+        Str ">";
         F.Break;
-        fmtExp (__G, (__U1, I.id));
+        fmtExp (g_, (v_, s));
+        Str "</Dec>"] end
+let rec fmtDec' =
+  begin function
+  | (g_, (Dec (None, v_), s)) -> sexp [fmtExp (g_, (v_, s))]
+  | (g_, (Dec (Some x, v_), s)) -> sexp [fmtExp (g_, (v_, s))] end
+let rec fmtConDec =
+  begin function
+  | ConDec (name, parent, imp, _, v_, l_) ->
+      let _ = Names.varReset IntSyn.Null in
+      sexp
+        [Str "<Condec name=";
+        Name name;
         F.Break;
-        fmtExp (__G, (__U2, I.id));
-        Str "</Equation>"](* print context?? *)
-    let rec fmtEqnName (Eqn (__G, __U1, __U2)) =
-      fmtEqn (I.Eqn ((Names.ctxLUName __G), __U1, __U2))
-    let rec formatDec (__G) (__D) = fmtDec (__G, (__D, I.id))
-    let rec formatExp (__G) (__U) = fmtExp (__G, (__U, I.id))
-    let rec formatConDec condec = fmtConDec condec
-    let rec formatEqn (__E) = fmtEqn __E
-    let rec decToString (__G) (__D) = F.makestring_fmt (formatDec (__G, __D))
-    let rec expToString (__G) (__U) = F.makestring_fmt (formatExp (__G, __U))
-    let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
-    let rec eqnToString (__E) = F.makestring_fmt (formatEqn __E)
-    let rec printSgn () =
-      IntSyn.sgnApp
-        (fun cid ->
-           print (F.makestring_fmt (formatConDec (IntSyn.sgnLookup cid)));
-           print "\n")
-    let rec printSgnToFile path filename =
-      let file = TextIO.openOut (path ^ filename) in
-      let _ =
-        TextIO.output
-          (file,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!-- nsgmls ex.xml -->\n<!DOCTYPE Signature SYSTEM \"lf.dtd\">\n<Signature>") in
-      let _ =
-        IntSyn.sgnApp
-          (fun cid ->
-             TextIO.output
-               (file,
-                 (F.makestring_fmt (formatConDec (IntSyn.sgnLookup cid))));
-             TextIO.output (file, "\n")) in
-      let _ = TextIO.output (file, "</Signature>") in
-      let _ = TextIO.closeOut file in ()
-  end ;;
+        Str "implicit=";
+        Integer imp;
+        Str ">";
+        F.Break;
+        fmtExp (I.Null, (v_, I.id));
+        F.Break;
+        fmtUni l_;
+        Str "</Condec>"]
+  | SkoDec (name, parent, imp, v_, l_) ->
+      Str (("<! Skipping Skolem constant " ^ name) ^ ">")
+  | ConDef (name, parent, imp, u_, v_, l_, _) ->
+      let _ = Names.varReset IntSyn.Null in
+      sexp
+        [Str "<Condef name=";
+        Name name;
+        F.Break;
+        Str "implicit=";
+        Integer imp;
+        Str ">";
+        F.Break;
+        fmtExp (I.Null, (u_, I.id));
+        F.Break;
+        fmtExp (I.Null, (v_, I.id));
+        F.Break;
+        fmtUni l_;
+        Str "</Condef>"]
+  | AbbrevDef (name, parent, imp, u_, v_, l_) ->
+      let _ = Names.varReset IntSyn.Null in
+      sexp
+        [Str "<Abbrevdef name=";
+        Name name;
+        Str ">";
+        F.Break;
+        Integer imp;
+        F.Break;
+        fmtExp (I.Null, (u_, I.id));
+        F.Break;
+        fmtExp (I.Null, (v_, I.id));
+        F.Break;
+        fmtUni l_;
+        Str "</Abbrevdef>"]
+  | BlockDec (name, _, _, _) ->
+      Str (("<! Skipping Skolem constant " ^ name) ^ ">") end
+let rec fmtEqn (Eqn (g_, u1_, u2_)) =
+  sexp
+    [Str "<Equation>";
+    F.Break;
+    fmtExp (g_, (u1_, I.id));
+    F.Break;
+    fmtExp (g_, (u2_, I.id));
+    Str "</Equation>"](* print context?? *)
+let rec fmtEqnName (Eqn (g_, u1_, u2_)) =
+  fmtEqn (I.Eqn ((Names.ctxLUName g_), u1_, u2_))
+let rec formatDec (g_, d_) = fmtDec (g_, (d_, I.id))
+let rec formatExp (g_, u_) = fmtExp (g_, (u_, I.id))
+let rec formatConDec condec = fmtConDec condec
+let rec formatEqn (e_) = fmtEqn e_
+let rec decToString (g_, d_) = F.makestring_fmt (formatDec (g_, d_))
+let rec expToString (g_, u_) = F.makestring_fmt (formatExp (g_, u_))
+let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
+let rec eqnToString (e_) = F.makestring_fmt (formatEqn e_)
+let rec printSgn () =
+  IntSyn.sgnApp
+    (begin function
+     | cid ->
+         (begin print
+                  (F.makestring_fmt (formatConDec (IntSyn.sgnLookup cid)));
+          print "\n" end) end)
+let rec printSgnToFile path filename =
+  let file = TextIO.openOut (path ^ filename) in
+  let _ =
+    TextIO.output
+      (file,
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!-- nsgmls ex.xml -->\n<!DOCTYPE Signature SYSTEM \"lf.dtd\">\n<Signature>") in
+  let _ =
+    IntSyn.sgnApp
+      (begin function
+       | cid ->
+           (begin TextIO.output
+                    (file,
+                      (F.makestring_fmt (formatConDec (IntSyn.sgnLookup cid))));
+            TextIO.output (file, "\n") end) end) in
+  let _ = TextIO.output (file, "</Signature>") in
+  let _ = TextIO.closeOut file in () end

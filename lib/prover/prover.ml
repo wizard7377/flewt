@@ -1,16 +1,15 @@
-
 module State =
-  (Make_State)(struct
+  (State)(struct
                  module WorldSyn' = WorldSyn
                  module Formatter = Formatter
                end)
 module Introduce =
-  (Make_Introduce)(struct
+  (Introduce)(struct
                      module TomegaNames = TomegaNames
                      module State' = State
                    end)
 module Elim =
-  (Make_Elim)(struct
+  (Elim)(struct
                 module Data = Data
                 module State' = State
                 module Whnf = Whnf
@@ -20,9 +19,9 @@ module Elim =
                 module Index = Index
                 module TypeCheck = TypeCheck
               end)
-module FixedPoint = (Make_FixedPoint)(struct module State' = State end)
+module FixedPoint = (FixedPoint)(struct module State' = State end)
 module Split =
-  (Make_Split)(struct
+  (Split)(struct
                  module Global = Global
                  module State' = State
                  module Whnf = Whnf
@@ -36,7 +35,7 @@ module Split =
                  module Subordinate = Subordinate
                end)
 module Search =
-  (Make_Search)(struct
+  (Search)(struct
                   module Global = Global
                   module Data = Data
                   module State' = State
@@ -54,7 +53,7 @@ module Search =
                   module CSManager = CSManager
                 end)
 module Fill =
-  (Make_Fill)(struct
+  (Fill)(struct
                 module Data = Data
                 module State' = State
                 module Whnf = Whnf
@@ -65,9 +64,9 @@ module Fill =
                 module Search = Search
                 module TypeCheck = TypeCheck
               end)
-module Weaken = (Make_Weaken)(struct module Whnf = Whnf end)
+module Weaken = (Weaken)(struct module Whnf = Whnf end)
 module Interactive =
-  (Make_Interactive)(struct
+  (Interactive)(struct
                        module Global = Global
                        module State' = State
                        module Ring = Ring
@@ -82,4 +81,4 @@ module Interactive =
                        module Split = Split
                        module Fill = Fill
                        module Elim = Elim
-                     end);;
+                     end)

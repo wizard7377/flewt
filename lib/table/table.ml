@@ -1,44 +1,28 @@
-
-module type TABLE  =
-  sig
-    type nonrec key
-    type nonrec 'a entry = (key * 'a)
-    type nonrec 'a __Table
-    val new__ : int -> 'a __Table
-    val insert : 'a __Table -> 'a entry -> unit
-    val insertShadow : 'a __Table -> 'a entry -> 'a entry option
-    val lookup : 'a __Table -> key -> 'a option
-    val delete : 'a __Table -> key -> unit
-    val clear : 'a __Table -> unit
-    val app : ('a entry -> unit) -> 'a __Table -> unit
-  end;;
-
-
-
+open Table_sig
+open Hash_table
 
 module StringHashTable =
-  (Make_HashTable)(struct
+  (HashTable)(struct
                      type nonrec key' = string
-                     let hash = StringHash.stringHash
-                     let eq = (=)
+                     let hash = String_hash.StringHash.stringHash
+                     let eq (x,y) = (x = y)
                    end)
-module IntHashTable =
-  (Make_HashTable)(struct
+module IntHashTable : (TABLE with type key = int) =
+  (HashTable)(struct
                      type nonrec key' = int
-                     let hash n = n
-                     let eq = (=)
-                   end)
+                     let hash = begin function | n -> n end
+                     let eq (x,y) = (x = y) end)
 module StringRedBlackTree =
-  (Make_RedBlackTree)(struct
-                        type nonrec key' = string
-                        let compare = String.compare
-                      end)
+  (Red_black_tree.RedBlackTree)(struct
+                                  type nonrec key' = string
+                                  let compare (x,y) = Basis.General.int_to_order (String.compare x y)
+                                end)
 module IntRedBlackTree =
-  (Make_RedBlackTree)(struct
-                        type nonrec key' = int
-                        let compare = Int.compare
-                      end)
+  (Red_black_tree.RedBlackTree)(struct
+                                  type nonrec key' = int
+                                  let compare (x,y) = Basis.General.int_to_order (Int.compare x y)
+                                end)
 module SparseArray =
-  (Make_SparseArray)(struct module IntTable = IntHashTable end)
+  (Sparse_array.SparseArray)(struct module IntTable = IntHashTable end)
 module SparseArray2 =
-  (Make_SparseArray2)(struct module IntTable = IntHashTable end);;
+  (Sparse_array2.SparseArray2)(struct module IntTable = IntHashTable end) 

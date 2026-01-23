@@ -1,4 +1,3 @@
-
 module type SYMBOL  =
   sig
     val str : string -> (string * int)
@@ -10,9 +9,7 @@ module type SYMBOL  =
     val def : string -> (string * int)
     val fvar : string -> (string * int)
     val sym : string -> (string * int)
-  end;;
-
-
+  end
 
 
 module SymbolAscii() : SYMBOL =
@@ -31,7 +28,7 @@ module SymbolAscii() : SYMBOL =
 module SymbolTeXfp() : SYMBOL =
   struct
     let rec quoteChar =
-      function
+      begin function
       | '\\' -> "\\\\"
       | '_' -> "\\_"
       | '$' -> "\\$"
@@ -50,8 +47,8 @@ module SymbolTeXfp() : SYMBOL =
       | '7' -> "$_7$"
       | '8' -> "$_8$"
       | '9' -> "$_9$"
-      | c -> String.str c(* not in math mode *)(* not in math mode *)
-      (* not in math mode *)
+      | c -> String.str c end(* not in math mode *)
+    (* not in math mode *)(* not in math mode *)
     let rec quote s = String.translate quoteChar s
     let rec str s = ((((^) "\\Str{" quote s) ^ "}"), (String.size s))
     let rec evar s = ((((^) "\\EVar{" quote s) ^ "}"), (String.size s))
@@ -62,7 +59,7 @@ module SymbolTeXfp() : SYMBOL =
     let rec def s = ((((^) "\\Def{" quote s) ^ "}"), (String.size s))
     let rec fvar s = ((((^) "\\FVar{" quote s) ^ "}"), (String.size s))
     let rec sym =
-      function
+      begin function
       | "->" -> ("$\\rightarrow$", 1)
       | "<-" -> ("$\\leftarrow$", 1)
       | "{" -> ("$\\Pi$", 1)
@@ -75,13 +72,12 @@ module SymbolTeXfp() : SYMBOL =
       | "..." -> ("$\\ldots$", 3)
       | "%%" -> ("%%", 2)
       | "%skolem" -> ("%skolem", 7)
-      | s -> (s, (String.size s))(* itself, for now *)
-      (* itself, for now *)
-  end 
+      | s -> (s, (String.size s)) end(* itself, for now *)
+    (* itself, for now *) end 
 module SymbolTeX() : SYMBOL =
   struct
     let rec quoteChar =
-      function
+      begin function
       | '\\' -> "\\\\"
       | '_' -> "\\_"
       | '$' -> "\\$"
@@ -97,7 +93,7 @@ module SymbolTeX() : SYMBOL =
       | '7' -> "$_7$"
       | '8' -> "$_8$"
       | '9' -> "$_9$"
-      | c -> String.str c
+      | c -> String.str c end
     let rec quote s = String.translate quoteChar s
     let rec str s = ((((^) "\\Str{" quote s) ^ "}"), (String.size s))
     let rec evar s = ((((^) "\\EVar{" quote s) ^ "}"), (String.size s))
@@ -108,7 +104,7 @@ module SymbolTeX() : SYMBOL =
     let rec def s = ((((^) "\\Def{" quote s) ^ "}"), (String.size s))
     let rec fvar s = ((((^) "\\FVar{" quote s) ^ "}"), (String.size s))
     let rec sym =
-      function
+      begin function
       | "->" -> ("$\\rightarrow$", 1)
       | "<-" -> ("$\\leftarrow$", 1)
       | "{" -> ("$\\Pi$", 1)
@@ -121,6 +117,5 @@ module SymbolTeX() : SYMBOL =
       | "..." -> ("$\\ldots$", 3)
       | "%%" -> ("%%", 2)
       | "%skolem" -> ("%skolem", 7)
-      | s -> (s, (String.size s))(* itself, for now *)
-      (* itself, for now *)
-  end ;;
+      | s -> (s, (String.size s)) end(* itself, for now *)
+    (* itself, for now *) end

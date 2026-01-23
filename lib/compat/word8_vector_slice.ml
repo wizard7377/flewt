@@ -1,14 +1,11 @@
 
-;;
-
-
 
 
 module type MONO_VECTOR_SLICE  =
   sig
     type nonrec slice
     type nonrec vector
-    val slice : vector -> int -> int option -> slice
+    val slice : (vector * int * int option) -> slice
     val vector : slice -> vector
     val full : vector -> slice
   end
@@ -27,4 +24,4 @@ module Word8VectorSlice97 : COMPAT_WORD8_VECTOR_SLICE =
     type nonrec vector = Word8Vector.vector
     type nonrec slice = Word8VectorSlice.slice
     let full = Word8VectorSlice.full
-  end ;;
+  end 

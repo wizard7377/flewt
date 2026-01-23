@@ -1,16 +1,13 @@
-
 module type MTPFILLING  =
   sig
     module StateSyn : STATESYN
     exception Error of string 
     exception TimeOut 
     type nonrec operator
-    val expand : StateSyn.__State -> operator
-    val apply : operator -> (int * FunSyn.__Pro)
+    val expand : StateSyn.state_ -> operator
+    val apply : operator -> (int * FunSyn.pro_)
     val menu : operator -> string
-  end;;
-
-
+  end
 
 
 module MTPFilling(MTPFilling:sig
@@ -26,43 +23,46 @@ module MTPFilling(MTPFilling:sig
     module StateSyn = StateSyn'
     exception Error of string 
     exception TimeOut 
-    type nonrec operator = unit -> (int * FunSyn.__Pro)
+    type nonrec operator = unit -> (int * FunSyn.pro_)
     module S = StateSyn
     module F = FunSyn
     module I = IntSyn
     exception Success of int 
-    let rec createEVars __0__ __1__ =
-      match (__0__, __1__) with
-      | (__G, (F.True, s)) -> (nil, F.Unit)
-      | (__G, (Ex (Dec (_, __V), __F), s)) ->
-          let __X = I.newEVar (__G, (I.EClo (__V, s))) in
-          let __X' = Whnf.lowerEVar __X in
-          let (__Xs, __P) =
-            createEVars (__G, (__F, (I.Dot ((I.Exp __X), s)))) in
-          ((__X' :: __Xs), (F.Inx (__X, __P)))
-    let rec expand (State (n, (__G, __B), (IH, OH), d, __O, __H, __F) as S) =
-      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx __G else () in
-      let (__Xs, __P) = createEVars (__G, (__F, I.id)) in
-      fun () ->
-        try
-          Search.searchEx
-            ((!MTPGlobal.maxFill), __Xs,
-              (fun max ->
-                 if !Global.doubleCheck
-                 then
-                   map
-                     (fun (EVar (_, __G', __V, _) as X) ->
-                        TypeCheck.typeCheck (__G', (__X, __V))) __Xs
-                 else [];
-                 raise (Success max)));
-          raise (Error "Filling unsuccessful")
-        with
-        | Success max ->
-            ((:=) MTPData.maxFill Int.max ((!MTPData.maxFill), max);
-             (max, __P))
-    let rec apply f = f ()
-    let rec menu _ = "Filling   (tries to close this subgoal)"
-    let expand = expand
-    let apply = apply
-    let menu = menu
-  end ;;
+    let rec createEVars =
+      begin function
+      | (g_, (F.True, s)) -> ([], F.Unit)
+      | (g_, (Ex (Dec (_, v_), f_), s)) ->
+          let x_ = I.newEVar (g_, (I.EClo (v_, s))) in
+          let x'_ = Whnf.lowerEVar x_ in
+          let (xs_, p_) = createEVars (g_, (f_, (I.Dot ((I.Exp x_), s)))) in
+          ((x'_ :: xs_), (F.Inx (x_, p_))) end
+    let rec expand (State (n, (g_, b_), (IH, OH), d, o_, h_, f_) as s_) =
+      let _ = if !Global.doubleCheck then begin TypeCheck.typeCheckCtx g_ end
+        else begin () end in
+    let (xs_, p_) = createEVars (g_, (f_, I.id)) in
+    begin function
+    | () ->
+        (begin try
+                 begin Search.searchEx
+                         (!MTPGlobal.maxFill, xs_,
+                           (begin function
+                            | max ->
+                                (begin if !Global.doubleCheck
+                                       then
+                                         begin map
+                                                 (begin function
+                                                  | EVar (_, g'_, v_, _) as
+                                                      x_ ->
+                                                      TypeCheck.typeCheck
+                                                        (g'_, (x_, v_)) end)
+                                         xs_ end
+                                else begin [] end; raise (Success max) end) end));
+      raise (Error "Filling unsuccessful") end
+  with
+  | Success max ->
+      (begin (:=) MTPData.maxFill Int.max (!MTPData.maxFill, max); (max, p_) end) end) end
+let rec apply f = f ()
+let rec menu _ = "Filling   (tries to close this subgoal)"
+let expand = expand
+let apply = apply
+let menu = menu end

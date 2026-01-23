@@ -1,12 +1,9 @@
-
 module type LEMMA  =
   sig
     module MetaSyn : METASYN
     exception Error of string 
-    val apply : MetaSyn.__State -> IntSyn.cid -> MetaSyn.__State
-  end;;
-
-
+    val apply : (MetaSyn.state_ * IntSyn.cid) -> MetaSyn.state_
+  end
 
 
 module Lemma(Lemma:sig
@@ -20,30 +17,28 @@ module Lemma(Lemma:sig
     module M = MetaSyn
     module I = IntSyn
     let rec createEVars =
-      function
+      begin function
       | Prefix (I.Null, I.Null, I.Null) ->
           ((M.Prefix (I.Null, I.Null, I.Null)), I.id)
-      | Prefix (Decl (__G, __D), Decl (__M, M.Top), Decl (__B, b)) ->
-          let (Prefix (__G', __M', __B'), s') =
-            createEVars (M.Prefix (__G, __M, __B)) in
+      | Prefix (Decl (g_, d_), Decl (m_, M.Top), Decl (b_, b)) ->
+          let (Prefix (g'_, m'_, b'_), s') =
+            createEVars (M.Prefix (g_, m_, b_)) in
           ((M.Prefix
-              ((I.Decl (__G', (I.decSub (__D, s')))), (I.Decl (__M', M.Top)),
-                (I.Decl (__B', b)))), (I.dot1 s'))
-      | Prefix (Decl (__G, Dec (_, __V)), Decl (__M, M.Bot), Decl (__B, _))
-          ->
-          let (Prefix (__G', __M', __B'), s') =
-            createEVars (M.Prefix (__G, __M, __B)) in
-          let __X = I.newEVar (__G', (I.EClo (__V, s'))) in
-          ((M.Prefix (__G', __M', __B')), (I.Dot ((I.Exp __X), s')))
-    let rec apply (State (name, GM, __V)) a =
-      let ((Prefix (__G', __M', __B') as GM'), s') = createEVars GM in
-      let (__U', __Vs') = M.createAtomConst (__G', (I.Const a)) in
+              ((I.Decl (g'_, (I.decSub (d_, s')))), (I.Decl (m'_, M.Top)),
+                (I.Decl (b'_, b)))), (I.dot1 s'))
+      | Prefix (Decl (g_, Dec (_, v_)), Decl (m_, M.Bot), Decl (b_, _)) ->
+          let (Prefix (g'_, m'_, b'_), s') =
+            createEVars (M.Prefix (g_, m_, b_)) in
+          let x_ = I.newEVar (g'_, (I.EClo (v_, s'))) in
+          ((M.Prefix (g'_, m'_, b'_)), (I.Dot ((I.Exp x_), s'))) end
+    let rec apply (State (name, GM, v_), a) =
+      let ((Prefix (g'_, m'_, b'_) as GM'), s') = createEVars GM in
+      let (u'_, vs'_) = M.createAtomConst (g'_, (I.Const a)) in
       ((A.abstract
           (M.State
              (name, GM',
                (I.Pi
-                  (((I.Dec (None, __U')), I.No),
-                    (I.EClo (__V, (I.comp (s', I.shift)))))))))
+                  (((I.Dec (None, u'_)), I.No),
+                    (I.EClo (v_, (I.comp (s', I.shift)))))))))
         (* Vs' = type *))
-    let apply = apply
-  end ;;
+    let apply = apply end 

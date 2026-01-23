@@ -1,15 +1,12 @@
-
 module type CLAUSEPRINT  =
   sig
     module Formatter : FORMATTER
-    val formatClause : IntSyn.dctx -> IntSyn.__Exp -> Formatter.format
-    val formatConDec : IntSyn.__ConDec -> Formatter.format
-    val clauseToString : IntSyn.dctx -> IntSyn.__Exp -> string
-    val conDecToString : IntSyn.__ConDec -> string
+    val formatClause : (IntSyn.dctx * IntSyn.exp_) -> Formatter.format
+    val formatConDec : IntSyn.conDec_ -> Formatter.format
+    val clauseToString : (IntSyn.dctx * IntSyn.exp_) -> string
+    val conDecToString : IntSyn.conDec_ -> string
     val printSgn : unit -> unit
-  end;;
-
-
+  end
 
 
 module ClausePrint(ClausePrint:sig
@@ -24,92 +21,85 @@ module ClausePrint(ClausePrint:sig
     module I = IntSyn
     module F = Formatter
     let Str = F.String
-    let rec Str0 s n = F.String0 n s
+    let rec Str0 (s, n) = F.String0 n s
     let rec sym s = Str0 (Symbol.sym s)
     let rec parens fmt = F.Hbox [sym "("; fmt; sym ")"]
-    let rec fmtDQuants __0__ __1__ =
-      match (__0__, __1__) with
-      | (__G, Pi (((Dec (_, __V1) as D), I.Maybe), __V2)) ->
-          let __D' = Names.decEName (__G, __D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (__G, __D')) sym "}")
-                  :: F.Break)
-            fmtDQuants ((I.Decl (__G, __D')), __V2)
-      | (__G, Pi (((Dec (_, __V1) as D), I.Meta), __V2)) ->
-          let __D' = Names.decEName (__G, __D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (__G, __D')) sym "}")
-                  :: F.Break)
-            fmtDQuants ((I.Decl (__G, __D')), __V2)
-      | (__G, (Pi _ as V)) -> [F.HOVbox (fmtDSubGoals (__G, __V, nil))]
-      | (__G, __V) -> [Print.formatExp (__G, __V)](* V = Root _ *)
-      (* P = I.No *)
-    let rec fmtDSubGoals __2__ __3__ __4__ =
-      match (__2__, __3__, __4__) with
-      | (__G, Pi (((Dec (_, __V1) as D), I.No), __V2), acc) ->
+    let rec fmtDQuants =
+      begin function
+      | (g_, Pi (((Dec (_, v1_) as d_), I.Maybe), v2_)) ->
+          let d'_ = Names.decEName (g_, d_) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (g_, d'_)) sym "}") ::
+                  F.Break)
+            fmtDQuants ((I.Decl (g_, d'_)), v2_)
+      | (g_, Pi (((Dec (_, v1_) as d_), I.Meta), v2_)) ->
+          let d'_ = Names.decEName (g_, d_) in
+          (::) (((::) ((::) (sym "{") Print.formatDec (g_, d'_)) sym "}") ::
+                  F.Break)
+            fmtDQuants ((I.Decl (g_, d'_)), v2_)
+      | (g_, (Pi _ as v_)) -> [F.HOVbox (fmtDSubGoals (g_, v_, []))]
+      | (g_, v_) -> [Print.formatExp (g_, v_)] end(* V = Root _ *)
+    (* P = I.No *)
+    let rec fmtDSubGoals =
+      begin function
+      | (g_, Pi (((Dec (_, v1_) as d_), I.No), v2_), acc) ->
           fmtDSubGoals
-            ((I.Decl (__G, __D)), __V2,
+            ((I.Decl (g_, d_)), v2_,
               (((::) (((::) F.Break sym "<-") :: F.Space) fmtGparens
-                  (__G, __V1))
+                  (g_, v1_))
                  :: acc))
-      | (__G, (Pi _ as V), acc) ->
-          (parens (F.HVbox (fmtDQuants (__G, __V)))) :: acc
-      | (__G, __V, acc) -> (Print.formatExp (__G, __V)) :: acc(* V = Root _ *)
-      (* acc <> nil *)
-    let rec fmtDparens __5__ __6__ =
-      match (__5__, __6__) with
-      | (__G, (Pi _ as V)) -> parens (F.HVbox (fmtDQuants (__G, __V)))
-      | (__G, __V) -> Print.formatExp (__G, __V)(* V = Root _ *)
-    let rec fmtGparens __7__ __8__ =
-      match (__7__, __8__) with
-      | (__G, (Pi _ as V)) -> parens (F.HVbox (fmtGQuants (__G, __V)))
-      | (__G, __V) -> Print.formatExp (__G, __V)(* V = Root _ *)
-    let rec fmtGQuants __9__ __10__ =
-      match (__9__, __10__) with
-      | (__G, Pi (((Dec (_, __V1) as D), I.Maybe), __V2)) ->
-          let __D' = Names.decLUName (__G, __D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (__G, __D')) sym "}")
-                  :: F.Break)
-            fmtGQuants ((I.Decl (__G, __D')), __V2)
-      | (__G, Pi (((Dec (_, __V1) as D), I.Meta), __V2)) ->
-          let __D' = Names.decLUName (__G, __D) in
-          (::) (((::) ((::) (sym "{") Print.formatDec (__G, __D')) sym "}")
-                  :: F.Break)
-            fmtGQuants ((I.Decl (__G, __D')), __V2)
-      | (__G, __V) -> [F.HOVbox (fmtGHyps (__G, __V))](* P = I.No or V = Root _ *)
-    let rec fmtGHyps __11__ __12__ =
-      match (__11__, __12__) with
-      | (__G, Pi (((Dec (_, __V1) as D), I.No), __V2)) ->
-          (::) (((::) ((fmtDparens (__G, __V1)) :: F.Break) sym "->") ::
-                  F.Space)
-            fmtGHyps ((I.Decl (__G, __D)), __V2)
-      | (__G, (Pi _ as V)) -> [F.HVbox (fmtGQuants (__G, __V))]
-      | (__G, __V) -> [Print.formatExp (__G, __V)](* V = Root _ *)
-      (* P = I.Maybe *)
-    let rec fmtClause (__G) (__V) = F.HVbox (fmtDQuants (__G, __V))
-    let rec fmtClauseI __13__ __14__ __15__ =
-      match (__13__, __14__, __15__) with
-      | (0, __G, __V) -> fmtClause (__G, __V)
-      | (i, __G, Pi ((__D, _), __V)) ->
-          fmtClauseI
-            ((i - 1), (I.Decl (__G, (Names.decEName (__G, __D)))), __V)
-    let rec fmtConDec =
-      function
-      | ConDec (id, parent, i, _, __V, I.Type) ->
-          let _ = Names.varReset IntSyn.Null in
-          let Vfmt = fmtClauseI (i, I.Null, __V) in
-          F.HVbox
-            [Str0 (Symbol.const id);
-            F.Space;
-            sym ":";
-            F.Break;
-            Vfmt;
-            sym "."]
-      | condec -> Print.formatConDec condec(* type family declaration, definition, or Skolem constant *)
-    let rec formatClause (__G) (__V) = fmtClause (__G, __V)
-    let rec formatConDec condec = fmtConDec condec
-    let rec clauseToString (__G) (__V) =
-      F.makestring_fmt (formatClause (__G, __V))
-    let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
-    let rec printSgn () =
-      IntSyn.sgnApp
-        (fun cid -> print (conDecToString (IntSyn.sgnLookup cid)); print "\n")
-  end ;;
+      | (g_, (Pi _ as v_), acc) ->
+          (parens (F.HVbox (fmtDQuants (g_, v_)))) :: acc
+      | (g_, v_, acc) -> (Print.formatExp (g_, v_)) :: acc end(* V = Root _ *)
+    (* acc <> nil *)
+  let rec fmtDparens =
+    begin function
+    | (g_, (Pi _ as v_)) -> parens (F.HVbox (fmtDQuants (g_, v_)))
+    | (g_, v_) -> Print.formatExp (g_, v_) end(* V = Root _ *)
+let rec fmtGparens =
+  begin function
+  | (g_, (Pi _ as v_)) -> parens (F.HVbox (fmtGQuants (g_, v_)))
+  | (g_, v_) -> Print.formatExp (g_, v_) end(* V = Root _ *)
+let rec fmtGQuants =
+  begin function
+  | (g_, Pi (((Dec (_, v1_) as d_), I.Maybe), v2_)) ->
+      let d'_ = Names.decLUName (g_, d_) in
+      (::) (((::) ((::) (sym "{") Print.formatDec (g_, d'_)) sym "}") ::
+              F.Break)
+        fmtGQuants ((I.Decl (g_, d'_)), v2_)
+  | (g_, Pi (((Dec (_, v1_) as d_), I.Meta), v2_)) ->
+      let d'_ = Names.decLUName (g_, d_) in
+      (::) (((::) ((::) (sym "{") Print.formatDec (g_, d'_)) sym "}") ::
+              F.Break)
+        fmtGQuants ((I.Decl (g_, d'_)), v2_)
+  | (g_, v_) -> [F.HOVbox (fmtGHyps (g_, v_))] end(* P = I.No or V = Root _ *)
+let rec fmtGHyps =
+  begin function
+  | (g_, Pi (((Dec (_, v1_) as d_), I.No), v2_)) ->
+      (::) (((::) ((fmtDparens (g_, v1_)) :: F.Break) sym "->") :: F.Space)
+        fmtGHyps ((I.Decl (g_, d_)), v2_)
+  | (g_, (Pi _ as v_)) -> [F.HVbox (fmtGQuants (g_, v_))]
+  | (g_, v_) -> [Print.formatExp (g_, v_)] end(* V = Root _ *)(* P = I.Maybe *)
+let rec fmtClause (g_, v_) = F.HVbox (fmtDQuants (g_, v_))
+let rec fmtClauseI =
+  begin function
+  | (0, g_, v_) -> fmtClause (g_, v_)
+  | (i, g_, Pi ((d_, _), v_)) ->
+      fmtClauseI ((i - 1), (I.Decl (g_, (Names.decEName (g_, d_)))), v_) end
+let rec fmtConDec =
+  begin function
+  | ConDec (id, parent, i, _, v_, I.Type) ->
+      let _ = Names.varReset IntSyn.Null in
+      let Vfmt = fmtClauseI (i, I.Null, v_) in
+      F.HVbox
+        [Str0 (Symbol.const id); F.Space; sym ":"; F.Break; Vfmt; sym "."]
+  | condec -> Print.formatConDec condec end(* type family declaration, definition, or Skolem constant *)
+let rec formatClause (g_, v_) = fmtClause (g_, v_)
+let rec formatConDec condec = fmtConDec condec
+let rec clauseToString (g_, v_) = F.makestring_fmt (formatClause (g_, v_))
+let rec conDecToString condec = F.makestring_fmt (formatConDec condec)
+let rec printSgn () =
+  IntSyn.sgnApp
+    (begin function
+     | cid ->
+         (begin print (conDecToString (IntSyn.sgnLookup cid)); print "\n" end) end)
+end

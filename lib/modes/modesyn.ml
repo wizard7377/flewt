@@ -1,43 +1,41 @@
-
 module type MODESYN  =
   sig
-    type __Mode =
+    type mode_ =
       | Plus 
       | Star 
       | Minus 
       | Minus1 
-    type __ModeSpine =
+    type modeSpine_ =
       | Mnil 
-      | Mapp of (__Marg * __ModeSpine) 
-    and __Marg =
-      | Marg of (__Mode * string option) 
-    val modeEqual : __Mode -> __Mode -> bool
-    val modeToString : __Mode -> string
+      | Mapp of (marg_ * modeSpine_) 
+    and marg_ =
+      | Marg of (mode_ * string option) 
+    val modeEqual : (mode_ * mode_) -> bool
+    val modeToString : mode_ -> string
   end
 module ModeSyn : MODESYN =
   struct
     exception Error of string 
-    type __Mode =
+    type mode_ =
       | Plus 
       | Star 
       | Minus 
       | Minus1 
-    type __ModeSpine =
+    type modeSpine_ =
       | Mnil 
-      | Mapp of (__Marg * __ModeSpine) 
-    and __Marg =
-      | Marg of (__Mode * string option) 
-    let rec modeEqual __0__ __1__ =
-      match (__0__, __1__) with
+      | Mapp of (marg_ * modeSpine_) 
+    and marg_ =
+      | Marg of (mode_ * string option) 
+    let rec modeEqual =
+      begin function
       | (Plus, Plus) -> true
       | (Star, Star) -> true
       | (Minus, Minus) -> true
       | (Minus1, Minus1) -> true
-      | (_, _) -> false
+      | (_, _) -> false end
     let rec modeToString =
-      function
+      begin function
       | Plus -> "input (+)"
       | Star -> "unrestricted (*)"
       | Minus -> "output (-)"
-      | Minus1 -> "unique output (-1)"
-  end ;;
+      | Minus1 -> "unique output (-1)" end end

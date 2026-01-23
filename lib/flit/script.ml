@@ -1,5 +1,4 @@
-
-let rec dumpText tcb semant checker outputSemant outputChecker =
+let rec dumpText (tcb, semant, checker, outputSemant, outputChecker) =
   let _ = Twelf.reset () in
   let _ = Flit.initForText () in
   let _ = (:=) Twelf.Print.width Option.valOf Int.maxInt in
@@ -18,4 +17,4 @@ let rec dumpText tcb semant checker outputSemant outputChecker =
   let _ = Flit.dumpText (outputSemant, outputChecker) in ()
 ;;dumpText
     ("pcc/flit/ltal.cfg", "pcc/ltal/semant.cfg", "pcc/ltal/checker.cfg",
-      "dumpsemant", "dumpchecker");;
+      "dumpsemant", "dumpchecker")

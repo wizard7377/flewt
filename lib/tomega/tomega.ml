@@ -1,19 +1,18 @@
-
 module TomegaAbstract =
-  (Make_TomegaAbstract)(struct
+  (TomegaAbstract)(struct
                           module Global = Global
                           module Abstract = Abstract
                           module Whnf = Whnf
                           module Subordinate = Subordinate
                         end)
 module TomegaPrint =
-  (Make_TomegaPrint)(struct
+  (TomegaPrint)(struct
                        module Formatter = Formatter
                        module Names = Names
                        module Print = Print
                      end)
 module TomegaTypeCheck =
-  (Make_TomegaTypeCheck)(struct
+  (TomegaTypeCheck)(struct
                            module Global = Global
                            module Abstract = Abstract
                            module TypeCheck = TypeCheck
@@ -26,7 +25,7 @@ module TomegaTypeCheck =
                            module TomegaAbstract = TomegaAbstract
                          end)
 module Opsem =
-  (Make_Opsem)(struct
+  (Opsem)(struct
                  module Global = Global
                  module IntSyn' = IntSyn
                  module Abstract = Abstract
@@ -41,9 +40,9 @@ module Opsem =
                  module TomegaTypeCheck = TomegaTypeCheck
                  module Weaken = Weaken
                end)
-module Redundant = (Make_Redundant)(struct module Opsem = Opsem end)
+module Redundant = (Redundant)(struct module Opsem = Opsem end)
 module Converter =
-  (Make_Converter)(struct
+  (Converter)(struct
                      module Global = Global
                      module IntSyn' = IntSyn
                      module Abstract = Abstract
@@ -65,11 +64,11 @@ module Converter =
                      module Weaken = Weaken
                    end)
 module TomegaCoverage =
-  (Make_TomegaCoverage)(struct
+  (TomegaCoverage)(struct
                           module Global = Global
                           module IntSyn' = IntSyn
                           module Tomega' = Tomega
                           module TomegaPrint = TomegaPrint
                           module TomegaTypeCheck = TomegaTypeCheck
                           module Cover = Cover
-                        end);;
+                        end)

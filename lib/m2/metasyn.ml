@@ -1,67 +1,64 @@
-
 module type METASYN  =
   sig
-    type __Mode =
+    type mode_ =
       | Bot 
       | Top 
-    type __Prefix =
+    type prefix_ =
       | Prefix of
-      (((IntSyn.dctx * __Mode IntSyn.__Ctx * int IntSyn.__Ctx))(* Mtx modes                  *)
+      (((IntSyn.dctx * mode_ IntSyn.ctx_ * int IntSyn.ctx_))(* Mtx modes                  *)
       (* G   declarations           *)) 
-    type __State =
+    type state_ =
       | State of
-      (((string * __Prefix * IntSyn.__Exp))(*             G; Mtx; Btx    *)
+      (((string * prefix_ * IntSyn.exp_))(*             G; Mtx; Btx    *)
       (*             [name]         *)) 
-    type __Sgn =
+    type sgn_ =
       | SgnEmpty 
-      | ConDec of (IntSyn.__ConDec * __Sgn) 
+      | ConDec of (IntSyn.conDec_ * sgn_) 
     val createAtomConst :
-      IntSyn.dctx -> IntSyn.__Head -> (IntSyn.__Exp * IntSyn.eclo)
-    val createAtomBVar : IntSyn.dctx -> int -> (IntSyn.__Exp * IntSyn.eclo)
-  end;;
-
-
+      (IntSyn.dctx * IntSyn.head_) -> (IntSyn.exp_ * IntSyn.eclo)
+    val createAtomBVar : (IntSyn.dctx * int) -> (IntSyn.exp_ * IntSyn.eclo)
+  end
 
 
 module MetaSyn(MetaSyn:sig module Whnf : WHNF end) : METASYN =
   struct
     exception Error of string 
-    type nonrec __Var = int
-    type __Mode =
+    type nonrec var_ = int
+    type mode_ =
       | Bot 
       | Top 
-    type __Prefix =
+    type prefix_ =
       | Prefix of
-      (((IntSyn.dctx * __Mode IntSyn.__Ctx * int IntSyn.__Ctx))(* Mtx modes                  *)
+      (((IntSyn.dctx * mode_ IntSyn.ctx_ * int IntSyn.ctx_))(* Mtx modes                  *)
       (* G   declarations           *)) 
-    type __State =
+    type state_ =
       | State of
-      (((string * __Prefix * IntSyn.__Exp))(*             G; Mtx; Btx    *)
+      (((string * prefix_ * IntSyn.exp_))(*             G; Mtx; Btx    *)
       (*             [name]         *)) 
-    type __Sgn =
+    type sgn_ =
       | SgnEmpty 
-      | ConDec of (IntSyn.__ConDec * __Sgn) 
+      | ConDec of (IntSyn.conDec_ * sgn_) 
     module I = IntSyn
-    let rec createEVarSpine (__G) (__Vs) =
-      createEVarSpineW (__G, (Whnf.whnf __Vs))
-    let rec createEVarSpineW __0__ __1__ =
-      match (__0__, __1__) with
-      | (__G, ((Uni (I.Type), s) as Vs)) -> (I.Nil, __Vs)
-      | (__G, ((Root _, s) as Vs)) -> (I.Nil, __Vs)
-      | (__G, (Pi (((Dec (_, __V1) as D), _), __V2), s)) ->
-          let __X = I.newEVar (__G, (I.EClo (__V1, s))) in
-          let (__S, __Vs) =
-            createEVarSpine (__G, (__V2, (I.Dot ((I.Exp __X), s)))) in
-          ((I.App (__X, __S)), __Vs)(* s = id *)(* s = id *)
-    let rec createAtomConst (__G) (__H) =
-      let cid = match __H with | Const cid -> cid | Skonst cid -> cid in
-      let __V = I.constType cid in
-      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
-      ((I.Root (__H, __S)), __Vs)
-    let rec createAtomBVar (__G) k =
-      let Dec (_, __V) = I.ctxDec (__G, k) in
-      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
-      ((I.Root ((I.BVar k), __S)), __Vs)
-    let createAtomConst = createAtomConst
-    let createAtomBVar = createAtomBVar
-  end ;;
+    let rec createEVarSpine (g_, vs_) =
+      createEVarSpineW (g_, (Whnf.whnf vs_))
+    let rec createEVarSpineW =
+      begin function
+      | (g_, ((Uni (I.Type), s) as vs_)) -> (I.Nil, vs_)
+      | (g_, ((Root _, s) as vs_)) -> (I.Nil, vs_)
+      | (g_, (Pi (((Dec (_, v1_) as d_), _), v2_), s)) ->
+          let x_ = I.newEVar (g_, (I.EClo (v1_, s))) in
+          let (s_, vs_) =
+            createEVarSpine (g_, (v2_, (I.Dot ((I.Exp x_), s)))) in
+          ((I.App (x_, s_)), vs_) end(* s = id *)(* s = id *)
+    let rec createAtomConst (g_, h_) =
+      let cid =
+        begin match h_ with | Const cid -> cid | Skonst cid -> cid end in
+    let v_ = I.constType cid in
+    let (s_, vs_) = createEVarSpine (g_, (v_, I.id)) in
+    ((I.Root (h_, s_)), vs_)
+  let rec createAtomBVar (g_, k) =
+    let Dec (_, v_) = I.ctxDec (g_, k) in
+    let (s_, vs_) = createEVarSpine (g_, (v_, I.id)) in
+    ((I.Root ((I.BVar k), s_)), vs_)
+  let createAtomConst = createAtomConst
+  let createAtomBVar = createAtomBVar end

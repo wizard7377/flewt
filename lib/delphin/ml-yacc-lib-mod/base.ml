@@ -1,10 +1,9 @@
-
 module type STREAMM  =
   sig
     type nonrec 'xa stream
-    val streamify : (unit -> 'a) -> 'a stream
-    val cons : 'a -> 'a stream -> 'a stream
-    val get : 'a stream -> ('a * 'a stream)
+    val streamify : (unit -> '_a) -> '_a stream
+    val cons : ('_a * '_a stream) -> '_a stream
+    val get : '_a stream -> ('_a * '_a stream)
   end
 module type LR_TABLE  =
   sig
@@ -14,7 +13,7 @@ module type LR_TABLE  =
     type state =
       | STATE of int 
     type term =
-      | T of int 
+      | t_ of int 
     type nonterm =
       | NT of int 
     type action =
@@ -28,8 +27,8 @@ module type LR_TABLE  =
     val describeActions :
       table -> state -> ((term, action) pairlist * action)
     val describeGoto : table -> state -> (nonterm, state) pairlist
-    val action : table -> state -> term -> action
-    val goto : table -> state -> nonterm -> state
+    val action : table -> (state * term) -> action
+    val goto : table -> (state * nonterm) -> state
     val initialState : table -> state
     exception Goto of (state * nonterm) 
     val mkLrTable :
@@ -46,7 +45,7 @@ module type TOKEN  =
     module LrTable : LR_TABLE
     type ('a, 'b) token =
       | TOKEN of (LrTable.term * ('a * 'b * 'b)) 
-    val sameToken : ('a, 'b) token -> ('a, 'b) token -> bool
+    val sameToken : (('a, 'b) token * ('a, 'b) token) -> bool
   end
 module type LR_PARSER  =
   sig
@@ -56,41 +55,35 @@ module type LR_PARSER  =
     exception ParseError 
     val parse :
       ((<
-          table: LrTable.table  ;lexer: ('b, 'c) Token.token Streamm.stream
-                                    ;arg: 'arg  ;saction: int ->
-                                                            'c ->
+          table: LrTable.table  ;lexer: ('_b, '_c) Token.token Streamm.stream
+                                    ;arg: 'arg  ;saction: (int * '_c *
+                                                            (LrTable.state *
+                                                            ('_b * '_c *
+                                                            '_c)) list *
+                                                            'arg) ->
+                                                            (LrTable.nonterm
+                                                              * ('_b * '_c *
+                                                              '_c) *
                                                               (LrTable.state
-                                                                * ('b * 'c
-                                                                * 'c)) list
-                                                                ->
-                                                                'arg ->
-                                                                  (LrTable.nonterm
-                                                                    * ('b *
-                                                                    'c *
-                                                                    'c) *
-                                                                    (LrTable.state
-                                                                    * ('b *
-                                                                    'c *
-                                                                    'c))
-                                                                    list)  ;
-          void: 'b  ;ec: <
+                                                              * ('_b * '_c *
+                                                              '_c)) list)  ;
+          void: '_b  ;ec: <
                             is_keyword: LrTable.term -> bool  ;noShift: 
                                                                  LrTable.term
                                                                    -> 
                                                                    bool  ;
                             preferred_change: (LrTable.term list *
                                                 LrTable.term list) list  ;
-                            errtermvalue: LrTable.term -> 'b  ;showTerminal: 
+                            errtermvalue: LrTable.term -> '_b  ;showTerminal: 
                                                                   LrTable.term
                                                                     -> 
                                                                     string  ;
-                            terms: LrTable.term list  ;error: string ->
-                                                                'c ->
-                                                                  'c -> unit
-                                                           >   ;lookahead: 
-                                                                  int   > )
-        (* error correction *)(* max amount of lookahead used in *))
-        -> ('b * ('b, 'c) Token.token Streamm.stream)
+                            terms: LrTable.term list  ;error: (string * '_c *
+                                                                '_c) -> 
+                                                                unit   >   ;
+          lookahead: int   > )(* error correction *)
+        (* max amount of lookahead used in *)) ->
+        ('_b * ('_b, '_c) Token.token Streamm.stream)
   end
 module type LEXERR  =
   sig
@@ -129,12 +122,9 @@ module type PARSER_DATA  =
     module Actions :
     sig
       val actions :
-        int ->
-          pos ->
-            (LrTable.state * (svalue * pos * pos)) list ->
-              arg ->
-                (LrTable.nonterm * (svalue * pos * pos) * (LrTable.state *
-                  (svalue * pos * pos)) list)
+        (int * pos * (LrTable.state * (svalue * pos * pos)) list * arg) ->
+          (LrTable.nonterm * (svalue * pos * pos) * (LrTable.state * (svalue
+            * pos * pos)) list)
       val void : svalue
       val extract : svalue -> result
     end
@@ -161,12 +151,11 @@ module type PARSERR  =
     val makeLexer :
       (int -> string) -> (svalue, pos) Token.token Streamm.stream
     val parse :
-      int ->
-        (svalue, pos) Token.token Streamm.stream ->
-          (string -> pos -> pos -> unit) ->
-            arg -> (result * (svalue, pos) Token.token Streamm.stream)
+      (int * (svalue, pos) Token.token Streamm.stream *
+        ((string * pos * pos) -> unit) * arg) ->
+        (result * (svalue, pos) Token.token Streamm.stream)
     val sameToken :
-      (svalue, pos) Token.token -> (svalue, pos) Token.token -> bool
+      ((svalue, pos) Token.token * (svalue, pos) Token.token) -> bool
   end
 module type ARG_PARSER  =
   sig
@@ -181,10 +170,9 @@ module type ARG_PARSER  =
     val makeLexer :
       (int -> string) -> lexarg -> (svalue, pos) Token.token Streamm.stream
     val parse :
-      int ->
-        (svalue, pos) Token.token Streamm.stream ->
-          (string -> pos -> pos -> unit) ->
-            arg -> (result * (svalue, pos) Token.token Streamm.stream)
+      (int * (svalue, pos) Token.token Streamm.stream *
+        ((string * pos * pos) -> unit) * arg) ->
+        (result * (svalue, pos) Token.token Streamm.stream)
     val sameToken :
-      (svalue, pos) Token.token -> (svalue, pos) Token.token -> bool
-  end;;
+      ((svalue, pos) Token.token * (svalue, pos) Token.token) -> bool
+  end

@@ -1,4 +1,3 @@
-
 module type BASIC_STREAM  =
   sig
     type nonrec 'a stream
@@ -8,7 +7,7 @@ module type BASIC_STREAM  =
     val delay : (unit -> 'a front) -> 'a stream
     val expose : 'a stream -> 'a front
     val empty : 'a stream
-    val cons : 'a -> 'a stream -> 'a stream
+    val cons : ('a * 'a stream) -> 'a stream
   end
 module BasicStream : BASIC_STREAM =
   struct
@@ -19,9 +18,9 @@ module BasicStream : BASIC_STREAM =
       | Cons of ('a * 'a stream) 
     let rec delay d = Stream d
     let rec expose (Stream d) = d ()
-    let empty = Stream (fun () -> Empty)
-    let rec cons x s = Stream (fun () -> Cons (x, s))
-  end 
+    let empty = Stream (begin function | () -> Empty end)
+    let rec cons (x, s) = Stream (begin function | () -> Cons (x, s) end) end
+
 module BasicMemoStream : BASIC_STREAM =
   struct
     type 'a stream =
@@ -32,14 +31,17 @@ module BasicMemoStream : BASIC_STREAM =
     exception Uninitialized 
     let rec expose (Stream d) = d ()
     let rec delay d =
-      let memo = ref (fun () -> raise Uninitialized) in
-      let rec memoFun () =
-        try let r = d () in memo := ((fun () -> r)); r
-        with | exn -> (memo := ((fun () -> raise exn)); raise exn) in
-      memo := memoFun; Stream (fun () -> (!) memo ())
-    let empty = Stream (fun () -> Empty)
-    let rec cons x s = Stream (fun () -> Cons (x, s))
-  end 
+      let memo = ref (begin function | () -> raise Uninitialized end) in
+    let rec memoFun () =
+      begin try
+              let r = d () in begin memo := ((begin function | () -> r end));
+                r end
+      with
+      | exn -> (begin memo := ((begin function | () -> raise exn end));
+          raise exn end) end in
+begin memo := memoFun; Stream (begin function | () -> (!) memo () end) end
+let empty = Stream (begin function | () -> Empty end)
+let rec cons (x, s) = Stream (begin function | () -> Cons (x, s) end) end 
 module type STREAM  =
   sig
     include BASIC_STREAM
@@ -50,8 +52,8 @@ module type STREAM  =
     val map : ('a -> 'b) -> 'a stream -> 'b stream
     val filter : ('a -> bool) -> 'a stream -> 'a stream
     val exists : ('a -> bool) -> 'a stream -> bool
-    val take : 'a stream -> int -> 'a list
-    val drop : 'a stream -> int -> 'a stream
+    val take : ('a stream * int) -> 'a list
+    val drop : ('a stream * int) -> 'a stream
     val fromList : 'a list -> 'a stream
     val toList : 'a stream -> 'a list
     val tabulate : (int -> 'a) -> 'a stream
@@ -61,54 +63,54 @@ module Stream(Stream:sig module BasicStream : BASIC_STREAM end) : STREAM =
     open BasicStream
     exception EmptyStream 
     let rec null s = null' (expose s)
-    let rec null' = function | Empty -> true | Cons _ -> false
+    let rec null' = begin function | Empty -> true | Cons _ -> false end
     let rec hd s = hd' (expose s)
-    let rec hd' = function | Empty -> raise EmptyStream | Cons (x, s) -> x
-    let rec tl s = tl' (expose s)
-    let rec tl' = function | Empty -> raise EmptyStream | Cons (x, s) -> s
-    let rec map f s = delay (fun () -> map' f (expose s))
-    let rec map' __0__ __1__ =
-      match (__0__, __1__) with
-      | (f, Empty) -> Empty
-      | (f, Cons (x, s)) -> Cons ((f x), (map f s))
-    let rec filter p s = delay (fun () -> filter' p (expose s))
-    let rec filter' __2__ __3__ =
-      match (__2__, __3__) with
-      | (p, Empty) -> Empty
-      | (p, Cons (x, s)) ->
-          if p x then Cons (x, (filter p s)) else filter' p (expose s)
-    let rec exists p s = exists' p (expose s)
-    let rec exists' __4__ __5__ =
-      match (__4__, __5__) with
-      | (p, Empty) -> false
-      | (p, Cons (x, s)) -> (p x) || (exists p s)
-    let rec takePos __6__ __7__ =
-      match (__6__, __7__) with
-      | (s, 0) -> nil
-      | (s, n) -> take' ((expose s), n)
-    let rec take' __8__ __9__ =
-      match (__8__, __9__) with
-      | (Empty, _) -> nil
-      | (Cons (x, s), n) -> (::) x takePos (s, (n - 1))
-    let rec take s n = if n < 0 then raise Subscript else takePos (s, n)
-    let rec fromList =
-      function | nil -> empty | x::l -> cons (x, (fromList l))
-    let rec toList s = toList' (expose s)
-    let rec toList' =
-      function | Empty -> nil | Cons (x, s) -> (::) x toList s
-    let rec dropPos __10__ __11__ =
-      match (__10__, __11__) with
-      | (s, 0) -> s
-      | (s, n) -> drop' ((expose s), n)
-    let rec drop' __12__ __13__ =
-      match (__12__, __13__) with
-      | (Empty, _) -> empty
-      | (Cons (x, s), n) -> dropPos (s, (n - 1))
-    let rec drop s n = if n < 0 then raise Subscript else dropPos (s, n)
-    let rec tabulate f = delay (fun () -> tabulate' f)
-    let rec tabulate' f = Cons ((f 0), (tabulate (fun i -> f (i + 1))))
-  end 
+    let rec hd' =
+      begin function | Empty -> raise EmptyStream | Cons (x, s) -> x end
+  let rec tl s = tl' (expose s)
+  let rec tl' =
+    begin function | Empty -> raise EmptyStream | Cons (x, s) -> s end
+let rec map f s = delay (begin function | () -> map' f (expose s) end)
+let rec map' arg__0 arg__1 =
+  begin match (arg__0, arg__1) with
+  | (f, Empty) -> Empty
+  | (f, Cons (x, s)) -> Cons ((f x), (map f s)) end
+let rec filter p s = delay (begin function | () -> filter' p (expose s) end)
+let rec filter' arg__2 arg__3 =
+  begin match (arg__2, arg__3) with
+  | (p, Empty) -> Empty
+  | (p, Cons (x, s)) -> if p x then begin Cons (x, (filter p s)) end
+      else begin filter' p (expose s) end end
+let rec exists p s = exists' p (expose s)
+let rec exists' arg__4 arg__5 =
+  begin match (arg__4, arg__5) with
+  | (p, Empty) -> false
+  | (p, Cons (x, s)) -> (p x) || (exists p s) end
+let rec takePos =
+  begin function | (s, 0) -> [] | (s, n) -> take' ((expose s), n) end
+let rec take' =
+  begin function
+  | (Empty, _) -> []
+  | (Cons (x, s), n) -> (::) x takePos (s, (n - 1)) end
+let rec take (s, n) = if n < 0 then begin raise Subscript end
+  else begin takePos (s, n) end
+let rec fromList =
+  begin function | [] -> empty | x::l -> cons (x, (fromList l)) end
+let rec toList s = toList' (expose s)
+let rec toList' =
+  begin function | Empty -> [] | Cons (x, s) -> (::) x toList s end
+let rec dropPos =
+  begin function | (s, 0) -> s | (s, n) -> drop' ((expose s), n) end
+let rec drop' =
+  begin function
+  | (Empty, _) -> empty
+  | (Cons (x, s), n) -> dropPos (s, (n - 1)) end
+let rec drop (s, n) = if n < 0 then begin raise Subscript end
+  else begin dropPos (s, n) end
+let rec tabulate f = delay (begin function | () -> tabulate' f end)
+let rec tabulate' f =
+  Cons ((f 0), (tabulate (begin function | i -> f (i + 1) end))) end 
 module Stream : STREAM =
-  (Make_Stream)(struct module BasicStream = BasicStream end) 
+  (Stream)(struct module BasicStream = BasicStream end) 
 module MStream : STREAM =
-  (Make_Stream)(struct module BasicStream = BasicMemoStream end) ;;
+  (Stream)(struct module BasicStream = BasicMemoStream end) 

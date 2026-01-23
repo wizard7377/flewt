@@ -1,84 +1,84 @@
-
 module Strict =
   struct
     open Syntax
     exception EtaContract 
     let rec eta_contract_var =
-      function | Elt t -> eta_contract_var' 0 t | _ -> raise EtaContract
-    let rec eta_contract_var' __2__ __3__ =
-      match (__2__, __3__) with
+      begin function
+      | Elt t -> eta_contract_var' 0 t
+      | _ -> raise EtaContract end
+    let rec eta_contract_var' arg__2 arg__3 =
+      begin match (arg__2, arg__3) with
       | (n, ATerm (ARoot (Var n', s))) ->
           let s' = map eta_contract_var s in
-          let rec decreasing_list __0__ __1__ =
-            match (__0__, __1__) with
+          let rec decreasing_list arg__0 arg__1 =
+            begin match (arg__0, arg__1) with
             | (0, []) -> true
             | (n, h::tl) -> ((n - 1) = h) && (decreasing_list (n - 1) tl)
-            | (_, _) -> false in
-          if decreasing_list n s' then n' - n else raise EtaContract
-      | (n, NTerm (Lam t)) -> eta_contract_var' (n + 1) t
-      | (_, _) -> raise EtaContract
-    let rec pattern_spine' __4__ __5__ =
-      match (__4__, __5__) with
-      | (__D, []) -> true
-      | (__D, n::s) ->
-          let rec isn x = x = n in
-          let rec hasn s = List.exists isn s in
-          (hasn __D) && ((not (hasn s)) && (pattern_spine' (__D, s)))
-    let rec pattern_spine (__D) s =
-      try pattern_spine' (__D, (map eta_contract_var s))
-      with | EtaContract -> false
-    let rec spine_occ __6__ __7__ __8__ =
-      match (__6__, __7__, __8__) with
-      | (n, __D, nil) -> false
-      | (n, __D, (Elt t)::s) ->
-          (term_occ n (__D, t)) || (spine_occ n (__D, s))
-      | (n, __D, (AElt t)::s) ->
-          (aterm_occ n (__D, t)) || (spine_occ n (__D, s))
-      | (n, __D, (Ascribe (t, a))::s) ->
-          (nterm_occ n (__D, t)) ||
-            ((type_occ n (__D, a)) || (spine_occ n (__D, s)))
-      | (n, __D, (Omit)::s) -> false
-    let rec term_occ __9__ __10__ __11__ =
-      match (__9__, __10__, __11__) with
-      | (n, __D, NTerm t) -> nterm_occ n (__D, t)
-      | (n, __D, ATerm t) -> aterm_occ n (__D, t)
-    let rec nterm_occ __12__ __13__ __14__ =
-      match (__12__, __13__, __14__) with
-      | (n, __D, Lam t) ->
-          term_occ (n + 1) ((0 :: (map (fun x -> x + 1) __D)), t)
-      | (n, __D, NRoot (h, s)) -> root_occ n (__D, h, s)
-    let rec aterm_occ __15__ __16__ __17__ =
-      match (__15__, __16__, __17__) with
-      | (n, __D, ARoot (h, s)) -> root_occ n (__D, h, s)
-      | (n, __D, ERoot _) -> false
-    let rec root_occ __18__ __19__ __20__ __21__ =
-      match (__18__, __19__, __20__, __21__) with
-      | (n, __D, Var n', s) ->
-          ((if n = n'
-            then pattern_spine (__D, s)
-            else
-              (List.exists (fun x -> x = n') __D) && (spine_occ n (__D, s)))
-          (* n = n' precludes n in D, right? *))
-      | (n, __D, Const n', s) -> spine_occ n (__D, s)
-    let rec type_occ __22__ __23__ __24__ =
-      match (__22__, __23__, __24__) with
-      | (n, __D, TRoot (_, s)) -> spine_occ n (__D, s)
-      | (n, __D, TPi (_, a, b)) ->
-          (((type_occ n (__D, a)) ||
-              (type_occ (n + 1) ((0 :: (map (fun x -> x + 1) __D)), b)))
-          (* PERF: suspend these context shifts, do them at the end *))
-    let rec check_strict_type' __25__ __26__ __27__ =
-      match (__25__, __26__, __27__) with
-      | (n, p, TRoot (n', s)) -> if p then false else spine_occ n ([], s)
-      | (n, p, TPi (PLUS, a, b)) ->
-          (type_occ n ([], a)) || (check_strict_type' (n + 1) p b)
-      | (n, p, TPi (_, a, b)) -> check_strict_type' (n + 1) p b
-    let rec check_strict_kind' __28__ __29__ =
-      match (__28__, __29__) with
-      | (n, Type) -> false
-      | (n, KPi (PLUS, a, k)) ->
-          (type_occ n ([], a)) || (check_strict_kind' (n + 1) k)
-      | (n, KPi (_, a, k)) -> check_strict_kind' (n + 1) k
-    let rec check_strict_type p b = check_strict_type' 0 p b
-    let rec check_strict_kind k = check_strict_kind' 0 k
-  end;;
+            | (_, _) -> false end in
+          if decreasing_list n s' then begin n' - n end
+            else begin raise EtaContract end
+    | (n, NTerm (Lam t)) -> eta_contract_var' (n + 1) t
+    | (_, _) -> raise EtaContract end
+let rec pattern_spine' =
+  begin function
+  | (d_, []) -> true
+  | (d_, n::s) ->
+      let rec isn x = x = n in
+      let rec hasn s = List.exists isn s in
+      (hasn d_) && ((not (hasn s)) && (pattern_spine' (d_, s))) end
+let rec pattern_spine (d_, s) =
+  begin try pattern_spine' (d_, (map eta_contract_var s))
+  with | EtaContract -> false end
+let rec spine_occ arg__4 arg__5 =
+  begin match (arg__4, arg__5) with
+  | (n, (d_, [])) -> false
+  | (n, (d_, (Elt t)::s)) -> (term_occ n (d_, t)) || (spine_occ n (d_, s))
+  | (n, (d_, (AElt t)::s)) -> (aterm_occ n (d_, t)) || (spine_occ n (d_, s))
+  | (n, (d_, (Ascribe (t, a))::s)) ->
+      (nterm_occ n (d_, t)) ||
+        ((type_occ n (d_, a)) || (spine_occ n (d_, s)))
+  | (n, (d_, (Omit)::s)) -> false end
+let rec term_occ arg__6 arg__7 =
+  begin match (arg__6, arg__7) with
+  | (n, (d_, NTerm t)) -> nterm_occ n (d_, t)
+  | (n, (d_, ATerm t)) -> aterm_occ n (d_, t) end
+let rec nterm_occ arg__8 arg__9 =
+  begin match (arg__8, arg__9) with
+  | (n, (d_, Lam t)) ->
+      term_occ (n + 1) ((0 :: (map (begin function | x -> x + 1 end) d_)), t)
+  | (n, (d_, NRoot (h, s))) -> root_occ n (d_, h, s) end
+let rec aterm_occ arg__10 arg__11 =
+  begin match (arg__10, arg__11) with
+  | (n, (d_, ARoot (h, s))) -> root_occ n (d_, h, s)
+  | (n, (d_, ERoot _)) -> false end
+let rec root_occ arg__12 arg__13 =
+  begin match (arg__12, arg__13) with
+  | (n, (d_, Var n', s)) -> ((if n = n' then begin pattern_spine (d_, s) end
+      else begin (List.exists (begin function | x -> x = n' end) d_) &&
+        (spine_occ n (d_, s)) end)
+  (* n = n' precludes n in D, right? *))
+| (n, (d_, Const n', s)) -> spine_occ n (d_, s) end
+let rec type_occ arg__14 arg__15 =
+  begin match (arg__14, arg__15) with
+  | (n, (d_, TRoot (_, s))) -> spine_occ n (d_, s)
+  | (n, (d_, TPi (_, a, b))) ->
+      (((type_occ n (d_, a)) ||
+          (type_occ (n + 1)
+             ((0 :: (map (begin function | x -> x + 1 end) d_)), b)))
+  (* PERF: suspend these context shifts, do them at the end *)) end
+let rec check_strict_type' arg__16 arg__17 arg__18 =
+  begin match (arg__16, arg__17, arg__18) with
+  | (n, p, TRoot (n', s)) -> if p then begin false end
+      else begin spine_occ n ([], s) end
+  | (n, p, TPi (PLUS, a, b)) ->
+      (type_occ n ([], a)) || (check_strict_type' (n + 1) p b)
+  | (n, p, TPi (_, a, b)) -> check_strict_type' (n + 1) p b end
+let rec check_strict_kind' arg__19 arg__20 =
+  begin match (arg__19, arg__20) with
+  | (n, Type) -> false
+  | (n, KPi (PLUS, a, k)) ->
+      (type_occ n ([], a)) || (check_strict_kind' (n + 1) k)
+  | (n, KPi (_, a, k)) -> check_strict_kind' (n + 1) k end
+let rec check_strict_type p b = check_strict_type' 0 p b
+let rec check_strict_kind k = check_strict_kind' 0 k
+end

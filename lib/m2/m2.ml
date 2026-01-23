@@ -1,7 +1,6 @@
-
-module MetaSyn = (Make_MetaSyn)(struct module Whnf = Whnf end)
+module MetaSyn = (MetaSyn)(struct module Whnf = Whnf end)
 module MetaAbstract =
-  (Make_MetaAbstract)(struct
+  (MetaAbstract)(struct
                         module Global = Global
                         module MetaSyn' = MetaSyn
                         module MetaGlobal = MetaGlobal
@@ -16,7 +15,7 @@ module MetaAbstract =
                         module Subordinate = Subordinate
                       end)
 module MetaPrint =
-  (Make_MetaPrint)(struct
+  (MetaPrint)(struct
                      module Global = Global
                      module MetaSyn' = MetaSyn
                      module Formatter = Formatter
@@ -24,12 +23,12 @@ module MetaPrint =
                      module ClausePrint = ClausePrint
                    end)
 module Init =
-  (Make_Init)(struct
+  (Init)(struct
                 module MetaSyn' = MetaSyn
                 module MetaAbstract = MetaAbstract
               end)
 module OLDSearch =
-  (Make_OLDSearch)(struct
+  (OLDSearch)(struct
                      module MetaGlobal = MetaGlobal
                      module Conv = Conv
                      module MetaSyn' = MetaSyn
@@ -42,12 +41,12 @@ module OLDSearch =
                      module Names = Names
                    end)
 module Lemma =
-  (Make_Lemma)(struct
+  (Lemma)(struct
                  module MetaSyn' = MetaSyn
                  module MetaAbstract = MetaAbstract
                end)
 module Splitting =
-  (Make_Splitting)(struct
+  (Splitting)(struct
                      module Global = Global
                      module MetaSyn' = MetaSyn
                      module MetaPrint = MetaPrint
@@ -59,7 +58,7 @@ module Splitting =
                      module Unify = UnifyTrail
                    end)
 module Filling =
-  (Make_Filling)(struct
+  (Filling)(struct
                    module Global = Global
                    module MetaSyn' = MetaSyn
                    module MetaAbstract = MetaAbstract
@@ -68,7 +67,7 @@ module Filling =
                    module Whnf = Whnf
                  end)
 module Recursion =
-  (Make_Recursion)(struct
+  (Recursion)(struct
                      module Global = Global
                      module MetaSyn' = MetaSyn
                      module MetaPrint = MetaPrint
@@ -86,10 +85,10 @@ module Recursion =
                      module Formatter = Formatter
                    end)
 module Qed =
-  (Make_Qed)(struct module Global = Global
+  (Qed)(struct module Global = Global
                     module MetaSyn' = MetaSyn end)
 module StrategyFRS =
-  (Make_StrategyFRS)(struct
+  (StrategyFRS)(struct
                        module MetaGlobal = MetaGlobal
                        module MetaSyn' = MetaSyn
                        module MetaAbstract = MetaAbstract
@@ -102,7 +101,7 @@ module StrategyFRS =
                        module Timers = Timers
                      end)
 module StrategyRFS =
-  (Make_StrategyRFS)(struct
+  (StrategyRFS)(struct
                        module MetaGlobal = MetaGlobal
                        module MetaSyn' = MetaSyn
                        module MetaAbstract = MetaAbstract
@@ -115,14 +114,14 @@ module StrategyRFS =
                        module Timers = Timers
                      end)
 module Strategy =
-  (Make_Strategy)(struct
+  (Strategy)(struct
                     module MetaGlobal = MetaGlobal
                     module MetaSyn' = MetaSyn
                     module StrategyFRS = StrategyFRS
                     module StrategyRFS = StrategyRFS
                   end)
 module Prover =
-  (Make_Prover)(struct
+  (Prover)(struct
                   module MetaGlobal = MetaGlobal
                   module MetaSyn' = MetaSyn
                   module MetaAbstract = MetaAbstract
@@ -137,7 +136,7 @@ module Prover =
                   module Timers = Timers
                 end)
 module Mpi =
-  (Make_Mpi)(struct
+  (Mpi)(struct
                module MetaGlobal = MetaGlobal
                module MetaSyn' = MetaSyn
                module MetaAbstract = MetaAbstract
@@ -154,7 +153,7 @@ module Mpi =
                module Ring = Ring
              end)
 module Skolem =
-  (Make_Skolem)(struct
+  (Skolem)(struct
                   module Global = Global
                   module Whnf = Whnf
                   module Abstract = Abstract
@@ -164,4 +163,4 @@ module Skolem =
                   module Timers = Timers
                   module Compile = Compile
                   module Names = Names
-                end);;
+                end)

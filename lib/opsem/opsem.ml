@@ -1,6 +1,5 @@
-
 module AbsMachine =
-  (Make_AbsMachine)(struct
+  (AbsMachine)(struct
                       module Unify = UnifyTrail
                       module Assign = Assign
                       module Index = Index
@@ -9,7 +8,7 @@ module AbsMachine =
                       module Names = Names
                     end)
 module AbstractTabled =
-  (Make_AbstractTabled)(struct
+  (AbstractTabled)(struct
                           module Print = Print
                           module Whnf = Whnf
                           module Unify = UnifyTrail
@@ -19,7 +18,7 @@ module AbstractTabled =
                           module Print = Print
                         end)
 module MemoTable =
-  (Make_MemoTable)(struct
+  (MemoTable)(struct
                      module Conv = Conv
                      module Whnf = Whnf
                      module Print = Print
@@ -27,7 +26,7 @@ module MemoTable =
                      module Table = IntRedBlackTree
                    end)
 module MemoTableInst =
-  (Make_MemoTableInst)(struct
+  (MemoTableInst)(struct
                          module Conv = Conv
                          module Whnf = Whnf
                          module Match = Match
@@ -37,12 +36,12 @@ module MemoTableInst =
                          module Table = IntRedBlackTree
                        end)
 module SwMemoTable =
-  (Make_SwMemoTable)(struct
+  (SwMemoTable)(struct
                        module MemoTable = MemoTable
                        module MemoTableInst = MemoTableInst
                      end)
 module Tabled =
-  (Make_Tabled)(struct
+  (Tabled)(struct
                   module Unify = UnifyTrail
                   module Match = Match
                   module TabledSyn = TabledSyn
@@ -55,7 +54,7 @@ module Tabled =
                   module Print = Print
                 end)
 module PtRecon =
-  (Make_PtRecon)(struct
+  (PtRecon)(struct
                    module Unify = UnifyTrail
                    module MemoTable = SwMemoTable
                    module Assign = Assign
@@ -64,14 +63,14 @@ module PtRecon =
                    module Names = Names
                  end)
 module Trace =
-  (Make_Trace)(struct
+  (Trace)(struct
                  module Names = Names
                  module Whnf = Whnf
                  module Abstract = Abstract
                  module Print = Print
                end)
 module AbsMachineSbt =
-  (Make_AbsMachineSbt)(struct
+  (AbsMachineSbt)(struct
                          module IntSyn' = IntSyn
                          module CompSyn' = CompSyn
                          module SubTree = SubTree
@@ -84,7 +83,7 @@ module AbsMachineSbt =
                          module CSManager = CSManager
                        end)
 module TMachine =
-  (Make_TMachine)(struct
+  (TMachine)(struct
                     module Unify = UnifyTrail
                     module Index = Index
                     module Assign = Assign
@@ -93,8 +92,8 @@ module TMachine =
                     module Trace = Trace
                   end)
 module SwMachine =
-  (Make_SwMachine)(struct
+  (SwMachine)(struct
                      module Trace = Trace
                      module AbsMachine = AbsMachine
                      module TMachine = TMachine
-                   end);;
+                   end)

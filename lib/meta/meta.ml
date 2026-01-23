@@ -1,24 +1,23 @@
-
 module MTPGlobal =
-  (Make_MTPGlobal)(struct module MetaGlobal = MetaGlobal end)
+  (MTPGlobal)(struct module MetaGlobal = MetaGlobal end)
 module StateSyn =
-  (Make_StateSyn)(struct module Whnf = Whnf
+  (StateSyn)(struct module Whnf = Whnf
                          module Conv = Conv end)
 module FunNames =
-  (Make_FunNames)(struct
+  (FunNames)(struct
                     module Global = Global
                     module HashTable = StringHashTable
                   end)
 module FunPrint =
-  (Make_FunPrint)(struct
+  (FunPrint)(struct
                     module Formatter = Formatter
                     module Print = Print
                     module Names = Names
                   end)
-module Weaken = (Make_Weaken)(struct module Whnf = Whnf end)
-module FunWeaken = (Make_FunWeaken)(struct module Weaken = Weaken end)
+module Weaken = (Weaken)(struct module Whnf = Whnf end)
+module FunWeaken = (FunWeaken)(struct module Weaken = Weaken end)
 module FunTypeCheck =
-  (Make_FunTypeCheck)(struct
+  (FunTypeCheck)(struct
                         module StateSyn' = StateSyn
                         module Abstract = Abstract
                         module TypeCheck = TypeCheck
@@ -30,7 +29,7 @@ module FunTypeCheck =
                         module FunPrint = FunPrint
                       end)
 module RelFun =
-  (Make_RelFun)(struct
+  (RelFun)(struct
                   module Global = Global
                   module ModeTable = ModeTable
                   module Names = Names
@@ -43,9 +42,9 @@ module RelFun =
                   module FunWeaken = FunWeaken
                   module FunNames = FunNames
                 end)
-module MTPData = (Make_MTPData)(struct module MTPGlobal = MTPGlobal end)
+module MTPData = (MTPData)(struct module MTPGlobal = MTPGlobal end)
 module MTPAbstract =
-  (Make_MTPAbstract)(struct
+  (MTPAbstract)(struct
                        module StateSyn' = StateSyn
                        module Whnf = Whnf
                        module Constraints = Constraints
@@ -56,7 +55,7 @@ module MTPAbstract =
                        module Abstract = Abstract
                      end)
 module MTPInit =
-  (Make_MTPInit)(struct
+  (MTPInit)(struct
                    module MTPGlobal = MTPGlobal
                    module Names = Names
                    module StateSyn' = StateSyn
@@ -67,7 +66,7 @@ module MTPInit =
                    module FunPrint = FunPrint
                  end)
 module MTPrint =
-  (Make_MTPrint)(struct
+  (MTPrint)(struct
                    module Global = Global
                    module Names = Names
                    module StateSyn' = StateSyn
@@ -76,7 +75,7 @@ module MTPrint =
                    module FunPrint = FunPrint
                  end)
 module MTPSearch =
-  (Make_MTPSearch)(struct
+  (MTPSearch)(struct
                      module Global = Global
                      module MTPGlobal = MTPGlobal
                      module Abstract = Abstract
@@ -92,7 +91,7 @@ module MTPSearch =
                      module Names = Names
                    end)
 module MTPFilling =
-  (Make_MTPFilling)(struct
+  (MTPFilling)(struct
                       module MTPGlobal = MTPGlobal
                       module StateSyn' = StateSyn
                       module MTPData = MTPData
@@ -103,7 +102,7 @@ module MTPFilling =
                       module Whnf = Whnf
                     end)
 module MTPSplitting =
-  (Make_MTPSplitting)(struct
+  (MTPSplitting)(struct
                         module MTPGlobal = MTPGlobal
                         module Global = Global
                         module StateSyn' = StateSyn
@@ -121,7 +120,7 @@ module MTPSplitting =
                         module Unify = UnifyTrail
                       end)
 module UniqueSearch =
-  (Make_UniqueSearch)(struct
+  (UniqueSearch)(struct
                         module Global = Global
                         module StateSyn' = StateSyn
                         module Abstract = Abstract
@@ -136,7 +135,7 @@ module UniqueSearch =
                         module Names = Names
                       end)
 module Inference =
-  (Make_Inference)(struct
+  (Inference)(struct
                      module MTPGlobal = MTPGlobal
                      module StateSyn' = StateSyn
                      module Abstract = Abstract
@@ -147,7 +146,7 @@ module Inference =
                      module Print = Print
                    end)
 module MTPRecursion =
-  (Make_MTPRecursion)(struct
+  (MTPRecursion)(struct
                         module MTPGlobal = MTPGlobal
                         module Global = Global
                         module StateSyn' = StateSyn
@@ -167,7 +166,7 @@ module MTPRecursion =
                         module Formatter = Formatter
                       end)
 module MTPStrategy =
-  (Make_MTPStrategy)(struct
+  (MTPStrategy)(struct
                        module MTPGlobal = MTPGlobal
                        module StateSyn' = StateSyn
                        module MTPrint = MTPrint
@@ -179,7 +178,7 @@ module MTPStrategy =
                        module Timers = Timers
                      end)
 module MTProver =
-  (Make_MTProver)(struct
+  (MTProver)(struct
                     module MTPGlobal = MTPGlobal
                     module StateSyn = StateSyn
                     module Order = Order
@@ -189,13 +188,13 @@ module MTProver =
                     module RelFun = RelFun
                   end)
 module CombiProver =
-  (Make_CombiProver)(struct
+  (CombiProver)(struct
                        module MTPGlobal = MTPGlobal
                        module ProverNew = MTProver
                        module ProverOld = Prover
                      end)
 module MTPi =
-  (Make_MTPi)(struct
+  (MTPi)(struct
                 module MTPGlobal = MTPGlobal
                 module StateSyn' = StateSyn
                 module FunTypeCheck = FunTypeCheck
@@ -214,4 +213,4 @@ module MTPi =
                 module Order = Order
                 module Timers = Timers
                 module Ring = Ring
-              end);;
+              end)

@@ -1,12 +1,9 @@
-
 module type MTPINIT  =
   sig
     module StateSyn : STATESYN
     exception Error of string 
-    val init : FunSyn.__For -> StateSyn.__Order -> StateSyn.__State list
-  end;;
-
-
+    val init : (FunSyn.for_ * StateSyn.order_) -> StateSyn.state_ list
+  end
 
 
 module MTPInit(MTPInit:sig
@@ -26,32 +23,29 @@ module MTPInit(MTPInit:sig
     module F = FunSyn
     module S = StateSyn
     module Fmt = Formatter
-    let rec init (__F) (OF) =
-      let rec init' __0__ __1__ __2__ __3__ =
-        match (__0__, __1__, __2__, __3__) with
-        | ((__G, __B), All (_, __O), All (Prim (__D), __F'), __Ss) ->
-            let __D' = Names.decName (__G, __D) in
+    let rec init (f_, OF) =
+      let rec init' =
+        begin function
+        | ((g_, b_), All (_, o_), All (Prim (d_), f'_), ss_) ->
+            let d'_ = Names.decName (g_, d_) in
             init'
-              (((I.Decl (__G, __D')),
-                 (I.Decl (__B, (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
-                __O, __F', __Ss)
-        | (GB, And (__O1, __O2), And (__F1, __F2), __Ss) ->
-            init' (GB, __O1, __F1, (init' (GB, __O2, __F2, __Ss)))
-        | (GB, __O, (Ex _ as F'), __Ss) ->
-            (S.State
-               (((List.length __Ss) + 1), GB, (__F, OF), 1, __O, nil, __F'))
-              :: __Ss
-        | (GB, __O, (F.True as F'), __Ss) ->
-            (S.State
-               (((List.length __Ss) + 1), GB, (__F, OF), 1, __O, nil, __F'))
-              :: __Ss(*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
+              (((I.Decl (g_, d'_)),
+                 (I.Decl (b_, (S.Lemma (S.Splits !MTPGlobal.maxSplit))))),
+                o_, f'_, ss_)
+        | (GB, And (o1_, o2_), And (f1_, f2_), ss_) ->
+            init' (GB, o1_, f1_, (init' (GB, o2_, f2_, ss_)))
+        | (GB, o_, (Ex _ as f'_), ss_) ->
+            (S.State (((List.length ss_) + 1), GB, (f_, OF), 1, o_, [], f'_))
+              :: ss_
+        | (GB, o_, (F.True as f'_), ss_) ->
+            (S.State (((List.length ss_) + 1), GB, (f_, OF), 1, o_, [], f'_))
+              :: ss_ end(*      | init' (G, B, O, (F.All (F.Block _, F), s)) =
            no such case yet  --cs *)
-        (* it is possible to calculuate
+      (* it is possible to calculuate
                  index/induction variable information here
                  define occursOrder in StateSyn.fun  --cs *) in
-      ((Names.varReset I.Null;
-        MTPData.maxFill := 0;
-        init' ((I.Null, I.Null), OF, __F, nil))
-        (* added in case there are no existentials -fp *))
-    let init = init
-  end ;;
+    ((begin Names.varReset I.Null;
+      MTPData.maxFill := 0;
+      init' ((I.Null, I.Null), OF, f_, []) end)
+      (* added in case there are no existentials -fp *))
+  let init = init end

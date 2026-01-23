@@ -1,133 +1,125 @@
-
 module type ORDER  =
   sig
     exception Error of string 
-    type 'a __Order =
+    type 'a order_ =
       | Arg of 'a 
-      | Lex of 'a __Order list 
-      | Simul of 'a __Order list 
-    type __Predicate =
-      | Less of (int __Order * int __Order) 
-      | Leq of (int __Order * int __Order) 
-      | Eq of (int __Order * int __Order) 
-    type __Mutual =
+      | Lex of 'a order_ list 
+      | Simul of 'a order_ list 
+    type predicate_ =
+      | Less of (int order_ * int order_) 
+      | Leq of (int order_ * int order_) 
+      | Eq of (int order_ * int order_) 
+    type mutual_ =
       | Empty 
-      | LE of (IntSyn.cid * __Mutual) 
-      | LT of (IntSyn.cid * __Mutual) 
-    type __TDec =
-      | TDec of (int __Order * __Mutual) 
-    type __RDec =
-      | RDec of (__Predicate * __Mutual) 
+      | LE of (IntSyn.cid * mutual_) 
+      | LT of (IntSyn.cid * mutual_) 
+    type tDec_ =
+      | TDec of (int order_ * mutual_) 
+    type rDec_ =
+      | RDec of (predicate_ * mutual_) 
     val reset : unit -> unit
     val resetROrder : unit -> unit
-    val install : IntSyn.cid -> __TDec -> unit
+    val install : (IntSyn.cid * tDec_) -> unit
     val uninstall : IntSyn.cid -> bool
-    val installROrder : IntSyn.cid -> __RDec -> unit
+    val installROrder : (IntSyn.cid * rDec_) -> unit
     val uninstallROrder : IntSyn.cid -> bool
-    val selLookup : IntSyn.cid -> int __Order
-    val selLookupROrder : IntSyn.cid -> __Predicate
-    val mutLookup : IntSyn.cid -> __Mutual
+    val selLookup : IntSyn.cid -> int order_
+    val selLookupROrder : IntSyn.cid -> predicate_
+    val mutLookup : IntSyn.cid -> mutual_
     val closure : IntSyn.cid -> IntSyn.cid list
-  end;;
-
-
+  end
 
 
 module Order(Order:sig module Table : TABLE end) : ORDER =
   struct
     exception Error of string 
-    type 'a __Order =
+    type 'a order_ =
       | Arg of 'a 
-      | Lex of 'a __Order list 
-      | Simul of 'a __Order list 
-    type __Predicate =
-      | Less of (int __Order * int __Order) 
-      | Leq of (int __Order * int __Order) 
-      | Eq of (int __Order * int __Order) 
-    type __Mutual =
+      | Lex of 'a order_ list 
+      | Simul of 'a order_ list 
+    type predicate_ =
+      | Less of (int order_ * int order_) 
+      | Leq of (int order_ * int order_) 
+      | Eq of (int order_ * int order_) 
+    type mutual_ =
       | Empty 
-      | LE of (IntSyn.cid * __Mutual) 
-      | LT of (IntSyn.cid * __Mutual) 
-    type __TDec =
-      | TDec of (int __Order * __Mutual) 
-    type __RDec =
-      | RDec of (__Predicate * __Mutual) 
+      | LE of (IntSyn.cid * mutual_) 
+      | LT of (IntSyn.cid * mutual_) 
+    type tDec_ =
+      | TDec of (int order_ * mutual_) 
+    type rDec_ =
+      | RDec of (predicate_ * mutual_) 
     module I = IntSyn
-    let ((OrderTable) : __TDec Table.__Table) = Table.new__ 0
-    let ((RedOrderTable) : __RDec Table.__Table) = Table.new__ 0
+    let ((OrderTable) : tDec_ Table.table_) = Table.new_ 0
+    let ((RedOrderTable) : rDec_ Table.table_) = Table.new_ 0
     let rec reset () = Table.clear OrderTable
     let rec resetROrder () = Table.clear RedOrderTable
-    let rec install cid (__O) = Table.insert OrderTable (cid, __O)
+    let rec install (cid, o_) = Table.insert OrderTable (cid, o_)
     let rec uninstall cid =
-      match Table.lookup OrderTable cid with
+      begin match Table.lookup OrderTable cid with
       | None -> false
-      | Some _ -> (Table.delete OrderTable cid; true)
-    let rec installROrder cid (__P) = Table.insert RedOrderTable (cid, __P)
-    let rec uninstallROrder cid =
-      match Table.lookup RedOrderTable cid with
-      | None -> false
-      | Some _ -> (Table.delete RedOrderTable cid; true)
-    let rec lookup cid = Table.lookup OrderTable cid
-    let rec lookupROrder cid = Table.lookup RedOrderTable cid
-    let rec selLookup a =
-      match lookup a with
-      | None ->
-          raise
-            (Error
-               ((^) "No termination order assigned for " I.conDecName
-                  (I.sgnLookup a)))
-      | Some (TDec (__S, _)) -> __S
-    let rec selLookupROrder a =
-      match lookupROrder a with
-      | None ->
-          raise
-            (Error
-               (((^) "No reduction order assigned for " I.conDecName
-                   (I.sgnLookup a))
-                  ^ "."))
-      | Some (RDec (__P, _)) -> __P
-    let rec mutLookupROrder a =
-      match lookupROrder a with
-      | None ->
-          raise
-            (Error
-               (((^) "No order assigned for " I.conDecName (I.sgnLookup a)) ^
-                  "."))
-      | Some (RDec (_, __M)) -> __M
-    let rec mutLookup a =
-      match lookup a with
-      | None ->
-          raise
-            (Error
-               ((^) "No order assigned for " I.conDecName (I.sgnLookup a)))
-      | Some (TDec (_, __M)) -> __M
-    let rec mutual a =
-      let rec mutual' __0__ __1__ =
-        match (__0__, __1__) with
-        | (Empty, a's) -> a's
-        | (LE (a, __M), a's) -> mutual' (__M, (a :: a's))
-        | (LT (a, __M), a's) -> mutual' (__M, (a :: a's)) in
-      mutual' ((mutLookup a), nil)
-    let rec closure __2__ __3__ =
-      match (__2__, __3__) with
-      | (nil, a2s) -> a2s
-      | (a::a1s, a2s) ->
-          if List.exists (fun a' -> a = a') a2s
-          then closure (a1s, a2s)
-          else closure (((mutual a) @ a1s), (a :: a2s))
-    let reset = reset
-    let resetROrder = resetROrder
-    let install = install
-    let uninstall = uninstall
-    let installROrder = installROrder
-    let uninstallROrder = uninstallROrder
-    let selLookup = selLookup
-    let selLookupROrder = selLookupROrder
-    let mutLookup = mutLookup
-    let closure a = closure ([a], nil)
-  end ;;
+      | Some _ -> (begin Table.delete OrderTable cid; true end) end
+  let rec installROrder (cid, p_) = Table.insert RedOrderTable (cid, p_)
+  let rec uninstallROrder cid =
+    begin match Table.lookup RedOrderTable cid with
+    | None -> false
+    | Some _ -> (begin Table.delete RedOrderTable cid; true end) end
+let rec lookup cid = Table.lookup OrderTable cid
+let rec lookupROrder cid = Table.lookup RedOrderTable cid
+let rec selLookup a =
+  begin match lookup a with
+  | None ->
+      raise
+        (Error
+           ((^) "No termination order assigned for " I.conDecName
+              (I.sgnLookup a)))
+  | Some (TDec (s_, _)) -> s_ end
+let rec selLookupROrder a =
+  begin match lookupROrder a with
+  | None ->
+      raise
+        (Error
+           (((^) "No reduction order assigned for " I.conDecName
+               (I.sgnLookup a))
+              ^ "."))
+  | Some (RDec (p_, _)) -> p_ end
+let rec mutLookupROrder a =
+  begin match lookupROrder a with
+  | None ->
+      raise
+        (Error
+           (((^) "No order assigned for " I.conDecName (I.sgnLookup a)) ^ "."))
+  | Some (RDec (_, m_)) -> m_ end
+let rec mutLookup a =
+  begin match lookup a with
+  | None ->
+      raise
+        (Error ((^) "No order assigned for " I.conDecName (I.sgnLookup a)))
+  | Some (TDec (_, m_)) -> m_ end
+let rec mutual a =
+  let rec mutual' =
+    begin function
+    | (Empty, a's) -> a's
+    | (LE (a, m_), a's) -> mutual' (m_, (a :: a's))
+    | (LT (a, m_), a's) -> mutual' (m_, (a :: a's)) end in
+mutual' ((mutLookup a), [])
+let rec closure =
+  begin function
+  | ([], a2s) -> a2s
+  | (a::a1s, a2s) -> if List.exists (begin function | a' -> a = a' end) a2s
+      then begin closure (a1s, a2s) end
+  else begin closure (((mutual a) @ a1s), (a :: a2s)) end end
+let reset = reset
+let resetROrder = resetROrder
+let install = install
+let uninstall = uninstall
+let installROrder = installROrder
+let uninstallROrder = uninstallROrder
+let selLookup = selLookup
+let selLookupROrder = selLookupROrder
+let mutLookup = mutLookup
+let closure = begin function | a -> closure ([a], []) end end
 
 
 
-
-module Order = (Make_Order)(struct module Table = IntRedBlackTree end);;
+module Order = (Order)(struct module Table = IntRedBlackTree end)

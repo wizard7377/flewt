@@ -1,16 +1,13 @@
-
 module type INTERFACE  =
   sig
     type nonrec pos
     val line : pos ref
     val init_line : unit -> unit
     val next_line : unit -> unit
-    val error : string -> pos -> pos -> unit
+    val error : (string * pos * pos) -> unit
     type nonrec arg
     val nothing : arg
-  end;;
-
-
+  end
 
 
 module Interface() : INTERFACE =
@@ -19,10 +16,10 @@ module Interface() : INTERFACE =
     let line = ref 0
     let rec init_line () = line := 1
     let rec next_line () = ((!) ((:=) line) line) + 1
-    let rec error errmsg (line : pos) _ =
+    let rec error (errmsg, (line : pos), _) =
       TextIO.output
         (TextIO.stdOut,
           (((("Line " ^ (Int.toString line)) ^ ": ") ^ errmsg) ^ "\n"))
     type nonrec arg = unit
     let nothing = ()
-  end ;;
+  end 

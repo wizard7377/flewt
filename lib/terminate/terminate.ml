@@ -1,6 +1,5 @@
-
 module Checking =
-  (Make_Checking)(struct
+  (Checking)(struct
                     module Global = Global
                     module Whnf = Whnf
                     module Conv = Conv
@@ -16,7 +15,7 @@ module Checking =
                     module Origins = Origins
                   end)
 module Reduces =
-  (Make_Reduces)(struct
+  (Reduces)(struct
                    module Global = Global
                    module Whnf = Whnf
                    module Names = Names
@@ -28,4 +27,4 @@ module Reduces =
                    module Checking = Checking
                    module Paths = Paths
                    module Origins = Origins
-                 end);;
+                 end)

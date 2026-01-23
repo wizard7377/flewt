@@ -1,12 +1,10 @@
-
 module MemoTable =
-  (Make_HashTable)(struct
+  (HashTable)(struct
                      type nonrec key' = (int * int)
-                     let hash n m = (7 * n) + m
-                     let eq = (=)
-                   end)
+                     let hash = begin function | (n, m) -> (7 * n) + m end
+                     let eq = (=) end)
 module WorldSyn =
-  (Make_WorldSyn)(struct
+  (WorldSyn)(struct
                     module Global = Global
                     module Whnf = Whnf
                     module Names = Names
@@ -22,7 +20,7 @@ module WorldSyn =
                     module Timers = Timers
                   end)
 module Worldify =
-  (Make_Worldify)(struct
+  (Worldify)(struct
                     module Global = Global
                     module WorldSyn = WorldSyn
                     module Whnf = Whnf
@@ -38,4 +36,4 @@ module Worldify =
                     module MemoTable = MemoTable
                     module IntSet = IntSet
                     module Origins = Origins
-                  end);;
+                  end)

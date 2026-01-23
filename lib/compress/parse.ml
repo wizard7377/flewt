@@ -1,4 +1,3 @@
-
 module Parse =
   struct
     open Parsing
@@ -18,13 +17,13 @@ module Parse =
       | PlusArrow of (term * term) 
       | Ascribe of (term * term) 
       | Omit 
-    let rec PiMinus (s, to__) t = Pi (mMINUS, (s, to__), t)
-    let rec PiPlus (s, to__) t = Pi (mPLUS, (s, to__), t)
-    let rec PiOmit (s, to__) t = Pi (mOMIT, (s, to__), t)
+    let rec PiMinus ((s, to_), t) = Pi (mMINUS, (s, to_), t)
+    let rec PiPlus ((s, to_), t) = Pi (mPLUS, (s, to_), t)
+    let rec PiOmit ((s, to_), t) = Pi (mOMIT, (s, to_), t)
     let rec modeToString =
-      function | mMINUS -> "" | mPLUS -> "+ " | mOMIT -> "* "
+      begin function | mMINUS -> "" | mPLUS -> "+ " | mOMIT -> "* " end
     let rec termToString =
-      function
+      begin function
       | Id s -> s
       | App (t, u) ->
           ((("(" ^ (termToString t)) ^ " ") ^ (termToString u)) ^ ")"
@@ -40,48 +39,46 @@ module Parse =
           ((("(" ^ (termToString t)) ^ " +> ") ^ (termToString u)) ^ ")"
       | Ascribe (t, u) ->
           ((("(" ^ (termToString t)) ^ " : ") ^ (termToString u)) ^ ")"
-      | Omit -> "*"
-    let rec vardecToString __0__ __1__ =
-      match (__0__, __1__) with
-      | (v, Some t) -> (v ^ ":") ^ (termToString t)
-      | (v, None) -> v
-    let id = maybe (function | ID s -> Some s | _ -> None)
-    let rec swap x y = (y, x)
-    let rec vardec () =
-      (||) ((` ((<<) id) COLON) && (($) term wth Some)) id wth
-        (fun s -> (s, None))
-    let rec term () =
-      parsefixityadj
-        (alt
-           [id wth (Atm o Id);
-           ` ((<<) (((>>) (` LPAREN)) $ term)) RPAREN wth Atm;
-           `
-             ((<<) (((&&) (` ((<<) (((>>) (` LPAREN)) $ term)) COLON)) $ term))
-             RPAREN wth (Atm o Ascribe);
-           ($) ((&&) (` ((<<) (((>>) (` LBRACKET)) $ vardec)) RBRACKET)) term
-             wth (Atm o Lam);
-           ($) ((&&) (` ((<<) (((>>) (` ((>>) (` LBRACE)) STAR)) $ vardec))
-                        RBRACE))
-             term wth (Atm o PiOmit);
-           ($) ((&&) (` ((<<) (((>>) (` ((>>) (` LBRACE)) PLUS)) $ vardec))
-                        RBRACE))
-             term wth (Atm o PiPlus);
-           ($) ((&&) (` ((<<) (((>>) (` LBRACE)) $ vardec)) RBRACE)) term wth
-             (Atm o PiMinus);
-           ` TYPE return (Atm Type);
-           ` ARROW return Opr (Infix (Right, 5, Arrow));
-           ` PLUSARROW return Opr (Infix (Right, 5, PlusArrow));
-           ` BACKARROW return Opr (Infix (Left, 5, (Arrow o swap)));
-           ` STAR return (Atm Omit)]) Left App
-    let condec =
-      `
-        ((<<) (((&&) (`
-                        ((<<) ((opt (` MINUS) wth (not o Option.isSome)) &&
-                                 id)) COLON))
-                 $ term)) DOT
-    let rec parseof x =
-      Stream.toList
-        (Parsing.transform (($) term)
-           (Parsing.transform (!! tok)
-              (Pos.markstream (StreamUtil.stostream (x ^ "\n%.")))))
-  end;;
+      | Omit -> "*" end
+  let rec vardecToString =
+    begin function
+    | (v, Some t) -> (v ^ ":") ^ (termToString t)
+    | (v, None) -> v end
+let id = maybe (begin function | ID s -> Some s | _ -> None end)
+let rec swap (x, y) = (y, x)
+let rec vardec () =
+  (||) ((` ((<<) id) COLON) && (($) term wth Some)) id wth
+    (begin function | s -> (s, None) end)
+let rec term () =
+  parsefixityadj
+    (alt
+       [id wth (Atm o Id);
+       ` ((<<) (((>>) (` LPAREN)) $ term)) RPAREN wth Atm;
+       ` ((<<) (((&&) (` ((<<) (((>>) (` LPAREN)) $ term)) COLON)) $ term))
+         RPAREN wth (Atm o Ascribe);
+       ($) ((&&) (` ((<<) (((>>) (` LBRACKET)) $ vardec)) RBRACKET)) term wth
+         (Atm o Lam);
+       ($) ((&&) (` ((<<) (((>>) (` ((>>) (` LBRACE)) STAR)) $ vardec))
+                    RBRACE))
+         term wth (Atm o PiOmit);
+       ($) ((&&) (` ((<<) (((>>) (` ((>>) (` LBRACE)) PLUS)) $ vardec))
+                    RBRACE))
+         term wth (Atm o PiPlus);
+       ($) ((&&) (` ((<<) (((>>) (` LBRACE)) $ vardec)) RBRACE)) term wth
+         (Atm o PiMinus);
+       ` TYPE return (Atm Type);
+       ` ARROW return Opr (Infix (Right, 5, Arrow));
+       ` PLUSARROW return Opr (Infix (Right, 5, PlusArrow));
+       ` BACKARROW return Opr (Infix (Left, 5, (Arrow o swap)));
+       ` STAR return (Atm Omit)]) Left App
+let condec =
+  `
+    ((<<) (((&&) (` ((<<) ((opt (` MINUS) wth (not o Option.isSome)) && id))
+                    COLON))
+             $ term)) DOT
+let rec parseof x =
+  Stream.toList
+    (Parsing.transform (($) term)
+       (Parsing.transform (!! tok)
+          (Pos.markstream (StreamUtil.stostream (x ^ "\n%.")))))
+end

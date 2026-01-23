@@ -1,22 +1,14 @@
-
 module type OLDSEARCH  =
   sig
     module MetaSyn : METASYN
     exception Error of string 
     val searchEx :
-      IntSyn.dctx ->
-        IntSyn.__Exp list ->
-          (IntSyn.__Exp * IntSyn.__Sub) ->
-            (unit -> unit) -> MetaSyn.__State list
+      (IntSyn.dctx * IntSyn.exp_ list * (IntSyn.exp_ * IntSyn.sub_) *
+        (unit -> unit)) -> MetaSyn.state_ list
     val searchAll :
-      IntSyn.dctx ->
-        IntSyn.__Exp list ->
-          (IntSyn.__Exp * IntSyn.__Sub) ->
-            (MetaSyn.__State list -> MetaSyn.__State list) ->
-              MetaSyn.__State list
-  end;;
-
-
+      (IntSyn.dctx * IntSyn.exp_ list * (IntSyn.exp_ * IntSyn.sub_) *
+        (MetaSyn.state_ list -> MetaSyn.state_ list)) -> MetaSyn.state_ list
+  end
 
 
 module OLDSearch(OLDSearch:sig
@@ -37,184 +29,189 @@ module OLDSearch(OLDSearch:sig
     module M = MetaSyn
     module C = CompSyn
     let rec cidFromHead =
-      function | Const a -> a | Def a -> a | Skonst a -> a
-    let rec eqHead __0__ __1__ =
-      match (__0__, __1__) with
+      begin function | Const a -> a | Def a -> a | Skonst a -> a end
+    let rec eqHead =
+      begin function
       | (Const a, Const a') -> a = a'
       | (Def a, Def a') -> a = a'
-      | _ -> false
-    let rec solve __2__ __3__ __4__ __5__ =
-      match (__2__, __3__, __4__, __5__) with
-      | ((Atom p, s), dp, sc, acck) -> matchAtom ((p, s), dp, sc, acck)
-      | ((Impl (r, __A, __H, g), s), DProg (__G, dPool), sc, acck) ->
-          let __D' = I.Dec (None, (I.EClo (__A, s))) in
-          solve
-            ((g, (I.dot1 s)),
-              (C.DProg
-                 ((I.Decl (__G, __D')),
-                   (I.Decl (dPool, (C.Dec (r, s, __H)))))),
-              (fun (__M) -> fun acck' -> sc ((I.Lam (__D', __M)), acck')),
-              acck)
-      | ((All (__D, g), s), DProg (__G, dPool), sc, acck) ->
-          let __D' = I.decSub (__D, s) in
-          solve
-            ((g, (I.dot1 s)),
-              (C.DProg ((I.Decl (__G, __D')), (I.Decl (dPool, C.Parameter)))),
-              (fun (__M) -> fun acck' -> sc ((I.Lam (__D', __M)), acck')),
-              acck)
-    let rec rSolve __6__ __7__ __8__ __9__ __10__ =
-      match (__6__, __7__, __8__, __9__, __10__) with
-      | (ps', (Eq (__Q), s), DProg (__G, dPool), sc, ((acc, k) as acck)) ->
-          if Unify.unifiable (__G, ps', (__Q, s))
-          then sc (I.Nil, acck)
-          else acc
-      | (ps', (And (r, __A, g), s), (DProg (__G, dPool) as dp), sc, acck) ->
-          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
-          rSolve
-            (ps', (r, (I.Dot ((I.Exp __X), s))), dp,
-              (fun (__S) ->
-                 fun acck' ->
-                   solve
-                     ((g, s), dp,
-                       (fun (__M) ->
-                          fun acck'' ->
-                            try
-                              ((Unify.unify (__G, (__X, I.id), (__M, I.id));
-                                sc ((I.App (__M, __S)), acck''))
-                              (* why doesn't it always succeed?
+      | _ -> false end
+  let rec solve =
+    begin function
+    | ((Atom p, s), dp, sc, acck) -> matchAtom ((p, s), dp, sc, acck)
+    | ((Impl (r, a_, h_, g), s), DProg (g_, dPool), sc, acck) ->
+        let d'_ = I.Dec (None, (I.EClo (a_, s))) in
+        solve
+          ((g, (I.dot1 s)),
+            (C.DProg
+               ((I.Decl (g_, d'_)), (I.Decl (dPool, (C.Dec (r, s, h_)))))),
+            (begin function | (m_, acck') -> sc ((I.Lam (d'_, m_)), acck') end),
+          acck)
+    | ((All (d_, g), s), DProg (g_, dPool), sc, acck) ->
+        let d'_ = I.decSub (d_, s) in
+        solve
+          ((g, (I.dot1 s)),
+            (C.DProg ((I.Decl (g_, d'_)), (I.Decl (dPool, C.Parameter)))),
+            (begin function | (m_, acck') -> sc ((I.Lam (d'_, m_)), acck') end),
+          acck) end
+let rec rSolve =
+  begin function
+  | (ps', (Eq (q_), s), DProg (g_, dPool), sc, ((acc, k) as acck)) ->
+      if Unify.unifiable (g_, ps', (q_, s)) then begin sc (I.Nil, acck) end
+      else begin acc end
+  | (ps', (And (r, a_, g), s), (DProg (g_, dPool) as dp), sc, acck) ->
+      let x_ = I.newEVar (g_, (I.EClo (a_, s))) in
+      rSolve
+        (ps', (r, (I.Dot ((I.Exp x_), s))), dp,
+          (begin function
+           | (s_, acck') ->
+               solve
+                 ((g, s), dp,
+                   (begin function
+                    | (m_, acck'') ->
+                        (begin try
+                                 ((begin Unify.unify
+                                           (g_, (x_, I.id), (m_, I.id));
+                                   sc ((I.App (m_, s_)), acck'') end)
+                         (* why doesn't it always succeed?
                                                                 --cs *))
-                            with | Unify _ -> []), acck')), acck)
-      | (ps', (Exists (Dec (_, __A), r), s), (DProg (__G, dPool) as dp), sc,
-         acck) ->
-          let __X = I.newEVar (__G, (I.EClo (__A, s))) in
-          rSolve
-            (ps', (r, (I.Dot ((I.Exp __X), s))), dp,
-              (fun (__S) -> fun acck' -> sc ((I.App (__X, __S)), acck')),
-              acck)(*
+                        with | Unify _ -> [] end) end),
+           acck') end),
+  acck)
+| (ps', (Exists (Dec (_, a_), r), s), (DProg (g_, dPool) as dp), sc, acck) ->
+    let x_ = I.newEVar (g_, (I.EClo (a_, s))) in
+    rSolve
+      (ps', (r, (I.Dot ((I.Exp x_), s))), dp,
+        (begin function | (s_, acck') -> sc ((I.App (x_, s_)), acck') end),
+      acck) end(*
     | rSolve (ps', (C.Assign (Q, ag), s), dp, sc, acck as (acc, k)) =
         ((Assign.assign (ps', (Q, s));
           aSolve ((ag, s), dp, (fn () => sc (I.Nil, acck)) , acc))
           handle Unify.Unify _ => acc
                | Assign.Assign _ => acc)
     *)
-      (* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
+(* replaced below by above.  -fp Mon Aug 17 10:41:09 1998
         ((Unify.unify (ps', (Q, s)); sc (I.Nil, acck)) handle Unify.Unify _ => acc) *)
-    let rec aSolve (C.Trivial, s) dp sc acc = sc ()
-    let rec matchAtom ((Root (Ha, _), _) as ps') (DProg (__G, dPool) as dp)
-      sc (acc, k) =
-      let rec matchSig acc' =
-        let rec matchSig' __11__ __12__ =
-          match (__11__, __12__) with
-          | (nil, acc'') -> acc''
-          | ((Hc)::sgn', acc'') ->
-              let SClause r = C.sProgLookup (cidFromHead Hc) in
-              let acc''' =
-                CSManager.trail
-                  (fun () ->
-                     rSolve
-                       (ps', (r, I.id), dp,
-                         (fun (__S) ->
-                            fun acck' -> sc ((I.Root (Hc, __S)), acck')),
-                         (acc'', (k - 1)))) in
-              matchSig' (sgn', acc''') in
-        matchSig' ((Index.lookup (cidFromHead Ha)), acc') in
-      let rec matchDProg __13__ __14__ __15__ =
-        match (__13__, __14__, __15__) with
-        | (I.Null, _, acc') -> matchSig acc'
-        | (Decl (dPool', Dec (r, s, Ha')), n, acc') ->
-            if eqHead (Ha, Ha')
-            then
-              let acc'' =
-                CSManager.trail
-                  (fun () ->
+let rec aSolve ((C.Trivial, s), dp, sc, acc) = sc ()
+let rec matchAtom
+  (((Root (Ha, _), _) as ps'), (DProg (g_, dPool) as dp), sc, (acc, k)) =
+  let rec matchSig acc' =
+    let rec matchSig' =
+      begin function
+      | ([], acc'') -> acc''
+      | ((Hc)::sgn', acc'') ->
+          let SClause r = C.sProgLookup (cidFromHead Hc) in
+          let acc''' =
+            CSManager.trail
+              (begin function
+               | () ->
+                   rSolve
+                     (ps', (r, I.id), dp,
+                       (begin function
+                        | (s_, acck') -> sc ((I.Root (Hc, s_)), acck') end),
+                     (acc'', (k - 1))) end) in
+        matchSig' (sgn', acc''') end in
+matchSig' ((Index.lookup (cidFromHead Ha)), acc') in
+let rec matchDProg =
+begin function
+| (I.Null, _, acc') -> matchSig acc'
+| (Decl (dPool', Dec (r, s, Ha')), n, acc') ->
+    if eqHead (Ha, Ha')
+    then
+      begin let acc'' =
+              CSManager.trail
+                (begin function
+                 | () ->
                      rSolve
                        (ps', (r, (I.comp (s, (I.Shift n)))), dp,
-                         (fun (__S) ->
-                            fun acck' ->
-                              sc ((I.Root ((I.BVar n), __S)), acck')),
-                         (acc', (k - 1)))) in
-              matchDProg (dPool', (n + 1), acc'')
-            else matchDProg (dPool', (n + 1), acc')
-        | (Decl (dPool', C.Parameter), n, acc') ->
-            matchDProg (dPool', (n + 1), acc') in
-      if k < 0 then acc else matchDProg (dPool, 1, acc)
-    let rec occursInExp r (__Vs) = occursInExpW (r, (Whnf.whnf __Vs))
-    let rec occursInExpW __16__ __17__ =
-      match (__16__, __17__) with
-      | (r, (Uni _, _)) -> false
-      | (r, (Pi ((__D, _), __V), s)) ->
-          (occursInDec (r, (__D, s))) || (occursInExp (r, (__V, (I.dot1 s))))
-      | (r, (Root (_, __S), s)) -> occursInSpine (r, (__S, s))
-      | (r, (Lam (__D, __V), s)) ->
-          (occursInDec (r, (__D, s))) || (occursInExp (r, (__V, (I.dot1 s))))
-      | (r, (EVar (r', _, __V', _), s)) ->
-          (r = r') || (occursInExp (r, (__V', s)))
-      | (r, (FgnExp csfe, s)) ->
-          I.FgnExpStd.fold csfe
-            (fun (__U) -> fun (__B) -> __B || (occursInExp (r, (__U, s))))
-            false
-    let rec occursInSpine __18__ __19__ =
-      match (__18__, __19__) with
-      | (_, (I.Nil, _)) -> false
-      | (r, (SClo (__S, s'), s)) ->
-          occursInSpine (r, (__S, (I.comp (s', s))))
-      | (r, (App (__U, __S), s)) ->
-          (occursInExp (r, (__U, s))) || (occursInSpine (r, (__S, s)))
-    let rec occursInDec r (Dec (_, __V), s) = occursInExp (r, (__V, s))
-    let rec nonIndex __20__ __21__ =
-      match (__20__, __21__) with
-      | (_, nil) -> true
-      | (r, (EVar (_, _, __V, _))::GE) ->
-          (not (occursInExp (r, (__V, I.id)))) && (nonIndex (r, GE))
-    let rec selectEVar __22__ __23__ __24__ =
-      match (__22__, __23__, __24__) with
-      | (nil, _, acc) -> acc
-      | ((EVar (r, _, _, _) as X)::GE, __Vs, acc) ->
-          if (occursInExp (r, __Vs)) && (nonIndex (r, acc))
-          then selectEVar (GE, __Vs, (__X :: acc))
-          else selectEVar (GE, __Vs, acc)
-    let rec searchEx' __25__ __26__ __27__ =
-      match (__25__, __26__, __27__) with
-      | (max, nil, sc) -> [sc ()]
-      | (max, (EVar (r, __G, __V, _))::GE, sc) ->
-          solve
-            (((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false __G),
-              (fun (__U') ->
-                 fun (acc', _) ->
-                   Unify.instantiateEVar (r, __U', nil);
-                   searchEx' max (GE, sc)), (nil, max))(* Possible optimization:
+                         (begin function
+                          | (s_, acck') ->
+                              sc ((I.Root ((I.BVar n), s_)), acck') end),
+                       (acc', (k - 1))) end) in
+  matchDProg (dPool', (n + 1), acc'') end
+else begin matchDProg (dPool', (n + 1), acc') end
+| (Decl (dPool', C.Parameter), n, acc') -> matchDProg (dPool', (n + 1), acc') end in
+if k < 0 then begin acc end
+else begin matchDProg (dPool, 1, acc) end
+let rec occursInExp (r, vs_) = occursInExpW (r, (Whnf.whnf vs_))
+let rec occursInExpW =
+  begin function
+  | (r, (Uni _, _)) -> false
+  | (r, (Pi ((d_, _), v_), s)) ->
+      (occursInDec (r, (d_, s))) || (occursInExp (r, (v_, (I.dot1 s))))
+  | (r, (Root (_, s_), s)) -> occursInSpine (r, (s_, s))
+  | (r, (Lam (d_, v_), s)) ->
+      (occursInDec (r, (d_, s))) || (occursInExp (r, (v_, (I.dot1 s))))
+  | (r, (EVar (r', _, v'_, _), s)) -> (r = r') || (occursInExp (r, (v'_, s)))
+  | (r, (FgnExp csfe, s)) ->
+      I.FgnExpStd.fold csfe
+        (begin function | (u_, b_) -> b_ || (occursInExp (r, (u_, s))) end)
+      false end
+let rec occursInSpine =
+  begin function
+  | (_, (I.Nil, _)) -> false
+  | (r, (SClo (s_, s'), s)) -> occursInSpine (r, (s_, (I.comp (s', s))))
+  | (r, (App (u_, s_), s)) ->
+      (occursInExp (r, (u_, s))) || (occursInSpine (r, (s_, s))) end
+let rec occursInDec (r, (Dec (_, v_), s)) = occursInExp (r, (v_, s))
+let rec nonIndex =
+  begin function
+  | (_, []) -> true
+  | (r, (EVar (_, _, v_, _))::GE) ->
+      (not (occursInExp (r, (v_, I.id)))) && (nonIndex (r, GE)) end
+let rec selectEVar =
+  begin function
+  | ([], _, acc) -> acc
+  | ((EVar (r, _, _, _) as x_)::GE, vs_, acc) ->
+      if (occursInExp (r, vs_)) && (nonIndex (r, acc))
+      then begin selectEVar (GE, vs_, (x_ :: acc)) end
+      else begin selectEVar (GE, vs_, acc) end end
+let rec searchEx' arg__0 arg__1 =
+  begin match (arg__0, arg__1) with
+  | (max, ([], sc)) -> [sc ()]
+  | (max, ((EVar (r, g_, v_, _))::GE, sc)) ->
+      solve
+        (((Compile.compileGoal (g_, v_)), I.id),
+          (Compile.compileCtx false g_),
+          (begin function
+           | (u'_, (acc', _)) ->
+               (begin Unify.instantiateEVar (r, u'_, []);
+                searchEx' max (GE, sc) end) end),
+      ([], max)) end(* Possible optimization:
            Check if there are still variables left over
         *)
-    let rec deepen f (__P) =
-      let rec deepen' level acc =
-        if level > (!MetaGlobal.maxFill)
-        then acc
-        else
-          (if (!Global.chatter) > 5 then print "#" else ();
-           deepen' ((level + 1), (f level __P))) in
-      deepen' (1, nil)
-    let rec searchEx (__G) (GE) (__Vs) sc =
-      if (!Global.chatter) > 5 then print "[Search: " else ();
-      deepen searchEx'
-        ((selectEVar (GE, __Vs, nil)),
-          (fun (Params) ->
-             if (!Global.chatter) > 5 then print "OK]\n" else (); sc Params));
-      if (!Global.chatter) > 5 then print "FAIL]\n" else ();
-      raise (Error "No object found")
-    let rec searchAll' __28__ __29__ __30__ =
-      match (__28__, __29__, __30__) with
-      | (nil, acc, sc) -> sc acc
-      | ((EVar (r, __G, __V, _))::GE, acc, sc) ->
-          solve
-            (((Compile.compileGoal (__G, __V)), I.id),
-              (Compile.compileCtx false __G),
-              (fun (__U') ->
-                 fun (acc', _) ->
-                   Unify.instantiateEVar (r, __U', nil);
-                   searchAll' (GE, acc', sc)), (acc, (!MetaGlobal.maxFill)))
-    let rec searchAll (__G) (GE) (__Vs) sc =
-      searchAll' ((selectEVar (GE, __Vs, nil)), nil, sc)
-    let searchEx = searchEx
-    let searchAll = searchAll
-  end ;;
+let rec deepen f (p_) =
+  let rec deepen' (level, acc) =
+    if level > !MetaGlobal.maxFill then begin acc end
+    else begin
+      (begin if !Global.chatter > 5 then begin print "#" end
+       else begin () end;
+    deepen' ((level + 1), (f level p_)) end) end in
+deepen' (1, [])
+let rec searchEx (g_, GE, vs_, sc) =
+  begin if !Global.chatter > 5 then begin print "[Search: " end
+  else begin () end;
+  deepen searchEx'
+    ((selectEVar (GE, vs_, [])),
+      (begin function
+       | Params ->
+           (begin if !Global.chatter > 5 then begin print "OK]\n" end
+            else begin () end;
+       sc Params end) end));
+if !Global.chatter > 5 then begin print "FAIL]\n" end else begin () end;
+raise (Error "No object found") end
+let rec searchAll' =
+  begin function
+  | ([], acc, sc) -> sc acc
+  | ((EVar (r, g_, v_, _))::GE, acc, sc) ->
+      solve
+        (((Compile.compileGoal (g_, v_)), I.id),
+          (Compile.compileCtx false g_),
+          (begin function
+           | (u'_, (acc', _)) ->
+               (begin Unify.instantiateEVar (r, u'_, []);
+                searchAll' (GE, acc', sc) end) end),
+      (acc, !MetaGlobal.maxFill)) end
+let rec searchAll (g_, GE, vs_, sc) =
+  searchAll' ((selectEVar (GE, vs_, [])), [], sc)
+let searchEx = searchEx
+let searchAll = searchAll end

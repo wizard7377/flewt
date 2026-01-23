@@ -1,12 +1,11 @@
-
 module CSEqQ =
-  (Make_CSEqField)(struct
+  (CSEqField)(struct
                      module Field = Rationals
                      module Whnf = Whnf
                      module Unify = UnifyTrail
                    end)
 module CSIneqQ =
-  (Make_CSIneqField)(struct
+  (CSIneqField)(struct
                        module OrderedField = Rationals
                        module Trail = Trail
                        module Unify = UnifyTrail
@@ -16,19 +15,19 @@ module CSIneqQ =
                        module Compat = Compat
                      end)
 module CSEqStrings =
-  (Make_CSEqStrings)(struct module Whnf = Whnf
+  (CSEqStrings)(struct module Whnf = Whnf
                             module Unify = UnifyTrail end)
 module CSEqBools =
-  (Make_CSEqBools)(struct module Whnf = Whnf
+  (CSEqBools)(struct module Whnf = Whnf
                           module Unify = UnifyTrail end)
 module CSEqZ =
-  (Make_CSEqIntegers)(struct
+  (CSEqIntegers)(struct
                         module Integers = Integers
                         module Whnf = Whnf
                         module Unify = UnifyTrail
                       end)
 module CSIneqZ =
-  (Make_CSIneqIntegers)(struct
+  (CSIneqIntegers)(struct
                           module Integers = Integers
                           module Rationals = Rationals
                           module Trail = Trail
@@ -39,7 +38,7 @@ module CSIneqZ =
                           module Compat = Compat
                         end)
 module CSIntWord32 =
-  (Make_CSIntWord)(struct
+  (CSIntWord)(struct
                      module Whnf = Whnf
                      module Unify = UnifyTrail
                      let wordSize = 32
@@ -55,8 +54,11 @@ module CSInstaller : CS_INSTALLER =
       CSEqZ.solver;
       CSIneqZ.solver;
       CSIntWord32.solver]
-    let _ = List.app (fun s -> CSManager.installSolver s; ()) solvers
-    let version =
-      List.foldr (fun s -> fun str -> (((fun r -> r.name) s) ^ "\n") ^ str)
-        "" solvers
-  end ;;
+    let _ =
+      List.app
+        (begin function | s -> (begin CSManager.installSolver s; () end) end)
+      solvers
+  let version =
+    List.foldr
+      (begin function | (s, str) -> (((fun r -> r.name) s) ^ "\n") ^ str end)
+    "" solvers end

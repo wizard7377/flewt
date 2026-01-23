@@ -1,66 +1,63 @@
-
 module type COMPSYN  =
   sig
-    type __Opt =
+    type opt_ =
       | No 
       | LinearHeads 
       | Indexing 
-    val optimize : __Opt ref
-    type __Goal =
-      | Atom of IntSyn.__Exp 
+    val optimize : opt_ ref
+    type goal_ =
+      | Atom of IntSyn.exp_ 
       | Impl of
-      (((__ResGoal * IntSyn.__Exp * IntSyn.__Head * __Goal))(*     | (r,A,a) => g         *))
+      (((resGoal_ * IntSyn.exp_ * IntSyn.head_ * goal_))(*     | (r,A,a) => g         *))
       
-      | All of (IntSyn.__Dec * __Goal) 
-    and __ResGoal =
-      | Eq of IntSyn.__Exp 
-      | Assign of (IntSyn.__Exp * __AuxGoal) 
+      | All of (IntSyn.dec_ * goal_) 
+    and resGoal_ =
+      | Eq of IntSyn.exp_ 
+      | Assign of (IntSyn.exp_ * auxGoal_) 
       | And of
-      (((__ResGoal * IntSyn.__Exp * __Goal))(*     | r & (A,g)            *))
+      (((resGoal_ * IntSyn.exp_ * goal_))(*     | r & (A,g)            *))
       
       | In of
-      (((__ResGoal * IntSyn.__Exp * __Goal))(*     | r virt& (A,g)        *))
+      (((resGoal_ * IntSyn.exp_ * goal_))(*     | r virt& (A,g)        *))
       
-      | Exists of (IntSyn.__Dec * __ResGoal) 
-      | Axists of (IntSyn.__Dec * __ResGoal) 
-    and __AuxGoal =
+      | Exists of (IntSyn.dec_ * resGoal_) 
+      | Axists of (IntSyn.dec_ * resGoal_) 
+    and auxGoal_ =
       | Trivial 
       | UnifyEq of
-      (((IntSyn.dctx * IntSyn.__Exp * IntSyn.__Exp * __AuxGoal))(* call unify *))
+      (((IntSyn.dctx * IntSyn.exp_ * IntSyn.exp_ * auxGoal_))(* call unify *))
       
-    type __Conjunction =
+    type conjunction_ =
       | True 
-      | Conjunct of (__Goal * IntSyn.__Exp * __Conjunction) 
-    type __CompHead =
-      | Head of (IntSyn.__Exp * IntSyn.__Dec IntSyn.__Ctx * __AuxGoal *
+      | Conjunct of (goal_ * IntSyn.exp_ * conjunction_) 
+    type compHead_ =
+      | Head of (IntSyn.exp_ * IntSyn.dec_ IntSyn.ctx_ * auxGoal_ *
       IntSyn.cid) 
-    type __Flatterm =
+    type flatterm_ =
       | Pc of int 
       | Dc of int 
-      | Csolver of IntSyn.__Exp 
-    type nonrec pskeleton = __Flatterm list
-    type __ComDec =
+      | Csolver of IntSyn.exp_ 
+    type nonrec pskeleton = flatterm_ list
+    type comDec_ =
       | Parameter 
-      | Dec of (__ResGoal * IntSyn.__Sub * IntSyn.__Head) 
-      | BDec of (__ResGoal * IntSyn.__Sub * IntSyn.__Head) list 
+      | Dec of (resGoal_ * IntSyn.sub_ * IntSyn.head_) 
+      | BDec of (resGoal_ * IntSyn.sub_ * IntSyn.head_) list 
       | PDec 
-    type __DProg =
-      | DProg of (IntSyn.dctx * __ComDec IntSyn.__Ctx) 
-    type __ConDec =
-      | SClause of __ResGoal 
+    type dProg_ =
+      | DProg of (IntSyn.dctx * comDec_ IntSyn.ctx_) 
+    type conDec_ =
+      | SClause of resGoal_ 
       | Void 
-    val sProgInstall : IntSyn.cid -> __ConDec -> unit
-    val sProgLookup : IntSyn.cid -> __ConDec
+    val sProgInstall : (IntSyn.cid * conDec_) -> unit
+    val sProgLookup : IntSyn.cid -> conDec_
     val sProgReset : unit -> unit
-    val detTableInsert : IntSyn.cid -> bool -> unit
+    val detTableInsert : (IntSyn.cid * bool) -> unit
     val detTableCheck : IntSyn.cid -> bool
     val detTableReset : unit -> unit
-    val goalSub : __Goal -> IntSyn.__Sub -> __Goal
-    val resGoalSub : __ResGoal -> IntSyn.__Sub -> __ResGoal
+    val goalSub : (goal_ * IntSyn.sub_) -> goal_
+    val resGoalSub : (resGoal_ * IntSyn.sub_) -> resGoal_
     val pskeletonToString : pskeleton -> string
-  end;;
-
-
+  end
 
 
 module CompSyn(CompSyn:sig
@@ -69,106 +66,104 @@ module CompSyn(CompSyn:sig
                          module Table : TABLE
                        end) : COMPSYN =
   struct
-    type __Opt =
+    type opt_ =
       | No 
       | LinearHeads 
       | Indexing 
     let optimize = ref LinearHeads
-    type __Goal =
-      | Atom of IntSyn.__Exp 
+    type goal_ =
+      | Atom of IntSyn.exp_ 
       | Impl of
-      (((__ResGoal * IntSyn.__Exp * IntSyn.__Head * __Goal))(*     | (r,A,a) => g         *))
+      (((resGoal_ * IntSyn.exp_ * IntSyn.head_ * goal_))(*     | (r,A,a) => g         *))
       
-      | All of (IntSyn.__Dec * __Goal) 
-    and __ResGoal =
-      | Eq of IntSyn.__Exp 
-      | Assign of (IntSyn.__Exp * __AuxGoal) 
+      | All of (IntSyn.dec_ * goal_) 
+    and resGoal_ =
+      | Eq of IntSyn.exp_ 
+      | Assign of (IntSyn.exp_ * auxGoal_) 
       | And of
-      (((__ResGoal * IntSyn.__Exp * __Goal))(*     | r & (A,g)            *))
+      (((resGoal_ * IntSyn.exp_ * goal_))(*     | r & (A,g)            *))
       
       | In of
-      (((__ResGoal * IntSyn.__Exp * __Goal))(*     | r && (A,g)           *))
+      (((resGoal_ * IntSyn.exp_ * goal_))(*     | r && (A,g)           *))
       
-      | Exists of (IntSyn.__Dec * __ResGoal) 
-      | Axists of (IntSyn.__Dec * __ResGoal) 
-    and __AuxGoal =
+      | Exists of (IntSyn.dec_ * resGoal_) 
+      | Axists of (IntSyn.dec_ * resGoal_) 
+    and auxGoal_ =
       | Trivial 
       | UnifyEq of
-      (((IntSyn.dctx * IntSyn.__Exp * IntSyn.__Exp * __AuxGoal))(* call unify *))
+      (((IntSyn.dctx * IntSyn.exp_ * IntSyn.exp_ * auxGoal_))(* call unify *))
       
-    type __Conjunction =
+    type conjunction_ =
       | True 
-      | Conjunct of (__Goal * IntSyn.__Exp * __Conjunction) 
-    type __CompHead =
-      | Head of (IntSyn.__Exp * IntSyn.__Dec IntSyn.__Ctx * __AuxGoal *
+      | Conjunct of (goal_ * IntSyn.exp_ * conjunction_) 
+    type compHead_ =
+      | Head of (IntSyn.exp_ * IntSyn.dec_ IntSyn.ctx_ * auxGoal_ *
       IntSyn.cid) 
-    type __Flatterm =
+    type flatterm_ =
       | Pc of IntSyn.cid 
       | Dc of IntSyn.cid 
-      | Csolver of IntSyn.__Exp 
-    type nonrec pskeleton = __Flatterm list
-    type __ConDec =
-      | SClause of __ResGoal 
+      | Csolver of IntSyn.exp_ 
+    type nonrec pskeleton = flatterm_ list
+    type conDec_ =
+      | SClause of resGoal_ 
       | Void 
-    type __ConDecDirect =
-      | HeadGoals of (__CompHead * __Conjunction) 
+    type conDecDirect_ =
+      | HeadGoals of (compHead_ * conjunction_) 
       | Null 
-    type __ComDec =
+    type comDec_ =
       | Parameter 
-      | Dec of (__ResGoal * IntSyn.__Sub * IntSyn.__Head) 
-      | BDec of (__ResGoal * IntSyn.__Sub * IntSyn.__Head) list 
+      | Dec of (resGoal_ * IntSyn.sub_ * IntSyn.head_) 
+      | BDec of (resGoal_ * IntSyn.sub_ * IntSyn.head_) list 
       | PDec 
-    type __DProg =
-      | DProg of (IntSyn.dctx * __ComDec IntSyn.__Ctx) 
+    type dProg_ =
+      | DProg of (IntSyn.dctx * comDec_ IntSyn.ctx_) 
     let maxCid = Global.maxCid
-    let sProgArray =
-      (Array.array ((maxCid + 1), Void) : __ConDec Array.array)
-    let (detTable : bool Table.__Table) = Table.new__ 32
-    let rec sProgInstall cid conDec = Array.update (sProgArray, cid, conDec)
+    let sProgArray = (Array.array ((maxCid + 1), Void) : conDec_ Array.array)
+    let (detTable : bool Table.table_) = Table.new_ 32
+    let rec sProgInstall (cid, conDec) =
+      Array.update (sProgArray, cid, conDec)
     let rec sProgLookup cid = Array.sub (sProgArray, cid)
-    let rec sProgReset () = Array.modify (fun _ -> Void) sProgArray
+    let rec sProgReset () = Array.modify (begin function | _ -> Void end)
+      sProgArray
     let detTableInsert = Table.insert detTable
     let rec detTableCheck cid =
-      match Table.lookup detTable cid with
+      begin match Table.lookup detTable cid with
       | Some deterministic -> deterministic
-      | None -> false
-    let rec detTableReset () = Table.clear detTable
-    let rec goalSub __0__ __1__ =
-      match (__0__, __1__) with
-      | (Atom p, s) -> Atom (IntSyn.EClo (p, s))
-      | (Impl (d, __A, Ha, g), s) ->
-          Impl
-            ((resGoalSub (d, s)), (IntSyn.EClo (__A, s)), Ha,
-              (goalSub (g, (IntSyn.dot1 s))))
-      | (All (__D, g), s) ->
-          All ((IntSyn.decSub (__D, s)), (goalSub (g, (IntSyn.dot1 s))))
-    let rec resGoalSub __2__ __3__ =
-      match (__2__, __3__) with
-      | (Eq q, s) -> Eq (IntSyn.EClo (q, s))
-      | (And (r, __A, g), s) ->
-          And
-            ((resGoalSub (r, (IntSyn.dot1 s))), (IntSyn.EClo (__A, s)),
-              (goalSub (g, s)))
-      | (In (r, __A, g), s) ->
-          In
-            ((resGoalSub (r, (IntSyn.dot1 s))), (IntSyn.EClo (__A, s)),
-              (goalSub (g, s)))
-      | (Exists (__D, r), s) ->
-          Exists
-            ((IntSyn.decSub (__D, s)), (resGoalSub (r, (IntSyn.dot1 s))))
-    let rec pskeletonToString =
-      function
-      | [] -> " "
-      | (Pc i)::__O ->
-          ((Names.qidToString (Names.constQid i)) ^ " ") ^
-            (pskeletonToString __O)
-      | (Dc i)::__O ->
-          (("(Dc " ^ (Int.toString i)) ^ ") ") ^ (pskeletonToString __O)
-      | (Csolver (__U))::__O -> "(cs _ ) " ^ (pskeletonToString __O)
-  end 
+      | None -> false end
+  let rec detTableReset () = Table.clear detTable
+  let rec goalSub =
+    begin function
+    | (Atom p, s) -> Atom (IntSyn.EClo (p, s))
+    | (Impl (d, a_, Ha, g), s) ->
+        Impl
+          ((resGoalSub (d, s)), (IntSyn.EClo (a_, s)), Ha,
+            (goalSub (g, (IntSyn.dot1 s))))
+    | (All (d_, g), s) ->
+        All ((IntSyn.decSub (d_, s)), (goalSub (g, (IntSyn.dot1 s)))) end
+let rec resGoalSub =
+  begin function
+  | (Eq q, s) -> Eq (IntSyn.EClo (q, s))
+  | (And (r, a_, g), s) ->
+      And
+        ((resGoalSub (r, (IntSyn.dot1 s))), (IntSyn.EClo (a_, s)),
+          (goalSub (g, s)))
+  | (In (r, a_, g), s) ->
+      In
+        ((resGoalSub (r, (IntSyn.dot1 s))), (IntSyn.EClo (a_, s)),
+          (goalSub (g, s)))
+  | (Exists (d_, r), s) ->
+      Exists ((IntSyn.decSub (d_, s)), (resGoalSub (r, (IntSyn.dot1 s)))) end
+let rec pskeletonToString =
+  begin function
+  | [] -> " "
+  | (Pc i)::o_ ->
+      ((Names.qidToString (Names.constQid i)) ^ " ") ^ (pskeletonToString o_)
+  | (Dc i)::o_ ->
+      (("(Dc " ^ (Int.toString i)) ^ ") ") ^ (pskeletonToString o_)
+  | (Csolver (u_))::o_ -> "(cs _ ) " ^ (pskeletonToString o_) end end 
 module CompSyn =
-  (Make_CompSyn)(struct
+  (CompSyn)(struct
                    module Global = Global
                    module Names = Names
                    module Table = IntRedBlackTree
-                 end);;
+                 end)

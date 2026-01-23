@@ -1,4 +1,3 @@
-
 module type TIMERS  =
   sig
     val checking : Timing.center
@@ -10,9 +9,7 @@ module type TIMERS  =
     val reset : unit -> unit
     val check : unit -> unit
     val show : unit -> unit
-  end;;
-
-
+  end
 
 
 module Timers : TIMERS =
@@ -20,16 +17,15 @@ module Timers : TIMERS =
     let (centers : Timing.center list ref) = ref []
     let rec add_timer name =
       let center = Timing.newCenter name in
-      ((!) ((:=) centers) centers) @ [center]; center
+      begin ((!) ((:=) centers) centers) @ [center]; center end
     let checking = add_timer "Checking      "
     let eta_normal = add_timer "Eta Normal    "
     let printing = add_timer "Printing      "
     let translation = add_timer "Translation   "
-    let total = Timing.sumCenter ("Total         ", (!centers))
+    let total = Timing.sumCenter ("Total         ", !centers)
     let time = Timing.time
-    let rec reset () = List.app Timing.reset (!centers)
+    let rec reset () = List.app Timing.reset !centers
     let rec check () =
-      List.app (print o Timing.toString) (!centers);
-      print (Timing.sumToString total)
-    let rec show () = check (); reset ()
-  end ;;
+      begin List.app (print o Timing.toString) !centers;
+      print (Timing.sumToString total) end
+  let rec show () = begin check (); reset () end end

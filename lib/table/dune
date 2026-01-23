@@ -6,6 +6,7 @@
  (libraries 
    basis
   compat
+  containers 
  )
  (modules 
   hash_table
@@ -16,4 +17,5 @@
   sparse_array
   sparse_array2
   string_hash
-  table))
+  table
+  table_sig))

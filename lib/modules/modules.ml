@@ -1,6 +1,5 @@
-
 module ModSyn =
-  (Make_ModSyn)(struct
+  (ModSyn)(struct
                   module Global = Global
                   module Names' = Names
                   module Origins = Origins
@@ -8,4 +7,4 @@ module ModSyn =
                   module Strict = Strict
                   module IntTree = IntRedBlackTree
                   module HashTable = StringHashTable
-                end);;
+                end)

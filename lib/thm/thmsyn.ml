@@ -1,45 +1,41 @@
-
 module type THMSYN  =
   sig
     module Names : NAMES
     exception Error of string 
-    type __Order =
+    type order_ =
       | Varg of string list 
-      | Lex of __Order list 
-      | Simul of __Order list 
-    type __Predicate =
+      | Lex of order_ list 
+      | Simul of order_ list 
+    type predicate_ =
       | Less 
       | Leq 
       | Eq 
-    type __RedOrder =
-      | RedOrder of (__Predicate * __Order * __Order) 
-    type __Callpats =
+    type redOrder_ =
+      | RedOrder of (predicate_ * order_ * order_) 
+    type callpats_ =
       | Callpats of (IntSyn.cid * string option list) list 
-    type __TDecl =
-      | TDecl of (__Order * __Callpats) 
-    type __RDecl =
-      | RDecl of (__RedOrder * __Callpats) 
-    type __TabledDecl =
+    type tDecl_ =
+      | TDecl of (order_ * callpats_) 
+    type rDecl_ =
+      | RDecl of (redOrder_ * callpats_) 
+    type tabledDecl_ =
       | TabledDecl of IntSyn.cid 
-    type __KeepTableDecl =
+    type keepTableDecl_ =
       | KeepTableDecl of IntSyn.cid 
-    type __ThDecl =
-      | ThDecl of ((IntSyn.__Dec IntSyn.__Ctx * IntSyn.__Dec IntSyn.__Ctx)
-      list * IntSyn.__Dec IntSyn.__Ctx * ModeSyn.__Mode IntSyn.__Ctx * int) 
-    type __PDecl =
-      | PDecl of (int * __TDecl) 
-    type __WDecl =
-      | WDecl of (Names.__Qid list * __Callpats) 
+    type thDecl_ =
+      | ThDecl of ((IntSyn.dec_ IntSyn.ctx_ * IntSyn.dec_ IntSyn.ctx_) list *
+      IntSyn.dec_ IntSyn.ctx_ * ModeSyn.mode_ IntSyn.ctx_ * int) 
+    type pDecl_ =
+      | PDecl of (int * tDecl_) 
+    type wDecl_ =
+      | WDecl of (Names.qid_ list * callpats_) 
     val theoremDecToConDec :
-      (string * __ThDecl) ->
-        Paths.region ->
-          ((IntSyn.__Dec IntSyn.__Ctx * IntSyn.__Dec IntSyn.__Ctx) list *
-            IntSyn.__ConDec)
+      ((string * thDecl_) * Paths.region) ->
+        ((IntSyn.dec_ IntSyn.ctx_ * IntSyn.dec_ IntSyn.ctx_) list *
+          IntSyn.conDec_)
     val theoremDecToModeSpine :
-      (string * __ThDecl) -> Paths.region -> ModeSyn.__ModeSpine
-  end;;
-
-
+      ((string * thDecl_) * Paths.region) -> ModeSyn.modeSpine_
+  end
 
 
 module ThmSyn(ThmSyn:sig
@@ -50,54 +46,54 @@ module ThmSyn(ThmSyn:sig
   struct
     module Names = Names'
     exception Error of string 
-    let rec error r msg = raise (Error (Paths.wrap (r, msg)))
-    type nonrec __Param = string option
-    type __Order =
+    let rec error (r, msg) = raise (Error (Paths.wrap (r, msg)))
+    type nonrec param_ = string option
+    type order_ =
       | Varg of string list 
-      | Lex of __Order list 
-      | Simul of __Order list 
-    type __Predicate =
+      | Lex of order_ list 
+      | Simul of order_ list 
+    type predicate_ =
       | Less 
       | Leq 
       | Eq 
-    type __RedOrder =
-      | RedOrder of (__Predicate * __Order * __Order) 
-    type __Callpats =
-      | Callpats of (IntSyn.cid * __Param list) list 
-    type __TDecl =
-      | TDecl of (__Order * __Callpats) 
-    type __RDecl =
-      | RDecl of (__RedOrder * __Callpats) 
-    type __TabledDecl =
+    type redOrder_ =
+      | RedOrder of (predicate_ * order_ * order_) 
+    type callpats_ =
+      | Callpats of (IntSyn.cid * param_ list) list 
+    type tDecl_ =
+      | TDecl of (order_ * callpats_) 
+    type rDecl_ =
+      | RDecl of (redOrder_ * callpats_) 
+    type tabledDecl_ =
       | TabledDecl of IntSyn.cid 
-    type __KeepTableDecl =
+    type keepTableDecl_ =
       | KeepTableDecl of IntSyn.cid 
-    type __ThDecl =
-      | ThDecl of ((IntSyn.__Dec IntSyn.__Ctx * IntSyn.__Dec IntSyn.__Ctx)
-      list * IntSyn.__Dec IntSyn.__Ctx * ModeSyn.__Mode IntSyn.__Ctx * int) 
-    type __PDecl =
-      | PDecl of (int * __TDecl) 
-    type __WDecl =
-      | WDecl of (Names.__Qid list * __Callpats) 
+    type thDecl_ =
+      | ThDecl of ((IntSyn.dec_ IntSyn.ctx_ * IntSyn.dec_ IntSyn.ctx_) list *
+      IntSyn.dec_ IntSyn.ctx_ * ModeSyn.mode_ IntSyn.ctx_ * int) 
+    type pDecl_ =
+      | PDecl of (int * tDecl_) 
+    type wDecl_ =
+      | WDecl of (Names.qid_ list * callpats_) 
     module I = IntSyn
     module M = ModeSyn
-    let rec theoremDecToConDec (name, ThDecl (GBs, __G, MG, i)) r =
-      let rec theoremToConDec' __0__ __1__ =
-        match (__0__, __1__) with
-        | (I.Null, __V) -> __V
-        | (Decl (__G, __D), __V) ->
-            if Abstract.closedDec (__G, (__D, I.id))
+    let rec theoremDecToConDec ((name, ThDecl (GBs, g_, MG, i)), r) =
+      let rec theoremToConDec' =
+        begin function
+        | (I.Null, v_) -> v_
+        | (Decl (g_, d_), v_) ->
+            if Abstract.closedDec (g_, (d_, I.id))
             then
-              theoremToConDec'
-                (__G,
-                  (Abstract.piDepend
-                     (((Whnf.normalizeDec (__D, I.id)), I.Maybe), __V)))
-            else error (r, "Free variables in theorem declaration") in
-      (((GBs,
-          (I.ConDec
-             (name, None, i, I.Normal,
-               (theoremToConDec' (__G, (I.Uni I.Type))), I.Kind))))
-        (* theoremToConDec' G V = V'
+              begin theoremToConDec'
+                      (g_,
+                        (Abstract.piDepend
+                           (((Whnf.normalizeDec (d_, I.id)), I.Maybe), v_))) end
+            else begin error (r, "Free variables in theorem declaration") end end in
+  (((GBs,
+      (I.ConDec
+         (name, None, i, I.Normal, (theoremToConDec' (g_, (I.Uni I.Type))),
+           I.Kind))))
+    (* theoremToConDec' G V = V'
 
              Invariant:
              If   G = V1 .. Vn
@@ -105,13 +101,12 @@ module ThmSyn(ThmSyn:sig
              then V' = {V1} .. {Vn} V
              and  . |-  V' : kind
           *))
-    let rec theoremDecToModeSpine (name, ThDecl (GBs, __G, MG, i)) r =
-      let rec theoremToModeSpine' __2__ __3__ __4__ =
-        match (__2__, __3__, __4__) with
-        | (I.Null, I.Null, mS) -> mS
-        | (Decl (__G, Dec (x, _)), Decl (MG, m), mS) ->
-            theoremToModeSpine' (__G, MG, (M.Mapp ((M.Marg (m, x)), mS))) in
-      theoremToModeSpine' (__G, MG, M.Mnil)
-    let theoremDecToConDec = theoremDecToConDec
-    let theoremDecToModeSpine = theoremDecToModeSpine
-  end ;;
+let rec theoremDecToModeSpine ((name, ThDecl (GBs, g_, MG, i)), r) =
+  let rec theoremToModeSpine' =
+    begin function
+    | (I.Null, I.Null, mS) -> mS
+    | (Decl (g_, Dec (x, _)), Decl (MG, m), mS) ->
+        theoremToModeSpine' (g_, MG, (M.Mapp ((M.Marg (m, x)), mS))) end in
+theoremToModeSpine' (g_, MG, M.Mnil)
+let theoremDecToConDec = theoremDecToConDec
+let theoremDecToModeSpine = theoremDecToModeSpine end

@@ -1,6 +1,5 @@
 (library
- (wrapped
-  (transition "Convert SML convention to OCaml convention"))
+ (wrapped false)
  (public_name flewt.style)
  (name style)
  (libraries global table lambda formatter print names paths index)

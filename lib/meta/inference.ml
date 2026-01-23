@@ -1,15 +1,12 @@
-
 module type INFERENCE  =
   sig
     module StateSyn : STATESYN
     exception Error of string 
     type nonrec operator
-    val expand : StateSyn.__State -> operator
-    val apply : operator -> StateSyn.__State
+    val expand : StateSyn.state_ -> operator
+    val apply : operator -> StateSyn.state_
     val menu : operator -> string
-  end;;
-
-
+  end
 
 
 module Inference(Inference:sig
@@ -25,84 +22,83 @@ module Inference(Inference:sig
   struct
     module StateSyn = StateSyn'
     exception Error of string 
-    type nonrec operator = unit -> StateSyn'.__State
+    type nonrec operator = unit -> StateSyn'.state_
     module S = StateSyn
     module F = FunSyn
     module I = IntSyn
     exception Success 
-    let rec createEVars __0__ __1__ =
-      match (__0__, __1__) with
-      | (__G, (Pi ((Dec (_, __V), I.Meta), __V'), s)) ->
-          let __X = I.newEVar (__G, (I.EClo (__V, s))) in
-          let __X' = Whnf.lowerEVar __X in
-          let (__Xs, FVs') =
-            createEVars (__G, (__V', (I.Dot ((I.Exp __X), s)))) in
-          ((__X' :: __Xs), FVs')
-      | (__G, ((_, s) as FVs)) -> (nil, FVs)
-    let rec forward __2__ __3__ __4__ =
-      match (__2__, __3__, __4__) with
-      | (__G, __B, (Pi ((_, I.Meta), _) as V)) ->
+    let rec createEVars =
+      begin function
+      | (g_, (Pi ((Dec (_, v_), I.Meta), v'_), s)) ->
+          let x_ = I.newEVar (g_, (I.EClo (v_, s))) in
+          let x'_ = Whnf.lowerEVar x_ in
+          let (xs_, FVs') = createEVars (g_, (v'_, (I.Dot ((I.Exp x_), s)))) in
+          ((x'_ :: xs_), FVs')
+      | (g_, ((_, s) as FVs)) -> ([], FVs) end
+    let rec forward =
+      begin function
+      | (g_, b_, (Pi ((_, I.Meta), _) as v_)) ->
           let _ =
             if !Global.doubleCheck
-            then TypeCheck.typeCheck (__G, (__V, (I.Uni I.Type)))
-            else () in
-          let (__Xs, (__V', s')) = createEVars (__G, (__V, I.id)) in
-          (try
-             match UniqueSearch.searchEx
-                     (2, __Xs,
-                       (function
-                        | nil -> [Whnf.normalize (__V', s')]
-                        | _ ->
-                            raise (UniqueSearch.Error "Too many solutions")))
+            then begin TypeCheck.typeCheck (g_, (v_, (I.Uni I.Type))) end
+            else begin () end in
+    let (xs_, (v'_, s')) = createEVars (g_, (v_, I.id)) in
+    (begin try
+             begin match UniqueSearch.searchEx
+                           (2, xs_,
+                             (begin function
+                              | [] -> [Whnf.normalize (v'_, s')]
+                              | _ ->
+                                  raise
+                                    (UniqueSearch.Error "Too many solutions") end))
              with
              | (VF'')::[] -> Some VF''
-             | [] -> None
-           with | Error _ -> None)
-      | (__G, __B, __V) -> None
-    let rec expand' __5__ __6__ __7__ =
-      match (__5__, __6__, __7__) with
-      | ((__G0, __B0), (I.Null, I.Null), n) ->
-          ((I.Null, I.Null),
-            ((fun (__G', __B') -> fun w' -> ((__G', __B'), w'))))
-      | ((__G0, __B0),
-         (Decl (__G, (Dec (_, __V) as D)), Decl (__B, (Lemma (S.RL) as T))),
-         n) ->
-          let ((G0', B0'), sc') = expand' ((__G0, __B0), (__G, __B), (n + 1)) in
-          let s = I.Shift (n + 1) in
-          let __Vs = Whnf.normalize (__V, s) in
-          (match forward (__G0, __B0, __Vs) with
-           | None -> (((I.Decl (G0', __D)), (I.Decl (B0', __T))), sc')
-           | Some (__V') ->
-               (((I.Decl (G0', __D)), (I.Decl (B0', (S.Lemma S.RLdone)))),
-                 ((fun (__G', __B') ->
-                     fun w' ->
-                       let V'' = Whnf.normalize (__V', w') in
-                       ((sc'
-                           (((I.Decl (__G', (I.Dec (None, V'')))),
-                              (I.Decl
-                                 (__B',
-                                   (S.Lemma (S.Splits (!MTPGlobal.maxSplit)))))),
-                             (I.comp (w', I.shift))))
-                         (* G' |- V'' : type *))))))
-      | (GB0, (Decl (__G, __D), Decl (__B, __T)), n) ->
-          let ((G0', B0'), sc') = expand' (GB0, (__G, __B), (n + 1)) in
-          (((I.Decl (G0', __D)), (I.Decl (B0', __T))), sc')
-    let rec expand (State (n, (__G, __B), (IH, OH), d, __O, __H, __F) as S) =
-      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx __G else () in
-      let ((Gnew, Bnew), sc) = expand' ((__G, __B), (__G, __B), 0) in
-      let _ = if !Global.doubleCheck then TypeCheck.typeCheckCtx Gnew else () in
-      let ((__G', __B'), w') = sc ((Gnew, Bnew), I.id) in
-      let _ = TypeCheck.typeCheckCtx __G' in
-      let __S' =
-        S.State
-          (n, (__G', __B'), (IH, OH), d, (S.orderSub (__O, w')),
-            (map (fun i -> fun (__F') -> (i, (F.forSub (__F', w')))) __H),
-            (F.forSub (__F, w'))) in
-      let _ = if !Global.doubleCheck then FunTypeCheck.isState __S' else () in
-      fun () -> __S'
-    let rec apply f = f ()
-    let rec menu _ = "Inference"
-    let expand = expand
-    let apply = apply
-    let menu = menu
-  end ;;
+             | [] -> None end
+      with | Error _ -> None end) | (g_, b_, v_) -> None end
+let rec expand' =
+  begin function
+  | ((g0_, b0_), (I.Null, I.Null), n) ->
+      ((I.Null, I.Null),
+        ((begin function | ((g'_, b'_), w') -> ((g'_, b'_), w') end)))
+  | ((g0_, b0_),
+     (Decl (g_, (Dec (_, v_) as d_)), Decl (b_, (Lemma (S.RL) as t_))), n) ->
+      let ((G0', B0'), sc') = expand' ((g0_, b0_), (g_, b_), (n + 1)) in
+      let s = I.Shift (n + 1) in
+      let vs_ = Whnf.normalize (v_, s) in
+      (begin match forward (g0_, b0_, vs_) with
+       | None -> (((I.Decl (G0', d_)), (I.Decl (B0', t_))), sc')
+       | Some (v'_) ->
+           (((I.Decl (G0', d_)), (I.Decl (B0', (S.Lemma S.RLdone)))),
+             ((begin function
+               | ((g'_, b'_), w') ->
+                   let V'' = Whnf.normalize (v'_, w') in
+                   ((sc'
+                       (((I.Decl (g'_, (I.Dec (None, V'')))),
+                          (I.Decl
+                             (b'_, (S.Lemma (S.Splits !MTPGlobal.maxSplit))))),
+                         (I.comp (w', I.shift))))
+                     (* G' |- V'' : type *)) end))) end)
+| (GB0, (Decl (g_, d_), Decl (b_, t_)), n) ->
+    let ((G0', B0'), sc') = expand' (GB0, (g_, b_), (n + 1)) in
+    (((I.Decl (G0', d_)), (I.Decl (B0', t_))), sc') end
+let rec expand (State (n, (g_, b_), (IH, OH), d, o_, h_, f_) as s_) =
+  let _ = if !Global.doubleCheck then begin TypeCheck.typeCheckCtx g_ end
+    else begin () end in
+let ((Gnew, Bnew), sc) = expand' ((g_, b_), (g_, b_), 0) in
+let _ = if !Global.doubleCheck then begin TypeCheck.typeCheckCtx Gnew end
+  else begin () end in
+let ((g'_, b'_), w') = sc ((Gnew, Bnew), I.id) in
+let _ = TypeCheck.typeCheckCtx g'_ in
+let s'_ =
+  S.State
+    (n, (g'_, b'_), (IH, OH), d, (S.orderSub (o_, w')),
+      (map (begin function | (i, f'_) -> (i, (F.forSub (f'_, w'))) end) h_),
+    (F.forSub (f_, w'))) in
+let _ = if !Global.doubleCheck then begin FunTypeCheck.isState s'_ end
+  else begin () end in
+begin function | () -> s'_ end
+let rec apply f = f ()
+let rec menu _ = "Inference"
+let expand = expand
+let apply = apply
+let menu = menu end

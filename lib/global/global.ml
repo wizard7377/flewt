@@ -1,4 +1,3 @@
-open Basis.Time
 module type GLOBAL  =
   sig
     val chatter : int ref
@@ -12,9 +11,7 @@ module type GLOBAL  =
     val chPrint : int -> (unit -> string) -> unit
     val chMessage : int -> (unit -> string) -> (string -> unit) -> unit
     val timeLimit : Time.time option ref
-  end;;
-
-
+  end
 
 
 module Global : GLOBAL =
@@ -28,6 +25,7 @@ module Global : GLOBAL =
     let unsafe = ref false
     let autoFreeze = ref true
     let timeLimit = ref (None : Time.time option)
-    let rec chPrint n s = if (!chatter) >= n then print_endline (s ()) else ()
-    let rec chMessage n s f = if (!chatter) >= n then f (s ()) else ()
-  end ;;
+    let rec chPrint n s = if !chatter >= n then begin print (s ()) end
+      else begin () end
+  let rec chMessage n s f = if !chatter >= n then begin f (s ()) end
+    else begin () end end

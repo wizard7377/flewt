@@ -1,167 +1,154 @@
-
+open Table_sig
+open Basis.General
 module type SPARSE_ARRAY2  =
   sig
     type nonrec 'a array
     type nonrec 'a region =
-      < base: 'a array  ;row: int  ;col: int  ;nrows: int  ;ncols: int   > 
+      { base: 'a array  ;row: int  ;col: int  ;nrows: int  ;ncols: int   }
     type traversal =
-      | RowMajor 
+      | RowMajor
       | ColMajor 
     val array : 'a -> 'a array
-    val sub : 'a array -> int -> int -> 'a
-    val update : 'a array -> int -> int -> 'a -> unit
-    val row : 'a array -> int -> (int * int) -> 'a Vector.vector
-    val column : 'a array -> int -> (int * int) -> 'a Vector.vector
-    val app : traversal -> (int -> int -> 'a -> unit) -> 'a region -> unit
+    val sub : ('a array * int * int) -> 'a
+    val update : ('a array * int * int * 'a) -> unit 
+    val row : ('a array * int * (int * int)) -> 'a Array.t
+    val column : ('a array * int * (int * int)) -> 'a Array.t
+    val app : traversal -> ((int * int * 'a) -> unit) -> 'a region -> unit
     val fold :
-      traversal -> (int -> int -> 'a -> 'b -> 'b) -> 'b -> 'a region -> 'b
-    val modify : traversal -> (int -> int -> 'a -> 'a) -> 'a region -> unit
-  end;;
+      traversal -> ((int * int * 'a * 'b) -> 'b) -> 'b -> 'a region -> 'b
+    val modify : traversal -> ((int * int * 'a) -> 'a) -> 'a region -> unit
+  end
 
 
-
-
-module SparseArray2(SparseArray2:sig module IntTable : TABLE end) :
+module SparseArray2(SparseArray2:sig module IntTable : TABLE with type key = int end) :
   SPARSE_ARRAY2 =
   struct
-    type nonrec 'a array = < default: 'a  ;table: 'a IntTable.__Table   > 
+    type nonrec 'a array = { default: 'a  ;table: 'a SparseArray2.IntTable.table_   }
     type nonrec 'a region =
-      < base: 'a array  ;row: int  ;col: int  ;nrows: int  ;ncols: int   > 
+      { base: 'a array  ;row: int  ;col: int  ;nrows: int  ;ncols: int   }
     type traversal =
       | RowMajor 
       | ColMajor 
     let size = 29
     let rec fromInt code =
       let rec fromInt' r =
-        let code' = ( * ) (r + 1) (r + 2) div 2 in
+        let code' = ( * ) (r + 1) (r + 2) / 2 in
         if code < code'
-        then let diff = (code' - code) - 1 in (diff, (r - diff))
-        else fromInt' (r + 1) in
-      fromInt' 0
-    let rec toInt m n = let sum = m + n in (( * ) sum (sum + 1) div 2) + n
-    let rec unsafeSub { table; default; default } i j =
-      match IntTable.lookup table (toInt (i, j)) with
-      | None -> default
-      | Some v -> v
-    let rec unsafeUpdate { table; default; default } i j v =
-      IntTable.insert table ((toInt (i, j)), v)
-    let rec checkRegion
-      { base; row; col; nrows; ncols; row; col; nrows; ncols; col; nrows;
-        ncols; nrows; ncols; ncols }
-      = (row >= 0) && ((col >= 0) && ((nrows >= 0) && (ncols >= 0)))
-    let rec array default = { default; table = (IntTable.new__ size) }
-    let rec sub array i j =
-      if (i >= 0) && (j >= 0)
-      then unsafeSub (array, i, j)
-      else raise General.Subscript
-    let rec update array i j v =
-      if (i >= 0) && (j >= 0)
-      then unsafeUpdate (array, i, j, v)
-      else raise General.Subscript
-    let rec row array i (j, len) =
-      if (i >= 0) && ((j >= 0) && (len >= 0))
-      then
-        Vector.tabulate (len, (fun off -> unsafeSub (array, i, (j + off))))
-      else raise General.Subscript
-    let rec column array j (i, len) =
-      if (j >= 0) && ((i >= 0) && (len >= 0))
-      then
-        Vector.tabulate (len, (fun off -> unsafeSub (array, (i + off), j)))
-      else raise General.Subscript
-    let rec app traversal f
-      ({ base; row; col; nrows; ncols; row; col; nrows; ncols; col; nrows;
-         ncols; nrows; ncols; ncols } as region)
-      =
-      if checkRegion region
-      then
-        let rmax = row + nrows in
-        let cmax = col + ncols in
-        let rec appR row' col' =
-          if row' < rmax
-          then
-            (if col' < cmax
-             then
-               (f (row', col', (unsafeSub (base, row', col')));
-                appR (row', (col' + 1)))
-             else appR ((row' + 1), col))
-          else () in
-        let rec appC row' col' =
-          if col' < cmax
-          then
-            (if row' < rmax
-             then
-               (f (row', col', (unsafeSub (base, row', col')));
-                appC ((row' + 1), col'))
-             else appC (row, (col' + 1)))
-          else () in
-        match traversal with
-        | RowMajor -> appR (row, col)
-        | ColMajor -> appC (row, col)
-      else raise General.Subscript
-    let rec fold traversal f init
-      ({ base; row; col; nrows; ncols; row; col; nrows; ncols; col; nrows;
-         ncols; nrows; ncols; ncols } as region)
-      =
-      if checkRegion region
-      then
-        let rmax = row + nrows in
-        let cmax = col + ncols in
-        let rec foldR row' col' =
-          if row' < rmax
-          then
-            (if col' < cmax
-             then
-               f
-                 (row', col', (unsafeSub (base, row', col')),
-                   (foldR (row', (col' + 1))))
-             else foldR ((row' + 1), col))
-          else init in
-        let rec foldC row' col' =
-          if col' < cmax
-          then
-            (if row' < rmax
-             then
-               f
-                 (row', col', (unsafeSub (base, row', col')),
-                   (foldC ((row' + 1), col')))
-             else foldC (row, (col' + 1)))
-          else init in
-        match traversal with
-        | RowMajor -> foldR (row, col)
-        | ColMajor -> foldC (row, col)
-      else raise General.Subscript
-    let rec modify traversal f
-      ({ base; row; col; nrows; ncols; row; col; nrows; ncols; col; nrows;
-         ncols; nrows; ncols; ncols } as region)
-      =
-      if checkRegion region
-      then
-        let rmax = row + nrows in
-        let cmax = col + ncols in
-        let rec modifyR row' col' =
-          if row' < rmax
-          then
-            (if col' < cmax
-             then
-               (unsafeUpdate
-                  (base, row', col',
-                    (f (row', col', (unsafeSub (base, row', col')))));
-                modifyR (row', (col' + 1)))
-             else modifyR ((row' + 1), col))
-          else () in
-        let rec modifyC row' col' =
-          if col' < cmax
-          then
-            (if row' < rmax
-             then
-               (unsafeUpdate
-                  (base, row', col',
-                    (f (row', col', (unsafeSub (base, row', col')))));
-                modifyC ((row' + 1), col'))
-             else modifyC (row, (col' + 1)))
-          else () in
-        match traversal with
-        | RowMajor -> modifyR (row, col)
-        | ColMajor -> modifyC (row, col)
-      else raise General.Subscript
-  end ;;
+        then begin let diff = (code' - code) - 1 in (diff, (r - diff)) end
+          else begin fromInt' (r + 1) end in
+    fromInt' 0
+  let rec toInt (m, n) = let sum = m + n in (( * ) sum (sum + 1) / 2) + n
+  let rec unsafeSub ({ table; default }, i, j) =
+    begin match SparseArray2.IntTable.lookup table (toInt (i, j)) with
+    | None -> default
+    | Some v -> v end
+let rec unsafeUpdate ({ table; default }, i, j, v) =
+  SparseArray2.IntTable.insert table ((toInt (i, j)), v)
+let rec checkRegion { base; row; col; nrows; ncols } =
+  (row >= 0) && ((col >= 0) && ((nrows >= 0) && (ncols >= 0)))
+let rec array default = { default; table = (SparseArray2.IntTable.new_ size) }
+let rec sub (array, i, j) =
+  if (i >= 0) && (j >= 0) then begin unsafeSub (array, i, j) end
+  else begin raise Basis.General.Subscript end
+let rec update (array, i, j, v) =
+  if (i >= 0) && (j >= 0) then begin unsafeUpdate (array, i, j, v) end
+  else begin raise Basis.General.Subscript end
+let rec row (array, i, (j, len)) =
+  if (i >= 0) && ((j >= 0) && (len >= 0))
+  then
+    begin Array.init len
+            (begin function | off -> unsafeSub (array, i, (j + off)) end) end
+  else begin raise Basis.General.Subscript end
+let rec column (array, j, (i, len)) =
+  if (j >= 0) && ((i >= 0) && (len >= 0))
+  then
+    begin Array.init len
+            (begin function | off -> unsafeSub (array, (i + off), j) end) end
+  else begin raise Basis.General.Subscript end
+let rec app traversal f ({ base; row; col; nrows; ncols } as region) =
+  if checkRegion region
+  then
+    begin let rmax = row + nrows in
+          let cmax = col + ncols in
+          let rec appR (row', col') =
+            if row' < rmax
+            then
+              begin (if col' < cmax
+                     then
+                       begin (begin f
+                                      (row', col',
+                                        (unsafeSub (base, row', col')));
+                              appR (row', (col' + 1)) end) end
+            else begin appR ((row' + 1), col) end) end else begin () end in
+let rec appC (row', col') =
+  if col' < cmax
+  then
+    begin (if row' < rmax
+           then
+             begin (begin f (row', col', (unsafeSub (base, row', col')));
+                    appC ((row' + 1), col') end) end
+  else begin appC (row, (col' + 1)) end) end else begin () end in
+begin match traversal with
+| RowMajor -> appR (row, col)
+| ColMajor -> appC (row, col) end end
+else begin raise Basis.General.Subscript end
+let rec fold traversal f init ({ base; row; col; nrows; ncols } as region) =
+  if checkRegion region
+  then
+    begin let rmax = row + nrows in
+          let cmax = col + ncols in
+          let rec foldR (row', col') =
+            if row' < rmax
+            then
+              begin (if col' < cmax
+                     then
+                       begin f
+                               (row', col', (unsafeSub (base, row', col')),
+                                 (foldR (row', (col' + 1)))) end
+              else begin foldR ((row' + 1), col) end) end
+            else begin init end in
+let rec foldC (row', col') =
+  if col' < cmax
+  then
+    begin (if row' < rmax
+           then
+             begin f
+                     (row', col', (unsafeSub (base, row', col')),
+                       (foldC ((row' + 1), col'))) end
+    else begin foldC (row, (col' + 1)) end) end
+  else begin init end in
+begin match traversal with
+| RowMajor -> foldR (row, col)
+| ColMajor -> foldC (row, col) end end
+else begin raise Basis.General.Subscript end
+let rec modify traversal f ({ base; row; col; nrows; ncols } as region) =
+  if checkRegion region
+  then
+    begin let rmax = row + nrows in
+          let cmax = col + ncols in
+          let rec modifyR (row', col') =
+            if row' < rmax
+            then
+              begin (if col' < cmax
+                     then
+                       begin (begin unsafeUpdate
+                                      (base, row', col',
+                                        (f
+                                           (row', col',
+                                             (unsafeSub (base, row', col')))));
+                              modifyR (row', (col' + 1)) end) end
+            else begin modifyR ((row' + 1), col) end) end else begin () end in
+let rec modifyC (row', col') =
+  if col' < cmax
+  then
+    begin (if row' < rmax
+           then
+             begin (begin unsafeUpdate
+                            (base, row', col',
+                              (f (row', col', (unsafeSub (base, row', col')))));
+                    modifyC ((row' + 1), col') end) end
+  else begin modifyC (row, (col' + 1)) end) end else begin () end in
+begin match traversal with
+| RowMajor -> modifyR (row, col)
+| ColMajor -> modifyC (row, col) end end else begin raise Basis.General.Subscript end
+end

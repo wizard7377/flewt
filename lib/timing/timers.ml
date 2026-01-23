@@ -1,4 +1,3 @@
-
 module type TIMERS  =
   sig
     module Timing : TIMING
@@ -26,9 +25,7 @@ module type TIMERS  =
     val reset : unit -> unit
     val check : unit -> unit
     val show : unit -> unit
-  end;;
-
-
+  end
 
 
 module Timers(Timers:sig module Timing' : TIMING end) : TIMERS =
@@ -77,13 +74,11 @@ module Timers(Timers:sig module Timing' : TIMING end) : TIMERS =
     let time = Timing.time
     let rec reset () = List.app Timing.reset centers
     let rec check () =
-      List.app (print o Timing.toString) centers;
+      begin List.app (print o Timing.toString) centers;
       print (Timing.sumToString total);
-      print "Remember that the success continuation counts into Solving!\n"
-    let rec show () = check (); reset ()
-  end ;;
+      print "Remember that the success continuation counts into Solving!\n" end
+    let rec show () = begin check (); reset () end end
 
 
 
-
-module Timers = (Make_Timers)(struct module Timing' = Timing end);;
+module Timers = (Timers)(struct module Timing' = Timing end)

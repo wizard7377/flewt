@@ -1,7 +1,4 @@
-
-module type UNKNOWN_EXN  = sig val unknownExn : exn -> string end;;
-
-
+module type UNKNOWN_EXN  = sig val unknownExn : exn -> string end
 
 
 module UnknownExn(UnknownExn:sig val exnHistory : exn -> string list end) :
@@ -13,7 +10,6 @@ module UnknownExn(UnknownExn:sig val exnHistory : exn -> string list end) :
       let rec wrapn x = ("             " ^ x) ^ "\n" in
       concat
         ((("Unrecognized exception " :: (exnName exn)) :: "\n") ::
-           (match history with
-            | nil -> [""]
-            | x::xs -> (::) (wrap1 x) map wrapn xs))
-  end ;;
+           (begin match history with
+            | [] -> [""]
+            | x::xs -> (::) (wrap1 x) map wrapn xs end)) end 

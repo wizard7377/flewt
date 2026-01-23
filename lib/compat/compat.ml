@@ -1,4 +1,3 @@
-
 module type COMPAT  =
   sig
     val inputLine97 : TextIO.instream -> string
@@ -9,9 +8,7 @@ module type COMPAT  =
     module TextIO : COMPAT_TEXT_IO
     module Timer : COMPAT_TIMER
     module SocketIO : COMPAT_SOCKET_IO
-  end;;
-
-
+  end
 
 
 module Compat(Compat:sig
@@ -32,13 +29,11 @@ module Compat(Compat:sig
     module Timer = Timer
     module SocketIO = SocketIO
     let rec inputLine97 instream = getOpt ((TextIO.inputLine instream), "")
-  end ;;
-
-
+  end 
 
 
 module Compat : COMPAT =
-  (Make_Compat)(struct
+  (Compat)(struct
                   module Array = Array
                   module Vector = Vector
                   module Path = OS.Path
@@ -46,4 +41,4 @@ module Compat : COMPAT =
                   module TextIO = TextIO
                   module Timer = Timer
                   module SocketIO = CompatSocketIO
-                end) ;;
+                end) 

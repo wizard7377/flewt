@@ -1,4 +1,3 @@
-
 module Join(Join:sig
                    module Lex : LEXERR
                    module ParserData : PARSER_DATA
@@ -13,29 +12,30 @@ module Join(Join:sig
     type nonrec result = ParserData.result
     type nonrec svalue = ParserData.svalue
     let makeLexer = LrParser.Streamm.streamify o Lex.makeLexer
-    let parse lookahead lexer error arg =
-      (fun a -> fun b -> ((ParserData.Actions.extract a), b))
-        (LrParser.parse
-           {
-             table = ParserData.table;
-             lexer;
-             lookahead;
-             saction = ParserData.Actions.actions;
-             arg;
-             void = ParserData.Actions.void;
-             ec =
-               {
-                 is_keyword = ParserData.EC.is_keyword;
-                 noShift = ParserData.EC.noShift;
-                 preferred_change = ParserData.EC.preferred_change;
-                 errtermvalue = ParserData.EC.errtermvalue;
-                 error;
-                 showTerminal = ParserData.EC.showTerminal;
-                 terms = ParserData.EC.terms
-               }
-           })
-    let sameToken = Token.sameToken
-  end 
+    let parse =
+      begin function
+      | (lookahead, lexer, error, arg) ->
+          ((begin function | (a, b) -> ((ParserData.Actions.extract a), b) end))
+          (LrParser.parse
+             {
+               table = ParserData.table;
+               lexer;
+               lookahead;
+               saction = ParserData.Actions.actions;
+               arg;
+               void = ParserData.Actions.void;
+               ec =
+                 {
+                   is_keyword = ParserData.EC.is_keyword;
+                   noShift = ParserData.EC.noShift;
+                   preferred_change = ParserData.EC.preferred_change;
+                   errtermvalue = ParserData.EC.errtermvalue;
+                   error;
+                   showTerminal = ParserData.EC.showTerminal;
+                   terms = ParserData.EC.terms
+                 }
+             }) end
+  let sameToken = Token.sameToken end 
 module JoinWithArg(JoinWithArg:sig
                                  module Lex : ARG_LEXER
                                  module ParserData : PARSER_DATA
@@ -50,9 +50,15 @@ module JoinWithArg(JoinWithArg:sig
     type nonrec pos = ParserData.pos
     type nonrec result = ParserData.result
     type nonrec svalue = ParserData.svalue
-    let makeLexer s arg = LrParser.Streamm.streamify (Lex.makeLexer s arg)
-    let parse lookahead lexer error arg =
-      (fun a -> fun b -> ((ParserData.Actions.extract a), b))
+    let makeLexer =
+      begin function
+      | s ->
+          (begin function
+           | arg -> LrParser.Streamm.streamify (Lex.makeLexer s arg) end) end
+  let parse =
+    begin function
+    | (lookahead, lexer, error, arg) ->
+        ((begin function | (a, b) -> ((ParserData.Actions.extract a), b) end))
         (LrParser.parse
            {
              table = ParserData.table;
@@ -71,6 +77,5 @@ module JoinWithArg(JoinWithArg:sig
                  showTerminal = ParserData.EC.showTerminal;
                  terms = ParserData.EC.terms
                }
-           })
-    let sameToken = Token.sameToken
-  end ;;
+           }) end
+let sameToken = Token.sameToken end

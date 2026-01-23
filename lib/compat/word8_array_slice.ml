@@ -1,4 +1,3 @@
-
 module Word8ArraySlice : MONO_ARRAY_SLICE =
   struct
     type nonrec array = Word8Array.array
@@ -6,4 +5,4 @@ module Word8ArraySlice : MONO_ARRAY_SLICE =
     type nonrec vector = Word8Array.vector
     let rec slice s = s
     let vector = Word8Array.extract
-  end ;;
+  end 

@@ -1,2 +1,3 @@
-
-module UnknownExn = (Make_UnknownExn)(struct let exnHistory exn = nil end);;
+module UnknownExn =
+  (UnknownExn)(struct let exnHistory = begin function | exn -> [] end
+end)

@@ -1,2 +1,1 @@
-
-module type Interpreter  = sig val run : FunSyn.__Pro -> FunSyn.__Pro end;;
+module type Interpreter  = sig val run : FunSyn.pro_ -> FunSyn.pro_ end

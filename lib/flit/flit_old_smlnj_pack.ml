@@ -1,6 +1,5 @@
-
 module Flit =
-  (Make_Flit)(struct
+  (Flit)(struct
                 module Global = Global
                 module Word = Word32
                 module Pack = Pack32Little
@@ -10,4 +9,4 @@ module Flit =
                 module Names = Names
                 module Index = Index
                 module Table = IntRedBlackTree
-              end);;
+              end)

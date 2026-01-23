@@ -1,18 +1,15 @@
-
 module type MTPSPLITTING  =
   sig
     module StateSyn : STATESYN
     exception Error of string 
     type nonrec operator
-    val expand : StateSyn.__State -> operator list
+    val expand : StateSyn.state_ -> operator list
     val applicable : operator -> bool
-    val apply : operator -> StateSyn.__State list
+    val apply : operator -> StateSyn.state_ list
     val menu : operator -> string
     val index : operator -> int
-    val compare : operator -> operator -> order
-  end;;
-
-
+    val compare : (operator * operator) -> order
+  end
 
 
 module MTPSplitting(MTPSplitting:sig
@@ -38,463 +35,439 @@ module MTPSplitting(MTPSplitting:sig
     type 'a flag =
       | Active of 'a 
       | InActive 
-    type __Operator =
-      | Operator of ((StateSyn.__State * int) * StateSyn.__State flag list *
+    type operator_ =
+      | Operator of ((StateSyn.state_ * int) * StateSyn.state_ flag list *
       Heuristic.index) 
-    type nonrec operator = __Operator
+    type nonrec operator = operator_
     module I = IntSyn
     module F = FunSyn
     module S = StateSyn
     module H = Heuristic
-    let rec makeOperator __0__ __1__ __2__ __3__ __4__ __5__ __6__ =
-      match (__0__, __1__, __2__, __3__, __4__, __5__, __6__) with
-      | ((__S, k), __L, Splits n, g, __I, m, true) ->
+    let rec makeOperator =
+      begin function
+      | ((s_, k), l_, Splits n, g, i_, m, true) ->
           Operator
-            ((__S, k), __L,
-              {
-                sd = n;
-                ind = __I;
-                c = (List.length __L);
-                m;
-                r = 1;
-                p = (g + 1)
+            ((s_, k), l_,
+              { sd = n; ind = i_; c = (List.length l_); m; r = 1; p = (g + 1)
               })
-      | ((__S, k), __L, Splits n, g, __I, m, false) ->
+      | ((s_, k), l_, Splits n, g, i_, m, false) ->
           Operator
-            ((__S, k), __L,
-              {
-                sd = n;
-                ind = __I;
-                c = (List.length __L);
-                m;
-                r = 0;
-                p = (g + 1)
-              })(* non-recursive case *)(* recursive case *)
-    let rec aux __7__ __8__ =
-      match (__7__, __8__) with
+            ((s_, k), l_,
+              { sd = n; ind = i_; c = (List.length l_); m; r = 0; p = (g + 1)
+              }) end(* non-recursive case *)(* recursive case *)
+    let rec aux =
+      begin function
       | (I.Null, I.Null) -> I.Null
-      | (Decl (__G, __D), Decl (__B, Lemma _)) ->
-          I.Decl ((aux (__G, __B)), (F.Prim __D))
-      | ((Decl (_, __D) as G), (Decl (_, Parameter (Some l)) as B)) ->
-          let LabelDec (name, _, __G2) = F.labelLookup l in
-          let (Psi', __G') = aux' (__G, __B, (List.length __G2)) in
-          I.Decl (Psi', (F.Block (F.CtxBlock ((Some l), __G'))))
-    let rec aux' __9__ __10__ __11__ =
-      match (__9__, __10__, __11__) with
-      | (__G, __B, 0) -> ((aux (__G, __B)), I.Null)
-      | (Decl (__G, __D), Decl (__B, Parameter (Some _)), n) ->
-          let (Psi', __G') = aux' (__G, __B, (n - 1)) in
-          (Psi', (I.Decl (__G', __D)))
-    let rec conv (__Gs) (__Gs') =
-      let exception Conv  in
-        let rec conv __12__ __13__ =
-          match (__12__, __13__) with
-          | ((I.Null, s), (I.Null, s')) -> (s, s')
-          | ((Decl (__G, Dec (_, __V)), s), (Decl (__G', Dec (_, __V')), s'))
-              ->
-              let (s1, s1') = conv ((__G, s), (__G', s')) in
-              let (s2, s2') as ps = ((I.dot1 s1), (I.dot1 s1')) in
-              if Conv.conv ((__V, s1), (__V', s1')) then ps else raise Conv
-          | _ -> raise Conv in
-        try conv (__Gs, __Gs'); true with | Conv -> false
-    let rec createEVarSpine (__G) (__Vs) =
-      createEVarSpineW (__G, (Whnf.whnf __Vs))
-    let rec createEVarSpineW __14__ __15__ =
-      match (__14__, __15__) with
-      | (__G, ((Uni (I.Type), s) as Vs)) -> (I.Nil, __Vs)
-      | (__G, ((Root _, s) as Vs)) -> (I.Nil, __Vs)
-      | (__G, (Pi (((Dec (_, __V1) as D), _), __V2), s)) ->
-          let __X = I.newEVar (__G, (I.EClo (__V1, s))) in
-          let (__S, __Vs) =
-            createEVarSpine (__G, (__V2, (I.Dot ((I.Exp __X), s)))) in
-          ((I.App (__X, __S)), __Vs)(* s = id *)(* s = id *)
-    let rec createAtomConst (__G) (__H) =
-      let cid = match __H with | Const cid -> cid | Skonst cid -> cid in
-      let __V = I.constType cid in
-      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
-      ((I.Root (__H, __S)), __Vs)
-    let rec createAtomBVar (__G) k =
-      let Dec (_, __V) = I.ctxDec (__G, k) in
-      let (__S, __Vs) = createEVarSpine (__G, (__V, I.id)) in
-      ((I.Root ((I.BVar k), __S)), __Vs)
-    let rec someEVars __16__ __17__ __18__ =
-      match (__16__, __17__, __18__) with
-      | (__G, nil, s) -> s
-      | (__G, (Dec (_, __V))::__L, s) ->
-          someEVars
-            (__G, __L,
-              (I.Dot ((I.Exp (I.newEVar (__G, (I.EClo (__V, s))))), s)))
-    let rec maxNumberParams a =
-      let rec maxNumberParams' n =
-        if n < 0
-        then 0
-        else
-          (let LabelDec (name, __G1, __G2) = F.labelLookup n in
-           let m' =
-             foldr
-               (fun (Dec (_, __V)) ->
-                  fun m -> if (I.targetFam __V) = a then m + 1 else m) 0 __G2 in
-           (maxNumberParams' (n - 1)) + m') in
-      maxNumberParams' ((F.labelSize ()) - 1)
-    let rec maxNumberLocalParams __19__ __20__ =
-      match (__19__, __20__) with
-      | (Pi ((Dec (_, __V1), _), __V2), a) ->
-          let m = maxNumberLocalParams (__V2, a) in
-          if (I.targetFam __V1) = a then m + 1 else m
-      | (Root _, a) -> 0
-    let rec maxNumberConstCases a = List.length (Index.lookup a)
-    let rec maxNumberCases (__V) a =
-      (+) ((+) (maxNumberParams a) maxNumberLocalParams (__V, a))
-        maxNumberConstCases a
-    let rec ctxSub __21__ __22__ =
-      match (__21__, __22__) with
-      | (nil, s) -> nil
-      | ((__D)::__G, s) -> (::) (I.decSub (__D, s)) ctxSub (__G, (I.dot1 s))
-    let rec createTags __23__ __24__ =
-      match (__23__, __24__) with
-      | (0, l) -> I.Null
-      | (n, l) -> I.Decl ((createTags ((n - 1), l)), (S.Parameter (Some l)))
-    let rec createLemmaTags =
-      function
-      | I.Null -> I.Null
-      | Decl (__G, __D) ->
-          I.Decl
-            ((createLemmaTags __G),
-              (S.Lemma (S.Splits (!MTPGlobal.maxSplit))))
-    let rec constCases __25__ __26__ __27__ __28__ __29__ =
-      match (__25__, __26__, __27__, __28__, __29__) with
-      | (__G, __Vs, nil, abstract, ops) -> ops
-      | (__G, __Vs, (Const c)::Sgn, abstract, ops) ->
-          let (__U, __Vs') = createAtomConst (__G, (I.Const c)) in
-          constCases
-            (__G, __Vs, Sgn, abstract,
-              (CSManager.trail
-                 (fun () ->
-                    try
-                      if Unify.unifiable (__G, __Vs, __Vs')
-                      then (Active (abstract __U)) :: ops
-                      else ops
-                    with | Error _ -> InActive :: ops)))
-    let rec paramCases __30__ __31__ __32__ __33__ __34__ =
-      match (__30__, __31__, __32__, __33__, __34__) with
-      | (__G, __Vs, 0, abstract, ops) -> ops
-      | (__G, __Vs, k, abstract, ops) ->
-          let (__U, __Vs') = createAtomBVar (__G, k) in
-          paramCases
-            (__G, __Vs, (k - 1), abstract,
-              (CSManager.trail
-                 (fun () ->
-                    try
-                      if Unify.unifiable (__G, __Vs, __Vs')
-                      then (Active (abstract __U)) :: ops
-                      else ops
-                    with | Error _ -> InActive :: ops)))
-    let rec constAndParamCases ops0 c (__G) k (__V, s') abstract =
+      | (Decl (g_, d_), Decl (b_, Lemma _)) ->
+          I.Decl ((aux (g_, b_)), (F.Prim d_))
+      | ((Decl (_, d_) as g_), (Decl (_, Parameter (Some l)) as b_)) ->
+          let LabelDec (name, _, g2_) = F.labelLookup l in
+          let (Psi', g'_) = aux' (g_, b_, (List.length g2_)) in
+          I.Decl (Psi', (F.Block (F.CtxBlock ((Some l), g'_)))) end
+  let rec aux' =
+    begin function
+    | (g_, b_, 0) -> ((aux (g_, b_)), I.Null)
+    | (Decl (g_, d_), Decl (b_, Parameter (Some _)), n) ->
+        let (Psi', g'_) = aux' (g_, b_, (n - 1)) in
+        (Psi', (I.Decl (g'_, d_))) end
+let rec conv (gs_, gs'_) =
+  let exception Conv  in
+    let rec conv =
+      begin function
+      | ((I.Null, s), (I.Null, s')) -> (s, s')
+      | ((Decl (g_, Dec (_, v_)), s), (Decl (g'_, Dec (_, v'_)), s')) ->
+          let (s1, s1') = conv ((g_, s), (g'_, s')) in
+          let (s2, s2') as ps = ((I.dot1 s1), (I.dot1 s1')) in
+          if Conv.conv ((v_, s1), (v'_, s1')) then begin ps end
+            else begin raise Conv end
+      | _ -> raise Conv end in
+begin try begin conv (gs_, gs'_); true end with | Conv -> false end
+let rec createEVarSpine (g_, vs_) = createEVarSpineW (g_, (Whnf.whnf vs_))
+let rec createEVarSpineW =
+  begin function
+  | (g_, ((Uni (I.Type), s) as vs_)) -> (I.Nil, vs_)
+  | (g_, ((Root _, s) as vs_)) -> (I.Nil, vs_)
+  | (g_, (Pi (((Dec (_, v1_) as d_), _), v2_), s)) ->
+      let x_ = I.newEVar (g_, (I.EClo (v1_, s))) in
+      let (s_, vs_) = createEVarSpine (g_, (v2_, (I.Dot ((I.Exp x_), s)))) in
+      ((I.App (x_, s_)), vs_) end(* s = id *)(* s = id *)
+let rec createAtomConst (g_, h_) =
+  let cid = begin match h_ with | Const cid -> cid | Skonst cid -> cid end in
+let v_ = I.constType cid in
+let (s_, vs_) = createEVarSpine (g_, (v_, I.id)) in ((I.Root (h_, s_)), vs_)
+let rec createAtomBVar (g_, k) =
+  let Dec (_, v_) = I.ctxDec (g_, k) in
+  let (s_, vs_) = createEVarSpine (g_, (v_, I.id)) in
+  ((I.Root ((I.BVar k), s_)), vs_)
+let rec someEVars =
+  begin function
+  | (g_, [], s) -> s
+  | (g_, (Dec (_, v_))::l_, s) ->
+      someEVars
+        (g_, l_, (I.Dot ((I.Exp (I.newEVar (g_, (I.EClo (v_, s))))), s))) end
+let rec maxNumberParams a =
+  let rec maxNumberParams' n = if n < 0 then begin 0 end
+    else begin
+      (let LabelDec (name, g1_, g2_) = F.labelLookup n in
+       let m' =
+         foldr
+           (begin function
+            | (Dec (_, v_), m) ->
+                if (I.targetFam v_) = a then begin m + 1 end else begin m end end)
+         0 g2_ in
+  (maxNumberParams' (n - 1)) + m') end in
+maxNumberParams' ((F.labelSize ()) - 1)
+let rec maxNumberLocalParams =
+  begin function
+  | (Pi ((Dec (_, v1_), _), v2_), a) ->
+      let m = maxNumberLocalParams (v2_, a) in
+      if (I.targetFam v1_) = a then begin m + 1 end else begin m end
+  | (Root _, a) -> 0 end
+let rec maxNumberConstCases a = List.length (Index.lookup a)
+let rec maxNumberCases (v_, a) =
+  (+) ((+) (maxNumberParams a) maxNumberLocalParams (v_, a))
+    maxNumberConstCases a
+let rec ctxSub =
+  begin function
+  | ([], s) -> []
+  | ((d_)::g_, s) -> (::) (I.decSub (d_, s)) ctxSub (g_, (I.dot1 s)) end
+let rec createTags =
+  begin function
+  | (0, l) -> I.Null
+  | (n, l) -> I.Decl ((createTags ((n - 1), l)), (S.Parameter (Some l))) end
+let rec createLemmaTags =
+  begin function
+  | I.Null -> I.Null
+  | Decl (g_, d_) ->
+      I.Decl ((createLemmaTags g_), (S.Lemma (S.Splits !MTPGlobal.maxSplit))) end
+let rec constCases =
+  begin function
+  | (g_, vs_, [], abstract, ops) -> ops
+  | (g_, vs_, (Const c)::Sgn, abstract, ops) ->
+      let (u_, vs'_) = createAtomConst (g_, (I.Const c)) in
       constCases
-        (__G, (__V, s'), (Index.lookup c), abstract,
-          (paramCases (__G, (__V, s'), k, abstract, ops0)))
-    let rec metaCases d ops0 c (__G) k (__Vs) abstract =
-      let g = I.ctxLength __G in
-      let rec select __35__ __36__ =
-        match (__35__, __36__) with
-        | (0, ops) -> ops
-        | (d', ops) ->
-            let n = (g - d') + 1 in
-            let Dec (_, __V) = I.ctxDec (__G, n) in
-            let ops' =
-              if (I.targetFam __V) = c
-              then
-                let (__U, __Vs') = createAtomBVar (__G, n) in
-                CSManager.trail
-                  (fun () ->
-                     try
-                       ((if Unify.unifiable (__G, __Vs, __Vs')
-                         then (Active (abstract __U)) :: ops
-                         else ops)
-                       (* abstract state *))
-                     with | Error _ -> InActive :: ops)
-              else ops in
-            select ((d' - 1), ops') in
-      select (d, ops0)
-    let rec lowerSplitDest __37__ __38__ __39__ __40__ __41__ =
-      match (__37__, __38__, __39__, __40__, __41__) with
-      | (__G, k, ((Root (Const c, _) as V), s'), abstract, cases) ->
-          cases (c, __G, (I.ctxLength __G), (__V, s'), abstract)
-      | (__G, k, (Pi ((__D, __P), __V), s'), abstract, cases) ->
-          let __D' = I.decSub (__D, s') in
-          lowerSplitDest
-            ((I.Decl (__G, __D')), (k + 1), (__V, (I.dot1 s')),
-              (fun (__U) -> abstract (I.Lam (__D', __U))), cases)
-    let rec abstractErrorLeft (__G, __B) s =
-      raise (MTPAbstract.Error "Cannot split left of parameters")
-    let rec abstractErrorRight (__G, __B) s =
-      raise (MTPAbstract.Error "Cannot split right of parameters")
-    let rec split ((Dec (_, __V) as D), __T) sc abstract =
-      let rec split' n cases =
-        if n < 0
-        then
-          let ((__G', __B'), s', (__G0, __B0), _) = sc (I.Null, I.Null) in
-          let rec abstract' (__U') =
-            let ((G'', B''), s'') =
-              MTPAbstract.abstractSub'
-                ((__G', __B'), (I.Dot ((I.Exp __U'), s')),
-                  (I.Decl (__B0, __T))) in
-            let _ =
-              if !Global.doubleCheck
-              then
-                let Psi'' = aux (G'', B'') in
-                let _ = TypeCheck.typeCheckCtx (F.makectx Psi'') in
-                let Psi = aux ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))) in
-                let _ = TypeCheck.typeCheckCtx (F.makectx Psi) in
-                FunTypeCheck.checkSub (Psi'', s'', Psi)
-              else () in
+        (g_, vs_, Sgn, abstract,
+          (CSManager.trail
+             (begin function
+              | () ->
+                  (begin try
+                           if Unify.unifiable (g_, vs_, vs'_)
+                           then begin (Active (abstract u_)) :: ops end
+                           else begin ops end
+              with | Error _ -> InActive :: ops end) end))) end
+let rec paramCases =
+  begin function
+  | (g_, vs_, 0, abstract, ops) -> ops
+  | (g_, vs_, k, abstract, ops) ->
+      let (u_, vs'_) = createAtomBVar (g_, k) in
+      paramCases
+        (g_, vs_, (k - 1), abstract,
+          (CSManager.trail
+             (begin function
+              | () ->
+                  (begin try
+                           if Unify.unifiable (g_, vs_, vs'_)
+                           then begin (Active (abstract u_)) :: ops end
+                           else begin ops end
+              with | Error _ -> InActive :: ops end) end))) end
+let rec constAndParamCases ops0 (c, g_, k, (v_, s'), abstract) =
+  constCases
+    (g_, (v_, s'), (Index.lookup c), abstract,
+      (paramCases (g_, (v_, s'), k, abstract, ops0)))
+let rec metaCases (d, ops0) (c, g_, k, vs_, abstract) =
+  let g = I.ctxLength g_ in
+  let rec select =
+    begin function
+    | (0, ops) -> ops
+    | (d', ops) ->
+        let n = (g - d') + 1 in
+        let Dec (_, v_) = I.ctxDec (g_, n) in
+        let ops' =
+          if (I.targetFam v_) = c
+          then
+            begin let (u_, vs'_) = createAtomBVar (g_, n) in
+                  CSManager.trail
+                    (begin function
+                     | () ->
+                         (begin try
+                                  ((if Unify.unifiable (g_, vs_, vs'_)
+                                    then begin (Active (abstract u_)) :: ops end
+                                  else begin ops end)
+                         (* abstract state *))
+                     with | Error _ -> InActive :: ops end) end) end
+        else begin ops end in
+  select ((d' - 1), ops') end in
+select (d, ops0)
+let rec lowerSplitDest =
+  begin function
+  | (g_, k, ((Root (Const c, _) as v_), s'), abstract, cases) ->
+      cases (c, g_, (I.ctxLength g_), (v_, s'), abstract)
+  | (g_, k, (Pi ((d_, p_), v_), s'), abstract, cases) ->
+      let d'_ = I.decSub (d_, s') in
+      lowerSplitDest
+        ((I.Decl (g_, d'_)), (k + 1), (v_, (I.dot1 s')),
+          (begin function | u_ -> abstract (I.Lam (d'_, u_)) end), cases) end
+let rec abstractErrorLeft ((g_, b_), s) =
+  raise (MTPAbstract.Error "Cannot split left of parameters")
+let rec abstractErrorRight ((g_, b_), s) =
+  raise (MTPAbstract.Error "Cannot split right of parameters")
+let rec split (((Dec (_, v_) as d_), t_), sc, abstract) =
+  let rec split' (n, cases) =
+    if n < 0
+    then
+      begin let ((g'_, b'_), s', (g0_, b0_), _) = sc (I.Null, I.Null) in
+            let rec abstract' (u'_) =
+              let ((G'', B''), s'') =
+                MTPAbstract.abstractSub'
+                  ((g'_, b'_), (I.Dot ((I.Exp u'_), s')), (I.Decl (b0_, t_))) in
+              let _ =
+                if !Global.doubleCheck
+                then
+                  begin let Psi'' = aux (G'', B'') in
+                        let _ = TypeCheck.typeCheckCtx (F.makectx Psi'') in
+                        let Psi =
+                          aux ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))) in
+                        let _ = TypeCheck.typeCheckCtx (F.makectx Psi) in
+                        FunTypeCheck.checkSub (Psi'', s'', Psi) end
+                else begin () end in
             ((abstract ((G'', B''), s''))
               (* G' |- U' : V[s'] *)(* G' |- U'.s' : G, V[s'] *)) in
-          ((lowerSplitDest
-              (__G', 0, (__V, s'), abstract', (constAndParamCases cases)))
-            (* |- G' = parameter blocks of G  ctx*)(* G' |- B' tags *)
-            (* G' |- s' : G *))
-        else
-          (let LabelDec (name, __G1, __G2) = F.labelLookup n in
-           let t = someEVars (I.Null, __G1, I.id) in
-           let __B1 = createLemmaTags (F.listToCtx __G1) in
-           let G2t = ctxSub (__G2, t) in
-           let length = List.length __G2 in
-           let __B2 = createTags (length, n) in
-           let ((__G', __B'), s', (__G0, __B0), p) =
-             sc ((Names.ctxName (F.listToCtx G2t)), __B2) in
-           let rec abstract' (__U') =
-             if p
-             then
-               raise (MTPAbstract.Error "Cannot split right of parameters")
-             else
-               (let ((G'', B''), s'') =
-                  MTPAbstract.abstractSub
-                    (t, __B1, (__G', __B'), (I.Dot ((I.Exp __U'), s')),
-                      (I.Decl (__B0, __T))) in
-                let _ =
-                  if !Global.doubleCheck
-                  then
-                    let Psi'' = aux (G'', B'') in
+    ((lowerSplitDest
+        (g'_, 0, (v_, s'), abstract', (constAndParamCases cases)))
+      (* |- G' = parameter blocks of G  ctx*)(* G' |- B' tags *)
+      (* G' |- s' : G *)) end
+  else begin
+    (let LabelDec (name, g1_, g2_) = F.labelLookup n in
+     let t = someEVars (I.Null, g1_, I.id) in
+     let b1_ = createLemmaTags (F.listToCtx g1_) in
+     let G2t = ctxSub (g2_, t) in
+     let length = List.length g2_ in
+     let b2_ = createTags (length, n) in
+     let ((g'_, b'_), s', (g0_, b0_), p) =
+       sc ((Names.ctxName (F.listToCtx G2t)), b2_) in
+     let rec abstract' (u'_) =
+       if p
+       then
+         begin raise (MTPAbstract.Error "Cannot split right of parameters") end
+       else begin
+         (let ((G'', B''), s'') =
+            MTPAbstract.abstractSub
+              (t, b1_, (g'_, b'_), (I.Dot ((I.Exp u'_), s')),
+                (I.Decl (b0_, t_))) in
+          let _ =
+            if !Global.doubleCheck
+            then
+              begin let Psi'' = aux (G'', B'') in
                     let _ = TypeCheck.typeCheckCtx (F.makectx Psi'') in
-                    let Psi =
-                      aux ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))) in
+                    let Psi = aux ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))) in
                     let _ = TypeCheck.typeCheckCtx (F.makectx Psi) in
-                    FunTypeCheck.checkSub (Psi'', s'', Psi)
-                  else () in
-                ((abstract ((G'', B''), s''))
-                  (* G' |- U.s' : G, V *)(* . |- t : G1 *)
-                  (* . |- G'' ctx *)(* G'' |- B'' tags *)
-                  (* G'' = G1'', G2', G2'' *)(* where G1'' |- G2' ctx, G2' is the abstracted parameter block *)))
-             (* G' |- U' : V[s'] *) in
-           let cases' =
-             lowerSplitDest
-               (__G', 0, (__V, s'), abstract', (metaCases (length, cases))) in
-           ((split' ((n - 1), cases'))
-             (* . |- t : G1 *)(* . |- G2 [t] ctx *)
-             (* G2 [t] |- B2 tags *)(* . |- G' ctx *)
-             (* G' |- B' tags *)(* G' |- s : G = G0 *)
-             (* G0 |- B0 tags *)(* abstract' U = S'
+                    FunTypeCheck.checkSub (Psi'', s'', Psi) end
+            else begin () end in
+       ((abstract ((G'', B''), s''))
+         (* G' |- U.s' : G, V *)(* . |- t : G1 *)
+         (* . |- G'' ctx *)(* G'' |- B'' tags *)
+         (* G'' = G1'', G2', G2'' *)(* where G1'' |- G2' ctx, G2' is the abstracted parameter block *))) end
+       (* G' |- U' : V[s'] *) in
+     let cases' =
+       lowerSplitDest
+         (g'_, 0, (v_, s'), abstract', (metaCases (length, cases))) in
+     ((split' ((n - 1), cases'))
+       (* . |- t : G1 *)(* . |- G2 [t] ctx *)(* G2 [t] |- B2 tags *)
+       (* . |- G' ctx *)(* G' |- B' tags *)
+       (* G' |- s : G = G0 *)(* G0 |- B0 tags *)
+       (* abstract' U = S'
 
                    Invariant:
                    If   G' |- U' : V[s']
-                   then |- S' state *))) in
-      split' (((F.labelSize ()) - 1), nil)
-    let rec occursInExp __42__ __43__ =
-      match (__42__, __43__) with
-      | (k, Uni _) -> false
-      | (k, Pi (DP, __V)) ->
-          (occursInDecP (k, DP)) || (occursInExp ((k + 1), __V))
-      | (k, Root (__C, __S)) ->
-          (occursInCon (k, __C)) || (occursInSpine (k, __S))
-      | (k, Lam (__D, __V)) ->
-          (occursInDec (k, __D)) || (occursInExp ((k + 1), __V))
-      | (k, FgnExp csfe) ->
-          I.FgnExpStd.fold csfe
-            (fun (__U) ->
-               fun (__B) ->
-                 __B || (occursInExp (k, (Whnf.normalize (__U, I.id)))))
-            false
-    let rec occursInCon __44__ __45__ =
-      match (__44__, __45__) with
-      | (k, BVar k') -> k = k'
-      | (k, Const _) -> false
-      | (k, Def _) -> false
-      | (k, Skonst _) -> false
-    let rec occursInSpine __46__ __47__ =
-      match (__46__, __47__) with
-      | (_, I.Nil) -> false
-      | (k, App (__U, __S)) ->
-          (occursInExp (k, __U)) || (occursInSpine (k, __S))
-    let rec occursInDec k (Dec (_, __V)) = occursInExp (k, __V)
-    let rec occursInDecP k (__D, _) = occursInDec (k, __D)
-    let rec isIndexInit k = false
-    let rec isIndexSucc (__D) isIndex k =
-      (occursInDec (k, __D)) || (isIndex (k + 1))
-    let rec isIndexFail (__D) isIndex k = isIndex (k + 1)
-    let rec abstractInit
-      (State (n, (__G, __B), (IH, OH), d, __O, __H, __F) as S) (__G', __B')
-      s' =
-      if !Global.doubleCheck then TypeCheck.typeCheckCtx __G' else ();
-      if !Global.doubleCheck
-      then FunTypeCheck.isFor (__G', (F.forSub (__F, s')))
-      else ();
-      S.State
-        (n, (__G', __B'), (IH, OH), d, (S.orderSub (__O, s')),
-          (map (fun i -> fun (__F') -> (i, (F.forSub (__F', s')))) __H),
-          (F.forSub (__F, s')))
-    let rec abstractCont (__D, __T) abstract (__G, __B) s =
-      abstract
-        (((I.Decl (__G, (Whnf.normalizeDec (__D, s)))),
-           (I.Decl (__B, (S.normalizeTag (__T, s))))), (I.dot1 s))
-    let rec makeAddressInit (__S) k = (__S, k)
-    let rec makeAddressCont makeAddress k = makeAddress (k + 1)
-    let rec occursInOrder __48__ __49__ __50__ __51__ =
-      match (__48__, __49__, __50__, __51__) with
-      | (n, Arg (__Us, Vt), k, sc) ->
-          let __U' = Whnf.normalize __Us in
-          if occursInExp (k, __U') then Some n else sc (n + 1)
-      | (n, Lex (__Os), k, sc) -> occursInOrders (n, __Os, k, sc)
-      | (n, Simul (__Os), k, sc) -> occursInOrders (n, __Os, k, sc)
-    let rec occursInOrders __52__ __53__ __54__ __55__ =
-      match (__52__, __53__, __54__, __55__) with
-      | (n, nil, k, sc) -> sc n
-      | (n, (__O)::__Os, k, sc) ->
-          occursInOrder
-            (n, __O, k, (fun n' -> occursInOrders (n', __Os, k, sc)))
-    let rec inductionInit (__O) k =
-      occursInOrder (0, __O, k, (fun n -> None))
-    let rec inductionCont induction k = induction (k + 1)
-    let rec expand' __56__ __57__ __58__ __59__ __60__ =
-      match (__56__, __57__, __58__, __59__, __60__) with
-      | (((I.Null, I.Null) as GB), isIndex, abstract, makeAddress, induction)
-          ->
-          (((fun (Gp) ->
-               fun (Bp) ->
-                 ((Gp, Bp), (I.Shift (I.ctxLength Gp)), GB, false))), nil)
-      | (((Decl (__G, __D), Decl (__B, (Lemma (Splits _ as K) as T))) as GB),
-         isIndex, abstract, makeAddress, induction) ->
-          let (sc, ops) =
-            expand'
-              ((__G, __B), (isIndexSucc (__D, isIndex)),
-                (abstractCont ((__D, __T), abstract)),
-                (makeAddressCont makeAddress), (inductionCont induction)) in
-          let Dec (xOpt, __V) = __D in
-          let rec sc' (Gp) (Bp) =
-            let ((__G', __B'), s', (__G0, __B0), p') = sc (Gp, Bp) in
-            let __X = I.newEVar (__G', (I.EClo (__V, s'))) in
-            ((((__G', __B'), (I.Dot ((I.Exp __X), s')),
-                ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), p'))
-              (* G' |- X : V[s'] *)(* G' |- X.s' : G, D *)) in
-          let ops' =
-            if (not (isIndex 1)) && ((S.splitDepth __K) > 0)
-            then
-              let a = I.targetFam __V in
-              (makeOperator
-                 ((makeAddress 1), (split ((__D, __T), sc, abstract)), __K,
-                   (I.ctxLength __G), (induction 1),
-                   (maxNumberCases (__V, a)), (Subordinate.below (a, a))))
-                :: ops
-            else ops in
-          (sc', ops')
-      | ((Decl (__G, __D), Decl (__B, (Lemma (S.RL) as T))), isIndex,
-         abstract, makeAddress, induction) ->
-          let (sc, ops) =
-            expand'
-              ((__G, __B), (isIndexSucc (__D, isIndex)),
-                (abstractCont ((__D, __T), abstract)),
-                (makeAddressCont makeAddress), (inductionCont induction)) in
-          let Dec (xOpt, __V) = __D in
-          let rec sc' (Gp) (Bp) =
-            let ((__G', __B'), s', (__G0, __B0), p') = sc (Gp, Bp) in
-            let __X = I.newEVar (__G', (I.EClo (__V, s'))) in
-            ((__G', __B'), (I.Dot ((I.Exp __X), s')),
-              ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), p') in
-          (sc', ops)
-      | ((Decl (__G, __D), Decl (__B, (Lemma (S.RLdone) as T))), isIndex,
-         abstract, makeAddress, induction) ->
-          let (sc, ops) =
-            expand'
-              ((__G, __B), (isIndexSucc (__D, isIndex)),
-                (abstractCont ((__D, __T), abstract)),
-                (makeAddressCont makeAddress), (inductionCont induction)) in
-          let Dec (xOpt, __V) = __D in
-          let rec sc' (Gp) (Bp) =
-            let ((__G', __B'), s', (__G0, __B0), p') = sc (Gp, Bp) in
-            let __X = I.newEVar (__G', (I.EClo (__V, s'))) in
-            ((__G', __B'), (I.Dot ((I.Exp __X), s')),
-              ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), p') in
-          (sc', ops)
-      | ((Decl (__G, __D), Decl (__B, (Parameter (Some _) as T))), isIndex,
-         abstract, makeAddress, induction) ->
-          let (sc, ops) =
-            expand'
-              ((__G, __B), (isIndexSucc (__D, isIndex)), abstractErrorLeft,
-                (makeAddressCont makeAddress), (inductionCont induction)) in
-          let Dec (xOpt, __V) = __D in
-          let rec sc' (Gp) (Bp) =
-            let ((__G', __B'), s', (__G0, __B0), _) = sc (Gp, Bp) in
-            (((I.Decl (__G', (Names.decName (__G', (I.decSub (__D, s')))))),
-               (I.Decl (__B', __T))), (I.dot1 s'),
-              ((I.Decl (__G0, __D)), (I.Decl (__B0, __T))), true) in
-          (sc', ops)
-    let rec expand (State (n, (__G0, __B0), _, _, __O, _, _) as S0) =
-      let _ = if !Global.doubleCheck then FunTypeCheck.isState __S0 else () in
-      let (_, ops) =
+                   then |- S' state *))) end in
+split' (((F.labelSize ()) - 1), [])
+let rec occursInExp =
+  begin function
+  | (k, Uni _) -> false
+  | (k, Pi (DP, v_)) -> (occursInDecP (k, DP)) || (occursInExp ((k + 1), v_))
+  | (k, Root (c_, s_)) -> (occursInCon (k, c_)) || (occursInSpine (k, s_))
+  | (k, Lam (d_, v_)) -> (occursInDec (k, d_)) || (occursInExp ((k + 1), v_))
+  | (k, FgnExp csfe) ->
+      I.FgnExpStd.fold csfe
+        (begin function
+         | (u_, b_) -> b_ || (occursInExp (k, (Whnf.normalize (u_, I.id)))) end)
+      false end
+let rec occursInCon =
+  begin function
+  | (k, BVar k') -> k = k'
+  | (k, Const _) -> false
+  | (k, Def _) -> false
+  | (k, Skonst _) -> false end
+let rec occursInSpine =
+  begin function
+  | (_, I.Nil) -> false
+  | (k, App (u_, s_)) -> (occursInExp (k, u_)) || (occursInSpine (k, s_)) end
+let rec occursInDec (k, Dec (_, v_)) = occursInExp (k, v_)
+let rec occursInDecP (k, (d_, _)) = occursInDec (k, d_)
+let rec isIndexInit k = false
+let rec isIndexSucc (d_, isIndex) k =
+  (occursInDec (k, d_)) || (isIndex (k + 1))
+let rec isIndexFail (d_, isIndex) k = isIndex (k + 1)
+let rec abstractInit (State (n, (g_, b_), (IH, OH), d, o_, h_, f_) as s_)
+  ((g'_, b'_), s') =
+  begin if !Global.doubleCheck then begin TypeCheck.typeCheckCtx g'_ end
+  else begin () end;
+  if !Global.doubleCheck
+  then begin FunTypeCheck.isFor (g'_, (F.forSub (f_, s'))) end
+  else begin () end;
+S.State
+  (n, (g'_, b'_), (IH, OH), d, (S.orderSub (o_, s')),
+    (map (begin function | (i, f'_) -> (i, (F.forSub (f'_, s'))) end) h_),
+  (F.forSub (f_, s'))) end
+let rec abstractCont ((d_, t_), abstract) ((g_, b_), s) =
+  abstract
+    (((I.Decl (g_, (Whnf.normalizeDec (d_, s)))),
+       (I.Decl (b_, (S.normalizeTag (t_, s))))), (I.dot1 s))
+let rec makeAddressInit (s_) k = (s_, k)
+let rec makeAddressCont makeAddress k = makeAddress (k + 1)
+let rec occursInOrder =
+  begin function
+  | (n, Arg (us_, Vt), k, sc) ->
+      let u'_ = Whnf.normalize us_ in
+      if occursInExp (k, u'_) then begin Some n end else begin sc (n + 1) end
+  | (n, Lex (os_), k, sc) -> occursInOrders (n, os_, k, sc)
+  | (n, Simul (os_), k, sc) -> occursInOrders (n, os_, k, sc) end
+let rec occursInOrders =
+  begin function
+  | (n, [], k, sc) -> sc n
+  | (n, (o_)::os_, k, sc) ->
+      occursInOrder
+        (n, o_, k,
+          (begin function | n' -> occursInOrders (n', os_, k, sc) end)) end
+let rec inductionInit (o_) k =
+  occursInOrder (0, o_, k, (begin function | n -> None end))
+let rec inductionCont induction k = induction (k + 1)
+let rec expand' =
+  begin function
+  | (((I.Null, I.Null) as GB), isIndex, abstract, makeAddress, induction) ->
+      (((begin function
+         | (Gp, Bp) -> ((Gp, Bp), (I.Shift (I.ctxLength Gp)), GB, false) end)),
+      [])
+  | (((Decl (g_, d_), Decl (b_, (Lemma (Splits _ as k_) as t_))) as GB),
+     isIndex, abstract, makeAddress, induction) ->
+      let (sc, ops) =
         expand'
-          ((__G0, __B0), isIndexInit, (abstractInit __S0),
-            (makeAddressInit __S0), (inductionInit __O)) in
-      ops
-    let rec index (Operator ((__S, index), Sl, { c = k })) = k
-    let rec compare (Operator (_, _, __I1)) (Operator (_, _, __I2)) =
-      H.compare (__I1, __I2)
-    let rec isInActive = function | Active _ -> false | InActive -> true
-    let rec applicable (Operator (_, Sl, __I)) =
-      not (List.exists isInActive Sl)
-    let rec apply (Operator (_, Sl, __I)) =
-      map
-        (function
-         | Active (__S) ->
-             (if !Global.doubleCheck then FunTypeCheck.isState __S else ();
-              __S)
-         | InActive -> raise (Error "Not applicable: leftover constraints"))
-        Sl
-    let rec menu
-      (Operator
-         ((State (n, (__G, __B), (IH, OH), d, __O, __H, __F), i), Sl, __I) as
-         Op)
-      =
-      let rec active __61__ __62__ =
-        match (__61__, __62__) with
-        | (nil, n) -> n
-        | ((InActive)::__L, n) -> active (__L, n)
-        | ((Active _)::__L, n) -> active (__L, (n + 1)) in
-      let rec inactive __63__ __64__ =
-        match (__63__, __64__) with
-        | (nil, n) -> n
-        | ((InActive)::__L, n) -> inactive (__L, (n + 1))
-        | ((Active _)::__L, n) -> inactive (__L, n) in
-      let rec casesToString =
-        function
-        | 0 -> "zero cases"
-        | 1 -> "1 case"
-        | n -> (Int.toString n) ^ " cases" in
-      let rec flagToString __65__ __66__ =
-        match (__65__, __66__) with
-        | (_, 0) -> ""
-        | (n, m) ->
-            (((" [active: " ^ (Int.toString n)) ^ " inactive: ") ^
-               (Int.toString m))
-              ^ "]" in
-      (((((^) "Splitting : " Print.decToString (__G, (I.ctxDec (__G, i)))) ^
-           " ")
-          ^ (H.indexToString __I))
-         ^ (flagToString ((active (Sl, 0)), (inactive (Sl, 0)))))
-        ^ ""
-    let expand = expand
-    let menu = menu
-    let applicable = applicable
-    let apply = apply
-    let index = index
-    let compare = compare
-  end ;;
+          ((g_, b_), (isIndexSucc (d_, isIndex)),
+            (abstractCont ((d_, t_), abstract)),
+            (makeAddressCont makeAddress), (inductionCont induction)) in
+      let Dec (xOpt, v_) = d_ in
+      let rec sc' (Gp, Bp) =
+        let ((g'_, b'_), s', (g0_, b0_), p') = sc (Gp, Bp) in
+        let x_ = I.newEVar (g'_, (I.EClo (v_, s'))) in
+        ((((g'_, b'_), (I.Dot ((I.Exp x_), s')),
+            ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))), p'))
+          (* G' |- X : V[s'] *)(* G' |- X.s' : G, D *)) in
+      let ops' =
+        if (not (isIndex 1)) && ((S.splitDepth k_) > 0)
+        then
+          begin let a = I.targetFam v_ in
+                (makeOperator
+                   ((makeAddress 1), (split ((d_, t_), sc, abstract)), k_,
+                     (I.ctxLength g_), (induction 1),
+                     (maxNumberCases (v_, a)), (Subordinate.below (a, a))))
+                  :: ops end
+        else begin ops end in
+      (sc', ops')
+| ((Decl (g_, d_), Decl (b_, (Lemma (S.RL) as t_))), isIndex, abstract,
+   makeAddress, induction) ->
+    let (sc, ops) =
+      expand'
+        ((g_, b_), (isIndexSucc (d_, isIndex)),
+          (abstractCont ((d_, t_), abstract)), (makeAddressCont makeAddress),
+          (inductionCont induction)) in
+    let Dec (xOpt, v_) = d_ in
+    let rec sc' (Gp, Bp) =
+      let ((g'_, b'_), s', (g0_, b0_), p') = sc (Gp, Bp) in
+      let x_ = I.newEVar (g'_, (I.EClo (v_, s'))) in
+      ((g'_, b'_), (I.Dot ((I.Exp x_), s')),
+        ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))), p') in
+    (sc', ops)
+| ((Decl (g_, d_), Decl (b_, (Lemma (S.RLdone) as t_))), isIndex, abstract,
+   makeAddress, induction) ->
+    let (sc, ops) =
+      expand'
+        ((g_, b_), (isIndexSucc (d_, isIndex)),
+          (abstractCont ((d_, t_), abstract)), (makeAddressCont makeAddress),
+          (inductionCont induction)) in
+    let Dec (xOpt, v_) = d_ in
+    let rec sc' (Gp, Bp) =
+      let ((g'_, b'_), s', (g0_, b0_), p') = sc (Gp, Bp) in
+      let x_ = I.newEVar (g'_, (I.EClo (v_, s'))) in
+      ((g'_, b'_), (I.Dot ((I.Exp x_), s')),
+        ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))), p') in
+    (sc', ops)
+| ((Decl (g_, d_), Decl (b_, (Parameter (Some _) as t_))), isIndex, abstract,
+   makeAddress, induction) ->
+    let (sc, ops) =
+      expand'
+        ((g_, b_), (isIndexSucc (d_, isIndex)), abstractErrorLeft,
+          (makeAddressCont makeAddress), (inductionCont induction)) in
+    let Dec (xOpt, v_) = d_ in
+    let rec sc' (Gp, Bp) =
+      let ((g'_, b'_), s', (g0_, b0_), _) = sc (Gp, Bp) in
+      (((I.Decl (g'_, (Names.decName (g'_, (I.decSub (d_, s')))))),
+         (I.Decl (b'_, t_))), (I.dot1 s'),
+        ((I.Decl (g0_, d_)), (I.Decl (b0_, t_))), true) in
+    (sc', ops) end
+let rec expand (State (n, (g0_, b0_), _, _, o_, _, _) as s0_) =
+  let _ = if !Global.doubleCheck then begin FunTypeCheck.isState s0_ end
+    else begin () end in
+let (_, ops) =
+  expand'
+    ((g0_, b0_), isIndexInit, (abstractInit s0_), (makeAddressInit s0_),
+      (inductionInit o_)) in
+ops
+let rec index (Operator ((s_, index), Sl, { c = k })) = k
+let rec compare (Operator (_, _, i1_), Operator (_, _, i2_)) =
+  H.compare (i1_, i2_)
+let rec isInActive =
+  begin function | Active _ -> false | InActive -> true end
+let rec applicable (Operator (_, Sl, i_)) = not (List.exists isInActive Sl)
+let rec apply (Operator (_, Sl, i_)) =
+  map
+    (begin function
+     | Active (s_) ->
+         (begin if !Global.doubleCheck then begin FunTypeCheck.isState s_ end
+          else begin () end;
+     s_ end)
+  | InActive -> raise (Error "Not applicable: leftover constraints") end)
+Sl
+let rec menu
+  (Operator ((State (n, (g_, b_), (IH, OH), d, o_, h_, f_), i), Sl, i_) as Op)
+  =
+  let rec active =
+    begin function
+    | ([], n) -> n
+    | ((InActive)::l_, n) -> active (l_, n)
+    | ((Active _)::l_, n) -> active (l_, (n + 1)) end in
+let rec inactive =
+  begin function
+  | ([], n) -> n
+  | ((InActive)::l_, n) -> inactive (l_, (n + 1))
+  | ((Active _)::l_, n) -> inactive (l_, n) end in
+let rec casesToString =
+  begin function
+  | 0 -> "zero cases"
+  | 1 -> "1 case"
+  | n -> (Int.toString n) ^ " cases" end in
+let rec flagToString =
+  begin function
+  | (_, 0) -> ""
+  | (n, m) ->
+      (((" [active: " ^ (Int.toString n)) ^ " inactive: ") ^ (Int.toString m))
+        ^ "]" end in
+(((((^) "Splitting : " Print.decToString (g_, (I.ctxDec (g_, i)))) ^ " ") ^
+    (H.indexToString i_))
+   ^ (flagToString ((active (Sl, 0)), (inactive (Sl, 0)))))
+  ^ ""
+let expand = expand
+let menu = menu
+let applicable = applicable
+let apply = apply
+let index = index
+let compare = compare end

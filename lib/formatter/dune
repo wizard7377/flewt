@@ -1,7 +1,0 @@
-(library
- (wrapped
-  (transition "Convert SML convention to OCaml convention"))
- (public_name flewt.formatter)
- (name formatter)
- (libraries basis fmt)
- (modules formatter))

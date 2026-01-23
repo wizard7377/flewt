@@ -1,87 +1,84 @@
-
 module type DEXTSYN  =
   sig
-    type __Ast =
-      | Ast of __Decs 
-    and __Decs =
+    type ast_ =
+      | Ast of decs_ 
+    and decs_ =
       | Empty 
-      | FunDecl of (__FunDecl * __Decs) 
-      | FormDecl of (__FormDecl * __Decs) 
-      | ValDecl of (__ValDecl * __Decs) 
-      | NewDecl of (__Dec * __Decs) 
-      | TwelfDecl of (__Dec * __Decs) 
-      | CreateDecl of (__CreateDecl * __Decs) 
-    and __CreateDecl =
-      | Create of (__Term * __CreateDecl) 
-      | Decs of __Decs 
-    and __FormDecl =
-      | Form of (string * __Form) 
-    and __FunDecl =
-      | Fun of (__Head * __Prog) 
-      | Bar of (__Head * __Prog) 
-      | FunAnd of (__Head * __Prog) 
-    and __ValDecl =
-      | Val of (__Pat * __Prog * __Form option) 
-    and __World =
+      | FunDecl of (funDecl_ * decs_) 
+      | FormDecl of (formDecl_ * decs_) 
+      | ValDecl of (valDecl_ * decs_) 
+      | NewDecl of (dec_ * decs_) 
+      | TwelfDecl of (dec_ * decs_) 
+      | CreateDecl of (createDecl_ * decs_) 
+    and createDecl_ =
+      | Create of (term_ * createDecl_) 
+      | Decs of decs_ 
+    and formDecl_ =
+      | Form of (string * form_) 
+    and funDecl_ =
+      | Fun of (head_ * prog_) 
+      | Bar of (head_ * prog_) 
+      | FunAnd of (head_ * prog_) 
+    and valDecl_ =
+      | Val of (pat_ * prog_ * form_ option) 
+    and world_ =
       | WorldIdent of string 
-      | Plus of (__World * __World) 
-      | Concat of (__World * __World) 
-      | Times of __World 
-    and __Form =
+      | Plus of (world_ * world_) 
+      | Concat of (world_ * world_) 
+      | Times of world_ 
+    and form_ =
       | True 
-      | Forall of (__Dec * __Form) 
-      | ForallOmitted of (__Dec * __Form) 
-      | Exists of (__Dec * __Form) 
-      | ExistsOmitted of (__Dec * __Form) 
-      | And of (__Form * __Form) 
-      | World of (__World * __Form) 
-    and __Prog =
+      | Forall of (dec_ * form_) 
+      | ForallOmitted of (dec_ * form_) 
+      | Exists of (dec_ * form_) 
+      | ExistsOmitted of (dec_ * form_) 
+      | And of (form_ * form_) 
+      | World of (world_ * form_) 
+    and prog_ =
       | Unit 
-      | Pair of (__Prog * __Prog) 
-      | AppProg of (__Prog * __Prog) 
-      | AppTerm of (__Prog * __Term) 
-      | Inx of (__Term * __Prog) 
-      | Lam of (__Dec * __Prog) 
+      | Pair of (prog_ * prog_) 
+      | AppProg of (prog_ * prog_) 
+      | AppTerm of (prog_ * term_) 
+      | Inx of (term_ * prog_) 
+      | Lam of (dec_ * prog_) 
       | Const of string 
-      | Case of (__Pat list * __Prog) list 
-      | Let of (__Decs * __Prog) 
-      | Par of (__Prog * __Prog) 
-      | New of (__Dec list * __Prog) 
-      | Choose of (__Dec * __Prog) 
-    and __Cases =
-      | First of (__Pat * __Prog) 
-      | Alt of (__Cases * __Pat * __Prog) 
-    and __Head =
+      | Case of (pat_ list * prog_) list 
+      | Let of (decs_ * prog_) 
+      | Par of (prog_ * prog_) 
+      | New of (dec_ list * prog_) 
+      | Choose of (dec_ * prog_) 
+    and cases_ =
+      | First of (pat_ * prog_) 
+      | Alt of (cases_ * pat_ * prog_) 
+    and head_ =
       | Head of string 
-      | AppLF of (__Head * __Term) 
-      | AppMeta of (__Head * __Pat) 
-    and __Pat =
-      | PatInx of (__Term * __Pat) 
-      | PatPair of (__Pat * __Pat) 
-      | PatVar of __MDec 
+      | AppLF of (head_ * term_) 
+      | AppMeta of (head_ * pat_) 
+    and pat_ =
+      | PatInx of (term_ * pat_) 
+      | PatPair of (pat_ * pat_) 
+      | PatVar of mDec_ 
       | PatUnderscore 
       | PatUnit 
-    and __MDec =
-      | MDec of (string * __Form option) 
-    and __Block =
+    and mDec_ =
+      | MDec of (string * form_ option) 
+    and block_ =
       | Block of string list 
-    and __Term =
-      | Rtarrow of (__Term * __Term) 
-      | Ltarrow of (__Term * __Term) 
+    and term_ =
+      | Rtarrow of (term_ * term_) 
+      | Ltarrow of (term_ * term_) 
       | Type 
       | Id of string 
-      | Pi of (__Dec * __Term) 
-      | Fn of (__Dec * __Term) 
-      | App of (__Term * __Term) 
-      | Dot of (__Term * string) 
-      | Paren of __Term 
+      | Pi of (dec_ * term_) 
+      | Fn of (dec_ * term_) 
+      | App of (term_ * term_) 
+      | Dot of (term_ * string) 
+      | Paren of term_ 
       | Omit 
-      | Of of (__Term * __Term) 
-    and __Dec =
-      | Dec of (string * __Term) 
-  end;;
-
-
+      | Of of (term_ * term_) 
+    and dec_ =
+      | Dec of (string * term_) 
+  end
 
 
 module DextSyn(DextSyn:sig module ExtSyn' : EXTSYN module Parsing' : PARSING
@@ -91,82 +88,82 @@ module DextSyn(DextSyn:sig module ExtSyn' : EXTSYN module Parsing' : PARSING
     module Parsing = Parsing'
     module L = Lexer
     module S = Stream
-    type __Ast =
-      | Ast of __Decs 
-    and __Decs =
+    type ast_ =
+      | Ast of decs_ 
+    and decs_ =
       | Empty 
-      | FunDecl of (__FunDecl * __Decs) 
-      | FormDecl of (__FormDecl * __Decs) 
-      | ValDecl of (__ValDecl * __Decs) 
-      | NewDecl of (__Dec * __Decs) 
-      | TwelfDecl of (__Dec * __Decs) 
-      | CreateDecl of (__CreateDecl * __Decs) 
-    and __CreateDecl =
-      | Create of (__Term * __CreateDecl) 
-      | Decs of __Decs 
-    and __FormDecl =
-      | Form of (string * __Form) 
-    and __FunDecl =
-      | Fun of (__Head * __Prog) 
-      | Bar of (__Head * __Prog) 
-      | FunAnd of (__Head * __Prog) 
-    and __ValDecl =
-      | Val of (__Pat * __Prog * __Form option) 
-    and __Cases =
-      | First of (__Pat * __Prog) 
-      | Alt of (__Cases * __Pat * __Prog) 
-    and __World =
+      | FunDecl of (funDecl_ * decs_) 
+      | FormDecl of (formDecl_ * decs_) 
+      | ValDecl of (valDecl_ * decs_) 
+      | NewDecl of (dec_ * decs_) 
+      | TwelfDecl of (dec_ * decs_) 
+      | CreateDecl of (createDecl_ * decs_) 
+    and createDecl_ =
+      | Create of (term_ * createDecl_) 
+      | Decs of decs_ 
+    and formDecl_ =
+      | Form of (string * form_) 
+    and funDecl_ =
+      | Fun of (head_ * prog_) 
+      | Bar of (head_ * prog_) 
+      | FunAnd of (head_ * prog_) 
+    and valDecl_ =
+      | Val of (pat_ * prog_ * form_ option) 
+    and cases_ =
+      | First of (pat_ * prog_) 
+      | Alt of (cases_ * pat_ * prog_) 
+    and world_ =
       | WorldIdent of string 
-      | Plus of (__World * __World) 
-      | Concat of (__World * __World) 
-      | Times of __World 
-    and __Form =
+      | Plus of (world_ * world_) 
+      | Concat of (world_ * world_) 
+      | Times of world_ 
+    and form_ =
       | True 
-      | Forall of (__Dec * __Form) 
-      | ForallOmitted of (__Dec * __Form) 
-      | Exists of (__Dec * __Form) 
-      | ExistsOmitted of (__Dec * __Form) 
-      | And of (__Form * __Form) 
-      | World of (__World * __Form) 
-    and __Prog =
+      | Forall of (dec_ * form_) 
+      | ForallOmitted of (dec_ * form_) 
+      | Exists of (dec_ * form_) 
+      | ExistsOmitted of (dec_ * form_) 
+      | And of (form_ * form_) 
+      | World of (world_ * form_) 
+    and prog_ =
       | Unit 
-      | Pair of (__Prog * __Prog) 
-      | AppProg of (__Prog * __Prog) 
-      | AppTerm of (__Prog * __Term) 
-      | Inx of (__Term * __Prog) 
-      | Lam of (__Dec * __Prog) 
-      | Par of (__Prog * __Prog) 
+      | Pair of (prog_ * prog_) 
+      | AppProg of (prog_ * prog_) 
+      | AppTerm of (prog_ * term_) 
+      | Inx of (term_ * prog_) 
+      | Lam of (dec_ * prog_) 
+      | Par of (prog_ * prog_) 
       | Const of string 
-      | Case of (__Pat list * __Prog) list 
-      | Let of (__Decs * __Prog) 
-      | New of (__Dec list * __Prog) 
-      | Choose of (__Dec * __Prog) 
-    and __Head =
+      | Case of (pat_ list * prog_) list 
+      | Let of (decs_ * prog_) 
+      | New of (dec_ list * prog_) 
+      | Choose of (dec_ * prog_) 
+    and head_ =
       | Head of string 
-      | AppLF of (__Head * __Term) 
-      | AppMeta of (__Head * __Pat) 
-    and __Pat =
-      | PatInx of (__Term * __Pat) 
-      | PatPair of (__Pat * __Pat) 
-      | PatVar of __MDec 
+      | AppLF of (head_ * term_) 
+      | AppMeta of (head_ * pat_) 
+    and pat_ =
+      | PatInx of (term_ * pat_) 
+      | PatPair of (pat_ * pat_) 
+      | PatVar of mDec_ 
       | PatUnderscore 
       | PatUnit 
-    and __MDec =
-      | MDec of (string * __Form option) 
-    and __Block =
+    and mDec_ =
+      | MDec of (string * form_ option) 
+    and block_ =
       | Block of string list 
-    and __Term =
-      | Rtarrow of (__Term * __Term) 
-      | Ltarrow of (__Term * __Term) 
+    and term_ =
+      | Rtarrow of (term_ * term_) 
+      | Ltarrow of (term_ * term_) 
       | Type 
       | Id of string 
-      | Pi of (__Dec * __Term) 
-      | Fn of (__Dec * __Term) 
-      | App of (__Term * __Term) 
-      | Dot of (__Term * string) 
-      | Paren of __Term 
+      | Pi of (dec_ * term_) 
+      | Fn of (dec_ * term_) 
+      | App of (term_ * term_) 
+      | Dot of (term_ * string) 
+      | Paren of term_ 
       | Omit 
-      | Of of (__Term * __Term) 
-    and __Dec =
-      | Dec of (string * __Term) 
-  end ;;
+      | Of of (term_ * term_) 
+    and dec_ =
+      | Dec of (string * term_) 
+  end 

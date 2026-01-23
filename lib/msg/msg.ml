@@ -1,4 +1,3 @@
-
 module type MSG  =
   sig
     val message : string -> unit
@@ -10,4 +9,4 @@ module Msg : MSG =
     let messageFunc = ref default
     let rec setMessageFunc f = messageFunc := f
     let rec message s = (!) messageFunc s
-  end ;;
+  end 

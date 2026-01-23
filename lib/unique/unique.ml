@@ -1,11 +1,8 @@
-
 module type UNIQUE  =
   sig
     exception Error of string 
-    val checkUnique : IntSyn.cid -> ModeSyn.__ModeSpine -> unit
-  end;;
-
-
+    val checkUnique : (IntSyn.cid * ModeSyn.modeSpine_) -> unit
+  end
 
 
 module Unique(Unique:sig
@@ -34,259 +31,259 @@ module Unique(Unique:sig
     module N = Names
     module T = Tomega
     let rec chatter chlev f =
-      if (!Global.chatter) >= chlev then print (f ()) else ()
-    let rec cName cid = N.qidToString (N.constQid cid)
-    let rec pName __0__ __1__ =
-      match (__0__, __1__) with
-      | (cid, Some x) -> (((^) "#" cName cid) ^ "_") ^ x
-      | (cid, None) -> ((^) "#" cName cid) ^ "_?"
-    let rec instEVars __2__ __3__ =
-      match (__2__, __3__) with
-      | (__G, (Pi ((Dec (_, __V1), _), __V2), s)) ->
-          let __X1 = I.newEVar (__G, (I.EClo (__V1, s))) in
-          instEVars (__G, (__V2, (I.Dot ((I.Exp __X1), s))))
-      | (__G, ((Root _, _) as Vs)) -> __Vs
-    let rec createEVarSub __4__ __5__ =
-      match (__4__, __5__) with
-      | (__G, I.Null) -> I.Shift (I.ctxLength __G)
-      | (__G, Decl (__G', (Dec (_, __V) as D))) ->
-          let s = createEVarSub (__G, __G') in
-          let __V' = I.EClo (__V, s) in
-          let __X = I.newEVar (__G, __V') in I.Dot ((I.Exp __X), s)
-    let rec unifiable (__G) (__U, s) (__U', s') =
-      Unify.unifiable (__G, (__U, s), (__U', s'))
-    let rec unifiableSpines __6__ __7__ __8__ __9__ =
-      match (__6__, __7__, __8__, __9__) with
-      | (__G, (I.Nil, s), (I.Nil, s'), M.Mnil) -> true
-      | (__G, (App (__U1, __S2), s), (App (U1', S2'), s'), Mapp
-         (Marg (M.Plus, _), ms2)) ->
-          (unifiable (__G, (__U1, s), (U1', s'))) &&
-            (unifiableSpines (__G, (__S2, s), (S2', s'), ms2))
-      | (__G, (App (__U1, __S2), s), (App (U1', S2'), s'), Mapp
-         (Marg (mode, _), ms2)) ->
-          unifiableSpines (__G, (__S2, s), (S2', s'), ms2)(* skip output ( - ) or ignore ( * ) arguments *)
-    let rec unifiableRoots (__G) (Root (Const a, __S), s)
-      (Root (Const a', __S'), s') ms =
-      (a = a') && (unifiableSpines (__G, (__S, s), (__S', s'), ms))
-    let rec checkNotUnifiableTypes (__G) (__Vs) (__Vs') ms (bx, by) =
-      chatter 6
-        (fun () -> ((^) (((^) "?- " pName bx) ^ " ~ ") pName by) ^ "\n");
-      CSManager.trail
-        (fun () ->
-           if unifiableRoots (__G, __Vs, __Vs', ms)
-           then
-             raise
-               (Error
-                  (((^) (((^) "Blocks " pName bx) ^ " and ") pName by) ^
-                     " overlap"))
-           else ())
-    let rec checkDiffConstConst (Const cid) (Const cid') ms =
+      if !Global.chatter >= chlev then begin print (f ()) end
+      else begin () end
+  let rec cName cid = N.qidToString (N.constQid cid)
+  let rec pName =
+    begin function
+    | (cid, Some x) -> (((^) "#" cName cid) ^ "_") ^ x
+    | (cid, None) -> ((^) "#" cName cid) ^ "_?" end
+let rec instEVars =
+  begin function
+  | (g_, (Pi ((Dec (_, v1_), _), v2_), s)) ->
+      let x1_ = I.newEVar (g_, (I.EClo (v1_, s))) in
+      instEVars (g_, (v2_, (I.Dot ((I.Exp x1_), s))))
+  | (g_, ((Root _, _) as vs_)) -> vs_ end
+let rec createEVarSub =
+  begin function
+  | (g_, I.Null) -> I.Shift (I.ctxLength g_)
+  | (g_, Decl (g'_, (Dec (_, v_) as d_))) ->
+      let s = createEVarSub (g_, g'_) in
+      let v'_ = I.EClo (v_, s) in
+      let x_ = I.newEVar (g_, v'_) in I.Dot ((I.Exp x_), s) end
+let rec unifiable (g_, (u_, s), (u'_, s')) =
+  Unify.unifiable (g_, (u_, s), (u'_, s'))
+let rec unifiableSpines =
+  begin function
+  | (g_, (I.Nil, s), (I.Nil, s'), M.Mnil) -> true
+  | (g_, (App (u1_, s2_), s), (App (U1', S2'), s'), Mapp
+     (Marg (M.Plus, _), ms2)) ->
+      (unifiable (g_, (u1_, s), (U1', s'))) &&
+        (unifiableSpines (g_, (s2_, s), (S2', s'), ms2))
+  | (g_, (App (u1_, s2_), s), (App (U1', S2'), s'), Mapp
+     (Marg (mode, _), ms2)) -> unifiableSpines (g_, (s2_, s), (S2', s'), ms2) end
+(* skip output ( - ) or ignore ( * ) arguments *)
+let rec unifiableRoots
+  (g_, (Root (Const a, s_), s), (Root (Const a', s'_), s'), ms) =
+  (a = a') && (unifiableSpines (g_, (s_, s), (s'_, s'), ms))
+let rec checkNotUnifiableTypes (g_, vs_, vs'_, ms, (bx, by)) =
+  begin chatter 6
+          (begin function
+           | () -> ((^) (((^) "?- " pName bx) ^ " ~ ") pName by) ^ "\n" end);
+  CSManager.trail
+    (begin function
+     | () ->
+         if unifiableRoots (g_, vs_, vs'_, ms)
+         then
+           begin raise
+                   (Error
+                      (((^) (((^) "Blocks " pName bx) ^ " and ") pName by) ^
+                         " overlap")) end
+         else begin () end end) end
+let rec checkDiffConstConst (Const cid, Const cid', ms) =
+  let _ =
+    chatter 6
+      (begin function
+       | () -> ((^) (((^) "?- " cName cid) ^ " ~ ") cName cid') ^ "\n" end) in
+let vs_ = instEVars (I.Null, ((I.constType cid), I.id)) in
+let vs'_ = instEVars (I.Null, ((I.constType cid'), I.id)) in
+let _ =
+  CSManager.trail
+    (begin function
+     | () ->
+         if unifiableRoots (I.Null, vs_, vs'_, ms)
+         then
+           begin raise
+                   (Error
+                      (((^) (((^) "Constants " cName cid) ^ " and ") cName
+                          cid')
+                         ^ " overlap\n")) end
+         else begin () end end) in
+()
+let rec checkUniqueConstConsts =
+  begin function
+  | (c, [], ms) -> ()
+  | (c, c'::cs', ms) ->
+      (begin checkDiffConstConst (c, c', ms);
+       checkUniqueConstConsts (c, cs', ms) end) end
+let rec checkUniqueConsts =
+  begin function
+  | ([], ms) -> ()
+  | (c::cs, ms) ->
+      (begin checkUniqueConstConsts (c, cs, ms); checkUniqueConsts (cs, ms) end) end
+let rec checkDiffBlocksInternal =
+  begin function
+  | (g_, vs_, (t, []), (a, ms), bx) -> ()
+  | (g_, (v_, s), (t, (Dec (yOpt, v'_) as d_)::piDecs), (a, ms), (b, xOpt))
+      ->
+      let a' = I.targetFam v'_ in
+      let _ =
+        if a = a'
+        then
+          begin checkNotUnifiableTypes
+                  (g_, (v_, s), (instEVars (g_, (v'_, t))), ms,
+                    ((b, xOpt), (b, yOpt))) end
+        else begin () end in
+    checkDiffBlocksInternal
+      ((I.Decl (g_, d_)), (v_, (I.comp (s, I.shift))), ((I.dot1 t), piDecs),
+        (a, ms), (b, xOpt)) end
+let rec checkUniqueBlockInternal' =
+  begin function
+  | (g_, (t, []), (a, ms), b) -> ()
+  | (g_, (t, (Dec (xOpt, v_) as d_)::piDecs), (a, ms), b) ->
+      let a' = I.targetFam v_ in
+      let _ =
+        if a = a'
+        then
+          begin let (v'_, s) = instEVars (g_, (v_, t)) in
+                checkDiffBlocksInternal
+                  ((I.Decl (g_, d_)), (v'_, (I.comp (s, I.shift))),
+                    ((I.dot1 t), piDecs), (a, ms), (b, xOpt)) end
+        else begin () end in
+    checkUniqueBlockInternal'
+      ((I.Decl (g_, d_)), ((I.dot1 t), piDecs), (a, ms), b) end
+let rec checkUniqueBlockInternal ((Gsome, piDecs), (a, ms), b) =
+  let t = createEVarSub (I.Null, Gsome) in
+  ((checkUniqueBlockInternal' (I.Null, (t, piDecs), (a, ms), b))
+    (* . |- t : Gsome *))
+let rec checkUniqueBlockConsts =
+  begin function
+  | (g_, vs_, [], ms, bx) -> ()
+  | (g_, vs_, (Const cid)::cs, ms, bx) ->
       let _ =
         chatter 6
-          (fun () -> ((^) (((^) "?- " cName cid) ^ " ~ ") cName cid') ^ "\n") in
-      let __Vs = instEVars (I.Null, ((I.constType cid), I.id)) in
-      let __Vs' = instEVars (I.Null, ((I.constType cid'), I.id)) in
-      let _ =
-        CSManager.trail
-          (fun () ->
-             if unifiableRoots (I.Null, __Vs, __Vs', ms)
+          (begin function
+           | () -> ((^) (((^) "?- " pName bx) ^ " ~ ") cName cid) ^ "\n" end) in
+    let vs'_ = instEVars (g_, ((I.constType cid), I.id)) in
+    let _ =
+      CSManager.trail
+        (begin function
+         | () ->
+             if unifiableRoots (g_, vs_, vs'_, ms)
              then
-               raise
-                 (Error
-                    (((^) (((^) "Constants " cName cid) ^ " and ") cName cid')
-                       ^ " overlap\n"))
-             else ()) in
-      ()
-    let rec checkUniqueConstConsts __10__ __11__ __12__ =
-      match (__10__, __11__, __12__) with
-      | (c, nil, ms) -> ()
-      | (c, c'::cs', ms) ->
-          (checkDiffConstConst (c, c', ms);
-           checkUniqueConstConsts (c, cs', ms))
-    let rec checkUniqueConsts __13__ __14__ =
-      match (__13__, __14__) with
-      | (nil, ms) -> ()
-      | (c::cs, ms) ->
-          (checkUniqueConstConsts (c, cs, ms); checkUniqueConsts (cs, ms))
-    let rec checkDiffBlocksInternal __15__ __16__ __17__ __18__ __19__ =
-      match (__15__, __16__, __17__, __18__, __19__) with
-      | (__G, __Vs, (t, nil), (a, ms), bx) -> ()
-      | (__G, (__V, s), (t, (Dec (yOpt, __V') as D)::piDecs), (a, ms),
-         (b, xOpt)) ->
-          let a' = I.targetFam __V' in
-          let _ =
-            if a = a'
-            then
-              checkNotUnifiableTypes
-                (__G, (__V, s), (instEVars (__G, (__V', t))), ms,
-                  ((b, xOpt), (b, yOpt)))
-            else () in
-          checkDiffBlocksInternal
-            ((I.Decl (__G, __D)), (__V, (I.comp (s, I.shift))),
-              ((I.dot1 t), piDecs), (a, ms), (b, xOpt))
-    let rec checkUniqueBlockInternal' __20__ __21__ __22__ __23__ =
-      match (__20__, __21__, __22__, __23__) with
-      | (__G, (t, nil), (a, ms), b) -> ()
-      | (__G, (t, (Dec (xOpt, __V) as D)::piDecs), (a, ms), b) ->
-          let a' = I.targetFam __V in
-          let _ =
-            if a = a'
-            then
-              let (__V', s) = instEVars (__G, (__V, t)) in
-              checkDiffBlocksInternal
-                ((I.Decl (__G, __D)), (__V', (I.comp (s, I.shift))),
-                  ((I.dot1 t), piDecs), (a, ms), (b, xOpt))
-            else () in
-          checkUniqueBlockInternal'
-            ((I.Decl (__G, __D)), ((I.dot1 t), piDecs), (a, ms), b)
-    let rec checkUniqueBlockInternal (Gsome, piDecs) (a, ms) b =
-      let t = createEVarSub (I.Null, Gsome) in
-      ((checkUniqueBlockInternal' (I.Null, (t, piDecs), (a, ms), b))
-        (* . |- t : Gsome *))
-    let rec checkUniqueBlockConsts __24__ __25__ __26__ __27__ __28__ =
-      match (__24__, __25__, __26__, __27__, __28__) with
-      | (__G, __Vs, nil, ms, bx) -> ()
-      | (__G, __Vs, (Const cid)::cs, ms, bx) ->
-          let _ =
-            chatter 6
-              (fun () ->
-                 ((^) (((^) "?- " pName bx) ^ " ~ ") cName cid) ^ "\n") in
-          let __Vs' = instEVars (__G, ((I.constType cid), I.id)) in
-          let _ =
-            CSManager.trail
-              (fun () ->
-                 if unifiableRoots (__G, __Vs, __Vs', ms)
-                 then
-                   raise
-                     (Error
-                        (((^) (((^) "Block " pName bx) ^ " and constant ")
-                            cName cid)
-                           ^ " overlap"))
-                 else ()) in
-          checkUniqueBlockConsts (__G, __Vs, cs, ms, bx)
-    let rec checkUniqueBlockBlock __29__ __30__ __31__ __32__ __33__ =
-      match (__29__, __30__, __31__, __32__, __33__) with
-      | (__G, __Vs, (t, nil), (a, ms), (bx, b')) -> ()
-      | (__G, (__V, s), (t, (Dec (yOpt, __V') as D)::piDecs), (a, ms),
-         (bx, b')) ->
-          let a' = I.targetFam __V' in
-          let _ =
-            if a = a'
-            then
-              checkNotUnifiableTypes
-                (__G, (__V, s), (instEVars (__G, (__V', t))), ms,
-                  (bx, (b', yOpt)))
-            else () in
-          checkUniqueBlockBlock
-            ((I.Decl (__G, __D)), (__V, (I.comp (s, I.shift))),
-              ((I.dot1 t), piDecs), (a, ms), (bx, b'))
-    let rec checkUniqueBlockBlocks __34__ __35__ __36__ __37__ __38__ =
-      match (__34__, __35__, __36__, __37__, __38__) with
-      | (__G, __Vs, nil, (a, ms), bx) -> ()
-      | (__G, __Vs, b::bs, (a, ms), bx) ->
-          let (Gsome, piDecs) = I.constBlock b in
-          let t = createEVarSub (__G, Gsome) in
-          let _ =
-            checkUniqueBlockBlock (__G, __Vs, (t, piDecs), (a, ms), (bx, b)) in
-          checkUniqueBlockBlocks (__G, __Vs, bs, (a, ms), bx)
-    let rec checkUniqueBlock' __39__ __40__ __41__ __42__ __43__ __44__ =
-      match (__39__, __40__, __41__, __42__, __43__, __44__) with
-      | (__G, (t, nil), bs, cs, (a, ms), b) -> ()
-      | (__G, (t, (Dec (xOpt, __V) as D)::piDecs), bs, cs, (a, ms), b) ->
-          let a' = I.targetFam __V in
-          let _ =
-            if a = a'
-            then
-              let (__V', s) = instEVars (__G, (__V, t)) in
-              let _ =
-                checkUniqueBlockBlocks
-                  (__G, (__V', s), bs, (a, ms), (b, xOpt)) in
-              let _ =
-                checkUniqueBlockConsts (__G, (__V', s), cs, ms, (b, xOpt)) in
-              ()
-            else () in
-          checkUniqueBlock'
-            ((I.Decl (__G, __D)), ((I.dot1 t), piDecs), bs, cs, (a, ms), b)
-    let rec checkUniqueBlock (Gsome, piDecs) bs cs (a, ms) b =
-      let t = createEVarSub (I.Null, Gsome) in
-      checkUniqueBlock' (I.Null, (t, piDecs), bs, cs, (a, ms), b)
-    let rec checkUniqueWorlds __45__ __46__ __47__ =
-      match (__45__, __46__, __47__) with
-      | (nil, cs, (a, ms)) -> ()
-      | (b::bs, cs, (a, ms)) ->
-          (checkUniqueBlockInternal ((I.constBlock b), (a, ms), b);
-           checkUniqueBlock ((I.constBlock b), (b :: bs), cs, (a, ms), b);
-           checkUniqueWorlds (bs, cs, (a, ms)))
-    let rec checkNoDef a =
-      match I.sgnLookup a with
-      | ConDef _ ->
-          raise
-            (Error
-               (((^) "Uniqueness checking " cName a) ^
-                  ":\ntype family must not be defined."))
-      | _ -> ()
-    let rec checkUnique a ms =
+               begin raise
+                       (Error
+                          (((^) (((^) "Block " pName bx) ^ " and constant ")
+                              cName cid)
+                             ^ " overlap")) end
+             else begin () end end) in
+checkUniqueBlockConsts (g_, vs_, cs, ms, bx) end
+let rec checkUniqueBlockBlock =
+  begin function
+  | (g_, vs_, (t, []), (a, ms), (bx, b')) -> ()
+  | (g_, (v_, s), (t, (Dec (yOpt, v'_) as d_)::piDecs), (a, ms), (bx, b')) ->
+      let a' = I.targetFam v'_ in
       let _ =
-        chatter 4
-          (fun () -> ((^) "Uniqueness checking family " cName a) ^ "\n") in
-      let _ = checkNoDef a in
+        if a = a'
+        then
+          begin checkNotUnifiableTypes
+                  (g_, (v_, s), (instEVars (g_, (v'_, t))), ms,
+                    (bx, (b', yOpt))) end
+        else begin () end in
+    checkUniqueBlockBlock
+      ((I.Decl (g_, d_)), (v_, (I.comp (s, I.shift))), ((I.dot1 t), piDecs),
+        (a, ms), (bx, b')) end
+let rec checkUniqueBlockBlocks =
+  begin function
+  | (g_, vs_, [], (a, ms), bx) -> ()
+  | (g_, vs_, b::bs, (a, ms), bx) ->
+      let (Gsome, piDecs) = I.constBlock b in
+      let t = createEVarSub (g_, Gsome) in
+      let _ = checkUniqueBlockBlock (g_, vs_, (t, piDecs), (a, ms), (bx, b)) in
+      checkUniqueBlockBlocks (g_, vs_, bs, (a, ms), bx) end
+let rec checkUniqueBlock' =
+  begin function
+  | (g_, (t, []), bs, cs, (a, ms), b) -> ()
+  | (g_, (t, (Dec (xOpt, v_) as d_)::piDecs), bs, cs, (a, ms), b) ->
+      let a' = I.targetFam v_ in
       let _ =
-        try Subordinate.checkNoDef a
-        with
-        | Error msg ->
-            raise
-              (Error ((((^) "Coverage checking " cName a) ^ ":\n") ^ msg)) in
-      let cs = Index.lookup a in
-      let Worlds bs =
-        ((try W.lookup a
-          with
-          | Error msg ->
-              raise
-                (Error
-                   ((^) (((^) "Uniqueness checking " cName a) ^
-                           ":\nMissing world declaration for ")
-                      cName a)))
-        (* worlds declarations for a *)) in
-      let _ =
-        try checkUniqueConsts (cs, ms)
-        with
-        | Error msg ->
-            raise
-              (Error ((((^) "Uniqueness checking " cName a) ^ ":\n") ^ msg)) in
-      let _ =
-        try checkUniqueWorlds (bs, cs, (a, ms))
-        with
-        | Error msg ->
-            raise
-              (Error ((((^) "Uniqueness checking " cName a) ^ ":\n") ^ msg)) in
-      let _ =
-        chatter 5
-          (fun () ->
-             ((^) "Checking uniqueness modes for family " cName a) ^ "\n") in
-      let _ =
-        try UniqueCheck.checkMode (a, ms)
-        with
-        | Error msg ->
-            raise
-              (Error
-                 ((((^) "Uniqueness mode checking " cName a) ^ ":\n") ^ msg)) in
-      ((())(* lookup constants defining a *))
-  end ;;
-
+        if a = a'
+        then
+          begin let (v'_, s) = instEVars (g_, (v_, t)) in
+                let _ =
+                  checkUniqueBlockBlocks
+                    (g_, (v'_, s), bs, (a, ms), (b, xOpt)) in
+                let _ =
+                  checkUniqueBlockConsts (g_, (v'_, s), cs, ms, (b, xOpt)) in
+                () end
+        else begin () end in
+    checkUniqueBlock'
+      ((I.Decl (g_, d_)), ((I.dot1 t), piDecs), bs, cs, (a, ms), b) end
+let rec checkUniqueBlock ((Gsome, piDecs), bs, cs, (a, ms), b) =
+  let t = createEVarSub (I.Null, Gsome) in
+  checkUniqueBlock' (I.Null, (t, piDecs), bs, cs, (a, ms), b)
+let rec checkUniqueWorlds =
+  begin function
+  | ([], cs, (a, ms)) -> ()
+  | (b::bs, cs, (a, ms)) ->
+      (begin checkUniqueBlockInternal ((I.constBlock b), (a, ms), b);
+       checkUniqueBlock ((I.constBlock b), (b :: bs), cs, (a, ms), b);
+       checkUniqueWorlds (bs, cs, (a, ms)) end) end
+let rec checkNoDef a =
+  begin match I.sgnLookup a with
+  | ConDef _ ->
+      raise
+        (Error
+           (((^) "Uniqueness checking " cName a) ^
+              ":\ntype family must not be defined."))
+  | _ -> () end
+let rec checkUnique (a, ms) =
+  let _ =
+    chatter 4
+      (begin function
+       | () -> ((^) "Uniqueness checking family " cName a) ^ "\n" end) in
+let _ = checkNoDef a in
+let _ =
+  begin try Subordinate.checkNoDef a
+  with
+  | Error msg ->
+      raise (Error ((((^) "Coverage checking " cName a) ^ ":\n") ^ msg)) end in
+let cs = Index.lookup a in
+let Worlds bs =
+  ((begin try W.lookup a
+    with
+    | Error msg ->
+        raise
+          (Error
+             ((^) (((^) "Uniqueness checking " cName a) ^
+                     ":\nMissing world declaration for ")
+                cName a)) end)
+  (* worlds declarations for a *)) in
+let _ =
+  begin try checkUniqueConsts (cs, ms)
+  with
+  | Error msg ->
+      raise (Error ((((^) "Uniqueness checking " cName a) ^ ":\n") ^ msg)) end in
+let _ =
+  begin try checkUniqueWorlds (bs, cs, (a, ms))
+  with
+  | Error msg ->
+      raise (Error ((((^) "Uniqueness checking " cName a) ^ ":\n") ^ msg)) end in
+let _ =
+  chatter 5
+    (begin function
+     | () -> ((^) "Checking uniqueness modes for family " cName a) ^ "\n" end) in
+let _ =
+  begin try UniqueCheck.checkMode (a, ms)
+  with
+  | Error msg ->
+      raise
+        (Error ((((^) "Uniqueness mode checking " cName a) ^ ":\n") ^ msg)) end in
+((())(* lookup constants defining a *)) end
 
 
 
 module UniqueTable =
-  (Make_ModeTable)(struct module Table = IntRedBlackTree end)
+  (ModeTable)(struct module Table = IntRedBlackTree end)
 module UniqueCheck =
-  (Make_ModeCheck)(struct
+  (ModeCheck)(struct
                      module ModeTable = UniqueTable
                      module Whnf = Whnf
                      module Index = Index
                      module Origins = Origins
                    end)
 module Unique =
-  (Make_Unique)(struct
+  (Unique)(struct
                   module Global = Global
                   module Whnf = Whnf
                   module Abstract = Abstract
@@ -301,4 +298,4 @@ module Unique =
                   module Print = Print
                   module TypeCheck = TypeCheck
                   module Timers = Timers
-                end);;
+                end)

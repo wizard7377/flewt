@@ -1,6 +1,5 @@
-
 module ReconTerm =
-  (Make_ReconTerm)(struct
+  (ReconTerm)(struct
                      module Names = Names
                      module Approx = Approx
                      module Whnf = Whnf
@@ -11,7 +10,7 @@ module ReconTerm =
                      module Msg = Msg
                    end)
 module ReconConDec =
-  (Make_ReconConDec)(struct
+  (ReconConDec)(struct
                        module Global = Global
                        module Names = Names
                        module Abstract = Abstract
@@ -24,7 +23,7 @@ module ReconConDec =
                        module Msg = Msg
                      end)
 module ReconQuery =
-  (Make_ReconQuery)(struct
+  (ReconQuery)(struct
                       module Global = Global
                       module Names = Names
                       module Abstract = Abstract
@@ -35,7 +34,7 @@ module ReconQuery =
                       module Print = Print
                     end)
 module ReconMode =
-  (Make_ReconMode)(struct
+  (ReconMode)(struct
                      module Global = Global
                      module Whnf = Whnf
                      module Names = Names
@@ -44,7 +43,7 @@ module ReconMode =
                      module ReconTerm' = ReconTerm
                    end)
 module ReconThm =
-  (Make_ReconThm)(struct
+  (ReconThm)(struct
                     module Global = Global
                     module IntSyn = IntSyn
                     module Abstract = Abstract
@@ -55,7 +54,7 @@ module ReconThm =
                     module Print = Print
                   end)
 module ReconModule =
-  (Make_ReconModule)(struct
+  (ReconModule)(struct
                        module Global = Global
                        module IntSyn = IntSyn
                        module Names = Names
@@ -64,36 +63,36 @@ module ReconModule =
                        module IntTree = IntRedBlackTree
                      end)
 module ParseTerm =
-  (Make_ParseTerm)(struct module ExtSyn' = ReconTerm
+  (ParseTerm)(struct module ExtSyn' = ReconTerm
                           module Names = Names end)
 module ParseConDec =
-  (Make_ParseConDec)(struct
+  (ParseConDec)(struct
                        module ExtConDec' = ReconConDec
                        module ParseTerm = ParseTerm
                      end)
 module ParseQuery =
-  (Make_ParseQuery)(struct
+  (ParseQuery)(struct
                       module ExtQuery' = ReconQuery
                       module ParseTerm = ParseTerm
                     end)
-module ParseFixity = (Make_ParseFixity)(struct module Names' = Names end)
+module ParseFixity = (ParseFixity)(struct module Names' = Names end)
 module ParseMode =
-  (Make_ParseMode)(struct
+  (ParseMode)(struct
                      module ExtModes' = ReconMode
                      module ParseTerm = ParseTerm
                    end)
 module ParseThm =
-  (Make_ParseThm)(struct
+  (ParseThm)(struct
                     module ThmExtSyn' = ReconThm
                     module ParseTerm = ParseTerm
                   end)
 module ParseModule =
-  (Make_ParseModule)(struct
+  (ParseModule)(struct
                        module ModExtSyn' = ReconModule
                        module ParseTerm = ParseTerm
                      end)
 module Parser =
-  (Make_Parser)(struct
+  (Parser)(struct
                   module Stream' = Stream
                   module ExtSyn' = ReconTerm
                   module Names' = Names
@@ -111,7 +110,7 @@ module Parser =
                   module ParseTerm = ParseTerm
                 end)
 module Solve =
-  (Make_Solve)(struct
+  (Solve)(struct
                  module Global = Global
                  module Names = Names
                  module Parser = Parser
@@ -128,7 +127,7 @@ module Solve =
                  module Msg = Msg
                end)
 module Fquery =
-  (Make_Fquery)(struct
+  (Fquery)(struct
                   module Global = Global
                   module Names = Names
                   module ReconQuery = ReconQuery
@@ -136,7 +135,7 @@ module Fquery =
                   module Print = Print
                 end)
 module Twelf =
-  (Make_Twelf)(struct
+  (Twelf)(struct
                  module Global = Global
                  module Timers = Timers
                  module Whnf = Whnf
@@ -197,4 +196,4 @@ module Twelf =
                  module Compat = Compat
                  module UnknownExn = UnknownExn
                  module Msg = Msg
-               end);;
+               end)
